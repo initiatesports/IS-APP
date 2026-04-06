@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<meta name="theme-color" content="#111111">
+<title>IS 出席系統</title>
+
+<style>
+:root {
+  --cyan: #3ECFCF;
+  --cyan-dim: rgba(62,207,207,0.15);
+  --bg: #111;
+  --surface: #1c1c1c;
+  --surface2: #252525;
+  --border: rgba(255,255,255,0.08);
+  --text: #f0f0f0;
+  --muted: rgba(255,255,255,0.45);
+  --green: #34d399;
+  --green-dim: rgba(52,211,153,0.15);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.15);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.15);
+  --amber: #fbbf24;
+  --amber-dim: rgba(251,191,36,0.12);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html {
+  color-scheme: dark;
+  background: #111;
+}
+
+html, body {
+  height: 100%;
+  background: #111 !important;
+  color: var(--text);
+  font-family: -apple-system, "PingFang HK", "PingFang TC", "Microsoft JhengHei", "Noto Sans HK", sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ─── LAYOUT ─── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ─── HEADER ─── */
+.app-header {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--safe-top) + 12px) 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.header-back {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.header-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-title h1 {
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-title p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.header-action {
+  flex-shrink: 0;
+}
+
+/* ─── BOTTOM NAV ─── */
+.bottom-nav {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding-bottom: var(--safe-bot);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.nav-item.active { color: var(--cyan); }
+
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label { font-size: 10px; font-weight: 500; }
+
+.nav-badge {
+  position: relative;
+}
+.nav-badge::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -4px; right: -8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  display: none;
+}
+.nav-badge[data-count]:not([data-count="0"])::after { display: block; }
+
+/* ─── SCROLL CONTENT ─── */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── SCREENS ─── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ─── HOME ─── */
+.home-greeting {
+  padding: 20px 16px 8px;
+}
+.home-greeting h2 {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--cyan);
+}
+.home-greeting p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+.stat-card .num {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--text);
+}
+.stat-card .num.warn { color: var(--amber); }
+.stat-card .num.danger { color: var(--red); }
+.stat-card .num.ok { color: var(--green); }
+.stat-card .lbl {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.section-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 16px 16px 8px;
+}
+
+.class-list { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.class-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.class-row:active { background: var(--surface2); border-color: var(--cyan); }
+
+.class-day-pill {
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.class-row-info { flex: 1; min-width: 0; }
+.class-row-info h3 { font-size: 15px; font-weight: 700; }
+.class-row-info p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.class-row-arrow { color: var(--muted); font-size: 18px; }
+
+.class-pending-badge {
+  background: var(--amber-dim);
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+/* ─── ROLL CALL ─── */
+/* ─── DATE PICKER ─── */
+.date-picker-wrap {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0 0;
+  flex-shrink: 0;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 8px;
+}
+
+.month-nav-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.month-nav-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 18px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.month-nav-btn:active { background: var(--surface); }
+
+.date-pills-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.date-pills-row::-webkit-scrollbar { display: none; }
+
+.date-pill {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  min-width: 52px;
+}
+.date-pill:active { transform: scale(0.95); }
+
+.date-pill.today {
+  border-color: rgba(62,207,207,0.5);
+  background: var(--cyan-dim);
+}
+
+.date-pill.selected {
+  border-color: var(--cyan);
+  background: var(--cyan);
+}
+
+.date-pill.selected .dp-day,
+.date-pill.selected .dp-date { color: #111; }
+
+.date-pill.saved::after {
+  content: '✓';
+  position: absolute;
+  top: -6px; right: -6px;
+  background: var(--green);
+  color: #111;
+  font-size: 9px;
+  font-weight: 900;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--bg);
+}
+
+.date-pill.future {
+  opacity: 0.45;
+}
+
+.dp-day {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dp-date {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+}
+
+.roll-info-bar {
+  background: var(--cyan-dim);
+  border-bottom: 1px solid rgba(62,207,207,0.2);
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.already-saved-bar {
+  background: var(--amber-dim);
+  border-bottom: 1px solid rgba(251,191,36,0.2);
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-list { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+
+.student-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+
+.student-card.is-absent  { border-color: var(--red); background: var(--red-dim); }
+.student-card.is-makeup  { border-color: var(--purple); background: var(--purple-dim); }
+.student-card.is-present { border-color: var(--green); }
+
+.student-name-wrap { flex: 1; min-width: 0; }
+.student-name { font-size: 16px; font-weight: 700; }
+.student-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.student-sub.warn { color: var(--amber); }
+.student-sub.danger { color: var(--red); }
+
+.student-btns { display: flex; gap: 5px; flex-shrink: 0; }
+
+.s-btn {
+  width: 40px; height: 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.s-btn:active { transform: scale(0.9); }
+.s-btn.sel-present { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+.s-btn.sel-absent  { background: var(--red-dim);   border-color: var(--red);   color: var(--red); }
+.s-btn.sel-makeup  { background: var(--purple-dim); border-color: var(--purple); color: var(--purple); }
+
+/* save bar */
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 16px calc(10px + var(--safe-bot));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-save {
+  flex: 1;
+  background: var(--cyan);
+  color: #111;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-save:active { opacity: 0.8; }
+
+.save-count {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+.save-count span { color: var(--red); font-weight: 700; }
+
+/* ─── MAKEUP LOG ─── */
+.makeup-section { padding: 0 12px 16px; }
+
+.makeup-filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.makeup-filter-bar::-webkit-scrollbar { display: none; }
+
+.filter-pill {
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.filter-pill.active {
+  background: var(--cyan-dim);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.makeup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.makeup-card.overdue { border-color: rgba(248,113,113,0.4); }
+.makeup-card.urgent  { border-color: rgba(251,191,36,0.4); }
+.makeup-card.done    { opacity: 0.5; }
+
+.makeup-card-left { flex: 1; min-width: 0; }
+.makeup-name { font-size: 16px; font-weight: 700; }
+.makeup-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.makeup-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  margin-top: 6px;
+}
+.makeup-deadline.ok      { background: var(--green-dim); color: var(--green); }
+.makeup-deadline.urgent  { background: var(--amber-dim); color: var(--amber); }
+.makeup-deadline.overdue { background: var(--red-dim);   color: var(--red); }
+.makeup-deadline.done    { background: var(--cyan-dim);  color: var(--cyan); }
+
+.makeup-card-action {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.btn-makeup-done {
+  background: var(--purple-dim);
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-makeup-done:active { opacity: 0.7; }
+
+/* ─── PARENT SEARCH ─── */
+.parent-search-wrap {
+  padding: 16px;
+}
+
+.search-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--cyan); }
+
+.btn-search {
+  background: var(--cyan);
+  color: #111;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+.btn-search:active { opacity: 0.8; }
+
+.search-result-area { padding: 0 16px 100px; }
+
+.parent-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--cyan);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.parent-card.p-urgent { border-left-color: var(--red); }
+.parent-card.p-zero   { border-left-color: rgba(62,207,207,0.3); }
+
+.parent-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.parent-name { font-size: 20px; font-weight: 900; }
+.parent-class { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.parent-big-num {
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--amber);
+  text-align: right;
+}
+.parent-big-num.urgent { color: var(--red); }
+.parent-big-num.zero   { color: rgba(62,207,207,0.4); }
+.parent-big-label { font-size: 11px; color: var(--muted); text-align: right; }
+
+.parent-abs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+}
+.parent-abs-date { font-size: 13px; font-weight: 500; }
+.parent-abs-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.parent-abs-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.pill-ok     { background: var(--green-dim); color: var(--green); }
+.pill-urgent { background: var(--amber-dim); color: var(--amber); }
+.pill-over   { background: var(--red-dim);   color: var(--red); }
+
+.all-good-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--green);
+  font-size: 14px;
+}
+
+.no-result {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ─── TOAST ─── */
+#toast {
+  position: fixed;
+  bottom: calc(70px + var(--safe-bot) + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  opacity: 0;
+  transition: all 0.25s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 9999;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── EMPTY STATES ─── */
+.empty-state {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 15px; line-height: 1.6; }
+
+/* ─── HISTORY DETAIL ─── */
+.history-session {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.history-session-header {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+.history-session-header h3 { font-size: 14px; font-weight: 700; }
+.history-session-header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.history-toggle { color: var(--muted); font-size: 18px; transition: transform 0.2s; }
+.history-session.open .history-toggle { transform: rotate(180deg); }
+.history-session-body { display: none; border-top: 1px solid var(--border); }
+.history-session.open .history-session-body { display: block; }
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.history-row:last-child { border-bottom: none; }
+
+/* ─── FEE SCREEN ─── */
+.fee-period-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.fee-period-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.fee-period-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fee-period-pills::-webkit-scrollbar { display: none; }
+.fee-period-pill {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.fee-period-pill.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #111;
+}
+
+.fee-class-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.fee-class-bar::-webkit-scrollbar { display: none; }
+.fee-class-pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.fee-class-pill.active {
+  background: var(--cyan-dim);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.fee-summary-card {
+  margin: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+.fee-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.fee-summary-class { font-size: 16px; font-weight: 800; }
+.fee-summary-meta  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.fee-big-num  { font-size: 36px; font-weight: 900; color: var(--cyan); line-height: 1; }
+.fee-big-label { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
+.fee-dates-row {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+/* Student fee rows */
+.fee-student-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s;
+}
+.fee-student-card.paid { border-color: var(--green); background: rgba(52,211,153,0.06); }
+.fee-student-name { flex: 1; font-size: 15px; font-weight: 700; }
+.fee-student-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.fee-student-sub.has-pending { color: var(--amber); }
+
+.btn-fee-confirm {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-fee-confirm.paid {
+  background: var(--green-dim);
+  border-color: var(--green);
+  color: var(--green);
+}
+.btn-fee-confirm:active { transform: scale(0.95); }
+
+.btn-gen-notice {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--cyan);
+  border-radius: 14px;
+  color: var(--cyan);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-gen-notice:active { background: var(--cyan-dim); }
+
+/* Notice card */
+.notice-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.btn-copy {
+  background: var(--cyan);
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+.btn-copy:active { opacity: 0.8; }
+.notice-text {
+  padding: 14px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HEADER -->
+  <div class="app-header" id="app-header">
+    <div class="header-back" id="header-back" onclick="goBack()" style="display:none">‹</div>
+    <div class="header-title">
+      <h1 id="header-title-text">IS 出席系統</h1>
+      <p id="header-subtitle-text">Initiate Sports</p>
+    </div>
+    <div class="header-action" id="header-action"></div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- ══ HOME ══ -->
+    <div class="screen active" id="screen-home">
+      <div class="home-greeting">
+        <h2 id="greeting-text">早晨 👋</h2>
+        <p id="greeting-date">載入中…</p>
+      </div>
+      <div class="stats-grid" id="home-stats"></div>
+      <div class="section-header">今日班別</div>
+      <div class="class-list" id="today-classes"></div>
+      <div class="section-header">所有班別</div>
+      <div class="class-list" id="all-classes"></div>
+    </div>
+
+    <!-- ══ ROLL CALL ══ -->
+    <div class="screen" id="screen-roll">
+      <!-- 月份切換 + 課堂日期列 -->
+      <div class="date-picker-wrap">
+        <div class="month-nav">
+          <button class="month-nav-btn" onclick="changeMonth(-1)">‹</button>
+          <span class="month-nav-label" id="month-nav-label"></span>
+          <button class="month-nav-btn" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="date-pills-row" id="date-pills-row"></div>
+      </div>
+      <div id="roll-already-saved" class="already-saved-bar" style="display:none">
+        ⚠ 此班別今日已有記錄，儲存將覆蓋
+      </div>
+      <div class="roll-info-bar" id="roll-info-bar">
+        💡 預設全部出席，只需標記請假或補堂
+      </div>
+      <div class="student-list" id="student-list"></div>
+      <div class="save-bar">
+        <div class="save-count" id="save-count-text">全員出席 ✓</div>
+        <button class="btn-save" onclick="saveRoll()">儲存點名</button>
+      </div>
+    </div>
+
+    <!-- ══ MAKEUP LOG ══ -->
+    <div class="screen" id="screen-makeup">
+      <div class="makeup-filter-bar" id="makeup-filters"></div>
+      <div class="makeup-section" id="makeup-list"></div>
+    </div>
+
+    <!-- ══ PARENT SEARCH ══ -->
+    <div class="screen" id="screen-parent">
+      <div class="parent-search-wrap">
+        <div class="search-input-row">
+          <input class="search-input" id="parent-input" type="text"
+            placeholder="例：陳小明、李小華…"
+            onkeydown="if(event.key==='Enter')doParentSearch()"
+            autocomplete="off">
+          <button class="btn-search" onclick="doParentSearch()">查詢</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px">輸入全名或部分姓名均可</p>
+      </div>
+      <div class="search-result-area" id="parent-results"></div>
+    </div>
+
+    <!-- ══ HISTORY ══ -->
+    <div class="screen" id="screen-history">
+      <div style="padding:0 12px 100px" id="history-list"></div>
+    </div>
+
+    <!-- ══ FEE ══ -->
+    <div class="screen" id="screen-fee">
+      <!-- 期數選擇 -->
+      <div class="fee-period-bar">
+        <div class="fee-period-label" id="fee-period-label">選擇期數</div>
+        <div class="fee-period-pills" id="fee-period-pills"></div>
+      </div>
+
+      <!-- 班別選擇 -->
+      <div class="fee-class-bar" id="fee-class-bar"></div>
+
+      <!-- 收費摘要 -->
+      <div class="fee-summary-card" id="fee-summary-card" style="display:none">
+        <div class="fee-summary-top">
+          <div>
+            <div class="fee-summary-class" id="fee-summary-class"></div>
+            <div class="fee-summary-meta" id="fee-summary-meta"></div>
+          </div>
+          <div style="text-align:right">
+            <div class="fee-big-num" id="fee-big-num"></div>
+            <div class="fee-big-label">HK$ / 人</div>
+          </div>
+        </div>
+        <div class="fee-dates-row" id="fee-dates-row"></div>
+      </div>
+
+      <!-- 學生收費列表 -->
+      <div id="fee-student-list" style="padding:0 12px 16px"></div>
+
+      <!-- 生成通知按鈕 -->
+      <div id="fee-notice-btn-wrap" style="padding:0 12px 12px;display:none">
+        <button class="btn-gen-notice" onclick="genNotice()">📣 生成 WhatsApp 收費通知</button>
+      </div>
+
+      <!-- 通知文案 -->
+      <div id="fee-notice-wrap" style="display:none;padding:0 12px 100px">
+        <div class="notice-card">
+          <div class="notice-header">
+            <span>收費通知文案</span>
+            <button class="btn-copy" onclick="copyNotice()">複製</button>
+          </div>
+          <pre class="notice-text" id="notice-text"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end scroll-area -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showScreen('home')" id="nav-home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">首頁</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('makeup')" id="nav-makeup">
+      <span class="nav-icon" id="makeup-badge">📋</span>
+      <span class="nav-label">補堂</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('fee')" id="nav-fee">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">收費</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('parent')" id="nav-parent">
+      <span class="nav-icon">👪</span>
+      <span class="nav-label">家長</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('history')" id="nav-history">
+      <span class="nav-icon">🗂</span>
+      <span class="nav-label">記錄</span>
+    </button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════
+const CLASSES = {
+  c1: { label:'星期一 5:00–6:00 PM', day:'Mon', dayZh:'星期一', time:'5–6pm',
+        students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','陳書雅','許思溢','梁心朗'] },
+  c2: { label:'星期一 6:00–7:00 PM', day:'Mon', dayZh:'星期一', time:'6–7pm',
+        students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢','蘇穎悠'] },
+  c3: { label:'星期三 5:00–6:00 PM', day:'Wed', dayZh:'星期三', time:'5–6pm',
+        students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允'] },
+  c4: { label:'星期三 6:00–7:00 PM', day:'Wed', dayZh:'星期三', time:'6–7pm',
+        students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','羅靖誼'] },
+  c5: { label:'星期五 6:00–7:00 PM', day:'Fri', dayZh:'星期五', time:'6–7pm',
+        students:['顧舒然','吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋','陳思允','陳澔泓'] },
+  c6: { label:'星期六 11:00–12:00',  day:'Sat', dayZh:'星期六', time:'11am–12',
+        students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅','陳焯棋'] },
+  c7: { label:'星期六 3:00–4:00 PM', day:'Sat', dayZh:'星期六', time:'3–4pm',
+        students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏','潘洛詩'] }
+};
+
+// day-of-week index (0=Sun) for each class
+const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6 };
+
+// Imported attendance log
+const ATT_LOG = {
+  "c1|2026-03-02":{"陳書雅":"absent","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
+  "c1|2026-03-09":{"陳書雅":"absent","余悅":"present","孔善盈":"absent","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"absent","許思溢":"absent","梁心朗":"absent"},
+  "c1|2026-03-16":{"陳書雅":"present","余悅":"present","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
+  "c1|2026-03-23":{"陳書雅":"present","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
+  "c1|2026-03-30":{"陳書雅":"present","余悅":"absent","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
+  "c2|2026-03-02":{"蘇穎悠":"present","陳柏晞":"absent","葉宇浩":"present"},
+  "c2|2026-03-09":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"absent","陳柏晞":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"absent"},
+  "c2|2026-03-16":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏晞":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"present"},
+  "c2|2026-03-23":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏晞":"present","葉宇浩":"absent","梁德瑜":"absent","梁德澤":"present"},
+  "c2|2026-03-30":{"翟悅廷":"absent","蘇穎悠":"absent","郭栩澄":"present","陳柏晞":"present","葉宇浩":"present","梁德瑜":"absent","梁德澤":"absent"},
+  "c3|2026-03-04":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
+  "c3|2026-03-11":{"鄧可澄":"present","鄧幗恩":"absent","胡苡晨":"present","胡汐森":"present","文柏升":"absent","陳曉瑩":"absent","何梓程":"present","梁正軒":"present"},
+  "c3|2026-03-18":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
+  "c3|2026-03-25":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
+  "c4|2026-03-04":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","羅靖誼":"present","梁正宇":"present"},
+  "c4|2026-03-11":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"absent","古卓謙":"absent","梁心朗":"present","羅靖誼":"present","梁正宇":"present"},
+  "c4|2026-03-18":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","梁心朗":"present","羅靖誼":"present","梁正宇":"present"},
+  "c4|2026-03-25":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","梁心朗":"absent","羅靖誼":"present","梁正宇":"absent"},
+  "c5|2026-03-06":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"absent","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
+  "c5|2026-03-13":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
+  "c5|2026-03-20":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
+  "c5|2026-03-27":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"absent","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
+  "c6|2026-02-28":{"陳焯棋":"present","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"absent","王斯顏":"absent","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
+  "c6|2026-03-07":{"陳焯棋":"absent","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"present","王斯顏":"present","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
+  "c7|2026-03-07":{"潘洛詩":"present","劉家頤":"absent","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"present","李灝宏":"present"},
+  "c7|2026-03-28":{"潘洛詩":"present","劉家頤":"present","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"absent","李灝宏":"absent"}
+};
+
+let ABSENCES = [
+  {id:"imp1", name:"陳書雅",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
+  {id:"imp2", name:"何芯蕾",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
+  {id:"imp3", name:"陳書雅",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp4", name:"孔善盈",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp5", name:"何芯蕾",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp6", name:"羅梓晉",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp7", name:"許思溢",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp8", name:"梁心朗",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp9", name:"何芯蕾",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
+  {id:"imp10",name:"余悅",  classId:"c1",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+  {id:"imp11",name:"陳柏晞",classId:"c2",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
+  {id:"imp12",name:"郭栩澄",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp13",name:"梁德澤",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp14",name:"葉宇浩",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
+  {id:"imp15",name:"梁德瑜",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
+  {id:"imp16",name:"翟悅廷",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+  {id:"imp17",name:"蘇穎悠",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+  {id:"imp18",name:"梁德瑜",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+  {id:"imp19",name:"梁德澤",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+  {id:"imp20",name:"鄧幗恩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
+  {id:"imp21",name:"文柏升",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
+  {id:"imp22",name:"陳曉瑩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
+  {id:"imp23",name:"古詩詠",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
+  {id:"imp24",name:"古卓謙",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
+  {id:"imp25",name:"梁心朗",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
+  {id:"imp26",name:"梁正宇",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
+  {id:"imp27",name:"黃玥晴",classId:"c5",absDate:"2026-03-06",deadline:"2026-05-06",madeUpDate:null},
+  {id:"imp28",name:"梁正宇",classId:"c5",absDate:"2026-03-27",deadline:"2026-05-27",madeUpDate:null},
+  {id:"imp29",name:"陳焯棋",classId:"c6",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
+  {id:"imp30",name:"王尉鏇",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
+  {id:"imp31",name:"王斯顏",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
+  {id:"imp32",name:"劉家頤",classId:"c7",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
+  {id:"imp33",name:"周莉晶",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
+  {id:"imp34",name:"李灝宏",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null}
+];
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let currentScreen = 'home';
+let currentClass  = null;   // cX string
+let rollSession   = {};     // { name: 'present'|'absent'|'makeup' }
+let screenStack   = [];
+let makeupFilter  = 'pending';
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function addMonths(str, n) {
+  const d = new Date(str);
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().split('T')[0];
+}
+
+function daysLeft(deadline) {
+  return Math.ceil((new Date(deadline) - new Date()) / 86400000);
+}
+
+function fmtDate(str) {
+  if (!str) return '—';
+  const [y,m,d] = str.split('-');
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+
+function fmtShort(str) {
+  if (!str) return '—';
+  const [y,m,d] = str.split('-');
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+
+function genId() { return 'r' + Date.now() + Math.random().toString(36).slice(2,5); }
+
+function isExpired(deadline) { return deadline < todayStr(); }
+
+function getPending(name) {
+  return ABSENCES.filter(a => a.name===name && !a.madeUpDate);
+}
+function getPendingActive(name) {
+  return ABSENCES.filter(a => a.name===name && !a.madeUpDate && !isExpired(a.deadline));
+}
+
+function totalPendingAll() {
+  return ABSENCES.filter(a => !a.madeUpDate && !isExpired(a.deadline)).length;
+}
+function totalExpiredAll() {
+  return ABSENCES.filter(a => !a.madeUpDate && isExpired(a.deadline)).length;
+}
+
+function toast(msg, emoji='✓') {
+  const el = document.getElementById('toast');
+  el.textContent = emoji + ' ' + msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function updateBadge() { /* removed */ }
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+function showScreen(id, pushStack=true) {
+  // hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+
+  // nav highlight
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+
+  // back button visibility
+  const backBtn = document.getElementById('header-back');
+  if (id === 'roll') {
+    backBtn.style.display = 'flex';
+    if (pushStack) screenStack.push(currentScreen);
+  } else {
+    backBtn.style.display = 'none';
+    screenStack = [];
+  }
+
+  currentScreen = id;
+  document.getElementById('scroll-area').scrollTop = 0;
+
+  // render screens
+  if (id === 'home')    renderHome();
+  if (id === 'makeup')  renderMakeup();
+  if (id === 'history') renderHistory();
+  if (id === 'fee')     renderFee();
+  if (id === 'parent')  { /* no auto-render */ }
+}
+
+function goBack() {
+  const prev = screenStack.pop() || 'home';
+  showScreen(prev, false);
+}
+
+// ═══════════════════════════════════════════
+//  ROLL CALL — DATE PILL SYSTEM
+// ═══════════════════════════════════════════
+let rollViewMonth = null;   // { year, month } currently displayed
+let rollSelectedDate = null; // 'YYYY-MM-DD'
+
+// 最早可顯示月份：2026年3月（已有資料的第一個月）
+const MIN_YEAR = 2026;
+const MIN_MONTH = 2; // 0-based，2 = 3月
+
+function openRoll(classId) {
+  currentClass = classId;
+  rollSession  = {};
+
+  // Default view: current month（最早不超過 2026年3月）
+  const now = new Date();
+  let y = now.getFullYear(), m = now.getMonth();
+  if (y < MIN_YEAR || (y === MIN_YEAR && m < MIN_MONTH)) {
+    y = MIN_YEAR; m = MIN_MONTH;
+  }
+  rollViewMonth = { year: y, month: m };
+
+  // Default selected date: today if it's a class day this month, else most recent past class day
+  rollSelectedDate = pickDefaultDate(classId, rollViewMonth);
+
+  showScreen('roll');
+
+  const cls = CLASSES[classId];
+  document.getElementById('header-title-text').textContent = cls.dayZh + ' ' + cls.time;
+  document.getElementById('header-subtitle-text').textContent = cls.students.length + ' 位學生';
+
+  renderDatePills();
+  loadRollSession();
+}
+
+// Get all class dates in a given month for a class
+function getClassDatesInMonth(classId, year, month) {
+  const dow = CLASS_DOW[classId]; // target day of week (0=Sun, 1=Mon...)
+  const dates = [];
+  const d = new Date(year, month, 1);
+  // Find first occurrence of the DOW in this month
+  while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+  // Collect all weekly occurrences
+  while (d.getMonth() === month) {
+    dates.push(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 7);
+  }
+  return dates;
+}
+
+// Pick best default date: today if it's a class day, else most recent past class day
+function pickDefaultDate(classId, vm) {
+  const today = todayStr();
+  const dates = getClassDatesInMonth(classId, vm.year, vm.month);
+  if (dates.includes(today)) return today;
+  // Most recent past class day
+  const past = dates.filter(d => d <= today);
+  if (past.length) return past[past.length - 1];
+  // Else first date of the month
+  return dates[0] || today;
+}
+
+function changeMonth(delta) {
+  let { year, month } = rollViewMonth;
+  month += delta;
+  if (month < 0) { month = 11; year--; }
+  if (month > 11) { month = 0; year++; }
+
+  // 不可以翻去 2026年3月之前
+  if (year < MIN_YEAR || (year === MIN_YEAR && month < MIN_MONTH)) return;
+
+  rollViewMonth = { year, month };
+
+  // Re-pick selected date in new month
+  rollSelectedDate = pickDefaultDate(currentClass, rollViewMonth);
+  renderDatePills();
+  loadRollSession();
+}
+
+function renderDatePills() {
+  const { year, month } = rollViewMonth;
+  const today = todayStr();
+
+  // Month label
+  const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('month-nav-label').textContent = `${year}年 ${monthNames[month]}`;
+
+  // 「‹」按鈕：在最早月份時變灰
+  const atMin = (year === MIN_YEAR && month === MIN_MONTH);
+  const backBtn = document.querySelector('.month-nav-btn:first-child');
+  if (backBtn) {
+    backBtn.style.opacity = atMin ? '0.3' : '1';
+    backBtn.style.pointerEvents = atMin ? 'none' : 'auto';
+  }
+
+  const dates = getClassDatesInMonth(currentClass, year, month);
+  const dayLabels = ['日','一','二','三','四','五','六'];
+
+  const row = document.getElementById('date-pills-row');
+  row.innerHTML = dates.map(dateStr => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const dayNum  = d.getDate();
+    const dayName = dayLabels[d.getDay()];
+    const key     = currentClass + '|' + dateStr;
+    const hasSaved = ATT_LOG[key] && Object.keys(ATT_LOG[key]).length > 0;
+    const isFuture = dateStr > today;
+    const isToday  = dateStr === today;
+    const isSel    = dateStr === rollSelectedDate;
+
+    let cls = 'date-pill';
+    if (isSel)    cls += ' selected';
+    else if (isToday) cls += ' today';
+    if (hasSaved) cls += ' saved';
+    if (isFuture) cls += ' future';
+
+    return `<div class="${cls}" onclick="selectDate('${dateStr}')">
+      <span class="dp-day">${dayName}</span>
+      <span class="dp-date">${dayNum}</span>
+    </div>`;
+  }).join('');
+
+  // Scroll selected pill into view
+  setTimeout(() => {
+    const pills = row.querySelectorAll('.date-pill');
+    const selIdx = dates.indexOf(rollSelectedDate);
+    if (selIdx >= 0 && pills[selIdx]) {
+      pills[selIdx].scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+    }
+  }, 50);
+}
+
+function selectDate(dateStr) {
+  rollSelectedDate = dateStr;
+  rollSession = {};
+  renderDatePills();
+  loadRollSession();
+}
+
+function loadRollSession() {
+  if (!rollSelectedDate || !currentClass) return;
+  const key   = currentClass + '|' + rollSelectedDate;
+  const saved = ATT_LOG[key];
+
+  if (saved && Object.keys(saved).length > 0) {
+    rollSession = { ...saved };
+    document.getElementById('roll-already-saved').style.display = 'flex';
+  } else {
+    rollSession = {};
+    CLASSES[currentClass].students.forEach(n => rollSession[n] = 'present');
+    document.getElementById('roll-already-saved').style.display = 'none';
+  }
+
+  // Update info bar to show selected date
+  const d = new Date(rollSelectedDate + 'T00:00:00');
+  const label = `${d.getMonth()+1}月${d.getDate()}日 · 預設全部出席，只需標記請假或補堂`;
+  document.getElementById('roll-info-bar').textContent = '📅 ' + label;
+
+  renderRollTable();
+}
+function renderHome() {
+  document.getElementById('header-title-text').textContent = 'IS 出席系統';
+  document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
+
+  // Greeting
+  const h = new Date().getHours();
+  const greet = h < 12 ? '早晨 ☀' : h < 18 ? '午安 👋' : '晚上好 🌙';
+  document.getElementById('greeting-text').textContent = greet;
+  document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('zh-HK', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // Stats
+  const totalStudents = Object.values(CLASSES).reduce((s,c)=>s+c.students.length, 0);
+  const pending  = totalPendingAll();
+  const expired  = totalExpiredAll();
+  const sessions = Object.keys(ATT_LOG).length;
+
+  document.getElementById('home-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="num">${totalStudents}</div>
+      <div class="lbl">總學生數</div>
+    </div>
+    <div class="stat-card">
+      <div class="num ${pending>0?'warn':''}">${pending}</div>
+      <div class="lbl">待補堂節數</div>
+    </div>
+    <div class="stat-card">
+      <div class="num ${expired>0?'danger':''}">${expired}</div>
+      <div class="lbl">已過期未補</div>
+    </div>
+    <div class="stat-card">
+      <div class="num ok">${sessions}</div>
+      <div class="lbl">已記錄堂數</div>
+    </div>
+  `;
+
+  // Today's classes
+  const todayDow = new Date().getDay();
+  const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);
+
+  const todayWrap = document.getElementById('today-classes');
+  if (todayCls.length) {
+    todayWrap.innerHTML = todayCls.map(([id, cls]) => classRowHTML(id, cls)).join('');
+  } else {
+    todayWrap.innerHTML = `<div style="padding:12px 0;color:var(--muted);font-size:14px">今天沒有班別</div>`;
+  }
+
+  // All classes
+  document.getElementById('all-classes').innerHTML =
+    Object.entries(CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');
+}
+
+function classRowHTML(id, cls) {
+  const badge = '';
+  return `
+    <div class="class-row" onclick="openRoll('${id}')">
+      <span class="class-day-pill">${cls.dayZh}</span>
+      <div class="class-row-info">
+        <h3>${cls.time}</h3>
+        <p>${cls.students.length} 位學生</p>
+      </div>
+      ${badge}
+      <span class="class-row-arrow">›</span>
+    </div>`;
+}
+
+
+function renderRollTable() {
+  const cls = CLASSES[currentClass];
+  const list = document.getElementById('student-list');
+
+  list.innerHTML = cls.students.map(name => {
+    const st = rollSession[name] || 'present';
+    const pendingActive = getPendingActive(name);
+    const pendingAll    = getPending(name);
+    const expired       = pendingAll.filter(a => isExpired(a.deadline));
+
+    let subText = '', subCls = '';
+    if (pendingActive.length > 0) {
+      const earliest = pendingActive.sort((a,b)=>a.deadline.localeCompare(b.deadline))[0];
+      const dl = daysLeft(earliest.deadline);
+      subCls = dl <= 14 ? 'danger' : 'warn';
+      subText = `欠 ${pendingActive.length} 節 · 最早 ${fmtShort(earliest.deadline)} 到期`;
+    } else if (expired.length > 0) {
+      subCls = 'danger';
+      subText = `${expired.length} 節已過期`;
+    }
+
+    // If marked makeup, show which absence it covers
+    let makeupHint = '';
+    if (st === 'makeup' && pendingAll.length > 0) {
+      const oldest = pendingAll.sort((a,b) => a.absDate.localeCompare(b.absDate))[0];
+      makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(oldest.absDate)} 的堂</div>`;
+    }
+
+    const cardCls = st === 'absent' ? 'is-absent' : st === 'makeup' ? 'is-makeup' : st === 'present' ? 'is-present' : '';
+
+    return `
+    <div class="student-card ${cardCls}" id="sc-${name}">
+      <div class="student-name-wrap">
+        <div class="student-name">${name}</div>
+        ${subText ? `<div class="student-sub ${subCls}">${subText}</div>` : ''}
+        ${makeupHint}
+      </div>
+      <div class="student-btns">
+        <button class="s-btn ${st==='present'?'sel-present':''}" onclick="setRoll('${name}','present')" title="出席">✓</button>
+        <button class="s-btn ${st==='absent' ?'sel-absent' :''}" onclick="setRoll('${name}','absent')"  title="請假">✗</button>
+        <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" onclick="setRoll('${name}','makeup')"  title="補堂">↩</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateSaveCount();
+}
+
+function setRoll(name, status) {
+  rollSession[name] = status;
+
+  // Update card class
+  const card = document.getElementById('sc-' + name);
+  card.className = 'student-card ' + (status==='absent'?'is-absent':status==='makeup'?'is-makeup':'is-present');
+
+  // Update buttons
+  const btns = card.querySelectorAll('.s-btn');
+  btns[0].className = 's-btn' + (status==='present'?' sel-present':'');
+  btns[1].className = 's-btn' + (status==='absent' ?' sel-absent':'');
+  btns[2].className = 's-btn' + (status==='makeup' ?' sel-makeup':'');
+
+  // Update makeup hint
+  const nameWrap = card.querySelector('.student-name-wrap');
+  const existing = nameWrap.querySelector('[style*="purple"]');
+  if (existing) existing.remove();
+  if (status === 'makeup') {
+    const pending = getPending(name);
+    if (pending.length > 0) {
+      const oldest = pending.sort((a,b)=>a.absDate.localeCompare(b.absDate))[0];
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:var(--purple);margin-top:4px';
+      hint.textContent = '補 ' + fmtShort(oldest.absDate) + ' 的堂';
+      nameWrap.appendChild(hint);
+    }
+  }
+
+  updateSaveCount();
+}
+
+function updateSaveCount() {
+  const absentCount = Object.values(rollSession).filter(s=>s==='absent').length;
+  const makeupCount = Object.values(rollSession).filter(s=>s==='makeup').length;
+  let txt = '';
+  if (absentCount > 0) txt += `<span>${absentCount}</span> 人請假`;
+  if (makeupCount > 0) txt += (txt ? '　' : '') + `<span style="color:var(--purple)">${makeupCount}</span> 人補堂`;
+  if (!txt) txt = '全員出席 ✓';
+  document.getElementById('save-count-text').innerHTML = txt;
+}
+
+function saveRoll() {
+  const date = rollSelectedDate;
+  if (!date) { toast('請先選擇日期', '⚠'); return; }
+
+  const key = currentClass + '|' + date;
+  ATT_LOG[key] = { ...rollSession };
+
+  // Process absences & makeups
+  CLASSES[currentClass].students.forEach(name => {
+    const st = rollSession[name] || 'present';
+    if (st === 'absent') {
+      const dup = ABSENCES.find(a => a.name===name && a.classId===currentClass && a.absDate===date);
+      if (!dup) {
+        ABSENCES.push({ id:genId(), name, classId:currentClass, absDate:date, deadline:addMonths(date,2), madeUpDate:null });
+      }
+    }
+    if (st === 'makeup') {
+      const pending = getPending(name).sort((a,b)=>a.absDate.localeCompare(b.absDate));
+      if (pending.length > 0) pending[0].madeUpDate = date;
+    }
+  });
+
+  document.getElementById('roll-already-saved').style.display = 'flex';
+  updateBadge();
+  renderDatePills(); // refresh ✓ checkmarks on pills
+  toast('點名記錄已儲存', '✓');
+}
+
+// ═══════════════════════════════════════════
+//  MAKEUP LOG
+// ═══════════════════════════════════════════
+function renderMakeup() {
+  document.getElementById('header-title-text').textContent = '補堂記錄';
+  document.getElementById('header-subtitle-text').textContent = '所有班別';
+
+  const filters = [
+    { key:'pending',  label:'待補堂' },
+    { key:'urgent',   label:'即將到期' },
+    { key:'expired',  label:'已過期' },
+    { key:'done',     label:'已完成' },
+    { key:'all',      label:'全部' },
+  ];
+
+  document.getElementById('makeup-filters').innerHTML = filters.map(f =>
+    `<div class="filter-pill ${makeupFilter===f.key?'active':''}" onclick="setMakeupFilter('${f.key}')">${f.label}</div>`
+  ).join('');
+
+  const now = todayStr();
+  let rows = [];
+
+  if (makeupFilter === 'pending') {
+    rows = ABSENCES.filter(a => !a.madeUpDate && a.deadline >= now)
+                   .sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  } else if (makeupFilter === 'urgent') {
+    rows = ABSENCES.filter(a => !a.madeUpDate && a.deadline >= now && daysLeft(a.deadline) <= 14)
+                   .sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  } else if (makeupFilter === 'expired') {
+    rows = ABSENCES.filter(a => !a.madeUpDate && a.deadline < now)
+                   .sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  } else if (makeupFilter === 'done') {
+    rows = ABSENCES.filter(a => a.madeUpDate)
+                   .sort((a,b)=>b.madeUpDate.localeCompare(a.madeUpDate));
+  } else {
+    rows = [...ABSENCES].sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  }
+
+  const list = document.getElementById('makeup-list');
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">✓</div><p>沒有符合條件的記錄</p></div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(a => {
+    const done = !!a.madeUpDate;
+    const exp  = !done && isExpired(a.deadline);
+    const dl   = daysLeft(a.deadline);
+    const urg  = !done && !exp && dl <= 14;
+    const cls  = CLASSES[a.classId];
+
+    let deadlinePill, cardCls = '';
+    if (done) {
+      deadlinePill = `<span class="makeup-deadline done">✓ 已補堂 ${fmtShort(a.madeUpDate)}</span>`;
+      cardCls = 'done';
+    } else if (exp) {
+      deadlinePill = `<span class="makeup-deadline overdue">已過期</span>`;
+      cardCls = 'overdue';
+    } else if (urg) {
+      deadlinePill = `<span class="makeup-deadline urgent">⚠ 剩 ${dl} 天</span>`;
+      cardCls = 'urgent';
+    } else {
+      deadlinePill = `<span class="makeup-deadline ok">還有 ${dl} 天</span>`;
+    }
+
+    const actionBtn = !done
+      ? `<button class="btn-makeup-done" onclick="markMakeupDone('${a.id}')">已補堂</button>`
+      : '';
+
+    return `
+    <div class="makeup-card ${cardCls}">
+      <div class="makeup-card-left">
+        <div class="makeup-name">${a.name}</div>
+        <div class="makeup-meta">${fmtDate(a.absDate)} 請假 · ${cls?.dayZh||''} ${cls?.time||''}</div>
+        <div class="makeup-meta">補堂期限：${fmtDate(a.deadline)}</div>
+        ${deadlinePill}
+      </div>
+      <div class="makeup-card-action">${actionBtn}</div>
+    </div>`;
+  }).join('');
+}
+
+function setMakeupFilter(f) {
+  makeupFilter = f;
+  renderMakeup();
+}
+
+function markMakeupDone(id) {
+  const rec = ABSENCES.find(a => a.id === id);
+  if (!rec) return;
+  rec.madeUpDate = todayStr();
+  updateBadge();
+  renderMakeup();
+  toast('已標記為補堂完成', '↩');
+}
+
+// ═══════════════════════════════════════════
+//  PARENT SEARCH
+// ═══════════════════════════════════════════
+function doParentSearch() {
+  const q = document.getElementById('parent-input').value.trim();
+  const out = document.getElementById('parent-results');
+  if (!q) { out.innerHTML = ''; return; }
+
+  const matches = [];
+  Object.entries(CLASSES).forEach(([cid, cls]) => {
+    cls.students.forEach(name => {
+      if (name.includes(q)) matches.push({ name, cid, cls });
+    });
+  });
+
+  if (!matches.length) {
+    out.innerHTML = `<div class="no-result">找不到「${q}」<br>請確認姓名是否正確</div>`;
+    return;
+  }
+
+  const now = todayStr();
+  out.innerHTML = matches.map(({ name, cid, cls }) => {
+    const pendingActive  = ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline>=now)
+                                   .sort((a,b)=>a.deadline.localeCompare(b.deadline));
+    const pendingExpired = ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline<now);
+    const completed      = ABSENCES.filter(a => a.name===name && a.madeUpDate).length;
+    const n = pendingActive.length;
+    const hasUrgent = pendingActive.some(a => daysLeft(a.deadline) <= 14);
+    const cardCls = n===0 ? 'p-zero' : hasUrgent ? 'p-urgent' : '';
+    const bigCls  = n===0 ? 'zero'   : hasUrgent ? 'urgent' : '';
+
+    let rowsHtml = '';
+    if (n > 0) {
+      rowsHtml = pendingActive.map((a,i) => {
+        const dl  = daysLeft(a.deadline);
+        const urg = dl <= 14;
+        return `
+        <div class="parent-abs-row">
+          <div>
+            <div class="parent-abs-date">第 ${i+1} 節 — ${fmtDate(a.absDate)}</div>
+            <div class="parent-abs-sub">期限：${fmtDate(a.deadline)}</div>
+          </div>
+          <span class="parent-abs-pill ${urg?'pill-urgent':'pill-ok'}">${urg?'⚠ 剩'+dl+'天':'剩'+dl+'天'}</span>
+        </div>`;
+      }).join('');
+    } else {
+      rowsHtml = `<div class="all-good-msg">✓ 暫無待補堂，繼續保持！</div>`;
+    }
+
+    const expiredWarn = pendingExpired.length
+      ? `<div style="margin-top:10px;padding:10px;background:var(--red-dim);border-radius:10px;font-size:12px;color:var(--red)">另有 ${pendingExpired.length} 節已過期，請聯絡教練</div>`
+      : '';
+
+    const doneNote = completed
+      ? `<div style="margin-top:10px;font-size:12px;color:var(--muted)">✓ 已完成補堂 ${completed} 節</div>`
+      : '';
+
+    return `
+    <div class="parent-card ${cardCls}">
+      <div class="parent-card-top">
+        <div>
+          <div class="parent-name">${name}</div>
+          <div class="parent-class">${cls.dayZh} ${cls.time}</div>
+        </div>
+        <div>
+          <div class="parent-big-num ${bigCls}">${n}</div>
+          <div class="parent-big-label">節待補堂</div>
+        </div>
+      </div>
+      ${rowsHtml}
+      ${expiredWarn}
+      ${doneNote}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════
+function renderHistory() {
+  document.getElementById('header-title-text').textContent = '出席歷史';
+  document.getElementById('header-subtitle-text').textContent = '所有已儲存記錄';
+
+  const entries = Object.entries(ATT_LOG)
+    .sort((a,b)=>b[0].localeCompare(a[0]));
+
+  const list = document.getElementById('history-list');
+  if (!entries.length) {
+    list.innerHTML = `<div class="empty-state" style="padding-top:40px"><div class="icon">📭</div><p>暫無記錄<br>請先進行點名</p></div>`;
+    return;
+  }
+
+  list.innerHTML = '<div style="height:12px"></div>' + entries.map(([key, sess]) => {
+    const [cid, date] = key.split('|');
+    const cls = CLASSES[cid];
+    const absentList  = Object.entries(sess).filter(([,s])=>s==='absent').map(([n])=>n);
+    const makeupList  = Object.entries(sess).filter(([,s])=>s==='makeup').map(([n])=>n);
+    const presentCnt  = Object.values(sess).filter(s=>s==='present').length;
+
+    return `
+    <div class="history-session" onclick="this.classList.toggle('open')">
+      <div class="history-session-header">
+        <div>
+          <h3>${fmtDate(date)} — ${cls?.dayZh||cid} ${cls?.time||''}</h3>
+          <p>出席 ${presentCnt} · 請假 ${absentList.length} · 補堂 ${makeupList.length}</p>
+        </div>
+        <span class="history-toggle">⌄</span>
+      </div>
+      <div class="history-session-body">
+        ${Object.entries(sess).map(([name, st]) => `
+          <div class="history-row">
+            <span>${name}</span>
+            <span>
+              <span class="dot dot-${st}"></span>
+              ${st==='present'?'出席':st==='absent'?'請假':'補堂'}
+            </span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+//  FEE SYSTEM
+// ═══════════════════════════════════════════
+
+// 定義期數：{ id, label, months: [{year,month}] }
+const PERIODS = [
+  { id:'2026-mar-apr', label:'3–4月 2026', months:[{y:2026,m:2},{y:2026,m:3}] },
+  { id:'2026-may-jun', label:'5–6月 2026', months:[{y:2026,m:4},{y:2026,m:5}] },
+  { id:'2026-jul-aug', label:'7–8月 2026', months:[{y:2026,m:6},{y:2026,m:7}] },
+];
+
+// 收費記錄: { 'periodId|classId|studentName': true }
+const FEE_PAID = {};
+
+let feePeriod = '2026-may-jun'; // 預設5–6月
+let feeClass  = 'c1';
+
+// 計算某班某期所有上課日期
+function getFeeDates(classId, period) {
+  const p = PERIODS.find(x => x.id === period);
+  if (!p) return [];
+  const dow = CLASS_DOW[classId];
+  const dates = [];
+  p.months.forEach(({ y, m }) => {
+    const d = new Date(y, m, 1);
+    while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+    while (d.getMonth() === m) {
+      dates.push(new Date(d));
+      d.setDate(d.getDate() + 7);
+    }
+  });
+  return dates;
+}
+
+function fmtFeeDate(d) {
+  return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function renderFee() {
+  document.getElementById('header-title-text').textContent = '收費管理';
+  document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
+
+  // 期數 pills
+  document.getElementById('fee-period-pills').innerHTML = PERIODS.map(p =>
+    `<div class="fee-period-pill ${feePeriod===p.id?'active':''}" onclick="selectFeePeriod('${p.id}')">${p.label}</div>`
+  ).join('');
+
+  // 班別 pills
+  document.getElementById('fee-class-bar').innerHTML = Object.entries(CLASSES).map(([id, cls]) =>
+    `<div class="fee-class-pill ${feeClass===id?'active':''}" onclick="selectFeeClass('${id}')">${cls.dayZh} ${cls.time}</div>`
+  ).join('');
+
+  renderFeeBody();
+}
+
+function selectFeePeriod(pid) {
+  feePeriod = pid;
+  renderFee();
+}
+
+function selectFeeClass(cid) {
+  feeClass = cid;
+  // Hide notice when switching class
+  document.getElementById('fee-notice-wrap').style.display = 'none';
+  renderFeeBody();
+  // Re-render pills
+  document.querySelectorAll('.fee-class-pill').forEach(el => {
+    el.classList.toggle('active', el.textContent.trim() === `${CLASSES[cid].dayZh} ${CLASSES[cid].time}`);
+  });
+}
+
+function renderFeeBody() {
+  const cls     = CLASSES[feeClass];
+  const dates   = getFeeDates(feeClass, feePeriod);
+  const n       = dates.length;
+  const fee     = n * 120;
+  const period  = PERIODS.find(p => p.id === feePeriod);
+
+  // Summary card
+  const summaryCard = document.getElementById('fee-summary-card');
+  summaryCard.style.display = 'block';
+  document.getElementById('fee-summary-class').textContent = `${cls.dayZh} ${cls.time}`;
+  document.getElementById('fee-summary-meta').textContent = `${period.label} · 共 ${n} 節 · $120 × ${n}`;
+  document.getElementById('fee-big-num').textContent = `$${fee}`;
+
+  // Dates row
+  const datesStr = dates.map(fmtFeeDate).join('、');
+  document.getElementById('fee-dates-row').textContent = `上課日期：${datesStr}`;
+
+  // Student list
+  const now = todayStr();
+  const listEl = document.getElementById('fee-student-list');
+  listEl.innerHTML = cls.students.map(name => {
+    const key     = `${feePeriod}|${feeClass}|${name}`;
+    const paid    = !!FEE_PAID[key];
+    const pending = ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline>=now);
+    const subText = pending.length > 0
+      ? `欠 ${pending.length} 節補堂`
+      : '出席正常';
+    const subCls  = pending.length > 0 ? 'has-pending' : '';
+
+    return `
+    <div class="fee-student-card ${paid?'paid':''}" id="fee-card-${name.replace(/\s/g,'')}">
+      <div style="flex:1">
+        <div class="fee-student-name">${name}</div>
+        <div class="fee-student-sub ${subCls}">${subText}</div>
+      </div>
+      <button class="btn-fee-confirm ${paid?'paid':''}"
+        onclick="toggleFeePaid('${name}')">
+        ${paid ? '✓ 已收費' : '確認收費'}
+      </button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('fee-notice-btn-wrap').style.display = 'block';
+}
+
+function toggleFeePaid(name) {
+  const key = `${feePeriod}|${feeClass}|${name}`;
+  FEE_PAID[key] = !FEE_PAID[key];
+  renderFeeBody();
+  document.getElementById('fee-notice-wrap').style.display = 'none';
+}
+
+function genNotice() {
+  const cls    = CLASSES[feeClass];
+  const dates  = getFeeDates(feeClass, feePeriod);
+  const n      = dates.length;
+  const fee    = n * 120;
+  const period = PERIODS.find(p => p.id === feePeriod);
+  const now    = todayStr();
+
+  // Period months label e.g. "2026年5月至6月"
+  const p      = period.months;
+  const mStart = p[0].m + 1;
+  const mEnd   = p[p.length-1].m + 1;
+  const yr     = p[0].y;
+
+  // All lesson dates formatted
+  const datesStr = dates.map(fmtFeeDate).join('、');
+
+  // First lesson date
+  const firstLesson = fmtFeeDate(dates[0]);
+
+  // Pending makeups in this class
+  const pendingLines = cls.students
+    .map(name => {
+      const recs = ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline>=now);
+      if (!recs.length) return null;
+      const oldest = recs.sort((a,b)=>a.deadline.localeCompare(b.deadline));
+      return recs.map(r => `• ${name} — 補堂期限：${fmtDate(r.deadline)}`).join('\n');
+    })
+    .filter(Boolean);
+
+  const makeupSection = pendingLines.length
+    ? `\n⚠️ 補堂提醒（請於期限前完成）：\n${pendingLines.join('\n')}\n`
+    : '';
+
+  const text =
+`📣 Initiate Sports 收費通知
+【${yr}年${mStart}月至${mEnd}月】${cls.dayZh} ${cls.time} 班
+
+本期上課日期（共${n}節）：
+${datesStr}
+
+本期學費：HK$${fee}（$120 × ${n}節）
+${makeupSection}
+💳 繳費方式：
+• FPS / PayMe：6709 3390
+• 現金：請於${firstLesson}（第一堂）上課時交給張Sir
+
+付款後請截圖並發送至此 WhatsApp 作記錄🙏🏻
+
+請於${firstLesson}前完成繳費，謝謝合作！
+
+🏅 Initiate Sports — Aim High Jump High`;
+
+  document.getElementById('notice-text').textContent = text;
+  document.getElementById('fee-notice-wrap').style.display = 'block';
+
+  // Scroll to notice
+  setTimeout(() => {
+    document.getElementById('fee-notice-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function copyNotice() {
+  const text = document.getElementById('notice-text').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast('已複製，可貼上 WhatsApp', '📋'));
+  } else {
+    // Fallback for older iOS
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('已複製，可貼上 WhatsApp', '📋');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+renderHome();
+updateBadge();
+</script>
+</body>
+</html>
