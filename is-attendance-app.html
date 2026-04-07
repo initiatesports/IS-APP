@@ -1558,6 +1558,15 @@ const CLASSES = {
         students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏'] }
 };
 
+// 成績記錄用的班別名單（包含暫停學生，如顧舒然）
+// 點名不受影響，只用於成績輸入
+const PERF_CLASSES_STUDENTS = {
+  c5: ['顧舒然','吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋'],
+};
+function getPerfStudents(classId) {
+  return PERF_CLASSES_STUDENTS[classId] || CLASSES[classId]?.students || [];
+}
+
 // day-of-week index (0=Sun) for each class
 const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6 };
 
@@ -2594,12 +2603,31 @@ function isBetter(metricId, newVal, oldVal) {
 }
 
 function getPersonalBest(name, metricId) {
+  // Merge records from PERF_RECORDS — same name = same person regardless of class
   const recs = PERF_RECORDS[name]?.[metricId];
   if (!recs || recs.length === 0) return null;
   const m = METRICS.find(x => x.id === metricId);
   return m.higher
     ? Math.max(...recs.map(r => r.val))
     : Math.min(...recs.map(r => r.val));
+}
+
+// Get all unique student names across all classes (deduped by name)
+function getAllUniqueStudents() {
+  const seen = new Set();
+  const list = [];
+  Object.values(CLASSES).forEach(cls => {
+    cls.students.forEach(name => {
+      if (!seen.has(name)) { seen.add(name); list.push(name); }
+    });
+  });
+  // Also include perf-only students (e.g. 顧舒然)
+  Object.values(PERF_CLASSES_STUDENTS).forEach(students => {
+    students.forEach(name => {
+      if (!seen.has(name)) { seen.add(name); list.push(name); }
+    });
+  });
+  return list.sort((a,b) => a.localeCompare(b, 'zh-Hant'));
 }
 
 function renderPerf() {
@@ -2649,6 +2677,7 @@ function startPerfEntry() {
 
   const cls = CLASSES[perfClass];
   const metricNames = perfMetrics.map(id => METRICS.find(m=>m.id===id)?.name).join('、');
+  const perfStudents = getPerfStudents(perfClass);
 
   document.getElementById('perf-entry-header').innerHTML = `
     <div>
@@ -2658,9 +2687,9 @@ function startPerfEntry() {
     <button class="btn-peh-done" onclick="finishPerfEntry()">完成 →</button>
   `;
 
-  // Build student cards
+  // Build student cards (uses perf students which may include suspended ones)
   document.getElementById('perf-student-cards').innerHTML =
-    cls.students.map(name => {
+    perfStudents.map(name => {
       const pb_html = perfMetrics.map(mid => {
         const m   = METRICS.find(x => x.id === mid);
         const pb  = getPersonalBest(name, mid);
@@ -2742,58 +2771,107 @@ function finishPerfEntry() {
   showPerfSummary();
 }
 
-function showPerfSummary() {
+function showPerfSummary(historyDate, historyMetrics) {
+  // historyDate/historyMetrics: optional, for viewing historical sessions
   document.getElementById('perf-entry').style.display = 'none';
   document.getElementById('perf-summary').style.display = 'block';
 
   const cls = CLASSES[perfClass];
-  const date = perfDate || todayStr();
-  const selMetrics = perfMetrics.map(id => METRICS.find(m => m.id === id));
+  const date = historyDate || perfDate || todayStr();
+  const selMetrics = (historyMetrics || perfMetrics).map(id => METRICS.find(m => m.id === id)).filter(Boolean);
 
-  // Build table
+  // Get session data — either current session or historical
+  const sessionData = historyDate ? null : perfSession;
+
+  // Build table header — name + each metric (today + PB)
   let thead = '<tr><th>學生</th>';
-  selMetrics.forEach(m => { thead += `<th>${m.name}<br><span style="font-weight:400;opacity:0.6">${m.unit||'RSI'}</span></th>`; });
+  selMetrics.forEach(m => {
+    thead += `<th style="min-width:80px">${m.name}<br>
+      <span style="font-weight:400;opacity:0.5;font-size:9px">${m.unit||'RSI'} / PB</span></th>`;
+  });
   thead += '</tr>';
 
   let tbody = '';
-  cls.students.forEach(name => {
-    const hasData = perfMetrics.some(mid => perfSession[name]?.[mid] !== undefined);
-    if (!hasData) return;
-    tbody += `<tr><td class="name-col">${name}</td>`;
+  let hasAnyData = false;
+
+  getPerfStudents(perfClass).forEach(name => {
+    let hasData = false;
+    let rowHtml = `<tr><td class="name-col">${name}</td>`;
+
     selMetrics.forEach(m => {
-      const val = perfSession[name]?.[m.id];
-      if (val === undefined || val === null) {
-        tbody += `<td class="empty-cell">—</td>`;
+      // Get value for this date
+      let val = null;
+      if (sessionData) {
+        val = sessionData[name]?.[m.id];
       } else {
-        // Compare against records BEFORE today's session (all but last push)
+        // Look up from PERF_RECORDS for the specific date
         const recs = PERF_RECORDS[name]?.[m.id] || [];
-        const prevRecs = recs.slice(0, recs.length - 1);
+        const rec = recs.find(r => r.date === date);
+        if (rec) val = rec.val;
+      }
+
+      // Get personal best (all records)
+      const allRecs = PERF_RECORDS[name]?.[m.id] || [];
+      const pb = allRecs.length
+        ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val)))
+        : null;
+
+      if (val === undefined || val === null) {
+        rowHtml += `<td class="empty-cell">—</td>`;
+      } else {
+        hasData = true;
+        // Compare against records BEFORE this session
+        const prevRecs = allRecs.filter(r => r.date < date);
         const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
         const isFirst  = prevBest === null;
         const isRecord = !isFirst && isBetter(m.id, val, prevBest);
+
+        const pbStr = pb !== null ? `<span style="font-size:10px;color:${isRecord?'var(--green)':'var(--muted)'}">PB:${pb}</span>` : '';
         if (isRecord) {
-          tbody += `<td class="record-cell">${val} 🏅</td>`;
+          rowHtml += `<td class="record-cell">${val}🏅<br>${pbStr}</td>`;
         } else if (isFirst) {
-          tbody += `<td class="pb-cell">${val} ✦</td>`;
+          rowHtml += `<td class="pb-cell">${val}✦<br><span style="font-size:10px;color:var(--muted)">首次</span></td>`;
         } else {
-          tbody += `<td>${val}</td>`;
+          rowHtml += `<td>${val}<br>${pbStr}</td>`;
         }
       }
     });
-    tbody += '</tr>';
+
+    rowHtml += '</tr>';
+    if (hasData) { tbody += rowHtml; hasAnyData = true; }
   });
+
+  // Build date history picker
+  const allDates = getHistoryDates();
+  const histPills = allDates.length > 0 ? `
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.06em;text-transform:uppercase">查閱歷史記錄</div>
+      <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px">
+        ${allDates.map(d => {
+          const isActive = d === date;
+          return `<div style="flex-shrink:0;padding:5px 12px;border-radius:10px;border:1.5px solid ${isActive?'var(--cyan)':'var(--border)'};background:${isActive?'var(--cyan-dim)':'var(--surface2)'};color:${isActive?'var(--cyan)':'var(--muted)'};font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap"
+            onclick="loadHistorySession('${d}')">${fmtShort(d)}</div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
 
   const dateZh = fmtDate(date);
   document.getElementById('perf-table-wrap').innerHTML = `
-    <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
-      ${cls.dayZh} ${cls.time} · ${dateZh}
-      <span style="margin-left:12px;color:var(--green)">🏅破紀錄</span>
-      <span style="margin-left:8px;color:var(--cyan)">✦首次</span>
+    <div style="padding:0 0 12px">
+      ${histPills}
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
+        ${cls.dayZh} ${cls.time} · ${dateZh}
+        <span style="margin-left:10px;color:var(--green)">🏅破紀錄</span>
+        <span style="margin-left:6px;color:var(--cyan)">✦首次</span>
+        <span style="margin-left:6px;color:var(--muted);font-size:11px">PB=個人最佳</span>
+      </div>
     </div>
-    <table class="perf-table">
-      <thead>${thead}</thead>
-      <tbody>${tbody || `<tr><td colspan="${selMetrics.length+1}" style="text-align:center;color:var(--muted);padding:20px">無數據</td></tr>`}</tbody>
-    </table>
+    <div style="overflow-x:auto">
+      <table class="perf-table">
+        <thead>${thead}</thead>
+        <tbody>${hasAnyData ? tbody : `<tr><td colspan="${selMetrics.length+1}" style="text-align:center;color:var(--muted);padding:20px">此日期無數據</td></tr>`}</tbody>
+      </table>
+    </div>
     <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">
       截圖此表格即可發送給家長 📱
     </div>
@@ -2801,6 +2879,31 @@ function showPerfSummary() {
       <button class="btn-start-perf" onclick="renderPerf();showScreen('perf')">返回設定</button>
     </div>
   `;
+}
+
+// Get all unique dates that have perf records for current class
+function getHistoryDates() {
+  const dates = new Set();
+  const students = getPerfStudents(perfClass);
+  students.forEach(name => {
+    Object.values(PERF_RECORDS[name] || {}).forEach(recs => {
+      recs.forEach(r => dates.add(r.date));
+    });
+  });
+  return [...dates].sort((a,b) => b.localeCompare(a)); // newest first
+}
+
+// Load a historical session into the summary view
+function loadHistorySession(date) {
+  // Find which metrics were recorded on this date for this class
+  const students = getPerfStudents(perfClass);
+  const metricIds = new Set();
+  students.forEach(name => {
+    Object.entries(PERF_RECORDS[name] || {}).forEach(([mid, recs]) => {
+      if (recs.some(r => r.date === date)) metricIds.add(mid);
+    });
+  });
+  showPerfSummary(date, [...metricIds]);
 }
 
 // ═══════════════════════════════════════════
@@ -2823,14 +2926,30 @@ function renderLB() {
   const m = METRICS.find(x => x.id === lbMetric);
   if (!m) return;
 
-  // Collect all personal bests for this metric
+  // Collect all personal bests — use unique names to avoid duplicates
   const entries = [];
+  const seen = new Set();
   Object.entries(CLASSES).forEach(([cid, cls]) => {
     cls.students.forEach(name => {
+      if (seen.has(name)) return; // skip duplicates
+      seen.add(name);
       const pb = getPersonalBest(name, lbMetric);
       if (pb !== null) {
         const year = STUDENT_YEARS[name] || null;
         entries.push({ name, cid, cls: cls.dayZh + ' ' + cls.time, val: pb, year });
+      }
+    });
+  });
+  // Also check perf-only students
+  Object.entries(PERF_CLASSES_STUDENTS).forEach(([cid, students]) => {
+    students.forEach(name => {
+      if (seen.has(name)) return;
+      seen.add(name);
+      const pb = getPersonalBest(name, lbMetric);
+      if (pb !== null) {
+        const cls = CLASSES[cid];
+        const year = STUDENT_YEARS[name] || null;
+        entries.push({ name, cid, cls: cls?.dayZh + ' ' + cls?.time, val: pb, year });
       }
     });
   });
@@ -2943,16 +3062,9 @@ function switchStudentTab(tab) {
   if (tab === 'report')  renderReportStudentList();
 }
 
-// Collect all unique students
+// Collect all unique students (uses getAllUniqueStudents which deduplicates)
 function getAllStudents() {
-  const seen = new Set();
-  const list = [];
-  Object.values(CLASSES).forEach(cls => {
-    cls.students.forEach(name => {
-      if (!seen.has(name)) { seen.add(name); list.push(name); }
-    });
-  });
-  return list.sort((a,b) => a.localeCompare(b, 'zh-Hant'));
+  return getAllUniqueStudents();
 }
 
 function getStudentClasses(name) {
