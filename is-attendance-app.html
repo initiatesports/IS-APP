@@ -969,6 +969,308 @@ html, body {
   position: absolute; bottom: 28px;
   font-size: 11px; color: rgba(255,255,255,0.15); text-align: center;
 }
+/* ─── PERFORMANCE SCREEN ─── */
+.perf-section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 14px 16px 6px;
+}
+.perf-class-bar {
+  display: flex; gap: 6px; padding: 0 16px 10px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.perf-class-bar::-webkit-scrollbar { display: none; }
+.perf-class-pill {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.perf-class-pill.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+
+.perf-metrics-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; padding: 0 16px 10px;
+}
+.perf-metric-tile {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+  cursor: pointer; transition: all 0.15s;
+  -webkit-user-select: none; user-select: none;
+}
+.perf-metric-tile.selected { border-color: var(--cyan); background: var(--cyan-dim); }
+.perf-metric-tile:active { transform: scale(0.96); }
+.pmt-name { font-size: 14px; font-weight: 700; }
+.pmt-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.perf-metric-tile.selected .pmt-name { color: var(--cyan); }
+
+.btn-start-perf {
+  width: 100%; background: var(--cyan); color: #111;
+  border: none; border-radius: 12px; font-family: inherit;
+  font-size: 16px; font-weight: 700; padding: 14px; cursor: pointer;
+}
+.btn-start-perf:active { opacity: 0.8; }
+
+/* Entry header */
+.perf-entry-header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.peh-class { font-size: 15px; font-weight: 700; }
+.peh-metrics { font-size: 12px; color: var(--cyan); margin-top: 2px; }
+.btn-peh-done {
+  background: var(--green); color: #111; border: none;
+  border-radius: 10px; font-family: inherit; font-size: 13px;
+  font-weight: 700; padding: 8px 16px; cursor: pointer;
+}
+
+/* Per-student perf card */
+.perf-student-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 14px; margin-bottom: 10px;
+}
+.psc-name { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.psc-metrics { display: flex; flex-direction: column; gap: 8px; }
+.psc-metric-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.psc-metric-label {
+  font-size: 12px; color: var(--muted); width: 90px; flex-shrink: 0;
+}
+.psc-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: 15px; font-weight: 700; padding: 7px 10px;
+  outline: none; text-align: center; color-scheme: dark;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+.psc-input:focus { border-color: var(--cyan); }
+.psc-pb {
+  font-size: 11px; color: var(--muted); width: 60px;
+  text-align: right; flex-shrink: 0;
+}
+.psc-pb.is-new { color: var(--amber); font-weight: 700; }
+.psc-pb.is-record { color: var(--green); font-weight: 700; }
+.psc-record-badge {
+  display: inline-block; background: var(--green); color: #111;
+  font-size: 10px; font-weight: 900; padding: 2px 7px;
+  border-radius: 10px; margin-left: 6px;
+}
+
+/* Summary table */
+.perf-table {
+  border-collapse: collapse; width: 100%;
+  font-size: 12px; background: var(--surface);
+  border-radius: 12px; overflow: hidden;
+}
+.perf-table th {
+  background: #222; color: var(--muted); font-size: 10px;
+  font-weight: 700; padding: 8px 10px; text-align: center;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.perf-table td {
+  padding: 8px 10px; text-align: center;
+  border-bottom: 1px solid var(--border); color: var(--text);
+}
+.perf-table tr:last-child td { border-bottom: none; }
+.perf-table td.name-col { text-align: left; font-weight: 700; }
+.perf-table td.pb-cell { color: var(--green); font-weight: 700; }
+.perf-table td.record-cell {
+  color: var(--green); font-weight: 900;
+  background: rgba(52,211,153,0.1);
+}
+.perf-table td.empty-cell { color: rgba(255,255,255,0.2); }
+
+.btn-show-table {
+  position: fixed; bottom: calc(70px + var(--safe-bot) + 12px);
+  left: 50%; transform: translateX(-50%);
+  background: var(--cyan); color: #111; border: none;
+  border-radius: 20px; font-family: inherit; font-size: 14px;
+  font-weight: 700; padding: 12px 24px; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(62,207,207,0.4);
+  white-space: nowrap; z-index: 100;
+}
+
+/* ─── LEADERBOARD ─── */
+.lb-metric-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+  flex-shrink: 0;
+}
+.lb-metric-bar::-webkit-scrollbar { display: none; }
+.lb-metric-tab {
+  flex-shrink: 0; padding: 12px 16px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.15s; white-space: nowrap;
+}
+.lb-metric-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+.lb-rank-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+}
+.lb-rank-num {
+  font-size: 20px; font-weight: 900; color: var(--muted);
+  width: 32px; text-align: center; flex-shrink: 0;
+}
+.lb-rank-num.gold   { color: #ffd700; }
+.lb-rank-num.silver { color: #c0c0c0; }
+.lb-rank-num.bronze { color: #cd7f32; }
+.lb-rank-info { flex: 1; min-width: 0; }
+.lb-rank-name { font-size: 15px; font-weight: 700; }
+.lb-rank-class { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.lb-rank-val {
+  font-size: 22px; font-weight: 900; color: var(--cyan);
+  text-align: right; flex-shrink: 0;
+}
+.lb-rank-unit { font-size: 10px; color: var(--muted); display: block; }
+
+.lb-empty {
+  text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px;
+}
+.lb-section-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 16px 0 8px;
+}
+/* ─── STUDENT PROFILE & REPORT ─── */
+.student-subtabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+.student-subtab {
+  flex: 1; padding: 13px; text-align: center; font-size: 13px;
+  font-weight: 600; color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.student-subtab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+/* Student list item */
+.student-list-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: border-color 0.15s;
+}
+.student-list-item:active { border-color: var(--cyan); }
+.sli-name { font-size: 15px; font-weight: 700; flex: 1; }
+.sli-meta { font-size: 12px; color: var(--muted); }
+.sli-arrow { color: var(--muted); font-size: 18px; }
+
+/* Student detail */
+.std-header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+}
+.std-back {
+  width: 36px; height: 36px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer; flex-shrink: 0;
+}
+.std-name { font-size: 17px; font-weight: 700; }
+.std-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* Body measurement input card */
+.body-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; margin-bottom: 10px;
+}
+.body-card-title {
+  font-size: 13px; font-weight: 700; color: var(--muted);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px;
+}
+.body-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.body-row:last-child { margin-bottom: 0; }
+.body-label { font-size: 13px; color: var(--muted); width: 80px; flex-shrink: 0; }
+.body-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: 15px; font-weight: 700; padding: 7px 10px;
+  outline: none; text-align: center; color-scheme: dark;
+  -webkit-appearance: none;
+}
+.body-input:focus { border-color: var(--cyan); }
+.body-unit { font-size: 12px; color: var(--muted); width: 30px; flex-shrink: 0; }
+.btn-save-body {
+  width: 100%; margin-top: 12px;
+  background: var(--cyan); color: #111; border: none;
+  border-radius: 10px; font-family: inherit; font-size: 14px;
+  font-weight: 700; padding: 11px; cursor: pointer;
+}
+.btn-save-body:active { opacity: 0.8; }
+
+/* History timeline */
+.history-timeline { margin-bottom: 10px; }
+.ht-entry {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.ht-entry:last-child { border-bottom: none; }
+.ht-date { color: var(--muted); }
+.ht-val  { font-weight: 700; }
+.ht-val.pb { color: var(--green); }
+.ht-delta { font-size: 11px; color: var(--muted); }
+.ht-delta.up   { color: var(--green); }
+.ht-delta.down { color: var(--red); }
+
+/* Report */
+.report-student-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 6px;
+  cursor: pointer; display: flex; align-items: center; gap: 10px;
+  transition: border-color 0.15s;
+}
+.report-student-item.selected { border-color: var(--cyan); background: var(--cyan-dim); }
+.rsi-name { font-size: 14px; font-weight: 700; flex: 1; }
+.rsi-check { font-size: 16px; }
+
+.report-range-pill {
+  padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--surface2); color: var(--muted); font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.report-range-pill.active {
+  background: var(--purple-dim); border-color: var(--purple); color: var(--purple);
+}
+
+/* Report content */
+.report-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; margin-bottom: 12px;
+}
+.report-card-title {
+  font-size: 13px; font-weight: 700; color: var(--cyan);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+}
+.report-metric-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.report-metric-row:last-child { border-bottom: none; }
+.rmr-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.rmr-vals { text-align: right; }
+.rmr-cur  { font-size: 18px; font-weight: 900; color: var(--text); }
+.rmr-change { font-size: 12px; margin-top: 2px; }
+.rmr-change.up   { color: var(--green); }
+.rmr-change.down { color: var(--red); }
+.rmr-change.same { color: var(--muted); }
+.rmr-dates { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.report-header-card {
+  background: linear-gradient(135deg, rgba(62,207,207,0.15), rgba(167,139,250,0.1));
+  border: 1px solid var(--cyan); border-radius: 16px; padding: 16px;
+  margin-bottom: 12px;
+}
+.rhc-name  { font-size: 22px; font-weight: 900; }
+.rhc-meta  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.rhc-range { font-size: 12px; color: var(--cyan); margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -1111,6 +1413,96 @@ html, body {
       </div>
     </div>
 
+    <!-- ══ PERFORMANCE ══ -->
+    <div class="screen" id="screen-perf">
+      <!-- Step 1: Class + date + metric selector -->
+      <div id="perf-setup" style="display:block">
+        <div class="perf-section-label">選擇班別</div>
+        <div class="perf-class-bar" id="perf-class-bar"></div>
+        <div class="perf-section-label">記錄日期</div>
+        <div style="padding:0 16px 10px">
+          <input type="date" id="perf-date" style="
+            width:100%; background:var(--surface); border:1.5px solid var(--border);
+            border-radius:12px; color:var(--text); font-family:inherit;
+            font-size:15px; padding:12px 14px; outline:none; color-scheme:dark;
+            -webkit-appearance:none;" onchange="onPerfDateChange()">
+        </div>
+        <div class="perf-section-label">選擇測試項目（可多選）</div>
+        <div class="perf-metrics-grid" id="perf-metrics-grid"></div>
+        <div style="padding:0 16px 16px">
+          <button class="btn-start-perf" onclick="startPerfEntry()">開始記錄 →</button>
+        </div>
+      </div>
+      <!-- Step 2: Data entry per student -->
+      <div id="perf-entry" style="display:none">
+        <div class="perf-entry-header" id="perf-entry-header"></div>
+        <div id="perf-student-cards" style="padding:0 12px 120px"></div>
+      </div>
+      <!-- Step 3: Summary table for screenshot -->
+      <div id="perf-summary" style="display:none">
+        <div style="padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:15px;font-weight:700">成績表</span>
+          <button class="btn-copy" onclick="showScreen('perf')" style="background:var(--surface);color:var(--muted);border:1px solid var(--border)">← 返回</button>
+        </div>
+        <div id="perf-table-wrap" style="padding:0 12px 100px;overflow-x:auto"></div>
+      </div>
+    </div>
+
+    <!-- ══ LEADERBOARD ══ -->
+    <div class="screen" id="screen-lb">
+      <div class="lb-metric-bar" id="lb-metric-bar"></div>
+      <div id="lb-content" style="padding:0 12px 100px"></div>
+    </div>
+
+    <!-- ══ STUDENT PROFILE ══ -->
+    <div class="screen" id="screen-student">
+      <!-- Sub-tabs: Profile / Report -->
+      <div class="student-subtabs">
+        <div class="student-subtab active" id="stab-profile" onclick="switchStudentTab('profile')">📋 個人資料</div>
+        <div class="student-subtab" id="stab-report" onclick="switchStudentTab('report')">📈 學生報告</div>
+      </div>
+
+      <!-- Profile tab -->
+      <div id="student-profile-panel">
+        <div class="perf-section-label">選擇學生</div>
+        <div style="padding:0 16px 10px">
+          <input class="search-input" id="student-search" type="text" placeholder="輸入姓名搜尋…"
+            oninput="renderStudentList()" autocomplete="off"
+            style="width:100%;font-size:15px;padding:11px 14px;border-radius:12px">
+        </div>
+        <div id="student-list-panel" style="padding:0 12px 20px"></div>
+        <!-- Student detail card (shown when selected) -->
+        <div id="student-detail-panel" style="display:none;padding:0 12px 100px"></div>
+      </div>
+
+      <!-- Report tab -->
+      <div id="student-report-panel" style="display:none">
+        <div class="perf-section-label">選擇學生</div>
+        <div style="padding:0 16px 8px">
+          <input class="search-input" id="report-search" type="text" placeholder="輸入姓名搜尋…"
+            oninput="renderReportStudentList()" autocomplete="off"
+            style="width:100%;font-size:15px;padding:11px 14px;border-radius:12px">
+        </div>
+        <div id="report-student-list" style="padding:0 12px 8px"></div>
+        <div id="report-options" style="display:none;padding:0 16px 8px">
+          <div class="perf-section-label" style="padding-left:0">報告時間範圍</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="report-range-pills"></div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">開始日期</div>
+              <input type="date" id="report-from" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">結束日期</div>
+              <input type="date" id="report-to" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
+            </div>
+          </div>
+          <button class="btn-start-perf" onclick="generateReport()">生成報告 →</button>
+        </div>
+        <div id="report-content" style="padding:0 12px 100px"></div>
+      </div>
+    </div>
+
   </div><!-- end scroll-area -->
 
   <!-- BOTTOM NAV -->
@@ -1123,17 +1515,21 @@ html, body {
       <span class="nav-icon" id="makeup-badge">📋</span>
       <span class="nav-label">補堂</span>
     </button>
+    <button class="nav-item" onclick="showScreen('perf')" id="nav-perf">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">成績</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('lb')" id="nav-lb">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">排行</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('student')" id="nav-student">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">學生</span>
+    </button>
     <button class="nav-item" onclick="showScreen('fee')" id="nav-fee">
       <span class="nav-icon">💰</span>
       <span class="nav-label">收費</span>
-    </button>
-    <button class="nav-item" onclick="showScreen('parent')" id="nav-parent">
-      <span class="nav-icon">👪</span>
-      <span class="nav-label">家長</span>
-    </button>
-    <button class="nav-item" onclick="showScreen('history')" id="nav-history">
-      <span class="nav-icon">🗂</span>
-      <span class="nav-label">記錄</span>
     </button>
   </nav>
 </div>
@@ -1253,12 +1649,24 @@ let makeupFilter  = 'pending';
 // ═══════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+// 本地日期字串（避免 toISOString 時區問題，香港 UTC+8）
+function dateToStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function todayStr() {
+  return dateToStr(new Date());
+}
 
 function addMonths(str, n) {
-  const d = new Date(str);
+  // Parse date parts to avoid timezone issues
+  const [y, m, day] = str.split('-').map(Number);
+  const d = new Date(y, m - 1, day);
   d.setMonth(d.getMonth() + n);
-  return d.toISOString().split('T')[0];
+  return dateToStr(d);
 }
 
 function daysLeft(deadline) {
@@ -1336,6 +1744,9 @@ function showScreen(id, pushStack=true) {
   if (id === 'makeup')  renderMakeup();
   if (id === 'history') renderHistory();
   if (id === 'fee')     renderFee();
+  if (id === 'perf')    renderPerf();
+  if (id === 'lb')      renderLB();
+  if (id === 'student') renderStudentScreen();
   if (id === 'parent')  { /* no auto-render */ }
 }
 
@@ -1386,7 +1797,7 @@ function getClassDatesInMonth(classId, year, month) {
   const d = new Date(year, month, 1);
   while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
   while (d.getMonth() === month) {
-    const str = d.toISOString().split('T')[0];
+    const str = dateToStr(d);
     if (!PUBLIC_HOLIDAYS.has(str)) dates.push(str);
     d.setDate(d.getDate() + 7);
   }
@@ -1930,7 +2341,7 @@ function getFeeDates(classId, period) {
     const d = new Date(y, m, 1);
     while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
     while (d.getMonth() === m) {
-      dates.push(new Date(d));
+      dates.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
       d.setDate(d.getDate() + 7);
     }
   });
@@ -2132,10 +2543,947 @@ function doUnlock() {
 }
 
 // ═══════════════════════════════════════════
+//  PERFORMANCE TRACKING
+// ═══════════════════════════════════════════
+
+// Metric definitions
+const METRICS = [
+  { id:'rope30',  name:'30秒前繩',  unit:'次',  higher:true },
+  { id:'bike',    name:'單車步',    unit:'次',  higher:true },
+  { id:'double',  name:'二重跳',    unit:'次',  higher:true },
+  { id:'cross',   name:'交叉開',    unit:'次',  higher:true },
+  { id:'gripL',   name:'手握力(左)', unit:'kg', higher:true },
+  { id:'gripR',   name:'手握力(右)', unit:'kg', higher:true },
+  { id:'cmj',     name:'CMJ',       unit:'cm', higher:true },
+  { id:'ncmj',    name:'NCMJ',      unit:'cm', higher:true },
+  { id:'sj',      name:'立定跳遠',  unit:'cm', higher:true },
+  { id:'rsi',     name:'RSI',       unit:'',   higher:true },
+];
+
+// Performance records: { 'studentName': { 'metricId': [ {date, val}, ... ] } }
+let PERF_RECORDS = {};
+
+// 學生出生年份（共60位）
+const STUDENT_YEARS = {
+  "何梓程": 2020, "何芯蕾": 2018, "余悅": 2017, "劉家頤": 2017,
+  "古卓謙": 2019, "古詩詠": 2016, "吳瑋軒": 2014, "呂洛希": 2019,
+  "周莉晶": 2018, "姚心穎": 2017, "孔善盈": 2016, "張爾淳": 2017,
+  "張雅堯": 2019, "文柏升": 2019, "文莃遙": 2019, "文逸諄": 2018,
+  "曾愛斯": 2017, "李灝宏": 2018, "梁德澤": 2015, "梁德瑜": 2019,
+  "梁心朗": 2016, "梁正宇": 2017, "梁正軒": 2020, "潘洛詩": 2017,
+  "王一心": 2017, "王一言": 2017, "王尉鏇": 2015, "王斯顏": 2020,
+  "羅君信": 2017, "羅君浩": 2019, "羅梓晉": 2018, "羅靖誼": 2017,
+  "翟悅廷": 2017, "胡汐森": 2018, "胡苡晨": 2015, "葉宇浩": 2021,
+  "蔡芷彤": 2016, "許思溢": 2014, "郭可昕": 2015, "郭栩澄": 2016,
+  "鄧可澄": 2018, "鄧幗恩": 2018, "鄧朗森": 2016, "鄭宇喬": 2016,
+  "鍾皓惟": 2017, "陳信澄": 2015, "陳卓楠": 2017, "陳思允": 2016,
+  "陳曉瑩": 2014, "陳書雅": 2018, "陳柏睎": 2021, "陳澔泓": 2017,
+  "陳焯棋": 2018, "顧舒然": 2017, "馬仲然": 2018, "黃朗程": 2018,
+  "黃梓昕": 2017, "黃玥晴": 2018, "黎柏希": 2015, "黎柏言": 2018,
+};
+
+// Current perf session state
+let perfClass    = 'c1';
+let perfMetrics  = [];    // selected metric ids
+let perfSession  = {};    // { name: { metricId: value } }
+
+function isBetter(metricId, newVal, oldVal) {
+  const m = METRICS.find(x => x.id === metricId);
+  if (!m) return false;
+  return m.higher ? newVal > oldVal : newVal < oldVal;
+}
+
+function getPersonalBest(name, metricId) {
+  const recs = PERF_RECORDS[name]?.[metricId];
+  if (!recs || recs.length === 0) return null;
+  const m = METRICS.find(x => x.id === metricId);
+  return m.higher
+    ? Math.max(...recs.map(r => r.val))
+    : Math.min(...recs.map(r => r.val));
+}
+
+function renderPerf() {
+  document.getElementById('header-title-text').textContent = '成績記錄';
+  document.getElementById('header-subtitle-text').textContent = 'Performance Tracking';
+  document.getElementById('perf-setup').style.display = 'block';
+  document.getElementById('perf-entry').style.display = 'none';
+  document.getElementById('perf-summary').style.display = 'none';
+
+  // Class pills
+  document.getElementById('perf-class-bar').innerHTML =
+    Object.entries(CLASSES).map(([id, cls]) =>
+      `<div class="perf-class-pill ${perfClass===id?'active':''}" onclick="setPerfClass('${id}')">
+        ${cls.dayZh} ${cls.time}
+      </div>`
+    ).join('');
+
+  // Metrics grid
+  document.getElementById('perf-metrics-grid').innerHTML =
+    METRICS.map(m =>
+      `<div class="perf-metric-tile ${perfMetrics.includes(m.id)?'selected':''}" onclick="toggleMetric('${m.id}')">
+        <div class="pmt-name">${m.name}</div>
+        <div class="pmt-unit">${m.unit || 'RSI值'}</div>
+      </div>`
+    ).join('');
+}
+
+function setPerfClass(id) {
+  perfClass = id;
+  renderPerf();
+}
+
+function toggleMetric(id) {
+  if (perfMetrics.includes(id)) {
+    perfMetrics = perfMetrics.filter(x => x !== id);
+  } else {
+    perfMetrics.push(id);
+  }
+  renderPerf();
+}
+
+function startPerfEntry() {
+  if (perfMetrics.length === 0) { toast('請先選擇至少一個項目', '⚠'); return; }
+  perfSession = {};
+  document.getElementById('perf-setup').style.display = 'none';
+  document.getElementById('perf-entry').style.display = 'block';
+
+  const cls = CLASSES[perfClass];
+  const metricNames = perfMetrics.map(id => METRICS.find(m=>m.id===id)?.name).join('、');
+
+  document.getElementById('perf-entry-header').innerHTML = `
+    <div>
+      <div class="peh-class">${cls.dayZh} ${cls.time}</div>
+      <div class="peh-metrics">${metricNames}</div>
+    </div>
+    <button class="btn-peh-done" onclick="finishPerfEntry()">完成 →</button>
+  `;
+
+  // Build student cards
+  document.getElementById('perf-student-cards').innerHTML =
+    cls.students.map(name => {
+      const pb_html = perfMetrics.map(mid => {
+        const m   = METRICS.find(x => x.id === mid);
+        const pb  = getPersonalBest(name, mid);
+        const pbTxt = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
+        return `
+        <div class="psc-metric-row">
+          <span class="psc-metric-label">${m.name}</span>
+          <input class="psc-input" type="number" inputmode="decimal"
+            id="psc-${name}-${mid}" placeholder="—"
+            oninput="onPerfInput('${name}','${mid}',this.value)">
+          <span class="psc-pb" id="pb-${name}-${mid}">${pbTxt}</span>
+        </div>`;
+      }).join('');
+
+      return `
+      <div class="perf-student-card">
+        <div class="psc-name">${name}</div>
+        <div class="psc-metrics">${pb_html}</div>
+      </div>`;
+    }).join('');
+}
+
+function onPerfInput(name, metricId, rawVal) {
+  const val = parseFloat(rawVal);
+  if (!perfSession[name]) perfSession[name] = {};
+  if (isNaN(val) || rawVal === '') {
+    delete perfSession[name][metricId];
+  } else {
+    perfSession[name][metricId] = val;
+  }
+
+  // Update PB indicator
+  const pb     = getPersonalBest(name, metricId);
+  const m      = METRICS.find(x => x.id === metricId);
+  const pbEl   = document.getElementById(`pb-${name}-${metricId}`);
+  if (!pbEl) return;
+
+  if (isNaN(val) || rawVal === '') {
+    pbEl.className = 'psc-pb';
+    pbEl.textContent = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
+  } else if (pb === null) {
+    pbEl.className = 'psc-pb is-new';
+    pbEl.textContent = '🆕 首次';
+  } else if (isBetter(metricId, val, pb)) {
+    pbEl.className = 'psc-pb is-record';
+    pbEl.textContent = `🏅 破 ${pb}${m.unit}!`;
+  } else {
+    pbEl.className = 'psc-pb';
+    pbEl.textContent = `PB: ${pb}${m.unit}`;
+  }
+}
+
+function finishPerfEntry() {
+  const date = perfDate || todayStr();
+  let recordCount = 0;
+  let firstCount  = 0;
+
+  // Save to PERF_RECORDS — capture old PB BEFORE pushing new record
+  Object.entries(perfSession).forEach(([name, metrics]) => {
+    if (!PERF_RECORDS[name]) PERF_RECORDS[name] = {};
+    Object.entries(metrics).forEach(([mid, val]) => {
+      const oldPB = getPersonalBest(name, mid); // capture before push
+      if (!PERF_RECORDS[name][mid]) PERF_RECORDS[name][mid] = [];
+      PERF_RECORDS[name][mid].push({ date, val });
+      if (oldPB === null) {
+        firstCount++;
+      } else if (isBetter(mid, val, oldPB)) {
+        recordCount++;
+      }
+    });
+  });
+
+  let msg = '';
+  if (recordCount > 0) msg += `🏅 ${recordCount} 個破紀錄！`;
+  if (firstCount > 0)  msg += (msg?' · ':'')+`✦ ${firstCount} 個首次記錄`;
+  if (msg) toast(msg, '🎉');
+  else toast('成績已儲存', '✓');
+
+  showPerfSummary();
+}
+
+function showPerfSummary() {
+  document.getElementById('perf-entry').style.display = 'none';
+  document.getElementById('perf-summary').style.display = 'block';
+
+  const cls = CLASSES[perfClass];
+  const date = perfDate || todayStr();
+  const selMetrics = perfMetrics.map(id => METRICS.find(m => m.id === id));
+
+  // Build table
+  let thead = '<tr><th>學生</th>';
+  selMetrics.forEach(m => { thead += `<th>${m.name}<br><span style="font-weight:400;opacity:0.6">${m.unit||'RSI'}</span></th>`; });
+  thead += '</tr>';
+
+  let tbody = '';
+  cls.students.forEach(name => {
+    const hasData = perfMetrics.some(mid => perfSession[name]?.[mid] !== undefined);
+    if (!hasData) return;
+    tbody += `<tr><td class="name-col">${name}</td>`;
+    selMetrics.forEach(m => {
+      const val = perfSession[name]?.[m.id];
+      if (val === undefined || val === null) {
+        tbody += `<td class="empty-cell">—</td>`;
+      } else {
+        // Compare against records BEFORE today's session (all but last push)
+        const recs = PERF_RECORDS[name]?.[m.id] || [];
+        const prevRecs = recs.slice(0, recs.length - 1);
+        const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
+        const isFirst  = prevBest === null;
+        const isRecord = !isFirst && isBetter(m.id, val, prevBest);
+        if (isRecord) {
+          tbody += `<td class="record-cell">${val} 🏅</td>`;
+        } else if (isFirst) {
+          tbody += `<td class="pb-cell">${val} ✦</td>`;
+        } else {
+          tbody += `<td>${val}</td>`;
+        }
+      }
+    });
+    tbody += '</tr>';
+  });
+
+  const dateZh = fmtDate(date);
+  document.getElementById('perf-table-wrap').innerHTML = `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
+      ${cls.dayZh} ${cls.time} · ${dateZh}
+      <span style="margin-left:12px;color:var(--green)">🏅破紀錄</span>
+      <span style="margin-left:8px;color:var(--cyan)">✦首次</span>
+    </div>
+    <table class="perf-table">
+      <thead>${thead}</thead>
+      <tbody>${tbody || `<tr><td colspan="${selMetrics.length+1}" style="text-align:center;color:var(--muted);padding:20px">無數據</td></tr>`}</tbody>
+    </table>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">
+      截圖此表格即可發送給家長 📱
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn-start-perf" onclick="renderPerf();showScreen('perf')">返回設定</button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════════════════
+let lbMetric = 'rope30';
+
+function renderLB() {
+  document.getElementById('header-title-text').textContent = '排行榜';
+  document.getElementById('header-subtitle-text').textContent = 'Leaderboard';
+
+  // Metric tabs
+  document.getElementById('lb-metric-bar').innerHTML =
+    METRICS.map(m =>
+      `<div class="lb-metric-tab ${lbMetric===m.id?'active':''}" onclick="setLBMetric('${m.id}')">
+        ${m.name}
+      </div>`
+    ).join('');
+
+  const m = METRICS.find(x => x.id === lbMetric);
+  if (!m) return;
+
+  // Collect all personal bests for this metric
+  const entries = [];
+  Object.entries(CLASSES).forEach(([cid, cls]) => {
+    cls.students.forEach(name => {
+      const pb = getPersonalBest(name, lbMetric);
+      if (pb !== null) {
+        const year = STUDENT_YEARS[name] || null;
+        entries.push({ name, cid, cls: cls.dayZh + ' ' + cls.time, val: pb, year });
+      }
+    });
+  });
+
+  if (!entries.length) {
+    document.getElementById('lb-content').innerHTML =
+      `<div class="lb-empty">暫無${m.name}成績資料<br>請先在成績頁面記錄數據</div>`;
+    return;
+  }
+
+  // Sort
+  entries.sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
+
+  function renderRankList(list) {
+    return list.map((e, i) => {
+      const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const rankTxt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      return `
+      <div class="lb-rank-card">
+        <div class="lb-rank-num ${rankCls}">${rankTxt}</div>
+        <div class="lb-rank-info">
+          <div class="lb-rank-name">${e.name}</div>
+          <div class="lb-rank-class">${e.cls}${e.year?` · ${e.year}年生`:''}</div>
+        </div>
+        <div class="lb-rank-val">
+          ${e.val}
+          <span class="lb-rank-unit">${m.unit||'RSI'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  let html = `<div class="lb-section-title">總排行 · ${m.name}</div>`;
+  html += renderRankList(entries);
+
+  // Age group ranking if years available
+  const withYear = entries.filter(e => e.year);
+  if (withYear.length > 2) {
+    const years = [...new Set(withYear.map(e => e.year))].sort((a,b)=>a-b);
+    years.forEach(yr => {
+      const grp = withYear.filter(e => e.year === yr);
+      if (grp.length < 2) return;
+      html += `<div class="lb-section-title">${yr}年生</div>`;
+      html += renderRankList(grp);
+    });
+  }
+
+  document.getElementById('lb-content').innerHTML = html;
+}
+
+function setLBMetric(id) {
+  lbMetric = id;
+  renderLB();
+}
+
+// ═══════════════════════════════════════════
+//  BODY MEASUREMENTS
+//  { 'studentName': [ {date, height, weight}, ... ] }
+// ═══════════════════════════════════════════
+let BODY_RECORDS = {};
+
+// ═══════════════════════════════════════════
+//  PERF DATE PICKER
+// ═══════════════════════════════════════════
+let perfDate = todayStr();
+
+function onPerfDateChange() {
+  perfDate = document.getElementById('perf-date').value || todayStr();
+}
+
+// Override renderPerf to set date input
+const _origRenderPerf = renderPerf;
+renderPerf = function() {
+  _origRenderPerf();
+  const di = document.getElementById('perf-date');
+  if (di) di.value = perfDate;
+};
+
+// Override startPerfEntry to use perfDate
+const _origStartPerfEntry = startPerfEntry;
+startPerfEntry = function() {
+  perfDate = document.getElementById('perf-date')?.value || todayStr();
+  _origStartPerfEntry();
+};
+
+// Override finishPerfEntry to use perfDate instead of todayStr()
+// (patched below in the data section)
+
+// ═══════════════════════════════════════════
+//  STUDENT PROFILE SCREEN
+// ═══════════════════════════════════════════
+let studentTabActive  = 'profile';
+let selectedStudent   = null;
+let reportStudent     = null;
+let reportRangeMode   = '6m'; // '3m','6m','1y','custom'
+
+function renderStudentScreen() {
+  document.getElementById('header-title-text').textContent = '學生資料';
+  document.getElementById('header-subtitle-text').textContent = 'Student Profiles';
+  switchStudentTab(studentTabActive);
+}
+
+function switchStudentTab(tab) {
+  studentTabActive = tab;
+  document.getElementById('stab-profile').classList.toggle('active', tab==='profile');
+  document.getElementById('stab-report').classList.toggle('active', tab==='report');
+  document.getElementById('student-profile-panel').style.display = tab==='profile'?'block':'none';
+  document.getElementById('student-report-panel').style.display  = tab==='report' ?'block':'none';
+  if (tab === 'profile') renderStudentList();
+  if (tab === 'report')  renderReportStudentList();
+}
+
+// Collect all unique students
+function getAllStudents() {
+  const seen = new Set();
+  const list = [];
+  Object.values(CLASSES).forEach(cls => {
+    cls.students.forEach(name => {
+      if (!seen.has(name)) { seen.add(name); list.push(name); }
+    });
+  });
+  return list.sort((a,b) => a.localeCompare(b, 'zh-Hant'));
+}
+
+function getStudentClasses(name) {
+  return Object.values(CLASSES)
+    .filter(c => c.students.includes(name))
+    .map(c => c.dayZh + ' ' + c.time)
+    .join('、');
+}
+
+function renderStudentList() {
+  const q = document.getElementById('student-search')?.value.trim() || '';
+  const all = getAllStudents().filter(n => !q || n.includes(q));
+  const panel = document.getElementById('student-list-panel');
+
+  if (!all.length) {
+    panel.innerHTML = '<div class="lb-empty">找不到學生</div>';
+    return;
+  }
+
+  panel.innerHTML = all.map(name => {
+    const yr   = STUDENT_YEARS[name];
+    const body = BODY_RECORDS[name];
+    const lastBody = body?.length ? body[body.length-1] : null;
+    const bodyTxt  = lastBody ? `${lastBody.height}cm · ${lastBody.weight}kg` : '未有體格數據';
+    return `
+    <div class="student-list-item" onclick="openStudentDetail('${name}')">
+      <div style="flex:1">
+        <div class="sli-name">${name}</div>
+        <div class="sli-meta">${yr?yr+'年生 · ':''}${bodyTxt}</div>
+      </div>
+      <div class="sli-arrow">›</div>
+    </div>`;
+  }).join('');
+
+  // Hide detail if showing list
+  document.getElementById('student-list-panel').style.display = 'block';
+  document.getElementById('student-detail-panel').style.display = 'none';
+}
+
+function openStudentDetail(name) {
+  selectedStudent = name;
+  document.getElementById('student-list-panel').style.display = 'none';
+  const detail = document.getElementById('student-detail-panel');
+  detail.style.display = 'block';
+  renderStudentDetail(name);
+}
+
+function renderStudentDetail(name) {
+  const yr    = STUDENT_YEARS[name] || '—';
+  const cls   = getStudentClasses(name);
+  const body  = BODY_RECORDS[name] || [];
+  const last  = body.length ? body[body.length-1] : null;
+
+  // Body measurement history
+  const bodyHistoryHtml = body.length
+    ? body.slice().reverse().map((r, i, arr) => {
+        const prev = arr[i+1];
+        const hDelta = prev ? (r.height - prev.height).toFixed(1) : null;
+        const wDelta = prev ? (r.weight - prev.weight).toFixed(1) : null;
+        return `
+        <div class="ht-entry">
+          <span class="ht-date">${fmtDate(r.date)}</span>
+          <span class="ht-val">
+            ${r.height}cm / ${r.weight}kg
+            ${hDelta!==null ? `<span class="ht-delta ${+hDelta>0?'up':+hDelta<0?'down':''}">${+hDelta>0?'▲':'▼'}${Math.abs(hDelta)}cm</span>` : ''}
+          </span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0">暫無記錄</div>';
+
+  // Performance summary per metric
+  const perfHtml = METRICS.map(m => {
+    const recs = PERF_RECORDS[name]?.[m.id];
+    if (!recs || !recs.length) return '';
+    const pb = getPersonalBest(name, m.id);
+    const last = recs[recs.length-1];
+    return `
+    <div class="ht-entry">
+      <span class="ht-date">${m.name}</span>
+      <span class="ht-val pb">PB: ${pb}${m.unit} <span style="font-size:11px;color:var(--muted);font-weight:400">(${recs.length}次)</span></span>
+    </div>`;
+  }).filter(Boolean).join('') || '<div style="color:var(--muted);font-size:13px;padding:8px 0">暫無成績記錄</div>';
+
+  document.getElementById('student-detail-panel').innerHTML = `
+    <div class="std-header">
+      <div class="std-back" onclick="renderStudentList()">‹</div>
+      <div>
+        <div class="std-name">${name}</div>
+        <div class="std-meta">${yr}年生 · ${cls}</div>
+      </div>
+    </div>
+    <div style="padding:12px 12px 0">
+
+      <!-- Body measurement input -->
+      <div class="body-card">
+        <div class="body-card-title">📏 體格測量</div>
+        <div class="body-row">
+          <span class="body-label">身高</span>
+          <input class="body-input" type="number" inputmode="decimal" id="bi-height-${name}"
+            placeholder="${last?.height||'—'}" step="0.1">
+          <span class="body-unit">cm</span>
+        </div>
+        <div class="body-row">
+          <span class="body-label">體重</span>
+          <input class="body-input" type="number" inputmode="decimal" id="bi-weight-${name}"
+            placeholder="${last?.weight||'—'}" step="0.1">
+          <span class="body-unit">kg</span>
+        </div>
+        <div class="body-row">
+          <span class="body-label">日期</span>
+          <input type="date" id="bi-date-${name}" value="${todayStr()}"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:7px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
+        </div>
+        <button class="btn-save-body" onclick="saveBodyRecord('${name}')">儲存體格數據</button>
+      </div>
+
+      <!-- Body history -->
+      <div class="body-card">
+        <div class="body-card-title">📊 體格歷史</div>
+        <div class="history-timeline">${bodyHistoryHtml}</div>
+      </div>
+
+      <!-- Performance summary -->
+      <div class="body-card" style="margin-bottom:100px">
+        <div class="body-card-title">🏅 成績摘要 (PB)</div>
+        <div class="history-timeline">${perfHtml}</div>
+      </div>
+    </div>`;
+}
+
+function saveBodyRecord(name) {
+  const h = parseFloat(document.getElementById(`bi-height-${name}`)?.value);
+  const w = parseFloat(document.getElementById(`bi-weight-${name}`)?.value);
+  const d = document.getElementById(`bi-date-${name}`)?.value || todayStr();
+
+  if (isNaN(h) && isNaN(w)) { toast('請輸入身高或體重', '⚠'); return; }
+  if (!BODY_RECORDS[name]) BODY_RECORDS[name] = [];
+
+  // Replace same-date record or append
+  const idx = BODY_RECORDS[name].findIndex(r => r.date === d);
+  const rec = {
+    date: d,
+    height: isNaN(h) ? (BODY_RECORDS[name].find(r=>r.date===d)?.height || null) : h,
+    weight: isNaN(w) ? (BODY_RECORDS[name].find(r=>r.date===d)?.weight || null) : w,
+  };
+  if (idx >= 0) BODY_RECORDS[name][idx] = rec;
+  else {
+    BODY_RECORDS[name].push(rec);
+    BODY_RECORDS[name].sort((a,b) => a.date.localeCompare(b.date));
+  }
+
+  toast('體格數據已儲存', '✓');
+  renderStudentDetail(name);
+}
+
+// ═══════════════════════════════════════════
+//  STUDENT REPORT
+// ═══════════════════════════════════════════
+function renderReportStudentList() {
+  const q   = document.getElementById('report-search')?.value.trim() || '';
+  const all = getAllStudents().filter(n => !q || n.includes(q));
+  document.getElementById('report-student-list').innerHTML = all.map(name =>
+    `<div class="report-student-item ${reportStudent===name?'selected':''}"
+      onclick="selectReportStudent('${name}')">
+      <span class="rsi-name">${name}</span>
+      <span class="rsi-check">${reportStudent===name?'✓':''}</span>
+    </div>`
+  ).join('');
+}
+
+function selectReportStudent(name) {
+  reportStudent = name;
+  renderReportStudentList();
+  const opt = document.getElementById('report-options');
+  opt.style.display = 'block';
+
+  // Setup range pills
+  const pills = [
+    { id:'3m', label:'3 個月' },
+    { id:'6m', label:'6 個月' },
+    { id:'1y', label:'1 年' },
+    { id:'custom', label:'自訂' },
+  ];
+  document.getElementById('report-range-pills').innerHTML = pills.map(p =>
+    `<div class="report-range-pill ${reportRangeMode===p.id?'active':''}"
+      onclick="setReportRange('${p.id}')">${p.label}</div>`
+  ).join('');
+
+  // Set default dates
+  const to   = todayStr();
+  const from = (() => {
+    const d = new Date();
+    if (reportRangeMode==='3m') d.setMonth(d.getMonth()-3);
+    else if (reportRangeMode==='6m') d.setMonth(d.getMonth()-6);
+    else if (reportRangeMode==='1y') d.setFullYear(d.getFullYear()-1);
+    else d.setMonth(d.getMonth()-6);
+    return dateToStr(d);
+  })();
+  document.getElementById('report-from').value = from;
+  document.getElementById('report-to').value   = to;
+
+  const customRow = document.getElementById('report-from').closest('div').parentElement;
+  customRow.style.display = reportRangeMode==='custom' ? 'flex' : 'none';
+  document.getElementById('report-content').innerHTML = '';
+}
+
+function setReportRange(mode) {
+  reportRangeMode = mode;
+  const fromEl = document.getElementById('report-from');
+  const toEl   = document.getElementById('report-to');
+  const to = todayStr();
+  const d  = new Date();
+  if (mode==='3m') d.setMonth(d.getMonth()-3);
+  else if (mode==='6m') d.setMonth(d.getMonth()-6);
+  else if (mode==='1y') d.setFullYear(d.getFullYear()-1);
+  if (mode !== 'custom') {
+    fromEl.value = dateToStr(d);
+    toEl.value   = to;
+  }
+
+  const customRow = fromEl.closest('div').parentElement;
+  customRow.style.display = mode==='custom' ? 'flex' : 'none';
+
+  // Re-render pills
+  document.getElementById('report-range-pills').querySelectorAll('.report-range-pill')
+    .forEach(el => el.classList.toggle('active', el.textContent.trim() === ({
+      '3m':'3 個月','6m':'6 個月','1y':'1 年','custom':'自訂'
+    }[mode])));
+}
+
+function generateReport() {
+  if (!reportStudent) { toast('請先選擇學生', '⚠'); return; }
+  const from = document.getElementById('report-from').value;
+  const to   = document.getElementById('report-to').value;
+  if (!from || !to) { toast('請設定時間範圍', '⚠'); return; }
+
+  const name = reportStudent;
+  const yr   = STUDENT_YEARS[name];
+  const cls  = getStudentClasses(name);
+
+  // Body data in range
+  const bodyInRange = (BODY_RECORDS[name]||[]).filter(r => r.date>=from && r.date<=to)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const bodyFirst = bodyInRange[0];
+  const bodyLast  = bodyInRange[bodyInRange.length-1];
+
+  // Performance data in range per metric
+  const perfSections = METRICS.map(m => {
+    const recs = (PERF_RECORDS[name]?.[m.id]||[])
+      .filter(r => r.date>=from && r.date<=to)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    if (!recs.length) return null;
+    const first = recs[0], last = recs[recs.length-1];
+    const pb = m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
+    const delta = last.val - first.val;
+    const deltaDir = m.higher ? (delta>0?'up':delta<0?'down':'same') : (delta<0?'up':delta>0?'down':'same');
+    const deltaSign = delta >= 0 ? '+' : '';
+    return { m, recs, first, last, pb, delta, deltaDir, deltaSign };
+  }).filter(Boolean);
+
+  // Build report HTML
+  let html = `
+  <div class="report-header-card">
+    <div class="rhc-name">${name}</div>
+    <div class="rhc-meta">${yr?yr+'年生 · ':''}${cls}</div>
+    <div class="rhc-range">📅 ${fmtDate(from)} — ${fmtDate(to)}</div>
+  </div>`;
+
+  // Body section
+  if (bodyFirst && bodyLast && bodyInRange.length >= 1) {
+    const hDelta = bodyLast.height && bodyFirst.height
+      ? (bodyLast.height - bodyFirst.height).toFixed(1) : null;
+    const wDelta = bodyLast.weight && bodyFirst.weight
+      ? (bodyLast.weight - bodyFirst.weight).toFixed(1) : null;
+
+    html += `
+    <div class="report-card">
+      <div class="report-card-title">📏 體格發展</div>`;
+
+    if (bodyFirst.height) html += `
+      <div class="report-metric-row">
+        <div>
+          <div class="rmr-name">身高</div>
+          <div class="rmr-dates">${fmtDate(bodyFirst.date)} → ${fmtDate(bodyLast.date)}</div>
+        </div>
+        <div class="rmr-vals">
+          <div class="rmr-cur">${bodyLast.height} cm</div>
+          ${hDelta!==null?`<div class="rmr-change ${+hDelta>0?'up':+hDelta<0?'down':'same'}">${+hDelta>=0?'▲':'▼'} ${Math.abs(hDelta)} cm</div>`:''}
+        </div>
+      </div>`;
+
+    if (bodyFirst.weight) html += `
+      <div class="report-metric-row">
+        <div>
+          <div class="rmr-name">體重</div>
+          <div class="rmr-dates">${fmtDate(bodyFirst.date)} → ${fmtDate(bodyLast.date)}</div>
+        </div>
+        <div class="rmr-vals">
+          <div class="rmr-cur">${bodyLast.weight} kg</div>
+          ${wDelta!==null?`<div class="rmr-change ${+wDelta>0?'up':+wDelta<0?'down':'same'}">${+wDelta>=0?'▲':'▼'} ${Math.abs(wDelta)} kg</div>`:''}
+        </div>
+      </div>`;
+
+    html += `</div>`;
+  }
+
+  // Performance section
+  if (perfSections.length) {
+    html += `
+    <div class="report-card">
+      <div class="report-card-title">🏅 體能表現</div>`;
+    perfSections.forEach(({ m, first, last, pb, delta, deltaDir, deltaSign }) => {
+      html += `
+      <div class="report-metric-row">
+        <div>
+          <div class="rmr-name">${m.name}</div>
+          <div class="rmr-dates">${fmtDate(first.date)} ${first.val}${m.unit} → ${fmtDate(last.date)} ${last.val}${m.unit}</div>
+          <div style="font-size:11px;color:var(--amber)">PB: ${pb}${m.unit}</div>
+        </div>
+        <div class="rmr-vals">
+          <div class="rmr-cur">${last.val}<span style="font-size:12px;font-weight:400"> ${m.unit}</span></div>
+          <div class="rmr-change ${deltaDir}">${deltaDir==='up'?'▲':deltaDir==='down'?'▼':'—'} ${Math.abs(delta)}${m.unit}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (!bodyFirst && !perfSections.length) {
+    html += `<div class="lb-empty">此時間範圍內沒有資料<br>請先記錄體格或成績數據</div>`;
+  } else {
+    html += `
+    <div style="margin-top:4px;font-size:12px;color:var(--muted);text-align:center;padding-bottom:16px">
+      截圖此報告即可發送給家長 📱
+    </div>`;
+  }
+
+  document.getElementById('report-content').innerHTML = html;
+  document.getElementById('report-content').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ═══════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ═══════════════════════════════════════════
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
+
+let syncStatus = 'idle'; // 'idle' | 'loading' | 'saving' | 'error'
+
+// ── Low-level API calls ──
+async function apiGet(params) {
+  const url = API_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function apiPost(body) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+// ── Load all data from Sheets on startup ──
+async function loadFromSheets() {
+  setSyncIndicator('loading');
+  try {
+    const data = await apiGet({ action: 'load' });
+    if (data.error) throw new Error(data.error);
+
+    // Rebuild ATT_LOG from attendance rows
+    (data.attendance || []).forEach(row => {
+      const key = row.key;
+      if (!ATT_LOG[key]) ATT_LOG[key] = {};
+      ATT_LOG[key][row.name] = row.status;
+    });
+
+    // Rebuild ABSENCES
+    if (data.absences?.length) {
+      ABSENCES.length = 0;
+      data.absences.forEach(row => {
+        ABSENCES.push({
+          id:         row.id,
+          name:       row.name,
+          classId:    row.classId,
+          absDate:    row.absDate,
+          deadline:   row.deadline,
+          madeUpDate: row.madeUpDate || null,
+        });
+      });
+    }
+
+    // Rebuild PERF_RECORDS
+    (data.performance || []).forEach(row => {
+      if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
+      if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
+      PERF_RECORDS[row.name][row.metricId].push({ date: row.date, val: +row.val });
+    });
+
+    // Rebuild BODY_RECORDS
+    (data.body || []).forEach(row => {
+      if (!BODY_RECORDS[row.name]) BODY_RECORDS[row.name] = [];
+      BODY_RECORDS[row.name].push({
+        date:   row.date,
+        height: row.height ? +row.height : null,
+        weight: row.weight ? +row.weight : null,
+      });
+    });
+
+    // Rebuild FEE_PAID
+    (data.fee_paid || []).forEach(row => {
+      if (row.paid) FEE_PAID[row.key] = true;
+    });
+
+    setSyncIndicator('ok');
+    renderHome();
+    updateBadge();
+    toast('資料已從雲端載入', '☁');
+  } catch (e) {
+    setSyncIndicator('error');
+    toast('載入失敗，使用本地資料', '⚠');
+    renderHome();
+    updateBadge();
+  }
+}
+
+// ── Save helpers (called after each mutation) ──
+async function syncAttendance(key) {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_attendance', data: { key, session: ATT_LOG[key] } });
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+async function syncAbsences() {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_absences', data: ABSENCES });
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+async function syncPerformance() {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_performance', data: PERF_RECORDS });
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+async function syncBody() {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_body', data: BODY_RECORDS });
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+async function syncFee() {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_fee', data: FEE_PAID });
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+// ── Sync status indicator in header ──
+function setSyncIndicator(status) {
+  syncStatus = status;
+  let el = document.getElementById('sync-indicator');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sync-indicator';
+    el.style.cssText = 'font-size:18px;cursor:pointer;';
+    el.title = '雲端同步狀態';
+    el.onclick = () => { if(syncStatus==='error') loadFromSheets(); };
+    document.getElementById('header-action')?.appendChild(el);
+  }
+  const icons = { loading:'⏳', saving:'💾', ok:'☁', error:'❌', idle:'☁' };
+  el.textContent = icons[status] || '☁';
+}
+
+// ── Patch save functions to auto-sync ──
+
+// Patch saveRoll
+const _origSaveRoll = saveRoll;
+saveRoll = function() {
+  _origSaveRoll();
+  const date = rollSelectedDate;
+  const key = currentClass + '|' + date;
+  syncAttendance(key);
+  syncAbsences();
+};
+
+// Patch markMakeupDone
+const _origMarkMakeupDone = markMakeupDone;
+markMakeupDone = function(id) {
+  _origMarkMakeupDone(id);
+  syncAbsences();
+};
+
+// Patch finishPerfEntry
+const _origFinishPerfEntry = finishPerfEntry;
+finishPerfEntry = function() {
+  _origFinishPerfEntry();
+  syncPerformance();
+  syncAbsences();
+};
+
+// Patch saveBodyRecord
+const _origSaveBodyRecord = saveBodyRecord;
+saveBodyRecord = function(name) {
+  _origSaveBodyRecord(name);
+  syncBody();
+};
+
+// Patch toggleFeePaid
+const _origToggleFeePaid = toggleFeePaid;
+toggleFeePaid = function(name) {
+  _origToggleFeePaid(name);
+  syncFee();
+};
+
+// ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
-renderHome();
-updateBadge();
+setSyncIndicator('idle');
+loadFromSheets(); // loads from Sheets then renders
+
 </script>
 </body>
 </html>
