@@ -190,6 +190,36 @@ body {
   font-size: 12px;
   color: rgba(255,255,255,0.2);
 }
+/* Leaderboard */
+.lb-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 16px 8px; font-size: 16px; font-weight: 700; color: var(--text);
+}
+.lb-metric-row {
+  display: flex; gap: 6px; padding: 0 16px 10px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.lb-metric-row::-webkit-scrollbar { display: none; }
+.lb-tab {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.lb-tab.active { background: rgba(62,207,207,0.15); border-color: var(--cyan); color: var(--cyan); }
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-num { font-size: 18px; font-weight: 900; width: 28px; color: var(--muted); text-align:center; flex-shrink:0; }
+.lb-num.gold { color: #ffd700; }
+.lb-num.silver { color: #c0c0c0; }
+.lb-num.bronze { color: #cd7f32; }
+.lb-name { flex: 1; font-size: 14px; font-weight: 700; }
+.lb-val { font-size: 18px; font-weight: 900; color: var(--cyan); }
+.lb-unit { font-size: 10px; color: var(--muted); display: block; text-align: right; }
+.lb-empty { padding: 20px 16px; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -215,6 +245,16 @@ body {
 </div>
 
 <div class="results" id="results"></div>
+
+<!-- Leaderboard section — hidden after search -->
+<div id="lb-section">
+  <div class="lb-header">
+    <span>🏆 成績排行榜</span>
+    <span style="font-size:11px;color:var(--muted)">各項目最佳成績</span>
+  </div>
+  <div class="lb-metric-row" id="lb-tabs"></div>
+  <div id="lb-list" style="padding:0 16px 12px"></div>
+</div>
 
 <div class="info-box">
   <p>
@@ -309,7 +349,14 @@ function isExpired(dl) { return dl < todayStr(); }
 function search() {
   const q = document.getElementById('q').value.trim();
   const out = document.getElementById('results');
-  if (!q) { out.innerHTML = ''; return; }
+  const lb  = document.getElementById('lb-section');
+  if (!q) {
+    out.innerHTML = '';
+    if (lb) lb.style.display = 'block';
+    return;
+  }
+  // Hide leaderboard after search
+  if (lb) lb.style.display = 'none';
 
   // Find matching students across all classes (may appear in multiple)
   const matches = [];
@@ -396,6 +443,106 @@ function search() {
     </div>`;
   }).join('');
 }
+
+// ═══════════════════════════════════════
+//  LEADERBOARD — 從 Google Sheets 載入
+// ═══════════════════════════════════════
+const METRICS = [
+  { id:'rope30', name:'30秒前繩', unit:'次',  higher:true },
+  { id:'bike',   name:'單車步',   unit:'次',  higher:true },
+  { id:'double', name:'二重跳',   unit:'次',  higher:true },
+  { id:'cross',  name:'交叉開',   unit:'次',  higher:true },
+  { id:'gripL',  name:'握力(左)', unit:'kg',  higher:true },
+  { id:'gripR',  name:'握力(右)', unit:'kg',  higher:true },
+  { id:'cmj',    name:'CMJ',      unit:'cm',  higher:true },
+  { id:'ncmj',   name:'NCMJ',     unit:'cm',  higher:true },
+  { id:'sj',     name:'立定跳遠', unit:'cm',  higher:true },
+  { id:'rsi',    name:'RSI',      unit:'',    higher:true },
+];
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
+let PERF_RECORDS = {};
+let lbActive = 'rope30';
+
+// Load performance data from Sheets
+async function loadPerfFromSheets() {
+  try {
+    const res = await fetch(API_URL + '?action=load');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Rebuild PERF_RECORDS
+    PERF_RECORDS = {};
+    (data.performance || []).forEach(row => {
+      if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
+      if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
+      PERF_RECORDS[row.name][row.metricId].push({ date: row.date, val: +row.val });
+    });
+
+    // Also update ABSENCES from Sheets
+    if (data.absences?.length) {
+      ABSENCES.length = 0;
+      data.absences.forEach(row => {
+        ABSENCES.push({
+          id: row.id, name: row.name, classId: row.classId,
+          absDate: row.absDate, deadline: row.deadline,
+          madeUpDate: row.madeUpDate || null,
+        });
+      });
+    }
+
+    renderLB();
+  } catch(e) {
+    // Silently fail — show empty leaderboard
+    renderLB();
+  }
+}
+
+function getPB(name, mid) {
+  const recs = PERF_RECORDS[name]?.[mid];
+  if (!recs || !recs.length) return null;
+  const m = METRICS.find(x => x.id === mid);
+  return m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
+}
+
+function renderLB() {
+  // Tabs
+  document.getElementById('lb-tabs').innerHTML = METRICS.map(m =>
+    `<div class="lb-tab ${lbActive===m.id?'active':''}" onclick="setLB('${m.id}')">${m.name}</div>`
+  ).join('');
+
+  const m = METRICS.find(x => x.id === lbActive);
+  const entries = [];
+  Object.values(CLASSES).forEach(cls => {
+    cls.students.forEach(name => {
+      const pb = getPB(name, lbActive);
+      if (pb !== null) entries.push({ name, val: pb });
+    });
+  });
+  entries.sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
+
+  if (!entries.length) {
+    document.getElementById('lb-list').innerHTML =
+      `<div class="lb-empty" style="color:var(--muted);padding:20px;font-size:13px">暫無${m.name}成績資料</div>`;
+    return;
+  }
+
+  document.getElementById('lb-list').innerHTML = entries.slice(0, 10).map((e, i) => {
+    const nc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const nt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    return `
+    <div class="lb-row">
+      <div class="lb-num ${nc}">${nt}</div>
+      <div class="lb-name">${e.name}</div>
+      <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function setLB(id) { lbActive = id; renderLB(); }
+
+// Init — load from Sheets then render
+loadPerfFromSheets();
 </script>
 </body>
 </html>
