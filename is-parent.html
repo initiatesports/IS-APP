@@ -219,7 +219,11 @@ body {
 .lb-name { flex: 1; font-size: 14px; font-weight: 700; }
 .lb-val { font-size: 18px; font-weight: 900; color: var(--cyan); }
 .lb-unit { font-size: 10px; color: var(--muted); display: block; text-align: right; }
-.lb-empty { padding: 20px 16px; color: var(--muted); font-size: 13px; }
+.lb-empty {
+  padding: 24px 16px; color: var(--muted); font-size: 13px;
+  text-align: center; line-height: 1.6;
+}
+#lb-list { max-height: none; } /* show all */
 </style>
 </head>
 <body>
@@ -232,29 +236,29 @@ body {
   </div>
 </div>
 
-<div class="search-section">
-  <div class="search-label">輸入子女姓名</div>
-  <div class="search-row">
-    <input class="search-input" id="q" type="text"
-      placeholder="例：陳小明、李小華…"
-      autocomplete="off" autocorrect="off" spellcheck="false"
-      onkeydown="if(event.key==='Enter'){this.blur();search()}">
-    <button class="btn-search" onclick="search()">查詢</button>
-  </div>
-  <div class="search-hint">輸入全名或部分姓名均可</div>
-</div>
-
-<div class="results" id="results"></div>
-
-<!-- Leaderboard section — hidden after search -->
+<!-- Leaderboard — always visible, hidden only after search -->
 <div id="lb-section">
   <div class="lb-header">
     <span>🏆 成績排行榜</span>
     <span style="font-size:11px;color:var(--muted)">各項目最佳成績</span>
   </div>
   <div class="lb-metric-row" id="lb-tabs"></div>
-  <div id="lb-list" style="padding:0 16px 12px"></div>
+  <div id="lb-list"></div>
 </div>
+
+<div class="search-section">
+  <div class="search-label">查詢補堂記錄</div>
+  <div class="search-row">
+    <input class="search-input" id="q" type="text"
+      placeholder="輸入子女全名或部分姓名…"
+      autocomplete="off" autocorrect="off" spellcheck="false"
+      onkeydown="if(event.key==='Enter'){this.blur();search()}">
+    <button class="btn-search" onclick="search()">查詢</button>
+  </div>
+  <div class="search-hint">搜尋後排行榜會暫時隱藏 · 清空後重新顯示</div>
+</div>
+
+<div class="results" id="results"></div>
 
 <div class="info-box">
   <p>
@@ -368,7 +372,7 @@ function search() {
     if (lb) lb.style.display = 'block';
     return;
   }
-  // Hide leaderboard after search
+  // Hide leaderboard while showing search results
   if (lb) lb.style.display = 'none';
 
   // Find matching students across all classes (may appear in multiple)
@@ -479,6 +483,9 @@ let lbActive = 'rope30';
 
 // Load performance data from Sheets
 async function loadPerfFromSheets() {
+  // Show loading placeholder immediately
+  document.getElementById('lb-list').innerHTML =
+    '<div class="lb-empty">⏳ 載入排行榜中…</div>';
   // ── Helper: ensure YYYY-MM-DD string (Sheets may return Date objects) ──
   function ensureDateStr(val) {
     if (!val) return null;
@@ -535,6 +542,12 @@ function getPB(name, mid) {
   return m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
 }
 
+// 隱藏姓名第一個字，保護隱私
+function maskName(name) {
+  if (!name || name.length <= 1) return name;
+  return '＿' + name.slice(1);
+}
+
 function renderLB() {
   // Tabs
   document.getElementById('lb-tabs').innerHTML = METRICS.map(m =>
@@ -542,9 +555,14 @@ function renderLB() {
   ).join('');
 
   const m = METRICS.find(x => x.id === lbActive);
+
+  // Collect PBs — dedupe by name across all classes
+  const seen = new Set();
   const entries = [];
   Object.values(CLASSES).forEach(cls => {
     cls.students.forEach(name => {
+      if (seen.has(name)) return;
+      seen.add(name);
       const pb = getPB(name, lbActive);
       if (pb !== null) entries.push({ name, val: pb });
     });
@@ -553,20 +571,24 @@ function renderLB() {
 
   if (!entries.length) {
     document.getElementById('lb-list').innerHTML =
-      `<div class="lb-empty" style="color:var(--muted);padding:20px;font-size:13px">暫無${m.name}成績資料</div>`;
+      `<div class="lb-empty">暫無 ${m.name} 成績資料<br><span style="font-size:12px">數據由教練記錄後自動更新</span></div>`;
     return;
   }
 
-  document.getElementById('lb-list').innerHTML = entries.slice(0, 10).map((e, i) => {
-    const nc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const nt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-    return `
-    <div class="lb-row">
-      <div class="lb-num ${nc}">${nt}</div>
-      <div class="lb-name">${e.name}</div>
-      <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
-    </div>`;
-  }).join('');
+  // Show ALL entries (no slice)
+  document.getElementById('lb-list').innerHTML =
+    `<div style="padding:0 16px 12px">` +
+    entries.map((e, i) => {
+      const nc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const nt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      return `
+      <div class="lb-row">
+        <div class="lb-num ${nc}">${nt}</div>
+        <div class="lb-name">${maskName(e.name)}</div>
+        <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
+      </div>`;
+    }).join('') +
+    `</div>`;
 }
 
 function setLB(id) { lbActive = id; renderLB(); }
