@@ -272,21 +272,22 @@ body {
 // ═══════════════════════════════════════
 //  SHARED DATA — 與教練 App 同步
 // ═══════════════════════════════════════
+// 4月起最新名單（與教練App同步）
 const CLASSES = {
   c1: { label:'星期一 5:00–6:00 PM', dayZh:'星期一', time:'5–6pm',
-        students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','陳書雅','許思溢','梁心朗'] },
+        students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩'] },
   c2: { label:'星期一 6:00–7:00 PM', dayZh:'星期一', time:'6–7pm',
-        students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢','蘇穎悠'] },
+        students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢'] },
   c3: { label:'星期三 5:00–6:00 PM', dayZh:'星期三', time:'5–6pm',
         students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允'] },
   c4: { label:'星期三 6:00–7:00 PM', dayZh:'星期三', time:'6–7pm',
-        students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','羅靖誼'] },
+        students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','蘇穎悠'] },
   c5: { label:'星期五 6:00–7:00 PM', dayZh:'星期五', time:'6–7pm',
-        students:['顧舒然','吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋','陳思允','陳澔泓'] },
+        students:['吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋'] },
   c6: { label:'星期六 11:00–12:00',  dayZh:'星期六', time:'11am–12',
-        students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅','陳焯棋'] },
+        students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅'] },
   c7: { label:'星期六 3:00–4:00 PM', dayZh:'星期六', time:'3–4pm',
-        students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏','潘洛詩'] }
+        students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏'] }
 };
 
 const ABSENCES = [
@@ -306,12 +307,12 @@ const ABSENCES = [
   {id:"imp14",name:"葉宇浩",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
   {id:"imp15",name:"梁德瑜",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
   {id:"imp16",name:"翟悅廷",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp17",name:"蘇穎悠",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+  {id:"imp17",name:"蘇穎悠",classId:"c4",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
   {id:"imp18",name:"梁德瑜",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
   {id:"imp19",name:"梁德澤",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
   {id:"imp20",name:"鄧幗恩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
   {id:"imp21",name:"文柏升",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp22",name:"陳曉瑩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
+  {id:"imp22",name:"陳曉瑩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:"2026-04-06"},
   {id:"imp23",name:"古詩詠",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
   {id:"imp24",name:"古卓謙",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
   {id:"imp25",name:"梁心朗",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
@@ -329,10 +330,22 @@ const ABSENCES = [
 // ═══════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+// 香港時間 UTC+8 日期字串
+function dateToStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+function todayStr() { return dateToStr(new Date()); }
 
 function daysLeft(dl) {
-  return Math.ceil((new Date(dl) - new Date()) / 86400000);
+  // 用香港時間計算剩餘天數
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const [y,m,d] = dl.split('-').map(Number);
+  const deadline = new Date(y, m-1, d);
+  return Math.ceil((deadline - today) / 86400000);
 }
 
 function fmtDate(s) {

@@ -1679,7 +1679,12 @@ function addMonths(str, n) {
 }
 
 function daysLeft(deadline) {
-  return Math.ceil((new Date(deadline) - new Date()) / 86400000);
+  // 用本地時間（香港 UTC+8）計算剩餘天數
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [y, m, d] = deadline.split('-').map(Number);
+  const dl = new Date(y, m - 1, d);
+  return Math.ceil((dl - today) / 86400000);
 }
 
 function fmtDate(str) {
