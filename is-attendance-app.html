@@ -1415,6 +1415,12 @@ html, body {
 
     <!-- ══ PERFORMANCE ══ -->
     <div class="screen" id="screen-perf">
+      <!-- Sub-tabs: 新記錄 / 歷史查閱 -->
+      <div class="student-subtabs" id="perf-subtabs">
+        <div class="student-subtab active" id="ptab-new"  onclick="switchPerfTab('new')">📝 新記錄</div>
+        <div class="student-subtab"        id="ptab-hist" onclick="switchPerfTab('hist')">🕐 歷史查閱</div>
+      </div>
+
       <!-- Step 1: Class + date + metric selector -->
       <div id="perf-setup" style="display:block">
         <div class="perf-section-label">選擇班別</div>
@@ -1433,6 +1439,16 @@ html, body {
           <button class="btn-start-perf" onclick="startPerfEntry()">開始記錄 →</button>
         </div>
       </div>
+
+      <!-- History lookup panel -->
+      <div id="perf-history-panel" style="display:none;padding:0 16px 16px">
+        <div class="perf-section-label" style="padding-left:0;padding-top:14px">選擇班別</div>
+        <div class="perf-class-bar" id="perf-hist-class-bar" style="padding-left:0"></div>
+        <div class="perf-section-label" style="padding-left:0;margin-top:4px">選擇日期</div>
+        <div id="perf-hist-dates" style="margin-bottom:12px"></div>
+        <div id="perf-hist-result"></div>
+      </div>
+
       <!-- Step 2: Data entry per student -->
       <div id="perf-entry" style="display:none">
         <div class="perf-entry-header" id="perf-entry-header"></div>
@@ -1559,12 +1575,24 @@ const CLASSES = {
 };
 
 // 成績記錄用的班別名單（包含暫停學生，如顧舒然）
-// 點名不受影響，只用於成績輸入
+// 顧舒然4月暫停出席，但可以輸入成績；5月起加回c5正式名單
 const PERF_CLASSES_STUDENTS = {
   c5: ['顧舒然','吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋'],
 };
+
 function getPerfStudents(classId) {
   return PERF_CLASSES_STUDENTS[classId] || CLASSES[classId]?.students || [];
+}
+
+// 顧舒然5月起加回c5正式點名名單
+// getRollStudents: 點名用，視乎日期決定c5名單
+function getRollStudents(classId, dateStr) {
+  if (classId === 'c5' && dateStr >= '2026-05-01') {
+    // 5月起加回顧舒然
+    const base = CLASSES[classId].students;
+    return base.includes('顧舒然') ? base : ['顧舒然', ...base];
+  }
+  return CLASSES[classId]?.students || [];
 }
 
 // day-of-week index (0=Sun) for each class
@@ -1679,10 +1707,12 @@ function addMonths(str, n) {
 }
 
 function daysLeft(deadline) {
+  if (!deadline || typeof deadline !== 'string' || !deadline.includes('-')) return NaN;
   // 用本地時間（香港 UTC+8）計算剩餘天數
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const [y, m, d] = deadline.split('-').map(Number);
+  if (!y || !m || !d) return NaN;
   const dl = new Date(y, m - 1, d);
   return Math.ceil((dl - today) / 86400000);
 }
@@ -1916,7 +1946,7 @@ function loadRollSession() {
     document.getElementById('roll-already-saved').style.display = 'flex';
   } else {
     rollSession = {};
-    CLASSES[currentClass].students.forEach(n => rollSession[n] = 'present');
+    getRollStudents(currentClass, rollSelectedDate).forEach(n => rollSession[n] = 'present');
     document.getElementById('roll-already-saved').style.display = 'none';
   }
 
@@ -1996,8 +2026,9 @@ function classRowHTML(id, cls) {
 function renderRollTable() {
   const cls = CLASSES[currentClass];
   const list = document.getElementById('student-list');
+  const students = getRollStudents(currentClass, rollSelectedDate);
 
-  list.innerHTML = cls.students.map(name => {
+  list.innerHTML = students.map(name => {
     const st = rollSession[name] || 'present';
     const pendingActive = getPendingActive(name);
     const pendingAll    = getPending(name);
@@ -2006,8 +2037,8 @@ function renderRollTable() {
     let subText = '', subCls = '';
     if (pendingActive.length > 0) {
       const earliest = pendingActive.sort((a,b)=>a.deadline.localeCompare(b.deadline))[0];
-      const dl = daysLeft(earliest.deadline);
-      subCls = dl <= 14 ? 'danger' : 'warn';
+      const dl = earliest.deadline ? daysLeft(earliest.deadline) : null;
+      subCls = (dl !== null && !isNaN(dl) && dl <= 14) ? 'danger' : 'warn';
       subText = `欠 ${pendingActive.length} 節 · 最早 ${fmtShort(earliest.deadline)} 到期`;
     } else if (expired.length > 0) {
       subCls = 'danger';
@@ -2156,15 +2187,18 @@ function renderMakeup() {
 
   list.innerHTML = rows.map(a => {
     const done = !!a.madeUpDate;
-    const exp  = !done && isExpired(a.deadline);
-    const dl   = daysLeft(a.deadline);
-    const urg  = !done && !exp && dl <= 14;
+    const exp  = !done && !!a.deadline && isExpired(a.deadline);
+    const dl   = a.deadline ? daysLeft(a.deadline) : null;
+    const urg  = !done && !exp && dl !== null && !isNaN(dl) && dl <= 14;
     const cls  = CLASSES[a.classId];
 
     let deadlinePill, cardCls = '';
     if (done) {
       deadlinePill = `<span class="makeup-deadline done">✓ 已補堂 ${fmtShort(a.madeUpDate)}</span>`;
       cardCls = 'done';
+    } else if (!a.deadline) {
+      deadlinePill = `<span class="makeup-deadline overdue">未設期限</span>`;
+      cardCls = 'overdue';
     } else if (exp) {
       deadlinePill = `<span class="makeup-deadline overdue">已過期</span>`;
       cardCls = 'overdue';
@@ -2641,6 +2675,11 @@ function renderPerf() {
   document.getElementById('perf-setup').style.display = 'block';
   document.getElementById('perf-entry').style.display = 'none';
   document.getElementById('perf-summary').style.display = 'none';
+  document.getElementById('perf-history-panel').style.display = 'none';
+  // Reset subtabs to new-record
+  perfTabActive = 'new';
+  document.getElementById('ptab-new') ?.classList.add('active');
+  document.getElementById('ptab-hist')?.classList.remove('active');
 
   // Class pills
   document.getElementById('perf-class-bar').innerHTML =
@@ -2990,16 +3029,27 @@ function renderLB() {
   let html = `<div class="lb-section-title">總排行 · ${m.name}</div>`;
   html += renderRankList(entries);
 
-  // Age group ranking if years available
+  // ── 年齡分組排行 ──
+  // 規則：2020年或以後出生 → 合併為一組「小學員」
+  //       2019年或之前 → 每個出生年份一組（人數≥1即顯示）
   const withYear = entries.filter(e => e.year);
-  if (withYear.length > 2) {
-    const years = [...new Set(withYear.map(e => e.year))].sort((a,b)=>a-b);
-    years.forEach(yr => {
+  if (withYear.length >= 2) {
+    html += `<div style="height:8px"></div>`;
+
+    // 2019 and earlier — one group per birth year, sorted oldest first
+    const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => a - b);
+    olderYears.forEach(yr => {
       const grp = withYear.filter(e => e.year === yr);
-      if (grp.length < 2) return;
       html += `<div class="lb-section-title">${yr}年生</div>`;
       html += renderRankList(grp);
     });
+
+    // 2020 and later — merge into one group (≤6 years old approx)
+    const younger = withYear.filter(e => e.year >= 2020);
+    if (younger.length >= 1) {
+      html += `<div class="lb-section-title">2020年或以後（6歲或以下）</div>`;
+      html += renderRankList(younger);
+    }
   }
 
   document.getElementById('lb-content').innerHTML = html;
@@ -3008,6 +3058,164 @@ function renderLB() {
 function setLBMetric(id) {
   lbMetric = id;
   renderLB();
+}
+
+// ── Perf tab switcher ──
+let perfTabActive = 'new';
+
+function switchPerfTab(tab) {
+  perfTabActive = tab;
+  document.getElementById('ptab-new') .classList.toggle('active', tab === 'new');
+  document.getElementById('ptab-hist').classList.toggle('active', tab === 'hist');
+  document.getElementById('perf-setup')         .style.display = tab === 'new'  ? 'block' : 'none';
+  document.getElementById('perf-history-panel') .style.display = tab === 'hist' ? 'block' : 'none';
+  document.getElementById('perf-entry')  .style.display = 'none';
+  document.getElementById('perf-summary').style.display = 'none';
+  if (tab === 'hist') renderPerfHistoryPanel();
+}
+
+// ── History panel ──
+let histClass = null; // separate from perfClass so they don't interfere
+
+function renderPerfHistoryPanel() {
+  if (!histClass) histClass = perfClass; // default to same class
+
+  // Class pills
+  document.getElementById('perf-hist-class-bar').innerHTML =
+    Object.entries(CLASSES).map(([id, cls]) =>
+      `<div class="perf-class-pill ${histClass===id?'active':''}"
+        style="margin-bottom:6px"
+        onclick="selectHistClass('${id}')">
+        ${cls.dayZh} ${cls.time}
+      </div>`
+    ).join('');
+
+  // Date pills — all dates with records for this class
+  const dates = getHistoryDatesForClass(histClass);
+  const datesEl = document.getElementById('perf-hist-dates');
+
+  if (!dates.length) {
+    datesEl.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px 0">此班別尚無成績記錄</div>`;
+    document.getElementById('perf-hist-result').innerHTML = '';
+    return;
+  }
+
+  datesEl.innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${dates.map(d => `
+        <div onclick="loadHistClassDate('${d}')"
+          style="padding:6px 14px;border-radius:10px;border:1.5px solid var(--border);
+            background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;
+            cursor:pointer;white-space:nowrap;transition:all 0.15s"
+          onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+          ${fmtDate(d)}
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('perf-hist-result').innerHTML = '';
+}
+
+function selectHistClass(id) {
+  histClass = id;
+  renderPerfHistoryPanel();
+}
+
+function getHistoryDatesForClass(classId) {
+  const dates = new Set();
+  const students = getPerfStudents(classId);
+  students.forEach(name => {
+    Object.values(PERF_RECORDS[name] || {}).forEach(recs => {
+      recs.forEach(r => { if (r.date) dates.add(r.date); });
+    });
+  });
+  return [...dates].sort((a,b) => b.localeCompare(a)); // newest first
+}
+
+function loadHistClassDate(date) {
+  // Find metrics recorded on this date for this class
+  const students = getPerfStudents(histClass);
+  const metricIds = new Set();
+  students.forEach(name => {
+    Object.entries(PERF_RECORDS[name] || {}).forEach(([mid, recs]) => {
+      if (recs.some(r => r.date === date)) metricIds.add(mid);
+    });
+  });
+
+  if (!metricIds.size) {
+    document.getElementById('perf-hist-result').innerHTML =
+      `<div style="color:var(--muted);font-size:13px;padding:8px 0">此日期無資料</div>`;
+    return;
+  }
+
+  // Build the table using the same showPerfSummary logic but inline
+  const savedPerfClass = perfClass;
+  perfClass = histClass; // temporarily switch class for table rendering
+  const tableHtml = buildPerfTableHtml(date, [...metricIds]);
+  perfClass = savedPerfClass;
+
+  const cls = CLASSES[histClass];
+  document.getElementById('perf-hist-result').innerHTML = `
+    <div style="margin-top:14px">
+      <div style="font-size:13px;color:var(--cyan);font-weight:700;margin-bottom:8px">
+        ${cls.dayZh} ${cls.time} · ${fmtDate(date)}
+      </div>
+      <div style="overflow-x:auto">${tableHtml}</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">
+        截圖此表格發送給家長 📱
+      </div>
+    </div>`;
+}
+
+// Build just the HTML table for a given date + metrics (shared by history and summary)
+function buildPerfTableHtml(date, metricIds) {
+  const selMetrics = metricIds.map(id => METRICS.find(m => m.id === id)).filter(Boolean);
+  const cls = CLASSES[perfClass];
+
+  let thead = '<tr><th>學生</th>';
+  selMetrics.forEach(m => {
+    thead += `<th style="min-width:80px">${m.name}<br>
+      <span style="font-weight:400;opacity:0.5;font-size:9px">${m.unit||'RSI'} / PB</span></th>`;
+  });
+  thead += '</tr>';
+
+  let tbody = '';
+  let hasAnyData = false;
+
+  getPerfStudents(perfClass).forEach(name => {
+    let hasData = false;
+    let rowHtml = `<tr><td class="name-col">${name}</td>`;
+
+    selMetrics.forEach(m => {
+      const allRecs = PERF_RECORDS[name]?.[m.id] || [];
+      const rec = allRecs.find(r => r.date === date);
+      const val = rec ? rec.val : null;
+      const pb  = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
+
+      if (val === null) {
+        rowHtml += `<td class="empty-cell">—</td>`;
+      } else {
+        hasData = true;
+        const prevRecs  = allRecs.filter(r => r.date < date);
+        const prevBest  = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
+        const isFirst   = prevBest === null;
+        const isRecord  = !isFirst && isBetter(m.id, val, prevBest);
+        const pbStr     = pb !== null ? `<span style="font-size:10px;color:${isRecord?'var(--green)':'var(--muted)'}">PB:${pb}</span>` : '';
+
+        if (isRecord)     rowHtml += `<td class="record-cell">${val}🏅<br>${pbStr}</td>`;
+        else if (isFirst) rowHtml += `<td class="pb-cell">${val}✦<br><span style="font-size:10px;color:var(--muted)">首次</span></td>`;
+        else              rowHtml += `<td>${val}<br>${pbStr}</td>`;
+      }
+    });
+
+    rowHtml += '</tr>';
+    if (hasData) { tbody += rowHtml; hasAnyData = true; }
+  });
+
+  return `<table class="perf-table">
+    <thead>${thead}</thead>
+    <tbody>${hasAnyData ? tbody : `<tr><td colspan="${selMetrics.length+1}" style="text-align:center;color:var(--muted);padding:20px">此日期無數據</td></tr>`}</tbody>
+  </table>`;
 }
 
 // ═══════════════════════════════════════════
@@ -3441,6 +3649,23 @@ async function loadFromSheets() {
     const data = await apiGet({ action: 'load' });
     if (data.error) throw new Error(data.error);
 
+    // ── Helper: ensure any value is a YYYY-MM-DD string ──
+    // Google Sheets may return Date objects serialised as strings like
+    // "Sat Feb 28 2026 00:00:00 GMT+0800" — we normalise everything here.
+    function ensureDateStr(val) {
+      if (!val) return null;
+      const s = String(val).trim();
+      // Already YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      // Try to parse and reformat using local date components
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return s; // unparseable, return as-is
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
     // Rebuild ATT_LOG from attendance rows
     (data.attendance || []).forEach(row => {
       const key = row.key;
@@ -3448,7 +3673,7 @@ async function loadFromSheets() {
       ATT_LOG[key][row.name] = row.status;
     });
 
-    // Rebuild ABSENCES
+    // Rebuild ABSENCES — enforce date strings
     if (data.absences?.length) {
       ABSENCES.length = 0;
       data.absences.forEach(row => {
@@ -3456,25 +3681,28 @@ async function loadFromSheets() {
           id:         row.id,
           name:       row.name,
           classId:    row.classId,
-          absDate:    row.absDate,
-          deadline:   row.deadline,
-          madeUpDate: row.madeUpDate || null,
+          absDate:    ensureDateStr(row.absDate),
+          deadline:   ensureDateStr(row.deadline),
+          madeUpDate: ensureDateStr(row.madeUpDate),
         });
       });
     }
 
-    // Rebuild PERF_RECORDS
+    // Rebuild PERF_RECORDS — enforce date strings
     (data.performance || []).forEach(row => {
       if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
       if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
-      PERF_RECORDS[row.name][row.metricId].push({ date: row.date, val: +row.val });
+      PERF_RECORDS[row.name][row.metricId].push({
+        date: ensureDateStr(row.date),
+        val: +row.val
+      });
     });
 
-    // Rebuild BODY_RECORDS
+    // Rebuild BODY_RECORDS — enforce date strings
     (data.body || []).forEach(row => {
       if (!BODY_RECORDS[row.name]) BODY_RECORDS[row.name] = [];
       BODY_RECORDS[row.name].push({
-        date:   row.date,
+        date:   ensureDateStr(row.date),
         height: row.height ? +row.height : null,
         weight: row.weight ? +row.weight : null,
       });

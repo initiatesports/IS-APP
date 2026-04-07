@@ -479,27 +479,44 @@ let lbActive = 'rope30';
 
 // Load performance data from Sheets
 async function loadPerfFromSheets() {
+  // ── Helper: ensure YYYY-MM-DD string (Sheets may return Date objects) ──
+  function ensureDateStr(val) {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   try {
     const res = await fetch(API_URL + '?action=load');
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    // Rebuild PERF_RECORDS
+    // Rebuild PERF_RECORDS — enforce date strings
     PERF_RECORDS = {};
     (data.performance || []).forEach(row => {
       if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
       if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
-      PERF_RECORDS[row.name][row.metricId].push({ date: row.date, val: +row.val });
+      PERF_RECORDS[row.name][row.metricId].push({
+        date: ensureDateStr(row.date),
+        val: +row.val
+      });
     });
 
-    // Also update ABSENCES from Sheets
+    // Also update ABSENCES from Sheets — enforce date strings
     if (data.absences?.length) {
       ABSENCES.length = 0;
       data.absences.forEach(row => {
         ABSENCES.push({
           id: row.id, name: row.name, classId: row.classId,
-          absDate: row.absDate, deadline: row.deadline,
-          madeUpDate: row.madeUpDate || null,
+          absDate:    ensureDateStr(row.absDate),
+          deadline:   ensureDateStr(row.deadline),
+          madeUpDate: ensureDateStr(row.madeUpDate),
         });
       });
     }
