@@ -427,6 +427,8 @@ html, body {
 .s-btn.sel-present { background: var(--green-dim); border-color: var(--green); color: var(--green); }
 .s-btn.sel-absent  { background: var(--red-dim);   border-color: var(--red);   color: var(--red); }
 .s-btn.sel-makeup  { background: var(--purple-dim); border-color: var(--purple); color: var(--purple); }
+.s-btn.sel-exempt  { background: rgba(100,100,100,0.2); border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.4); }
+.student-card.is-exempt { border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.03); opacity: 0.65; }
 
 /* save bar */
 .save-bar {
@@ -1703,6 +1705,12 @@ function getRollStudents(classId, dateStr) {
 // day-of-week index (0=Sun) for each class
 const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6 };
 
+// 額外加課日期（不在正常上課星期）{ classId: Set of 'YYYY-MM-DD' }
+const CLASS_EXTRA_DATES = { c1:new Set(), c2:new Set(), c3:new Set(), c4:new Set(), c5:new Set(), c6:new Set(), c7:new Set() };
+
+// 取消課堂日期（已排好但取消）{ classId: Set of 'YYYY-MM-DD' }
+const CLASS_CANCELLED_DATES = { c1:new Set(), c2:new Set(), c3:new Set(), c4:new Set(), c5:new Set(), c6:new Set(), c7:new Set() };
+
 // 公眾假期（停課）— 點名介面自動跳過這些日期
 const PUBLIC_HOLIDAYS = new Set([
   '2026-04-05', // 清明節翌日（復活節翌日）
@@ -1944,15 +1952,28 @@ function openRoll(classId) {
 // 計算某班某月所有上課日期，自動跳過公眾假期
 function getClassDatesInMonth(classId, year, month) {
   const dow = CLASS_DOW[classId];
+  const cancelled = CLASS_CANCELLED_DATES[classId] || new Set();
+  const extra     = CLASS_EXTRA_DATES[classId]     || new Set();
   const dates = [];
+
+  // Regular weekly dates
   const d = new Date(year, month, 1);
   while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
   while (d.getMonth() === month) {
     const str = dateToStr(d);
-    if (!PUBLIC_HOLIDAYS.has(str)) dates.push(str);
+    if (!PUBLIC_HOLIDAYS.has(str) && !cancelled.has(str)) dates.push(str);
     d.setDate(d.getDate() + 7);
   }
-  return dates;
+
+  // Extra one-off dates in this month
+  extra.forEach(str => {
+    if (!dates.includes(str) && !cancelled.has(str)) {
+      const [y, m] = str.split('-').map(Number);
+      if (y === year && m - 1 === month) dates.push(str);
+    }
+  });
+
+  return dates.sort();
 }
 
 // Pick best default date: today if it's a class day, else most recent past class day
@@ -2159,7 +2180,7 @@ function renderRollTable() {
       makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(oldest.absDate)} 的堂</div>`;
     }
 
-    const cardCls = st === 'absent' ? 'is-absent' : st === 'makeup' ? 'is-makeup' : st === 'present' ? 'is-present' : '';
+    const cardCls = st === 'absent' ? 'is-absent' : st === 'makeup' ? 'is-makeup' : st === 'exempt' ? 'is-exempt' : st === 'present' ? 'is-present' : '';
 
     return `
     <div class="student-card ${cardCls}" id="sc-${name}">
@@ -2172,6 +2193,7 @@ function renderRollTable() {
         <button class="s-btn ${st==='present'?'sel-present':''}" onclick="setRoll('${name}','present')" title="出席">✓</button>
         <button class="s-btn ${st==='absent' ?'sel-absent' :''}" onclick="setRoll('${name}','absent')"  title="請假">✗</button>
         <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" onclick="setRoll('${name}','makeup')"  title="補堂">↩</button>
+        <button class="s-btn ${st==='exempt' ?'sel-exempt' :''}" onclick="setRoll('${name}','exempt')"  title="豁免（不用補堂／不收費）">🚫</button>
       </div>
     </div>`;
   }).join('');
@@ -2184,13 +2206,14 @@ function setRoll(name, status) {
 
   // Update card class
   const card = document.getElementById('sc-' + name);
-  card.className = 'student-card ' + (status==='absent'?'is-absent':status==='makeup'?'is-makeup':'is-present');
+  card.className = 'student-card ' + (status==='absent'?'is-absent':status==='makeup'?'is-makeup':status==='exempt'?'is-exempt':'is-present');
 
   // Update buttons
   const btns = card.querySelectorAll('.s-btn');
   btns[0].className = 's-btn' + (status==='present'?' sel-present':'');
   btns[1].className = 's-btn' + (status==='absent' ?' sel-absent':'');
   btns[2].className = 's-btn' + (status==='makeup' ?' sel-makeup':'');
+  if (btns[3]) btns[3].className = 's-btn' + (status==='exempt' ?' sel-exempt':'');
 
   // Update makeup hint
   const nameWrap = card.querySelector('.student-name-wrap');
@@ -2213,9 +2236,11 @@ function setRoll(name, status) {
 function updateSaveCount() {
   const absentCount = Object.values(rollSession).filter(s=>s==='absent').length;
   const makeupCount = Object.values(rollSession).filter(s=>s==='makeup').length;
+  const exemptCount = Object.values(rollSession).filter(s=>s==='exempt').length;
   let txt = '';
   if (absentCount > 0) txt += `<span>${absentCount}</span> 人請假`;
   if (makeupCount > 0) txt += (txt ? '　' : '') + `<span style="color:var(--purple)">${makeupCount}</span> 人補堂`;
+  if (exemptCount > 0) txt += (txt ? '　' : '') + `<span style="color:var(--muted)">${exemptCount}</span> 人豁免`;
   if (!txt) txt = '全員出席 ✓';
   document.getElementById('save-count-text').innerHTML = txt;
 }
@@ -2240,6 +2265,7 @@ function saveRoll() {
       const pending = getPending(name).sort((a,b)=>a.absDate.localeCompare(b.absDate));
       if (pending.length > 0) pending[0].madeUpDate = date;
     }
+    // 豁免：不需補堂，不收費，不產生缺席記錄（什麼都不做）
   });
 
   document.getElementById('roll-already-saved').style.display = 'flex';
@@ -2565,16 +2591,27 @@ function renderFeeBody() {
     const key     = `${feePeriod}|${feeClass}|${name}`;
     const paid    = !!FEE_PAID[key];
     const pending = ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline>=now);
-    const subText = pending.length > 0
-      ? `欠 ${pending.length} 節補堂`
-      : '出席正常';
-    const subCls  = pending.length > 0 ? 'has-pending' : '';
+
+    // Count exempt lessons in this period
+    const exemptCount = dates.filter(d => {
+      const dateStr = dateToStr(d);
+      const sessionKey = `${feeClass}|${dateStr}`;
+      return ATT_LOG[sessionKey]?.[name] === 'exempt';
+    }).length;
+
+    const effectiveLessons = n - exemptCount;
+    const effectiveFee = effectiveLessons * 120;
+
+    let subText = pending.length > 0 ? `欠 ${pending.length} 節補堂` : '出席正常';
+    if (exemptCount > 0) subText += ` · 豁免 ${exemptCount} 節（$${exemptCount*120}）`;
+    const subCls = pending.length > 0 ? 'has-pending' : '';
 
     return `
     <div class="fee-student-card ${paid?'paid':''}" id="fee-card-${name.replace(/\s/g,'')}">
       <div style="flex:1">
         <div class="fee-student-name">${name}</div>
         <div class="fee-student-sub ${subCls}">${subText}</div>
+        ${exemptCount > 0 ? `<div style="font-size:11px;color:var(--cyan);margin-top:2px">應收：HK$${effectiveFee}（共${effectiveLessons}節）</div>` : ''}
       </div>
       <button class="btn-fee-confirm ${paid?'paid':''}"
         onclick="toggleFeePaid('${name}')">
@@ -3969,6 +4006,24 @@ function renderSettings() {
       `<div class="dow-btn ${CLASS_DOW[cid]===d?'active':''}" onclick="setClassDow('${cid}',${d})">${CLASS_DOW_LABELS[d]}</div>`
     ).join('');
 
+    // Extra and cancelled dates for this class
+    const extraDates     = [...(CLASS_EXTRA_DATES[cid]     || new Set())].sort();
+    const cancelledDates = [...(CLASS_CANCELLED_DATES[cid] || new Set())].sort();
+
+    const extraHtml = extraDates.map(d =>
+      `<div class="holiday-row">
+        <span>${fmtDate(d)} <span style="font-size:11px;color:var(--green)">(額外加課)</span></span>
+        <button class="btn-remove-holiday" onclick="removeExtraDate('${cid}','${d}')">✕</button>
+      </div>`
+    ).join('');
+
+    const cancelledHtml = cancelledDates.map(d =>
+      `<div class="holiday-row">
+        <span>${fmtDate(d)} <span style="font-size:11px;color:var(--red)">(已取消)</span></span>
+        <button class="btn-remove-holiday" onclick="removeCancelledDate('${cid}','${d}')">✕</button>
+      </div>`
+    ).join('');
+
     return `
     <div class="settings-section ${isOpen?'settings-class-open':''}" id="settings-cls-${cid}">
       <div class="settings-class-header" onclick="toggleSettingsClass('${cid}')">
@@ -3976,7 +4031,7 @@ function renderSettings() {
           <span class="sch-pill">${cls.dayZh}</span>
           <div>
             <div class="sch-name">${cls.time}</div>
-            <div class="sch-count">${cls.students.length} 位學生</div>
+            <div class="sch-count">${cls.students.length} 位學生${cancelledDates.length?` · <span style="color:var(--red)">${cancelledDates.length}堂取消</span>`:''}${extraDates.length?` · <span style="color:var(--green)">${extraDates.length}堂加課</span>`:''}</div>
           </div>
         </div>
         <span class="sch-arrow">›</span>
@@ -3991,6 +4046,23 @@ function renderSettings() {
             onchange="setClassTime('${cid}',this.value)">
           <span style="font-size:12px;color:var(--muted)">更改後即時生效</span>
         </div>
+
+        <div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--red);letter-spacing:0.06em;text-transform:uppercase">❌ 取消課堂</div>
+        <div style="font-size:12px;color:var(--muted);padding:0 16px 6px">此班已排好但取消的日期（不會在點名出現）</div>
+        ${cancelledHtml || '<div style="padding:4px 16px 8px;font-size:13px;color:var(--muted)">暫無取消日期</div>'}
+        <div class="settings-add-date-row">
+          <input type="date" class="settings-date-input" id="cancel-date-${cid}">
+          <button class="btn-add-student" style="background:var(--red);color:#fff" onclick="addCancelledDate('${cid}')">取消此日</button>
+        </div>
+
+        <div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--green);letter-spacing:0.06em;text-transform:uppercase">➕ 額外加課</div>
+        <div style="font-size:12px;color:var(--muted);padding:0 16px 6px">非正常上課日但額外加課（會在點名出現）</div>
+        ${extraHtml || '<div style="padding:4px 16px 8px;font-size:13px;color:var(--muted)">暫無額外加課日期</div>'}
+        <div class="settings-add-date-row">
+          <input type="date" class="settings-date-input" id="extra-date-${cid}">
+          <button class="btn-add-student" onclick="addExtraDate('${cid}')">加入加課日</button>
+        </div>
+
         <div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">學生名單</div>
         ${studentsHtml}
         <div class="settings-add-row">
@@ -4078,7 +4150,45 @@ function setClassTime(cid, val) {
   toast(`時間已更新為 ${val.trim()}`, '✓');
 }
 
-function addHoliday() {
+function addExtraDate(cid) {
+  const input = document.getElementById(`extra-date-${cid}`);
+  const d = input?.value;
+  if (!d) { toast('請選擇日期', '⚠'); return; }
+  if (!CLASS_EXTRA_DATES[cid]) CLASS_EXTRA_DATES[cid] = new Set();
+  CLASS_EXTRA_DATES[cid].add(d);
+  CLASS_CANCELLED_DATES[cid]?.delete(d); // can't be both
+  input.value = '';
+  toast(`已加入加課日 ${fmtDate(d)}`, '✓');
+  settingsOpenClass = cid;
+  renderSettings();
+}
+
+function removeExtraDate(cid, d) {
+  CLASS_EXTRA_DATES[cid]?.delete(d);
+  toast(`已移除加課日 ${fmtDate(d)}`, '✓');
+  settingsOpenClass = cid;
+  renderSettings();
+}
+
+function addCancelledDate(cid) {
+  const input = document.getElementById(`cancel-date-${cid}`);
+  const d = input?.value;
+  if (!d) { toast('請選擇日期', '⚠'); return; }
+  if (!CLASS_CANCELLED_DATES[cid]) CLASS_CANCELLED_DATES[cid] = new Set();
+  CLASS_CANCELLED_DATES[cid].add(d);
+  CLASS_EXTRA_DATES[cid]?.delete(d); // can't be both
+  input.value = '';
+  toast(`已取消 ${fmtDate(d)} 的課堂`, '✓');
+  settingsOpenClass = cid;
+  renderSettings();
+}
+
+function removeCancelledDate(cid, d) {
+  CLASS_CANCELLED_DATES[cid]?.delete(d);
+  toast(`已恢復 ${fmtDate(d)} 的課堂`, '✓');
+  settingsOpenClass = cid;
+  renderSettings();
+}
   const input = document.getElementById('add-holiday-input');
   const d = input?.value;
   if (!d) { toast('請選擇日期', '⚠'); return; }
