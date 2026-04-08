@@ -16,16 +16,23 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
 .logo-box{width:44px;height:44px;background:var(--cyan);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111;flex-shrink:0}
 .header-text h1{font-size:18px;font-weight:900}
 .header-text p{font-size:12px;color:var(--muted);margin-top:2px}
-.header-sync{margin-left:auto;font-size:20px;opacity:0.6;flex-shrink:0;cursor:pointer}
+.header-sync{margin-left:auto;font-size:20px;flex-shrink:0;cursor:pointer;padding:4px;border-radius:8px;transition:opacity 0.2s}
+.header-sync:active{opacity:0.6}
 .tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:78px;z-index:49}
 .tab-btn{flex:1;padding:13px 8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s}
 .tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
 .panel{display:none}
 .panel.active{display:block}
+/* Loading banner */
+.sync-banner{display:none;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(62,207,207,0.08);border-bottom:1px solid rgba(62,207,207,0.15);font-size:13px;color:var(--cyan)}
+.sync-banner.visible{display:flex}
+.sync-banner.error{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.15);color:var(--red)}
+/* Metric scroll */
 .lb-metric-scroll{display:flex;gap:7px;padding:14px 16px 4px;overflow-x:auto;scrollbar-width:none}
 .lb-metric-scroll::-webkit-scrollbar{display:none}
 .lb-tab{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.15s}
 .lb-tab.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+/* Age group */
 .age-group-section{padding:12px 16px 0}
 .age-group-title{font-size:11px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--cyan);padding:0 0 8px;border-bottom:1px solid rgba(62,207,207,0.2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .age-cards-row{display:flex;gap:9px;overflow-x:auto;padding-bottom:14px;scrollbar-width:none}
@@ -39,19 +46,19 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
 .age-card-val{font-size:24px;font-weight:900;color:var(--cyan);line-height:1;margin-top:4px}
 .age-card-unit{font-size:11px;font-weight:400;color:var(--muted)}
 .age-card-sub{font-size:10px;color:var(--muted);margin-top:1px}
+/* Overall */
 .overall-section{padding:4px 16px 0}
 .overall-title{font-size:11px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);padding:14px 0 8px;border-top:1px solid var(--border)}
 .lb-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
 .lb-row:last-child{border-bottom:none}
 .lb-num{font-size:17px;font-weight:900;width:28px;text-align:center;color:var(--muted);flex-shrink:0}
-.lb-num.gold{color:#ffd700}
-.lb-num.silver{color:#c0c0c0}
-.lb-num.bronze{color:#cd7f32}
+.lb-num.gold{color:#ffd700}.lb-num.silver{color:#c0c0c0}.lb-num.bronze{color:#cd7f32}
 .lb-name{flex:1;font-size:14px;font-weight:700}
 .lb-year{font-size:11px;color:var(--muted);margin-top:1px}
 .lb-val{font-size:20px;font-weight:900;color:var(--cyan);text-align:right}
 .lb-unit{font-size:10px;color:var(--muted);display:block;text-align:right}
 .lb-empty{padding:32px 16px;color:var(--muted);font-size:14px;text-align:center;line-height:1.7}
+/* Search */
 .search-section{padding:20px 20px 0}
 .search-label{font-size:14px;font-weight:700;margin-bottom:10px}
 .search-row{display:flex;gap:8px}
@@ -63,14 +70,12 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
 .search-hint{font-size:12px;color:var(--muted);margin-top:8px}
 .results{padding:16px 20px 0}
 .result-card{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--cyan);border-radius:16px;padding:18px;margin-bottom:14px}
-.result-card.urgent{border-left-color:var(--red)}
-.result-card.clear{border-left-color:rgba(52,211,153,0.4)}
+.result-card.urgent{border-left-color:var(--red)}.result-card.clear{border-left-color:rgba(52,211,153,0.4)}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
 .student-name{font-size:22px;font-weight:900}
 .student-class{font-size:13px;color:var(--muted);margin-top:3px}
 .big-num{font-size:46px;font-weight:900;line-height:1;color:var(--amber);text-align:right}
-.big-num.urgent{color:var(--red)}
-.big-num.zero{color:rgba(52,211,153,0.5)}
+.big-num.urgent{color:var(--red)}.big-num.zero{color:rgba(52,211,153,0.5)}
 .big-label{font-size:11px;color:var(--muted);text-align:right;margin-top:2px}
 .divider{border:none;border-top:1px solid var(--border)}
 .abs-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);gap:10px}
@@ -100,7 +105,12 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
     <h1>Initiate Sports</h1>
     <p>排行榜 &amp; 補堂查詢</p>
   </div>
-  <div class="header-sync" id="sync-icon" title="雲端同步狀態" onclick="loadFromSheets()">☁</div>
+  <div class="header-sync" id="sync-icon" title="點擊重新載入" onclick="loadFromSheets(true)">☁</div>
+</div>
+
+<!-- Sync status banner -->
+<div class="sync-banner" id="sync-banner">
+  <span id="sync-banner-text">⏳ 正在載入最新數據…</span>
 </div>
 
 <div class="tab-bar">
@@ -108,7 +118,7 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
   <button class="tab-btn"        id="tab-search" onclick="switchTab('search')">📋 補堂查詢</button>
 </div>
 
-<!-- ══ LEADERBOARD PANEL ══ -->
+<!-- LEADERBOARD PANEL -->
 <div class="panel active" id="panel-lb">
   <div class="lb-metric-scroll" id="lb-tabs"></div>
   <div id="lb-age-groups" class="age-group-section"></div>
@@ -119,7 +129,7 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
   <div class="footer"><p>成績由教練記錄後自動更新 · 姓名為部分顯示以保護隱私</p></div>
 </div>
 
-<!-- ══ SEARCH PANEL ══ -->
+<!-- SEARCH PANEL -->
 <div class="panel" id="panel-search">
   <div class="search-section">
     <div class="search-label">查詢補堂記錄</div>
@@ -142,10 +152,24 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
 </div>
 
 <script>
-// ═══════════════════════════════
-//  STATIC DATA
-// ═══════════════════════════════
-const CLASSES = {
+// ═══════════════════════════════════════════════════
+//  API — 與教練 App 完全相同的 URL 及呼叫方式
+// ═══════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
+
+// ── 與教練 App 相同的 apiGet 方法 ──
+async function apiGet(params) {
+  const url = API_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════
+//  RUNTIME DATA (從雲端填充，不再依賴靜態資料)
+// ═══════════════════════════════════════════════════
+// CLASSES 及 ABSENCES 都從雲端 settings + absences 載入
+// 以下是最後從雲端更新的備用資料（開機時先顯示，雲端數據到後覆蓋）
+let CLASSES = {
   c1:{dayZh:'星期一',time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩']},
   c2:{dayZh:'星期一',time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢']},
   c3:{dayZh:'星期三',time:'5–6pm',students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允']},
@@ -168,48 +192,12 @@ const STUDENT_YEARS = {
   "黎柏希":2015,"黎柏言":2018,"蘇穎悠":2017,"陳柏晞":2018
 };
 
-let ABSENCES = [
-  {id:"imp1",name:"陳書雅",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp2",name:"何芯蕾",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp3",name:"陳書雅",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp4",name:"孔善盈",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp5",name:"何芯蕾",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp6",name:"羅梓晉",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp7",name:"許思溢",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp8",name:"梁心朗",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp9",name:"何芯蕾",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp10",name:"余悅",classId:"c1",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp11",name:"陳柏晞",classId:"c2",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp12",name:"郭栩澄",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp13",name:"梁德澤",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp14",name:"葉宇浩",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp15",name:"梁德瑜",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp16",name:"翟悅廷",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp17",name:"蘇穎悠",classId:"c4",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp18",name:"梁德瑜",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp19",name:"梁德澤",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp20",name:"鄧幗恩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp21",name:"文柏升",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp22",name:"陳曉瑩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:"2026-04-06"},
-  {id:"imp23",name:"古詩詠",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp24",name:"古卓謙",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp25",name:"梁心朗",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
-  {id:"imp26",name:"梁正宇",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
-  {id:"imp27",name:"黃玥晴",classId:"c5",absDate:"2026-03-06",deadline:"2026-05-06",madeUpDate:null},
-  {id:"imp28",name:"梁正宇",classId:"c5",absDate:"2026-03-27",deadline:"2026-05-27",madeUpDate:null},
-  {id:"imp29",name:"陳焯棋",classId:"c6",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
-  {id:"imp30",name:"王尉鏇",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
-  {id:"imp31",name:"王斯顏",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
-  {id:"imp32",name:"劉家頤",classId:"c7",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
-  {id:"imp33",name:"周莉晶",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
-  {id:"imp34",name:"李灝宏",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
-  {id:"imp35",name:"陳書雅",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null}
-];
+let ABSENCES = [];  // 完全由雲端填充
+let PERF_RECORDS = {};
+let lbActive = 'rope30';
+let dataLoaded = false;
 
-// ═══════════════════════════════
-//  METRICS & PERF
-// ═══════════════════════════════
-const METRICS=[
+const METRICS = [
   {id:'rope30',name:'30秒前繩',unit:'次',higher:true},
   {id:'bike',name:'單車步',unit:'次',higher:true},
   {id:'double',name:'二重跳',unit:'次',higher:true},
@@ -222,75 +210,224 @@ const METRICS=[
   {id:'rsi',name:'RSI',unit:'',higher:true}
 ];
 
-const API_URL='https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
-let PERF_RECORDS={};
-let lbActive='rope30';
-
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════
 //  HELPERS
-// ═══════════════════════════════
-function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function daysLeft(dl){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=dl.split('-').map(Number);return Math.ceil((new Date(y,m-1,d)-t)/86400000)}
-function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${y}年${+m}月${+d}日`}
+// ═══════════════════════════════════════════════════
+function todayStr(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function daysLeft(dl){
+  const t=new Date();t.setHours(0,0,0,0);
+  const[y,m,d]=dl.split('-').map(Number);
+  return Math.ceil((new Date(y,m-1,d)-t)/86400000);
+}
+function fmtDate(s){
+  if(!s)return'—';
+  const[y,m,d]=s.split('-');
+  return`${y}年${+m}月${+d}日`;
+}
 function isExpired(dl){return dl<todayStr()}
-function getPB(name,mid){const r=PERF_RECORDS[name]?.[mid];if(!r||!r.length)return null;const m=METRICS.find(x=>x.id===mid);return m.higher?Math.max(...r.map(x=>x.val)):Math.min(...r.map(x=>x.val))}
-function ensureDateStr(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const d=new Date(s);if(isNaN(d.getTime()))return s;return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function getPB(name,mid){
+  const r=PERF_RECORDS[name]?.[mid];
+  if(!r||!r.length)return null;
+  const m=METRICS.find(x=>x.id===mid);
+  return m.higher?Math.max(...r.map(x=>x.val)):Math.min(...r.map(x=>x.val));
+}
+function ensureDateStr(v){
+  if(!v)return null;
+  const s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  const d=new Date(s);
+  if(isNaN(d.getTime()))return s;
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 const NAME_ALIASES={'余悅':'悅悅'};
-function maskName(n){if(NAME_ALIASES[n])return NAME_ALIASES[n];return n.length<=2?n:n.slice(-2)}
-function setSyncIcon(s){const e=document.getElementById('sync-icon');if(e)e.textContent={loading:'⏳',ok:'☁',error:'❌'}[s]||'☁'}
+function maskName(n){
+  if(NAME_ALIASES[n])return NAME_ALIASES[n];
+  return n.length<=2?n:n.slice(-2);
+}
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════
+//  SYNC INDICATOR
+// ═══════════════════════════════════════════════════
+function setSyncState(state, msg) {
+  const icon   = document.getElementById('sync-icon');
+  const banner = document.getElementById('sync-banner');
+  const bannerText = document.getElementById('sync-banner-text');
+
+  const states = {
+    loading: { icon:'⏳', banner:true,  error:false, text:'⏳ 正在載入最新數據…' },
+    ok:      { icon:'☁',  banner:false, error:false, text:'' },
+    error:   { icon:'❌', banner:true,  error:true,  text:'❌ 載入失敗，顯示本地備份數據。點擊右上角重試。' }
+  };
+  const s = states[state] || states.ok;
+  if(icon) icon.textContent = s.icon;
+  if(banner) {
+    banner.classList.toggle('visible', s.banner);
+    banner.classList.toggle('error', s.error);
+  }
+  if(bannerText) bannerText.textContent = msg || s.text;
+}
+
+// ═══════════════════════════════════════════════════
+//  RESTORE SETTINGS (same logic as coach app)
+// ═══════════════════════════════════════════════════
+function restoreSettings(rows) {
+  if (!rows || !rows.length) return;
+  const map = {};
+  rows.forEach(r => {
+    if (!r.key || r.value === null || r.value === undefined) return;
+    try { map[r.key] = JSON.parse(r.value); }
+    catch(e) { map[r.key] = r.value; }
+  });
+  // Update CLASSES from settings
+  Object.keys(CLASSES).forEach(cid => {
+    if (map[`class_${cid}_students`]) CLASSES[cid].students = map[`class_${cid}_students`];
+    if (map[`class_${cid}_dayZh`])   CLASSES[cid].dayZh    = map[`class_${cid}_dayZh`];
+    if (map[`class_${cid}_time`])    CLASSES[cid].time      = map[`class_${cid}_time`];
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  LOAD FROM SHEETS — identical approach to coach app
+// ═══════════════════════════════════════════════════
+async function loadFromSheets(manual = false) {
+  setSyncState('loading');
+  try {
+    // Use same apiGet method as coach app
+    const data = await apiGet({ action: 'load' });
+    if (data.error) throw new Error(data.error);
+
+    // 1. Restore settings (class names, student lists)
+    restoreSettings(data.settings || []);
+
+    // 2. Rebuild ABSENCES from cloud
+    if (data.absences && data.absences.length >= 0) {
+      ABSENCES.length = 0;
+      (data.absences || []).forEach(row => {
+        ABSENCES.push({
+          id:         row.id,
+          name:       row.name,
+          classId:    row.classId,
+          absDate:    ensureDateStr(row.absDate),
+          deadline:   ensureDateStr(row.deadline),
+          madeUpDate: ensureDateStr(row.madeUpDate),
+        });
+      });
+    }
+
+    // 3. Rebuild PERF_RECORDS from cloud
+    PERF_RECORDS = {};
+    (data.performance || []).forEach(row => {
+      if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
+      if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
+      PERF_RECORDS[row.name][row.metricId].push({
+        date: ensureDateStr(row.date),
+        val:  +row.val
+      });
+    });
+
+    dataLoaded = true;
+    setSyncState('ok');
+    renderLB();
+
+    // If search results are visible, re-run search with fresh data
+    const q = document.getElementById('q')?.value?.trim();
+    if (q) doSearch();
+
+    if (manual) showToast('數據已更新 ☁');
+
+  } catch(e) {
+    setSyncState('error');
+    renderLB(); // show with whatever data we have
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+function showToast(msg) {
+  let el = document.getElementById('toast-el');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast-el';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c1c1c;color:#f0f0f0;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:500;border:1px solid rgba(255,255,255,0.1);opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:9999';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 2200);
+}
+
+// ═══════════════════════════════════════════════════
 //  TAB SWITCHING
-// ═══════════════════════════════
-function switchTab(tab){
+// ═══════════════════════════════════════════════════
+function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('panel-'+tab).classList.add('active');
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════
 //  LEADERBOARD
-// ═══════════════════════════════
-function getAllStudentsWithYear(){
-  const seen=new Set(),list=[];
-  Object.values(CLASSES).forEach(cls=>{
-    cls.students.forEach(name=>{
-      if(!seen.has(name)){seen.add(name);list.push({name,year:STUDENT_YEARS[name]||null})}
+// ═══════════════════════════════════════════════════
+function getAllStudentsWithYear() {
+  const seen=new Set(), list=[];
+  Object.values(CLASSES).forEach(cls => {
+    cls.students.forEach(name => {
+      if (!seen.has(name)) {
+        seen.add(name);
+        list.push({ name, year: STUDENT_YEARS[name] || null });
+      }
     });
   });
   return list;
 }
 
-function renderLB(){
-  const m=METRICS.find(x=>x.id===lbActive);
+function renderLB() {
+  const m = METRICS.find(x=>x.id===lbActive);
+
   // Tabs
-  document.getElementById('lb-tabs').innerHTML=METRICS.map(mt=>
+  document.getElementById('lb-tabs').innerHTML = METRICS.map(mt =>
     `<div class="lb-tab ${lbActive===mt.id?'active':''}" onclick="setLB('${mt.id}')">${mt.name}</div>`
   ).join('');
-  // Collect PBs
-  const all=getAllStudentsWithYear();
-  const entries=[];
-  all.forEach(({name,year})=>{const pb=getPB(name,lbActive);if(pb!==null)entries.push({name,val:pb,year})});
-  entries.sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
 
-  if(!entries.length){
-    document.getElementById('lb-age-groups').innerHTML='';
-    document.getElementById('lb-overall-list').innerHTML=`<div class="lb-empty">暫無 ${m.name} 成績資料<br><span style="font-size:12px">數據由教練記錄後自動更新</span></div>`;
-    document.getElementById('overall-title').textContent=`🏆 總排行 · ${m.name}`;
+  // Collect PBs
+  const all = getAllStudentsWithYear();
+  const entries = [];
+  all.forEach(({name, year}) => {
+    const pb = getPB(name, lbActive);
+    if (pb !== null) entries.push({ name, val: pb, year });
+  });
+  entries.sort((a,b) => m.higher ? b.val-a.val : a.val-b.val);
+
+  if (!entries.length) {
+    document.getElementById('lb-age-groups').innerHTML = '';
+    document.getElementById('lb-overall-list').innerHTML =
+      `<div class="lb-empty">${dataLoaded
+        ? `暫無 ${m.name} 成績資料<br><span style="font-size:12px">數據由教練記錄後自動更新</span>`
+        : `<span style="font-size:13px">⏳ 載入中…</span>`}</div>`;
+    document.getElementById('overall-title').textContent = `🏆 總排行 · ${m.name}`;
     return;
   }
 
-  // ── Age group horizontal cards (TOP) ──
-  const withYear=entries.filter(e=>e.year);
-  let ageHtml='';
+  // ── Age group cards (TOP) ──
+  const withYear = entries.filter(e=>e.year);
+  let ageHtml = '';
 
-  function makeAgeGroup(list,title){
-    if(!list.length)return'';
-    const sorted=[...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
-    const cards=sorted.map((e,i)=>{
-      const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
-      const re=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+  function makeAgeGroup(list, title) {
+    if (!list.length) return '';
+    const sorted = [...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+    const cards = sorted.map((e,i)=>{
+      const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+      const re = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
       return `<div class="age-card ${rc}">
         <div class="age-card-rank">${re}</div>
         <div class="age-card-name">${maskName(e.name)}</div>
@@ -304,109 +441,113 @@ function renderLB(){
     </div>`;
   }
 
-  if(withYear.length>=1){
-    const cy=new Date().getFullYear();
-    const olderYears=[...new Set(withYear.filter(e=>e.year<=2019).map(e=>e.year))].sort((a,b)=>a-b);
-    olderYears.forEach(yr=>{
-      const grp=withYear.filter(e=>e.year===yr);
-      ageHtml+=makeAgeGroup(grp,`${yr}年生（${cy-yr}歲）`);
+  if (withYear.length >= 1) {
+    const cy = new Date().getFullYear();
+    const olderYears = [...new Set(withYear.filter(e=>e.year<=2019).map(e=>e.year))].sort((a,b)=>a-b);
+    olderYears.forEach(yr => {
+      ageHtml += makeAgeGroup(withYear.filter(e=>e.year===yr), `${yr}年生（${cy-yr}歲）`);
     });
-    const younger=withYear.filter(e=>e.year>=2020);
-    if(younger.length>=1)ageHtml+=makeAgeGroup(younger,`2020年或以後（${cy-2020}歲或以下）`);
+    const younger = withYear.filter(e=>e.year>=2020);
+    if (younger.length>=1) ageHtml += makeAgeGroup(younger, `2020年或以後（${cy-2020}歲或以下）`);
   }
 
-  document.getElementById('lb-age-groups').innerHTML=ageHtml||'<div style="padding:8px 0 4px;font-size:12px;color:var(--muted)">（暫無按歲數分組資料）</div>';
+  document.getElementById('lb-age-groups').innerHTML =
+    ageHtml || '<div style="padding:8px 0 4px;font-size:12px;color:var(--muted)">（暫無按歲數分組資料）</div>';
 
   // ── Overall list (BOTTOM) ──
-  document.getElementById('overall-title').textContent=`🏆 總排行 · ${m.name}`;
-  document.getElementById('lb-overall-list').innerHTML=entries.map((e,i)=>{
-    const nc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    const nt=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+  document.getElementById('overall-title').textContent = `🏆 總排行 · ${m.name}`;
+  document.getElementById('lb-overall-list').innerHTML = entries.map((e,i) => {
+    const nc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const nt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
     return `<div class="lb-row">
       <div class="lb-num ${nc}">${nt}</div>
-      <div><div class="lb-name">${maskName(e.name)}</div>${e.year?`<div class="lb-year">${e.year}年生</div>`:''}</div>
+      <div>
+        <div class="lb-name">${maskName(e.name)}</div>
+        ${e.year?`<div class="lb-year">${e.year}年生</div>`:''}
+      </div>
       <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
     </div>`;
   }).join('');
 }
 
-function setLB(id){lbActive=id;renderLB()}
+function setLB(id) { lbActive=id; renderLB(); }
 
-// ═══════════════════════════════
-//  LOAD FROM SHEETS
-// ═══════════════════════════════
-async function loadFromSheets(){
-  setSyncIcon('loading');
-  try{
-    const res=await fetch(API_URL+'?action=load');
-    const data=await res.json();
-    if(data.error)throw new Error(data.error);
-    // Performance
-    PERF_RECORDS={};
-    (data.performance||[]).forEach(row=>{
-      if(!PERF_RECORDS[row.name])PERF_RECORDS[row.name]={};
-      if(!PERF_RECORDS[row.name][row.metricId])PERF_RECORDS[row.name][row.metricId]=[];
-      PERF_RECORDS[row.name][row.metricId].push({date:ensureDateStr(row.date),val:+row.val});
-    });
-    // Absences
-    if(data.absences?.length){
-      ABSENCES.length=0;
-      data.absences.forEach(row=>{
-        ABSENCES.push({id:row.id,name:row.name,classId:row.classId,
-          absDate:ensureDateStr(row.absDate),
-          deadline:ensureDateStr(row.deadline),
-          madeUpDate:ensureDateStr(row.madeUpDate)});
-      });
-    }
-    setSyncIcon('ok');
-    renderLB();
-  }catch(e){
-    setSyncIcon('error');
-    renderLB();
-  }
-}
+// ═══════════════════════════════════════════════════
+//  SEARCH / MAKEUP
+// ═══════════════════════════════════════════════════
+function doSearch() {
+  const q   = document.getElementById('q').value.trim();
+  const out = document.getElementById('results');
+  if (!q) { out.innerHTML=''; return; }
 
-// ═══════════════════════════════
-//  SEARCH
-// ═══════════════════════════════
-function doSearch(){
-  const q=document.getElementById('q').value.trim();
-  const out=document.getElementById('results');
-  if(!q){out.innerHTML='';return}
-  const matches=[],seen=new Set();
-  Object.entries(CLASSES).forEach(([cid,cls])=>{
-    cls.students.forEach(name=>{
-      const key=name+'|'+cid;
-      if(name.includes(q)&&!seen.has(key)){seen.add(key);matches.push({name,cid,cls})}
+  const matches=[], seen=new Set();
+  Object.entries(CLASSES).forEach(([cid,cls]) => {
+    cls.students.forEach(name => {
+      const key = name+'|'+cid;
+      if (name.includes(q) && !seen.has(key)) {
+        seen.add(key);
+        matches.push({name, cid, cls});
+      }
     });
   });
-  if(!matches.length){
+
+  if (!matches.length) {
     out.innerHTML=`<div class="no-result"><div class="icon">🔍</div>找不到「${q}」<br>請確認姓名是否正確</div>`;
     return;
   }
-  const now=todayStr();
-  out.innerHTML=matches.map(({name,cid,cls})=>{
-    const pa=ABSENCES.filter(a=>a.name===name&&!a.madeUpDate&&a.deadline>=now).sort((a,b)=>a.deadline.localeCompare(b.deadline));
-    const pe=ABSENCES.filter(a=>a.name===name&&!a.madeUpDate&&a.deadline<now);
-    const done=ABSENCES.filter(a=>a.name===name&&a.madeUpDate).length;
-    const n=pa.length;
-    const urg=pa.some(a=>daysLeft(a.deadline)<=14);
-    const cc=n===0?'clear':urg?'urgent':'';
-    const bc=n===0?'zero':urg?'urgent':'';
-    let rows=n>0
-      ?`<div style="margin-top:4px">${pa.map((a,i)=>{const dl=daysLeft(a.deadline);const u=dl<=14;return`<div class="abs-row"><div><div class="abs-date">第 ${i+1} 節 — ${fmtDate(a.absDate)} 請假</div><div class="abs-sub">補堂期限：${fmtDate(a.deadline)}</div></div><span class="pill ${u?'pill-urgent':'pill-ok'}">${u?'⚠ 剩'+dl+'天':'剩'+dl+'天'}</span></div>`}).join('')}</div>`
-      :`<div class="all-good">✅ 暫無待補堂，繼續保持！</div>`;
-    const exp=pe.length?`<div class="expired-warn">⚠ 另有 ${pe.length} 節補堂期限已過，請聯絡教練跟進</div>`:'';
-    const dn=done?`<div class="done-note">✓ 已完成補堂 ${done} 節</div>`:'';
-    return`<div class="result-card ${cc}"><div class="card-top"><div><div class="student-name">${name}</div><div class="student-class">${cls.dayZh} ${cls.time}</div></div><div><div class="big-num ${bc}">${n}</div><div class="big-label">節待補堂</div></div></div><hr class="divider">${rows}${exp}${dn}</div>`;
+
+  const now = todayStr();
+  out.innerHTML = matches.map(({name, cid, cls}) => {
+    const pa = ABSENCES
+      .filter(a=>a.name===name && !a.madeUpDate && a.deadline && a.deadline>=now)
+      .sort((a,b)=>a.deadline.localeCompare(b.deadline));
+    const pe   = ABSENCES.filter(a=>a.name===name && !a.madeUpDate && a.deadline && a.deadline<now);
+    const done = ABSENCES.filter(a=>a.name===name && a.madeUpDate).length;
+
+    const n   = pa.length;
+    const urg = pa.some(a=>daysLeft(a.deadline)<=14);
+    const cc  = n===0?'clear':urg?'urgent':'';
+    const bc  = n===0?'zero':urg?'urgent':'';
+
+    const rows = n>0
+      ? `<div style="margin-top:4px">${pa.map((a,i)=>{
+          const dl=daysLeft(a.deadline);
+          const u=dl<=14;
+          return`<div class="abs-row">
+            <div>
+              <div class="abs-date">第 ${i+1} 節 — ${fmtDate(a.absDate)} 請假</div>
+              <div class="abs-sub">補堂期限：${fmtDate(a.deadline)}</div>
+            </div>
+            <span class="pill ${u?'pill-urgent':'pill-ok'}">${u?'⚠ 剩'+dl+'天':'剩'+dl+'天'}</span>
+          </div>`;
+        }).join('')}</div>`
+      : `<div class="all-good">✅ 暫無待補堂，繼續保持！</div>`;
+
+    const exp  = pe.length ? `<div class="expired-warn">⚠ 另有 ${pe.length} 節補堂期限已過，請聯絡教練跟進</div>` : '';
+    const dn   = done     ? `<div class="done-note">✓ 已完成補堂 ${done} 節</div>` : '';
+
+    return `<div class="result-card ${cc}">
+      <div class="card-top">
+        <div>
+          <div class="student-name">${name}</div>
+          <div class="student-class">${cls.dayZh} ${cls.time}</div>
+        </div>
+        <div>
+          <div class="big-num ${bc}">${n}</div>
+          <div class="big-label">節待補堂</div>
+        </div>
+      </div>
+      <hr class="divider">
+      ${rows}${exp}${dn}
+    </div>`;
   }).join('');
 }
 
-// ═══════════════════════════════
-//  INIT
-// ═══════════════════════════════
-renderLB();
-loadFromSheets();
+// ═══════════════════════════════════════════════════
+//  INIT — render with placeholder, then load cloud
+// ═══════════════════════════════════════════════════
+renderLB();      // show skeleton immediately
+loadFromSheets(); // fetch real data
 </script>
 </body>
 </html>
