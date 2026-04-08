@@ -5,225 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="color-scheme" content="dark">
-<meta name="supported-color-schemes" content="dark">
 <meta name="theme-color" content="#111111">
-<title>IS 補堂查詢</title>
+<title>IS 補堂查詢 &amp; 排行榜</title>
 <style>
-:root {
-  --cyan: #3ECFCF;
-  --bg: #111;
-  --surface: #1c1c1c;
-  --surface2: #252525;
-  --border: rgba(255,255,255,0.08);
-  --text: #f0f0f0;
-  --muted: rgba(255,255,255,0.45);
-  --green: #34d399;
-  --red: #f87171;
-  --amber: #fbbf24;
-}
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html {
-  color-scheme: dark;
-  background: #111;
-}
-body {
-  background: #111 !important;
-  color: var(--text);
-  font-family: -apple-system, "PingFang HK", "PingFang TC", sans-serif;
-  min-height: 100vh;
-  padding-bottom: 40px;
-}
-
-/* Header */
-.header {
-  background: var(--surface);
-  border-bottom: 2px solid var(--cyan);
-  padding: 20px 20px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.logo-box {
-  width: 44px; height: 44px;
-  background: var(--cyan);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; font-weight: 900;
-  color: #111; flex-shrink: 0;
-}
-.header-text h1 { font-size: 18px; font-weight: 900; }
-.header-text p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-/* Search */
-.search-section { padding: 24px 20px 0; }
-.search-label { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
-.search-row { display: flex; gap: 8px; }
-.search-input {
-  flex: 1;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 17px;
-  padding: 14px 16px;
-  outline: none;
-  transition: border-color 0.2s;
-  -webkit-appearance: none;
-}
-.search-input:focus { border-color: var(--cyan); }
-.search-input::placeholder { color: var(--muted); }
-.btn-search {
-  background: var(--cyan);
-  color: #111;
-  border: none;
-  border-radius: 14px;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 14px 20px;
-  cursor: pointer;
-  white-space: nowrap;
-  -webkit-appearance: none;
-}
-.btn-search:active { opacity: 0.8; }
-.search-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
-
-/* Results */
-.results { padding: 20px 20px 0; }
-
-.result-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 5px solid var(--cyan);
-  border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 14px;
-}
-.result-card.urgent { border-left-color: var(--red); }
-.result-card.clear  { border-left-color: rgba(52,211,153,0.4); }
-
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 14px;
-}
-.student-name { font-size: 22px; font-weight: 900; }
-.student-class { font-size: 13px; color: var(--muted); margin-top: 3px; }
-
-.big-num { font-size: 46px; font-weight: 900; line-height: 1; color: var(--amber); text-align: right; }
-.big-num.urgent { color: var(--red); }
-.big-num.zero   { color: rgba(52,211,153,0.5); }
-.big-label { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
-
-.divider { border: none; border-top: 1px solid var(--border); margin: 0; }
-
-.abs-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--border);
-  gap: 10px;
-}
-.abs-row:last-child { border-bottom: none; }
-.abs-date { font-size: 14px; font-weight: 600; }
-.abs-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-.pill {
-  font-size: 12px; font-weight: 700;
-  padding: 5px 12px; border-radius: 20px;
-  white-space: nowrap; flex-shrink: 0;
-}
-.pill-ok     { background: rgba(52,211,153,0.15);  color: var(--green); }
-.pill-urgent { background: rgba(251,191,36,0.15);  color: var(--amber); }
-.pill-over   { background: rgba(248,113,113,0.15); color: var(--red); }
-
-.all-good {
-  display: flex; align-items: center; gap: 10px;
-  padding-top: 12px;
-  color: var(--green); font-size: 15px;
-}
-
-.expired-warn {
-  margin-top: 10px;
-  background: rgba(248,113,113,0.1);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 13px;
-  color: var(--red);
-}
-
-.done-note {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* Empty / Error */
-.no-result {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.7;
-}
-.no-result .icon { font-size: 40px; margin-bottom: 10px; }
-
-/* Info box */
-.info-box {
-  margin: 20px 20px 0;
-  background: rgba(62,207,207,0.06);
-  border: 1px solid rgba(62,207,207,0.15);
-  border-radius: 14px;
-  padding: 16px;
-}
-.info-box p { font-size: 13px; color: var(--muted); line-height: 1.7; }
-.info-box strong { color: var(--cyan); }
-
-/* Footer */
-.footer {
-  text-align: center;
-  margin-top: 30px;
-  padding: 0 20px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.2);
-}
-/* Leaderboard */
-.lb-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 16px 8px; font-size: 16px; font-weight: 700; color: var(--text);
-}
-.lb-metric-row {
-  display: flex; gap: 6px; padding: 0 16px 10px;
-  overflow-x: auto; scrollbar-width: none;
-}
-.lb-metric-row::-webkit-scrollbar { display: none; }
-.lb-tab {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--muted); font-size: 12px; font-weight: 600;
-  cursor: pointer; white-space: nowrap; transition: all 0.15s;
-}
-.lb-tab.active { background: rgba(62,207,207,0.15); border-color: var(--cyan); color: var(--cyan); }
-.lb-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-}
-.lb-row:last-child { border-bottom: none; }
-.lb-num { font-size: 18px; font-weight: 900; width: 28px; color: var(--muted); text-align:center; flex-shrink:0; }
-.lb-num.gold { color: #ffd700; }
-.lb-num.silver { color: #c0c0c0; }
-.lb-num.bronze { color: #cd7f32; }
-.lb-name { flex: 1; font-size: 14px; font-weight: 700; }
-.lb-val { font-size: 18px; font-weight: 900; color: var(--cyan); }
-.lb-unit { font-size: 10px; color: var(--muted); display: block; text-align: right; }
-.lb-empty {
-  padding: 24px 16px; color: var(--muted); font-size: 13px;
-  text-align: center; line-height: 1.6;
-}
-#lb-list { max-height: none; } /* show all */
+:root{--cyan:#3ECFCF;--cyan-dim:rgba(62,207,207,0.13);--bg:#111;--surface:#1c1c1c;--surface2:#252525;--border:rgba(255,255,255,0.08);--text:#f0f0f0;--muted:rgba(255,255,255,0.45);--green:#34d399;--green-dim:rgba(52,211,153,0.13);--red:#f87171;--red-dim:rgba(248,113,113,0.13);--amber:#fbbf24;--amber-dim:rgba(251,191,36,0.10)}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:dark;background:#111}
+body{background:#111!important;color:var(--text);font-family:-apple-system,"PingFang HK","PingFang TC","Microsoft JhengHei",sans-serif;min-height:100vh;padding-bottom:48px}
+.header{background:var(--surface);border-bottom:2px solid var(--cyan);padding:18px 20px 14px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+.logo-box{width:44px;height:44px;background:var(--cyan);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111;flex-shrink:0}
+.header-text h1{font-size:18px;font-weight:900}
+.header-text p{font-size:12px;color:var(--muted);margin-top:2px}
+.header-sync{margin-left:auto;font-size:20px;opacity:0.6;flex-shrink:0;cursor:pointer}
+.tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:78px;z-index:49}
+.tab-btn{flex:1;padding:13px 8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.panel{display:none}
+.panel.active{display:block}
+.lb-metric-scroll{display:flex;gap:7px;padding:14px 16px 4px;overflow-x:auto;scrollbar-width:none}
+.lb-metric-scroll::-webkit-scrollbar{display:none}
+.lb-tab{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.lb-tab.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+.age-group-section{padding:12px 16px 0}
+.age-group-title{font-size:11px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--cyan);padding:0 0 8px;border-bottom:1px solid rgba(62,207,207,0.2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.age-cards-row{display:flex;gap:9px;overflow-x:auto;padding-bottom:14px;scrollbar-width:none}
+.age-cards-row::-webkit-scrollbar{display:none}
+.age-card{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:13px 15px 11px;min-width:88px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px}
+.age-card.rank-1{border-color:#ffd700;background:rgba(255,215,0,0.07)}
+.age-card.rank-2{border-color:#c0c0c0;background:rgba(192,192,192,0.05)}
+.age-card.rank-3{border-color:#cd7f32;background:rgba(205,127,50,0.07)}
+.age-card-rank{font-size:20px;line-height:1}
+.age-card-name{font-size:14px;font-weight:800;margin-top:2px;line-height:1.2}
+.age-card-val{font-size:24px;font-weight:900;color:var(--cyan);line-height:1;margin-top:4px}
+.age-card-unit{font-size:11px;font-weight:400;color:var(--muted)}
+.age-card-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.overall-section{padding:4px 16px 0}
+.overall-title{font-size:11px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);padding:14px 0 8px;border-top:1px solid var(--border)}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-num{font-size:17px;font-weight:900;width:28px;text-align:center;color:var(--muted);flex-shrink:0}
+.lb-num.gold{color:#ffd700}
+.lb-num.silver{color:#c0c0c0}
+.lb-num.bronze{color:#cd7f32}
+.lb-name{flex:1;font-size:14px;font-weight:700}
+.lb-year{font-size:11px;color:var(--muted);margin-top:1px}
+.lb-val{font-size:20px;font-weight:900;color:var(--cyan);text-align:right}
+.lb-unit{font-size:10px;color:var(--muted);display:block;text-align:right}
+.lb-empty{padding:32px 16px;color:var(--muted);font-size:14px;text-align:center;line-height:1.7}
+.search-section{padding:20px 20px 0}
+.search-label{font-size:14px;font-weight:700;margin-bottom:10px}
+.search-row{display:flex;gap:8px}
+.search-input{flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;font-size:17px;padding:14px 16px;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.search-input:focus{border-color:var(--cyan)}
+.search-input::placeholder{color:var(--muted)}
+.btn-search{background:var(--cyan);color:#111;border:none;border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;padding:14px 20px;cursor:pointer;white-space:nowrap}
+.btn-search:active{opacity:0.8}
+.search-hint{font-size:12px;color:var(--muted);margin-top:8px}
+.results{padding:16px 20px 0}
+.result-card{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--cyan);border-radius:16px;padding:18px;margin-bottom:14px}
+.result-card.urgent{border-left-color:var(--red)}
+.result-card.clear{border-left-color:rgba(52,211,153,0.4)}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.student-name{font-size:22px;font-weight:900}
+.student-class{font-size:13px;color:var(--muted);margin-top:3px}
+.big-num{font-size:46px;font-weight:900;line-height:1;color:var(--amber);text-align:right}
+.big-num.urgent{color:var(--red)}
+.big-num.zero{color:rgba(52,211,153,0.5)}
+.big-label{font-size:11px;color:var(--muted);text-align:right;margin-top:2px}
+.divider{border:none;border-top:1px solid var(--border)}
+.abs-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);gap:10px}
+.abs-row:last-child{border-bottom:none}
+.abs-date{font-size:14px;font-weight:600}
+.abs-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.pill{font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.pill-ok{background:var(--green-dim);color:var(--green)}
+.pill-urgent{background:var(--amber-dim);color:var(--amber)}
+.pill-over{background:var(--red-dim);color:var(--red)}
+.all-good{display:flex;align-items:center;gap:10px;padding-top:12px;color:var(--green);font-size:15px}
+.expired-warn{margin-top:10px;background:var(--red-dim);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--red)}
+.done-note{margin-top:10px;font-size:12px;color:var(--muted)}
+.no-result{text-align:center;padding:40px 20px;color:var(--muted);font-size:15px;line-height:1.7}
+.no-result .icon{font-size:40px;margin-bottom:10px}
+.info-box{margin:20px 20px 0;background:rgba(62,207,207,0.06);border:1px solid rgba(62,207,207,0.15);border-radius:14px;padding:16px}
+.info-box p{font-size:13px;color:var(--muted);line-height:1.7}
+.info-box strong{color:var(--cyan)}
+.footer{text-align:center;margin-top:28px;padding:0 20px;font-size:12px;color:rgba(255,255,255,0.18)}
 </style>
 </head>
 <body>
@@ -231,80 +97,88 @@ body {
 <div class="header">
   <div class="logo-box">IS</div>
   <div class="header-text">
-    <h1>補堂查詢</h1>
-    <p>Initiate Sports · Aim High Jump High</p>
+    <h1>Initiate Sports</h1>
+    <p>排行榜 &amp; 補堂查詢</p>
   </div>
+  <div class="header-sync" id="sync-icon" title="雲端同步狀態" onclick="loadFromSheets()">☁</div>
 </div>
 
-<div class="search-section">
-  <div class="search-label">查詢補堂記錄</div>
-  <div class="search-row">
-    <input class="search-input" id="q" type="text"
-      placeholder="輸入子女全名或部分姓名…"
-      autocomplete="off" autocorrect="off" spellcheck="false"
-      onkeydown="if(event.key==='Enter'){this.blur();search()}">
-    <button class="btn-search" onclick="search()">查詢</button>
-  </div>
-  <div class="search-hint">輸入全名或部分姓名均可</div>
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-lb"     onclick="switchTab('lb')">🏆 排行榜</button>
+  <button class="tab-btn"        id="tab-search" onclick="switchTab('search')">📋 補堂查詢</button>
 </div>
 
-<div class="results" id="results"></div>
-
-<!-- Leaderboard — always visible, hidden only while showing search results -->
-<div id="lb-section">
-  <div class="lb-header">
-    <span>🏆 成績排行榜</span>
-    <span style="font-size:11px;color:var(--muted)">各項目最佳成績</span>
+<!-- ══ LEADERBOARD PANEL ══ -->
+<div class="panel active" id="panel-lb">
+  <div class="lb-metric-scroll" id="lb-tabs"></div>
+  <div id="lb-age-groups" class="age-group-section"></div>
+  <div class="overall-section">
+    <div class="overall-title" id="overall-title">🏆 總排行</div>
+    <div id="lb-overall-list"></div>
   </div>
-  <div class="lb-metric-row" id="lb-tabs"></div>
-  <div id="lb-list"></div>
+  <div class="footer"><p>成績由教練記錄後自動更新 · 姓名為部分顯示以保護隱私</p></div>
 </div>
 
-<div class="info-box">
-  <p>
-    <strong>補堂規則：</strong>請假 1 節 = 欠 1 節補堂。<br>
+<!-- ══ SEARCH PANEL ══ -->
+<div class="panel" id="panel-search">
+  <div class="search-section">
+    <div class="search-label">查詢補堂記錄</div>
+    <div class="search-row">
+      <input class="search-input" id="q" type="text"
+        placeholder="輸入子女全名或部分姓名…"
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter'){this.blur();doSearch()}">
+      <button class="btn-search" onclick="doSearch()">查詢</button>
+    </div>
+    <div class="search-hint">輸入全名或部分姓名均可</div>
+  </div>
+  <div class="results" id="results"></div>
+  <div class="info-box">
+    <p><strong>補堂規則：</strong>請假 1 節 = 欠 1 節補堂。<br>
     補堂期限為請假當日起計 <strong>2 個月內</strong>。<br>
-    如有疑問請聯絡教練。
-  </p>
-</div>
-
-<div class="footer">
-  <p>© Initiate Sports · 資料每次點名後更新</p>
+    如有疑問請聯絡教練。</p>
+  </div>
+  <div class="footer"><p>© Initiate Sports · 資料每次點名後更新</p></div>
 </div>
 
 <script>
-// ═══════════════════════════════════════
-//  SHARED DATA — 與教練 App 同步
-// ═══════════════════════════════════════
-// 4月起最新名單（與教練App同步）
+// ═══════════════════════════════
+//  STATIC DATA
+// ═══════════════════════════════
 const CLASSES = {
-  c1: { label:'星期一 5:00–6:00 PM', dayZh:'星期一', time:'5–6pm',
-        students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩'] },
-  c2: { label:'星期一 6:00–7:00 PM', dayZh:'星期一', time:'6–7pm',
-        students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢'] },
-  c3: { label:'星期三 5:00–6:00 PM', dayZh:'星期三', time:'5–6pm',
-        students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允'] },
-  c4: { label:'星期三 6:00–7:00 PM', dayZh:'星期三', time:'6–7pm',
-        students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','蘇穎悠'] },
-  c5: { label:'星期五 6:00–7:00 PM', dayZh:'星期五', time:'6–7pm',
-        students:['吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋'] },
-  c6: { label:'星期六 11:00–12:00',  dayZh:'星期六', time:'11am–12',
-        students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅'] },
-  c7: { label:'星期六 3:00–4:00 PM', dayZh:'星期六', time:'3–4pm',
-        students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏'] }
+  c1:{dayZh:'星期一',time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩']},
+  c2:{dayZh:'星期一',time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢']},
+  c3:{dayZh:'星期三',time:'5–6pm',students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允']},
+  c4:{dayZh:'星期三',time:'6–7pm',students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','蘇穎悠']},
+  c5:{dayZh:'星期五',time:'6–7pm',students:['吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋']},
+  c6:{dayZh:'星期六',time:'11am–12',students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅']},
+  c7:{dayZh:'星期六',time:'3–4pm',students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏']}
 };
 
-const ABSENCES = [
-  {id:"imp1", name:"陳書雅",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp2", name:"何芯蕾",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp3", name:"陳書雅",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp4", name:"孔善盈",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp5", name:"何芯蕾",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp6", name:"羅梓晉",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp7", name:"許思溢",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp8", name:"梁心朗",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp9", name:"何芯蕾",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp10",name:"余悅",  classId:"c1",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
+const STUDENT_YEARS = {
+  "何梓程":2020,"何芯蕾":2018,"余悅":2017,"劉家頤":2017,"古卓謙":2019,"古詩詠":2016,
+  "吳瑋軒":2014,"呂洛希":2019,"周莉晶":2018,"姚心穎":2017,"孔善盈":2016,"張爾淳":2017,
+  "張雅堯":2019,"文柏升":2019,"曾愛斯":2017,"李灝宏":2018,"梁德澤":2015,"梁德瑜":2019,
+  "梁心朗":2016,"梁正宇":2017,"梁正軒":2020,"王一心":2017,"王一言":2017,"王尉鏇":2015,
+  "王斯顏":2020,"羅君信":2017,"羅君浩":2019,"羅梓晉":2018,"羅靖誼":2017,"翟悅廷":2017,
+  "胡汐森":2018,"胡苡晨":2015,"葉宇浩":2021,"蔡芷彤":2016,"許思溢":2014,"郭可昕":2015,
+  "郭栩澄":2016,"鄧可澄":2018,"鄧幗恩":2018,"鄧朗森":2016,"鄭宇喬":2016,"鍾皓惟":2017,
+  "陳信澄":2015,"陳卓楠":2017,"陳思允":2016,"陳曉瑩":2014,"陳書雅":2018,"陳澔泓":2017,
+  "陳焯棋":2018,"顧舒然":2017,"馬仲然":2018,"黃朗程":2018,"黃梓昕":2017,"黃玥晴":2018,
+  "黎柏希":2015,"黎柏言":2018,"蘇穎悠":2017,"陳柏晞":2018
+};
+
+let ABSENCES = [
+  {id:"imp1",name:"陳書雅",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
+  {id:"imp2",name:"何芯蕾",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
+  {id:"imp3",name:"陳書雅",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp4",name:"孔善盈",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp5",name:"何芯蕾",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp6",name:"羅梓晉",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp7",name:"許思溢",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp8",name:"梁心朗",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
+  {id:"imp9",name:"何芯蕾",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
+  {id:"imp10",name:"余悅",classId:"c1",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
   {id:"imp11",name:"陳柏晞",classId:"c2",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
   {id:"imp12",name:"郭栩澄",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
   {id:"imp13",name:"梁德澤",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
@@ -332,274 +206,207 @@ const ABSENCES = [
   {id:"imp35",name:"陳書雅",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null}
 ];
 
-// ═══════════════════════════════════════
+// ═══════════════════════════════
+//  METRICS & PERF
+// ═══════════════════════════════
+const METRICS=[
+  {id:'rope30',name:'30秒前繩',unit:'次',higher:true},
+  {id:'bike',name:'單車步',unit:'次',higher:true},
+  {id:'double',name:'二重跳',unit:'次',higher:true},
+  {id:'cross',name:'交叉開',unit:'次',higher:true},
+  {id:'gripL',name:'握力(左)',unit:'kg',higher:true},
+  {id:'gripR',name:'握力(右)',unit:'kg',higher:true},
+  {id:'cmj',name:'CMJ',unit:'cm',higher:true},
+  {id:'ncmj',name:'NCMJ',unit:'cm',higher:true},
+  {id:'sj',name:'立定跳遠',unit:'cm',higher:true},
+  {id:'rsi',name:'RSI',unit:'',higher:true}
+];
+
+const API_URL='https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
+let PERF_RECORDS={};
+let lbActive='rope30';
+
+// ═══════════════════════════════
 //  HELPERS
-// ═══════════════════════════════════════
-// 香港時間 UTC+8 日期字串
-function dateToStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + day;
-}
-function todayStr() { return dateToStr(new Date()); }
+// ═══════════════════════════════
+function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function daysLeft(dl){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=dl.split('-').map(Number);return Math.ceil((new Date(y,m-1,d)-t)/86400000)}
+function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${y}年${+m}月${+d}日`}
+function isExpired(dl){return dl<todayStr()}
+function getPB(name,mid){const r=PERF_RECORDS[name]?.[mid];if(!r||!r.length)return null;const m=METRICS.find(x=>x.id===mid);return m.higher?Math.max(...r.map(x=>x.val)):Math.min(...r.map(x=>x.val))}
+function ensureDateStr(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const d=new Date(s);if(isNaN(d.getTime()))return s;return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+const NAME_ALIASES={'余悅':'悅悅'};
+function maskName(n){if(NAME_ALIASES[n])return NAME_ALIASES[n];return n.length<=2?n:n.slice(-2)}
+function setSyncIcon(s){const e=document.getElementById('sync-icon');if(e)e.textContent={loading:'⏳',ok:'☁',error:'❌'}[s]||'☁'}
 
-function daysLeft(dl) {
-  // 用香港時間計算剩餘天數
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const [y,m,d] = dl.split('-').map(Number);
-  const deadline = new Date(y, m-1, d);
-  return Math.ceil((deadline - today) / 86400000);
-}
-
-function fmtDate(s) {
-  if (!s) return '—';
-  const [y,m,d] = s.split('-');
-  return `${y}年${+m}月${+d}日`;
+// ═══════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
 }
 
-function isExpired(dl) { return dl < todayStr(); }
-
-// ═══════════════════════════════════════
-//  SEARCH
-// ═══════════════════════════════════════
-function search() {
-  const q = document.getElementById('q').value.trim();
-  const out = document.getElementById('results');
-  const lb  = document.getElementById('lb-section');
-  if (!q) {
-    out.innerHTML = '';
-    if (lb) lb.style.display = 'block';
-    return;
-  }
-  // Hide leaderboard while showing search results
-  if (lb) lb.style.display = 'none';
-
-  // Find matching students across all classes (may appear in multiple)
-  const matches = [];
-  const seen = new Set();
-  Object.entries(CLASSES).forEach(([cid, cls]) => {
-    cls.students.forEach(name => {
-      const key = name + '|' + cid;
-      if (name.includes(q) && !seen.has(key)) {
-        seen.add(key);
-        matches.push({ name, cid, cls });
-      }
+// ═══════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════
+function getAllStudentsWithYear(){
+  const seen=new Set(),list=[];
+  Object.values(CLASSES).forEach(cls=>{
+    cls.students.forEach(name=>{
+      if(!seen.has(name)){seen.add(name);list.push({name,year:STUDENT_YEARS[name]||null})}
     });
   });
+  return list;
+}
 
-  if (!matches.length) {
-    out.innerHTML = `
-      <div class="no-result">
-        <div class="icon">🔍</div>
-        找不到「${q}」<br>
-        請確認姓名是否正確
-      </div>`;
+function renderLB(){
+  const m=METRICS.find(x=>x.id===lbActive);
+  // Tabs
+  document.getElementById('lb-tabs').innerHTML=METRICS.map(mt=>
+    `<div class="lb-tab ${lbActive===mt.id?'active':''}" onclick="setLB('${mt.id}')">${mt.name}</div>`
+  ).join('');
+  // Collect PBs
+  const all=getAllStudentsWithYear();
+  const entries=[];
+  all.forEach(({name,year})=>{const pb=getPB(name,lbActive);if(pb!==null)entries.push({name,val:pb,year})});
+  entries.sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+
+  if(!entries.length){
+    document.getElementById('lb-age-groups').innerHTML='';
+    document.getElementById('lb-overall-list').innerHTML=`<div class="lb-empty">暫無 ${m.name} 成績資料<br><span style="font-size:12px">數據由教練記錄後自動更新</span></div>`;
+    document.getElementById('overall-title').textContent=`🏆 總排行 · ${m.name}`;
     return;
   }
 
-  const now = todayStr();
-  out.innerHTML = matches.map(({ name, cid, cls }) => {
-    const pendingActive = ABSENCES
-      .filter(a => a.name===name && !a.madeUpDate && a.deadline>=now)
-      .sort((a,b) => a.deadline.localeCompare(b.deadline));
-    const pendingExpired = ABSENCES
-      .filter(a => a.name===name && !a.madeUpDate && a.deadline<now);
-    const completed = ABSENCES.filter(a => a.name===name && a.madeUpDate).length;
+  // ── Age group horizontal cards (TOP) ──
+  const withYear=entries.filter(e=>e.year);
+  let ageHtml='';
 
-    const n = pendingActive.length;
-    const hasUrgent = pendingActive.some(a => daysLeft(a.deadline) <= 14);
-    const cardCls = n===0 ? 'clear' : hasUrgent ? 'urgent' : '';
-    const bigCls  = n===0 ? 'zero'  : hasUrgent ? 'urgent' : '';
+  function makeAgeGroup(list,title){
+    if(!list.length)return'';
+    const sorted=[...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+    const cards=sorted.map((e,i)=>{
+      const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+      const re=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      return `<div class="age-card ${rc}">
+        <div class="age-card-rank">${re}</div>
+        <div class="age-card-name">${maskName(e.name)}</div>
+        <div class="age-card-val">${e.val}<span class="age-card-unit"> ${m.unit||'RSI'}</span></div>
+        <div class="age-card-sub">${e.year}年生</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:16px">
+      <div class="age-group-title">🎂 ${title}</div>
+      <div class="age-cards-row">${cards}</div>
+    </div>`;
+  }
 
-    // Absence rows
-    let rowsHtml = '';
-    if (n > 0) {
-      rowsHtml = `<div style="margin-top:4px">` +
-        pendingActive.map((a, i) => {
-          const dl  = daysLeft(a.deadline);
-          const urg = dl <= 14;
-          const over = isExpired(a.deadline);
-          return `
-          <div class="abs-row">
-            <div>
-              <div class="abs-date">第 ${i+1} 節 — ${fmtDate(a.absDate)} 請假</div>
-              <div class="abs-sub">補堂期限：${fmtDate(a.deadline)}</div>
-            </div>
-            <span class="pill ${urg?'pill-urgent':'pill-ok'}">${urg ? '⚠ 剩'+dl+'天' : '剩'+dl+'天'}</span>
-          </div>`;
-        }).join('') + `</div>`;
-    } else {
-      rowsHtml = `<div class="all-good">✅ 暫無待補堂，繼續保持！</div>`;
-    }
+  if(withYear.length>=1){
+    const cy=new Date().getFullYear();
+    const olderYears=[...new Set(withYear.filter(e=>e.year<=2019).map(e=>e.year))].sort((a,b)=>a-b);
+    olderYears.forEach(yr=>{
+      const grp=withYear.filter(e=>e.year===yr);
+      ageHtml+=makeAgeGroup(grp,`${yr}年生（${cy-yr}歲）`);
+    });
+    const younger=withYear.filter(e=>e.year>=2020);
+    if(younger.length>=1)ageHtml+=makeAgeGroup(younger,`2020年或以後（${cy-2020}歲或以下）`);
+  }
 
-    const expiredHtml = pendingExpired.length
-      ? `<div class="expired-warn">⚠ 另有 ${pendingExpired.length} 節補堂期限已過，請聯絡教練跟進</div>`
-      : '';
+  document.getElementById('lb-age-groups').innerHTML=ageHtml||'<div style="padding:8px 0 4px;font-size:12px;color:var(--muted)">（暫無按歲數分組資料）</div>';
 
-    const doneHtml = completed
-      ? `<div class="done-note">✓ 已完成補堂 ${completed} 節</div>`
-      : '';
-
-    return `
-    <div class="result-card ${cardCls}">
-      <div class="card-top">
-        <div>
-          <div class="student-name">${name}</div>
-          <div class="student-class">${cls.dayZh} ${cls.time}</div>
-        </div>
-        <div>
-          <div class="big-num ${bigCls}">${n}</div>
-          <div class="big-label">節待補堂</div>
-        </div>
-      </div>
-      <hr class="divider">
-      ${rowsHtml}
-      ${expiredHtml}
-      ${doneHtml}
+  // ── Overall list (BOTTOM) ──
+  document.getElementById('overall-title').textContent=`🏆 總排行 · ${m.name}`;
+  document.getElementById('lb-overall-list').innerHTML=entries.map((e,i)=>{
+    const nc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const nt=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    return `<div class="lb-row">
+      <div class="lb-num ${nc}">${nt}</div>
+      <div><div class="lb-name">${maskName(e.name)}</div>${e.year?`<div class="lb-year">${e.year}年生</div>`:''}</div>
+      <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
     </div>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════
-//  LEADERBOARD — 從 Google Sheets 載入
-// ═══════════════════════════════════════
-const METRICS = [
-  { id:'rope30', name:'30秒前繩', unit:'次',  higher:true },
-  { id:'bike',   name:'單車步',   unit:'次',  higher:true },
-  { id:'double', name:'二重跳',   unit:'次',  higher:true },
-  { id:'cross',  name:'交叉開',   unit:'次',  higher:true },
-  { id:'gripL',  name:'握力(左)', unit:'kg',  higher:true },
-  { id:'gripR',  name:'握力(右)', unit:'kg',  higher:true },
-  { id:'cmj',    name:'CMJ',      unit:'cm',  higher:true },
-  { id:'ncmj',   name:'NCMJ',     unit:'cm',  higher:true },
-  { id:'sj',     name:'立定跳遠', unit:'cm',  higher:true },
-  { id:'rsi',    name:'RSI',      unit:'',    higher:true },
-];
+function setLB(id){lbActive=id;renderLB()}
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
-let PERF_RECORDS = {};
-let lbActive = 'rope30';
-
-// Load performance data from Sheets
-async function loadPerfFromSheets() {
-  // Show loading placeholder immediately
-  document.getElementById('lb-list').innerHTML =
-    '<div class="lb-empty">⏳ 載入排行榜中…</div>';
-  // ── Helper: ensure YYYY-MM-DD string (Sheets may return Date objects) ──
-  function ensureDateStr(val) {
-    if (!val) return null;
-    const s = String(val).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
-  try {
-    const res = await fetch(API_URL + '?action=load');
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    // Rebuild PERF_RECORDS — enforce date strings
-    PERF_RECORDS = {};
-    (data.performance || []).forEach(row => {
-      if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
-      if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
-      PERF_RECORDS[row.name][row.metricId].push({
-        date: ensureDateStr(row.date),
-        val: +row.val
-      });
+// ═══════════════════════════════
+//  LOAD FROM SHEETS
+// ═══════════════════════════════
+async function loadFromSheets(){
+  setSyncIcon('loading');
+  try{
+    const res=await fetch(API_URL+'?action=load');
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    // Performance
+    PERF_RECORDS={};
+    (data.performance||[]).forEach(row=>{
+      if(!PERF_RECORDS[row.name])PERF_RECORDS[row.name]={};
+      if(!PERF_RECORDS[row.name][row.metricId])PERF_RECORDS[row.name][row.metricId]=[];
+      PERF_RECORDS[row.name][row.metricId].push({date:ensureDateStr(row.date),val:+row.val});
     });
-
-    // Also update ABSENCES from Sheets — enforce date strings
-    if (data.absences?.length) {
-      ABSENCES.length = 0;
-      data.absences.forEach(row => {
-        ABSENCES.push({
-          id: row.id, name: row.name, classId: row.classId,
-          absDate:    ensureDateStr(row.absDate),
-          deadline:   ensureDateStr(row.deadline),
-          madeUpDate: ensureDateStr(row.madeUpDate),
-        });
+    // Absences
+    if(data.absences?.length){
+      ABSENCES.length=0;
+      data.absences.forEach(row=>{
+        ABSENCES.push({id:row.id,name:row.name,classId:row.classId,
+          absDate:ensureDateStr(row.absDate),
+          deadline:ensureDateStr(row.deadline),
+          madeUpDate:ensureDateStr(row.madeUpDate)});
       });
     }
-
+    setSyncIcon('ok');
     renderLB();
-  } catch(e) {
-    // Silently fail — show empty leaderboard
+  }catch(e){
+    setSyncIcon('error');
     renderLB();
   }
 }
 
-function getPB(name, mid) {
-  const recs = PERF_RECORDS[name]?.[mid];
-  if (!recs || !recs.length) return null;
-  const m = METRICS.find(x => x.id === mid);
-  return m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
-}
-
-// 姓名只顯示後兩個字，保護隱私
-// 特別：余悅 → 悅悅
-const NAME_ALIASES = { '余悅': '悅悅' };
-function maskName(name) {
-  if (!name) return name;
-  if (NAME_ALIASES[name]) return NAME_ALIASES[name];
-  // Show last 2 characters only
-  return name.length <= 2 ? name : name.slice(-2);
-}
-
-function renderLB() {
-  // Tabs
-  document.getElementById('lb-tabs').innerHTML = METRICS.map(m =>
-    `<div class="lb-tab ${lbActive===m.id?'active':''}" onclick="setLB('${m.id}')">${m.name}</div>`
-  ).join('');
-
-  const m = METRICS.find(x => x.id === lbActive);
-
-  // Collect PBs — dedupe by name across all classes
-  const seen = new Set();
-  const entries = [];
-  Object.values(CLASSES).forEach(cls => {
-    cls.students.forEach(name => {
-      if (seen.has(name)) return;
-      seen.add(name);
-      const pb = getPB(name, lbActive);
-      if (pb !== null) entries.push({ name, val: pb });
+// ═══════════════════════════════
+//  SEARCH
+// ═══════════════════════════════
+function doSearch(){
+  const q=document.getElementById('q').value.trim();
+  const out=document.getElementById('results');
+  if(!q){out.innerHTML='';return}
+  const matches=[],seen=new Set();
+  Object.entries(CLASSES).forEach(([cid,cls])=>{
+    cls.students.forEach(name=>{
+      const key=name+'|'+cid;
+      if(name.includes(q)&&!seen.has(key)){seen.add(key);matches.push({name,cid,cls})}
     });
   });
-  entries.sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
-
-  if (!entries.length) {
-    document.getElementById('lb-list').innerHTML =
-      `<div class="lb-empty">暫無 ${m.name} 成績資料<br><span style="font-size:12px">數據由教練記錄後自動更新</span></div>`;
+  if(!matches.length){
+    out.innerHTML=`<div class="no-result"><div class="icon">🔍</div>找不到「${q}」<br>請確認姓名是否正確</div>`;
     return;
   }
-
-  // Show ALL entries (no slice)
-  document.getElementById('lb-list').innerHTML =
-    `<div style="padding:0 16px 12px">` +
-    entries.map((e, i) => {
-      const nc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-      const nt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-      return `
-      <div class="lb-row">
-        <div class="lb-num ${nc}">${nt}</div>
-        <div class="lb-name">${maskName(e.name)}</div>
-        <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
-      </div>`;
-    }).join('') +
-    `</div>`;
+  const now=todayStr();
+  out.innerHTML=matches.map(({name,cid,cls})=>{
+    const pa=ABSENCES.filter(a=>a.name===name&&!a.madeUpDate&&a.deadline>=now).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+    const pe=ABSENCES.filter(a=>a.name===name&&!a.madeUpDate&&a.deadline<now);
+    const done=ABSENCES.filter(a=>a.name===name&&a.madeUpDate).length;
+    const n=pa.length;
+    const urg=pa.some(a=>daysLeft(a.deadline)<=14);
+    const cc=n===0?'clear':urg?'urgent':'';
+    const bc=n===0?'zero':urg?'urgent':'';
+    let rows=n>0
+      ?`<div style="margin-top:4px">${pa.map((a,i)=>{const dl=daysLeft(a.deadline);const u=dl<=14;return`<div class="abs-row"><div><div class="abs-date">第 ${i+1} 節 — ${fmtDate(a.absDate)} 請假</div><div class="abs-sub">補堂期限：${fmtDate(a.deadline)}</div></div><span class="pill ${u?'pill-urgent':'pill-ok'}">${u?'⚠ 剩'+dl+'天':'剩'+dl+'天'}</span></div>`}).join('')}</div>`
+      :`<div class="all-good">✅ 暫無待補堂，繼續保持！</div>`;
+    const exp=pe.length?`<div class="expired-warn">⚠ 另有 ${pe.length} 節補堂期限已過，請聯絡教練跟進</div>`:'';
+    const dn=done?`<div class="done-note">✓ 已完成補堂 ${done} 節</div>`:'';
+    return`<div class="result-card ${cc}"><div class="card-top"><div><div class="student-name">${name}</div><div class="student-class">${cls.dayZh} ${cls.time}</div></div><div><div class="big-num ${bc}">${n}</div><div class="big-label">節待補堂</div></div></div><hr class="divider">${rows}${exp}${dn}</div>`;
+  }).join('');
 }
 
-function setLB(id) { lbActive = id; renderLB(); }
-
-// Init — load from Sheets then render
-loadPerfFromSheets();
+// ═══════════════════════════════
+//  INIT
+// ═══════════════════════════════
+renderLB();
+loadFromSheets();
 </script>
 </body>
 </html>
