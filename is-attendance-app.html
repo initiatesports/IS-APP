@@ -4189,6 +4189,8 @@ function removeCancelledDate(cid, d) {
   settingsOpenClass = cid;
   renderSettings();
 }
+
+function addHoliday() {
   const input = document.getElementById('add-holiday-input');
   const d = input?.value;
   if (!d) { toast('請選擇日期', '⚠'); return; }
