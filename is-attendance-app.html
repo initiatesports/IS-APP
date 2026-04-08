@@ -1618,12 +1618,15 @@ html, body {
           <button class="btn-start-perf" onclick="startPerfEntry()">開始記錄 →</button>
         </div>
       </div>
-      <div id="perf-history-panel" style="display:none;padding:0 16px 16px">
-        <div class="perf-section-label" style="padding-left:0;padding-top:14px">選擇班別</div>
-        <div class="perf-class-bar" id="perf-hist-class-bar" style="padding-left:0"></div>
-        <div class="perf-section-label" style="padding-left:0;margin-top:4px">選擇日期</div>
-        <div id="perf-hist-dates" style="margin-bottom:12px"></div>
-        <div id="perf-hist-result"></div>
+      <div id="perf-history-panel" style="display:none">
+        <div style="padding:14px 16px 0">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px">選擇日期</div>
+          <input type="date" id="perf-hist-date-picker"
+            style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:inherit;font-size:16px;padding:12px 14px;outline:none;color-scheme:dark;-webkit-appearance:none;margin-bottom:10px"
+            onchange="onHistDatePick(this.value)">
+          <div id="perf-hist-available-dates" style="margin-bottom:10px"></div>
+        </div>
+        <div id="perf-hist-result" style="padding:0 12px 100px"></div>
       </div>
       <div id="perf-entry" style="display:none">
         <div class="perf-entry-header" id="perf-entry-header"></div>
@@ -2745,6 +2748,8 @@ const METRICS = [
   { id:'sj',      name:'立定跳遠',  unit:'cm', higher:true },
   { id:'rsi',     name:'RSI',       unit:'',   higher:true },
 ];
+// 這些項目每次記錄兩個數據，取最大值作 PB 比較
+const DUAL_METRICS = new Set(['rope30','bike','double','cross']);
 
 const STUDENT_YEARS = {
   "何梓程": 2020, "何芯蕾": 2018, "余悅": 2017, "劉家頤": 2017,
@@ -2865,6 +2870,21 @@ function startPerfEntry() {
         const m   = METRICS.find(x => x.id === mid);
         const pb  = getPersonalBest(name, mid);
         const pbTxt = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
+        const isDual = DUAL_METRICS.has(mid);
+        if (isDual) {
+          // Two input fields: first attempt & second attempt
+          return `
+          <div class="psc-metric-row" style="flex-wrap:wrap;gap:6px">
+            <span class="psc-metric-label" style="width:100%;margin-bottom:0">${m.name} <span style="font-size:10px;color:var(--muted)">(兩次)</span></span>
+            <input class="psc-input" type="number" inputmode="decimal"
+              id="psc-${name}-${mid}-1" placeholder="第1次"
+              oninput="onPerfInputDual('${name}','${mid}')">
+            <input class="psc-input" type="number" inputmode="decimal"
+              id="psc-${name}-${mid}-2" placeholder="第2次"
+              oninput="onPerfInputDual('${name}','${mid}')">
+            <span class="psc-pb" id="pb-${name}-${mid}" style="width:100%;text-align:right">${pbTxt}</span>
+          </div>`;
+        }
         return `
         <div class="psc-metric-row">
           <span class="psc-metric-label">${m.name}</span>
@@ -2889,21 +2909,45 @@ function onPerfInput(name, metricId, rawVal) {
   if (isNaN(val) || rawVal === '') {
     delete perfSession[name][metricId];
   } else {
-    perfSession[name][metricId] = val;
+    perfSession[name][metricId] = { v1: val, v2: null };
   }
+  updatePBDisplay(name, metricId, isNaN(val) ? null : val);
+}
 
-  const pb     = getPersonalBest(name, metricId);
-  const m      = METRICS.find(x => x.id === metricId);
-  const pbEl   = document.getElementById(`pb-${name}-${metricId}`);
+// Dual-input handler: read both fields, pick max, update PB display
+function onPerfInputDual(name, metricId) {
+  const el1 = document.getElementById(`psc-${name}-${metricId}-1`);
+  const el2 = document.getElementById(`psc-${name}-${metricId}-2`);
+  const v1 = parseFloat(el1?.value);
+  const v2 = parseFloat(el2?.value);
+  if (!perfSession[name]) perfSession[name] = {};
+  const hasV1 = !isNaN(v1) && el1?.value !== '';
+  const hasV2 = !isNaN(v2) && el2?.value !== '';
+  if (!hasV1 && !hasV2) {
+    delete perfSession[name][metricId];
+    updatePBDisplay(name, metricId, null);
+    return;
+  }
+  const best = hasV1 && hasV2 ? Math.max(v1, v2) : hasV1 ? v1 : v2;
+  perfSession[name][metricId] = {
+    v1: hasV1 ? v1 : null,
+    v2: hasV2 ? v2 : null,
+  };
+  updatePBDisplay(name, metricId, best);
+}
+
+function updatePBDisplay(name, metricId, currentBest) {
+  const pb  = getPersonalBest(name, metricId);
+  const m   = METRICS.find(x => x.id === metricId);
+  const pbEl = document.getElementById(`pb-${name}-${metricId}`);
   if (!pbEl) return;
-
-  if (isNaN(val) || rawVal === '') {
+  if (currentBest === null) {
     pbEl.className = 'psc-pb';
     pbEl.textContent = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
   } else if (pb === null) {
     pbEl.className = 'psc-pb is-new';
     pbEl.textContent = '🆕 首次';
-  } else if (isBetter(metricId, val, pb)) {
+  } else if (isBetter(metricId, currentBest, pb)) {
     pbEl.className = 'psc-pb is-record';
     pbEl.textContent = `🏅 破 ${pb}${m.unit}!`;
   } else {
@@ -2919,13 +2963,24 @@ function finishPerfEntry() {
 
   Object.entries(perfSession).forEach(([name, metrics]) => {
     if (!PERF_RECORDS[name]) PERF_RECORDS[name] = {};
-    Object.entries(metrics).forEach(([mid, val]) => {
+    Object.entries(metrics).forEach(([mid, entry]) => {
       const oldPB = getPersonalBest(name, mid);
       if (!PERF_RECORDS[name][mid]) PERF_RECORDS[name][mid] = [];
-      PERF_RECORDS[name][mid].push({ date, val });
+      // entry is { v1, v2 } or a plain number (legacy)
+      const v1 = typeof entry === 'object' ? entry.v1 : entry;
+      const v2 = typeof entry === 'object' ? entry.v2 : null;
+      const bestVal = (v1 !== null && v2 !== null)
+        ? Math.max(v1, v2)
+        : (v1 !== null ? v1 : v2);
+      // Store record: val = best value, also store both attempts if dual
+      const rec = { date, val: bestVal };
+      if (DUAL_METRICS.has(mid) && v2 !== null) {
+        rec.v1 = v1; rec.v2 = v2;
+      }
+      PERF_RECORDS[name][mid].push(rec);
       if (oldPB === null) {
         firstCount++;
-      } else if (isBetter(mid, val, oldPB)) {
+      } else if (isBetter(mid, bestVal, oldPB)) {
         recordCount++;
       }
     });
@@ -2947,18 +3002,27 @@ function showPerfSummary(historyDate, historyMetrics) {
   const cls = CLASSES[perfClass];
   const date = historyDate || perfDate || todayStr();
   const selMetrics = (historyMetrics || perfMetrics).map(id => METRICS.find(m => m.id === id)).filter(Boolean);
-
-  // For each student × metric: show Name | PB | Latest Record (3-column per metric)
   const students = getPerfStudents(perfClass);
 
-  // Build table: rows = students, cols per metric = [PB, Latest]
-  let thead = '<tr><th rowspan="2" style="vertical-align:middle">學生</th>';
+  // Table header: Name | date | per metric [PB, 當天成績]
+  let thead = `<tr>
+    <th rowspan="2" style="vertical-align:middle;white-space:nowrap">學生</th>`;
   selMetrics.forEach(m => {
-    thead += `<th colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.1)">${m.name}<span style="font-size:9px;font-weight:400;opacity:0.6;margin-left:4px">${m.unit||'RSI'}</span></th>`;
+    const isDual = DUAL_METRICS.has(m.id);
+    thead += `<th colspan="${isDual?3:2}" style="border-bottom:1px solid rgba(255,255,255,0.1)">
+      ${m.name}<span style="font-size:9px;font-weight:400;opacity:0.6;margin-left:3px">${m.unit||'RSI'}</span>
+    </th>`;
   });
   thead += '</tr><tr>';
-  selMetrics.forEach(() => {
-    thead += `<th style="font-size:10px;font-weight:600;color:var(--amber)">PB</th><th style="font-size:10px;font-weight:600;color:var(--cyan)">最近</th>`;
+  selMetrics.forEach(m => {
+    const isDual = DUAL_METRICS.has(m.id);
+    thead += `<th style="font-size:10px;font-weight:600;color:var(--amber)">PB</th>`;
+    if (isDual) {
+      thead += `<th style="font-size:10px;font-weight:600;color:var(--cyan)">第1次</th>
+                <th style="font-size:10px;font-weight:600;color:var(--green)">第2次</th>`;
+    } else {
+      thead += `<th style="font-size:10px;font-weight:600;color:var(--cyan)">${fmtShort(date)}</th>`;
+    }
   });
   thead += '</tr>';
 
@@ -2966,35 +3030,53 @@ function showPerfSummary(historyDate, historyMetrics) {
   let hasAnyData = false;
 
   students.forEach(name => {
-    let hasData = false;
+    // Only show students who have at least one metric recorded on this date
+    const hasRecordToday = selMetrics.some(m => {
+      const recs = PERF_RECORDS[name]?.[m.id] || [];
+      return recs.some(r => r.date === date);
+    });
+    if (!hasRecordToday) return; // skip absent / not recorded
+
     let rowHtml = `<tr><td class="name-col">${name}</td>`;
 
     selMetrics.forEach(m => {
-      const allRecs = (PERF_RECORDS[name]?.[m.id] || []).slice().sort((a,b)=>a.date.localeCompare(b.date));
+      const allRecs = (PERF_RECORDS[name]?.[m.id] || []).slice().sort((a,b) => a.date.localeCompare(b.date));
       const pb = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
-      const latestRec = allRecs.length ? allRecs[allRecs.length - 1] : null;
-      const latestVal = latestRec ? latestRec.val : null;
+      const todayRec = allRecs.find(r => r.date === date);
+      const isDual = DUAL_METRICS.has(m.id);
 
-      if (pb === null) {
-        rowHtml += `<td class="empty-cell">—</td><td class="empty-cell">—</td>`;
+      if (!todayRec) {
+        rowHtml += `<td class="empty-cell">—</td>${isDual?'<td class="empty-cell">—</td><td class="empty-cell">—</td>':'<td class="empty-cell">—</td>'}`;
       } else {
-        hasData = true;
-        const isPBrecent = latestVal === pb;
-        rowHtml += `<td class="pb-cell" style="color:var(--amber);font-weight:900">${pb}</td>`;
-        if (latestVal !== null) {
-          const isBest = latestVal === pb;
-          rowHtml += `<td style="${isBest?'color:var(--green);font-weight:900':''}">
-            ${latestVal}${isBest?'🏅':''}
-            <div style="font-size:9px;color:var(--muted)">${fmtShort(latestRec.date)}</div>
-          </td>`;
+        hasAnyData = true;
+        const val = todayRec.val;
+        const prevRecs = allRecs.filter(r => r.date < date);
+        const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
+        const isFirst  = prevBest === null;
+        const isRecord = !isFirst && isBetter(m.id, val, prevBest);
+
+        // PB cell
+        const pbStyle = isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--amber);font-weight:900';
+        rowHtml += `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
+
+        if (isDual) {
+          // Show v1, v2 separately; highlight the best
+          const v1 = todayRec.v1 ?? val;
+          const v2 = todayRec.v2 ?? null;
+          const bestOfTwo = v2 !== null ? Math.max(v1, v2) : v1;
+          const v1Style = (v1 === bestOfTwo) ? 'font-weight:700;color:var(--cyan)' : '';
+          const v2Style = (v2 !== null && v2 === bestOfTwo) ? 'font-weight:700;color:var(--green)' : '';
+          rowHtml += `<td style="${v1Style}">${v1}${isRecord && v1===bestOfTwo?'🏅':isFirst&&v1===bestOfTwo?'✦':''}</td>`;
+          rowHtml += `<td style="${v2Style}">${v2 !== null ? v2 : '—'}${isRecord && v2===bestOfTwo?'🏅':''}</td>`;
         } else {
-          rowHtml += `<td class="empty-cell">—</td>`;
+          const valStyle = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
+          rowHtml += `<td style="${valStyle}">${val}${isRecord?'🏅':isFirst?'✦':''}</td>`;
         }
       }
     });
 
     rowHtml += '</tr>';
-    if (hasData) { tbody += rowHtml; hasAnyData = true; }
+    tbody += rowHtml;
   });
 
   const allDates = getHistoryDates();
@@ -3010,20 +3092,21 @@ function showPerfSummary(historyDate, historyMetrics) {
       </div>
     </div>` : '';
 
-  const dateZh = fmtDate(date);
+  const colCount = selMetrics.reduce((sum, m) => sum + (DUAL_METRICS.has(m.id) ? 3 : 2), 1);
   document.getElementById('perf-table-wrap').innerHTML = `
     <div style="padding:0 0 12px">
       ${histPills}
       <div style="font-size:13px;color:var(--muted);margin-bottom:8px">
-        ${cls.dayZh} ${cls.time} · ${dateZh}
+        ${cls.dayZh} ${cls.time} · ${fmtDate(date)}
         <span style="margin-left:10px;color:var(--amber);font-size:11px">PB=個人最佳</span>
-        <span style="margin-left:6px;color:var(--green);font-size:11px">🏅當前=PB</span>
+        <span style="margin-left:6px;color:var(--green);font-size:11px">🏅破紀錄</span>
+        <span style="margin-left:6px;color:var(--cyan);font-size:11px">✦首次</span>
       </div>
     </div>
     <div style="overflow-x:auto">
       <table class="perf-table">
         <thead>${thead}</thead>
-        <tbody>${hasAnyData ? tbody : `<tr><td colspan="${selMetrics.length*2+1}" style="text-align:center;color:var(--muted);padding:20px">暫無數據</td></tr>`}</tbody>
+        <tbody>${hasAnyData ? tbody : `<tr><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:20px">當天無學生成績記錄</td></tr>`}</tbody>
       </table>
     </div>
     <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">
@@ -3189,34 +3272,30 @@ function switchPerfTab(tab) {
   if (tab === 'hist') renderPerfHistoryPanel();
 }
 
-let histClass = null;
-
 function renderPerfHistoryPanel() {
-  if (!histClass) histClass = perfClass;
+  // Show all available dates across ALL classes
+  const allDates = getAllHistoryDates();
+  const picker = document.getElementById('perf-hist-date-picker');
+  // Set default to most recent date with records
+  if (allDates.length && !picker.value) {
+    picker.value = allDates[0];
+  }
 
-  document.getElementById('perf-hist-class-bar').innerHTML =
-    Object.entries(CLASSES).map(([id, cls]) =>
-      `<div class="perf-class-pill ${histClass===id?'active':''}"
-        style="margin-bottom:6px"
-        onclick="selectHistClass('${id}')">
-        ${cls.dayZh} ${cls.time}
-      </div>`
-    ).join('');
-
-  const dates = getHistoryDatesForClass(histClass);
-  const datesEl = document.getElementById('perf-hist-dates');
-
-  if (!dates.length) {
-    datesEl.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px 0">此班別尚無成績記錄</div>`;
+  const datesEl = document.getElementById('perf-hist-available-dates');
+  if (!allDates.length) {
+    datesEl.innerHTML = `<div style="color:var(--muted);font-size:13px">暫無任何成績記錄</div>`;
     document.getElementById('perf-hist-result').innerHTML = '';
     return;
   }
 
+  // Show recent date pills for quick access
+  const recent = allDates.slice(0, 8);
   datesEl.innerHTML = `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">最近有記錄的日期：</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${dates.map(d => `
-        <div onclick="loadHistClassDate('${d}')"
-          style="padding:6px 14px;border-radius:10px;border:1.5px solid var(--border);
+      ${recent.map(d => `
+        <div onclick="pickHistDate('${d}')"
+          style="padding:5px 12px;border-radius:10px;border:1.5px solid var(--border);
             background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;
             cursor:pointer;white-space:nowrap;transition:all 0.15s"
           onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'"
@@ -3225,105 +3304,153 @@ function renderPerfHistoryPanel() {
         </div>`).join('')}
     </div>`;
 
-  document.getElementById('perf-hist-result').innerHTML = '';
+  // Auto-load the most recent date
+  if (allDates.length) loadAllClassesForDate(allDates[0]);
 }
 
-function selectHistClass(id) {
-  histClass = id;
-  renderPerfHistoryPanel();
+function pickHistDate(d) {
+  const picker = document.getElementById('perf-hist-date-picker');
+  if (picker) picker.value = d;
+  loadAllClassesForDate(d);
 }
 
-function getHistoryDatesForClass(classId) {
+function onHistDatePick(d) {
+  if (!d) return;
+  loadAllClassesForDate(d);
+}
+
+// Get all dates that have any performance record across ALL classes
+function getAllHistoryDates() {
   const dates = new Set();
-  const students = getPerfStudents(classId);
-  students.forEach(name => {
-    Object.values(PERF_RECORDS[name] || {}).forEach(recs => {
+  Object.values(PERF_RECORDS).forEach(metrics => {
+    Object.values(metrics).forEach(recs => {
       recs.forEach(r => { if (r.date) dates.add(r.date); });
     });
   });
   return [...dates].sort((a,b) => b.localeCompare(a));
 }
 
-function loadHistClassDate(date) {
-  const students = getPerfStudents(histClass);
-  const metricIds = new Set();
-  students.forEach(name => {
-    Object.entries(PERF_RECORDS[name] || {}).forEach(([mid, recs]) => {
-      if (recs.some(r => r.date === date)) metricIds.add(mid);
+// Load all students from ALL classes who have a record on the given date
+function loadAllClassesForDate(date) {
+  if (!date) return;
+
+  // Collect all students who have any record on this date
+  const studentRows = []; // { name, classLabel, metrics: {mid: rec} }
+  const seen = new Set();
+
+  // Iterate all classes in order
+  Object.entries(CLASSES).forEach(([cid, cls]) => {
+    const students = getPerfStudents(cid);
+    students.forEach(name => {
+      if (seen.has(name)) return;
+      const metricsForDay = {};
+      let hasAny = false;
+      METRICS.forEach(m => {
+        const recs = PERF_RECORDS[name]?.[m.id] || [];
+        const rec = recs.find(r => r.date === date);
+        if (rec) { metricsForDay[m.id] = rec; hasAny = true; }
+      });
+      if (hasAny) {
+        seen.add(name);
+        studentRows.push({ name, classLabel: cls.dayZh + ' ' + cls.time, metrics: metricsForDay });
+      }
     });
   });
 
-  if (!metricIds.size) {
-    document.getElementById('perf-hist-result').innerHTML =
-      `<div style="color:var(--muted);font-size:13px;padding:8px 0">此日期無資料</div>`;
+  const resultEl = document.getElementById('perf-hist-result');
+  if (!studentRows.length) {
+    resultEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:20px 4px;text-align:center">
+      ${fmtDate(date)} 沒有成績記錄
+    </div>`;
     return;
   }
 
-  const savedPerfClass = perfClass;
-  perfClass = histClass;
-  const tableHtml = buildPerfTableHtml(date, [...metricIds]);
-  perfClass = savedPerfClass;
+  // Find all metric IDs that appear on this date
+  const metricIdsOnDay = METRICS.filter(m =>
+    studentRows.some(r => r.metrics[m.id])
+  );
 
-  const cls = CLASSES[histClass];
-  document.getElementById('perf-hist-result').innerHTML = `
-    <div style="margin-top:14px">
-      <div style="font-size:13px;color:var(--cyan);font-weight:700;margin-bottom:8px">
-        ${cls.dayZh} ${cls.time} · ${fmtDate(date)}
-      </div>
-      <div style="overflow-x:auto">${tableHtml}</div>
-      <div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">
-        截圖此表格發送給家長 📱
-      </div>
-    </div>`;
-}
-
-function buildPerfTableHtml(date, metricIds) {
-  const selMetrics = metricIds.map(id => METRICS.find(m => m.id === id)).filter(Boolean);
-
-  let thead = '<tr><th>學生</th>';
-  selMetrics.forEach(m => {
-    thead += `<th style="min-width:80px">${m.name}<br>
-      <span style="font-weight:400;opacity:0.5;font-size:9px">${m.unit||'RSI'} / PB</span></th>`;
+  // Build table
+  let thead = `<tr><th style="white-space:nowrap">學生</th><th style="white-space:nowrap;font-size:10px;color:var(--muted)">班別</th>`;
+  metricIdsOnDay.forEach(m => {
+    const isDual = DUAL_METRICS.has(m.id);
+    if (isDual) {
+      thead += `<th colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.1)">${m.name}<span style="font-size:9px;opacity:0.5;margin-left:3px">${m.unit}</span></th>`;
+    } else {
+      thead += `<th>${m.name}<br><span style="font-size:9px;opacity:0.5">${m.unit||'RSI'}</span></th>`;
+    }
   });
   thead += '</tr>';
-
-  let tbody = '';
-  let hasAnyData = false;
-
-  getPerfStudents(perfClass).forEach(name => {
-    let hasData = false;
-    let rowHtml = `<tr><td class="name-col">${name}</td>`;
-
-    selMetrics.forEach(m => {
-      const allRecs = PERF_RECORDS[name]?.[m.id] || [];
-      const rec = allRecs.find(r => r.date === date);
-      const val = rec ? rec.val : null;
-      const pb  = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
-
-      if (val === null) {
-        rowHtml += `<td class="empty-cell">—</td>`;
+  if (metricIdsOnDay.some(m => DUAL_METRICS.has(m.id))) {
+    thead += '<tr><th></th><th></th>';
+    metricIdsOnDay.forEach(m => {
+      if (DUAL_METRICS.has(m.id)) {
+        thead += `<th style="font-size:9px;color:var(--cyan)">第1次</th><th style="font-size:9px;color:var(--green)">第2次</th>`;
       } else {
-        hasData = true;
-        const prevRecs  = allRecs.filter(r => r.date < date);
-        const prevBest  = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
-        const isFirst   = prevBest === null;
-        const isRecord  = !isFirst && isBetter(m.id, val, prevBest);
-        const pbStr     = pb !== null ? `<span style="font-size:10px;color:${isRecord?'var(--green)':'var(--muted)'}">PB:${pb}</span>` : '';
-
-        if (isRecord)     rowHtml += `<td class="record-cell">${val}🏅<br>${pbStr}</td>`;
-        else if (isFirst) rowHtml += `<td class="pb-cell">${val}✦<br><span style="font-size:10px;color:var(--muted)">首次</span></td>`;
-        else              rowHtml += `<td>${val}<br>${pbStr}</td>`;
+        thead += `<th></th>`;
       }
     });
+    thead += '</tr>';
+  }
 
-    rowHtml += '</tr>';
-    if (hasData) { tbody += rowHtml; hasAnyData = true; }
+  let tbody = '';
+  studentRows.forEach(({ name, classLabel, metrics }) => {
+    let row = `<tr><td class="name-col">${name}</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">${classLabel}</td>`;
+    metricIdsOnDay.forEach(m => {
+      const rec = metrics[m.id];
+      const isDual = DUAL_METRICS.has(m.id);
+      const allRecs = PERF_RECORDS[name]?.[m.id] || [];
+      const prevRecs = allRecs.filter(r => r.date < date);
+      const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
+      const pb = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
+
+      if (!rec) {
+        row += isDual ? `<td class="empty-cell">—</td><td class="empty-cell">—</td>` : `<td class="empty-cell">—</td>`;
+      } else if (isDual) {
+        const v1 = rec.v1 ?? rec.val;
+        const v2 = rec.v2 ?? null;
+        const bestV = v2 !== null ? Math.max(v1,v2) : v1;
+        const isRecord = prevBest !== null && isBetter(m.id, bestV, prevBest);
+        const isFirst  = prevBest === null;
+        const v1Style = (v1 === bestV && (isRecord||isFirst)) ? 'color:var(--cyan);font-weight:700' : '';
+        const v2Style = (v2 !== null && v2 === bestV && (isRecord||isFirst)) ? 'color:var(--green);font-weight:700' : '';
+        row += `<td style="${v1Style}">${v1}${isRecord&&v1===bestV?'🏅':isFirst&&v1===bestV?'✦':''}</td>`;
+        row += `<td style="${v2Style}">${v2!==null?v2:'—'}${isRecord&&v2===bestV?'🏅':''}</td>`;
+      } else {
+        const val = rec.val;
+        const isRecord = prevBest !== null && isBetter(m.id, val, prevBest);
+        const isFirst  = prevBest === null;
+        const s = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
+        row += `<td style="${s}">${val}${isRecord?'🏅':isFirst?'✦':''}</td>`;
+      }
+    });
+    row += '</tr>';
+    tbody += row;
   });
 
-  return `<table class="perf-table">
-    <thead>${thead}</thead>
-    <tbody>${hasAnyData ? tbody : `<tr><td colspan="${selMetrics.length+1}" style="text-align:center;color:var(--muted);padding:20px">此日期無數據</td></tr>`}</tbody>
-  </table>`;
+  resultEl.innerHTML = `
+    <div style="font-size:13px;color:var(--cyan);font-weight:700;margin-bottom:8px">
+      ${fmtDate(date)} · ${studentRows.length} 位學生有記錄
+      <span style="margin-left:8px;font-size:11px;color:var(--muted);font-weight:400">🏅破紀錄 ✦首次</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="perf-table">
+        <thead>${thead}</thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">截圖此表格發送給家長 📱</div>`;
+}
+
+// Legacy stubs (kept for compatibility)
+function selectHistClass(id) { }
+function getHistoryDatesForClass(classId) { return getAllHistoryDates(); }
+function loadHistClassDate(date) { loadAllClassesForDate(date); }
+
+function buildPerfTableHtml(date, metricIds) {
+  // Legacy: used by old code path, redirect to new approach
+  loadAllClassesForDate(date);
+  return '';
 }
 
 // ═══════════════════════════════════════════
