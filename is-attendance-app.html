@@ -1271,6 +1271,102 @@ html, body {
 .rhc-name  { font-size: 22px; font-weight: 900; }
 .rhc-meta  { font-size: 13px; color: var(--muted); margin-top: 4px; }
 .rhc-range { font-size: 12px; color: var(--cyan); margin-top: 6px; }
+/* ─── SETTINGS SCREEN ─── */
+.settings-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; margin-bottom: 12px; overflow: hidden;
+}
+.settings-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 14px 16px 8px;
+}
+.settings-class-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.settings-class-header:active { background: var(--surface2); }
+.sch-left { display: flex; align-items: center; gap: 10px; }
+.sch-pill {
+  background: var(--cyan-dim); color: var(--cyan);
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+}
+.sch-name { font-size: 14px; font-weight: 700; }
+.sch-count { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.sch-arrow { color: var(--muted); font-size: 18px; transition: transform 0.2s; }
+.settings-class-open .sch-arrow { transform: rotate(90deg); }
+
+.settings-class-body { display: none; border-top: 1px solid var(--border); }
+.settings-class-open .settings-class-body { display: block; }
+
+/* Student list inside settings */
+.settings-student-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.settings-student-row:last-child { border-bottom: none; }
+.btn-remove-student {
+  background: var(--red-dim); border: 1px solid var(--red);
+  color: var(--red); border-radius: 8px; font-family: inherit;
+  font-size: 12px; font-weight: 700; padding: 4px 10px; cursor: pointer;
+}
+.btn-remove-student:active { opacity: 0.7; }
+
+/* Add student row */
+.settings-add-row {
+  display: flex; gap: 8px; padding: 10px 16px;
+  border-top: 1px solid var(--border); background: var(--surface2);
+}
+.settings-add-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: 14px; padding: 8px 10px; outline: none; color-scheme: dark;
+}
+.settings-add-input:focus { border-color: var(--cyan); }
+.btn-add-student {
+  background: var(--cyan); color: #111; border: none;
+  border-radius: 8px; font-family: inherit; font-size: 13px;
+  font-weight: 700; padding: 8px 14px; cursor: pointer; white-space: nowrap;
+}
+.btn-add-student:active { opacity: 0.8; }
+
+/* Day-of-week selector */
+.dow-selector {
+  display: flex; gap: 6px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.dow-btn {
+  padding: 5px 12px; border-radius: 20px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s;
+}
+.dow-btn.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+
+/* Holidays */
+.holiday-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 16px; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.holiday-row:last-child { border-bottom: none; }
+.btn-remove-holiday {
+  background: none; border: none; color: var(--muted);
+  font-size: 18px; cursor: pointer; padding: 2px 6px; line-height: 1;
+}
+.btn-remove-holiday:active { color: var(--red); }
+.settings-add-date-row {
+  display: flex; gap: 8px; padding: 10px 16px;
+  border-top: 1px solid var(--border); background: var(--surface2);
+}
+.settings-date-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: 13px; padding: 8px 10px; outline: none;
+  color-scheme: dark; -webkit-appearance: none;
+}
+.settings-date-input:focus { border-color: var(--cyan); }
 </style>
 </head>
 <body>
@@ -1519,6 +1615,11 @@ html, body {
       </div>
     </div>
 
+    <!-- ══ SETTINGS ══ -->
+    <div class="screen" id="screen-settings">
+      <div id="settings-content" style="padding:0 12px 100px"></div>
+    </div>
+
   </div><!-- end scroll-area -->
 
   <!-- BOTTOM NAV -->
@@ -1546,6 +1647,10 @@ html, body {
     <button class="nav-item" onclick="showScreen('fee')" id="nav-fee">
       <span class="nav-icon">💰</span>
       <span class="nav-label">收費</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('settings')" id="nav-settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">設定</span>
     </button>
   </nav>
 </div>
@@ -1612,7 +1717,7 @@ const ATT_LOG = {
   "c1|2026-03-02":{"陳書雅":"absent","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
   "c1|2026-03-09":{"陳書雅":"absent","余悅":"present","孔善盈":"absent","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"absent","許思溢":"absent","梁心朗":"absent"},
   "c1|2026-03-16":{"陳書雅":"present","余悅":"present","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
-  "c1|2026-03-23":{"陳書雅":"present","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
+  "c1|2026-03-23":{"陳書雅":"absent","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
   "c1|2026-03-30":{"陳書雅":"present","余悅":"absent","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
   "c2|2026-03-02":{"蘇穎悠":"present","陳柏晞":"absent","葉宇浩":"present"},
   "c2|2026-03-09":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"absent","陳柏晞":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"absent"},
@@ -1671,7 +1776,8 @@ let ABSENCES = [
   {id:"imp31",name:"王斯顏",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
   {id:"imp32",name:"劉家頤",classId:"c7",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
   {id:"imp33",name:"周莉晶",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
-  {id:"imp34",name:"李灝宏",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null}
+  {id:"imp34",name:"李灝宏",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
+  {id:"imp35",name:"陳書雅",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null}
 ];
 
 // ═══════════════════════════════════════════
@@ -1784,13 +1890,14 @@ function showScreen(id, pushStack=true) {
   document.getElementById('scroll-area').scrollTop = 0;
 
   // render screens
-  if (id === 'home')    renderHome();
-  if (id === 'makeup')  renderMakeup();
-  if (id === 'history') renderHistory();
-  if (id === 'fee')     renderFee();
-  if (id === 'perf')    renderPerf();
-  if (id === 'lb')      renderLB();
-  if (id === 'student') renderStudentScreen();
+  if (id === 'home')     renderHome();
+  if (id === 'makeup')   renderMakeup();
+  if (id === 'history')  renderHistory();
+  if (id === 'fee')      renderFee();
+  if (id === 'perf')     renderPerf();
+  if (id === 'lb')       renderLB();
+  if (id === 'student')  renderStudentScreen();
+  if (id === 'settings') renderSettings();
   if (id === 'parent')  { /* no auto-render */ }
 }
 
@@ -3822,6 +3929,171 @@ toggleFeePaid = function(name) {
   _origToggleFeePaid(name);
   syncFee();
 };
+
+// ═══════════════════════════════════════════
+//  SETTINGS — 班別管理
+// ═══════════════════════════════════════════
+
+const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
+
+// Which settings class card is open
+let settingsOpenClass = null;
+
+function renderSettings() {
+  document.getElementById('header-title-text').textContent = '班別設定';
+  document.getElementById('header-subtitle-text').textContent = '管理學生名單及上課時間';
+
+  const el = document.getElementById('settings-content');
+
+  // ── Public Holidays ──
+  const holidaysHtml = [...PUBLIC_HOLIDAYS].sort().map(d =>
+    `<div class="holiday-row">
+      <span>${fmtDate(d)}</span>
+      <button class="btn-remove-holiday" onclick="removeHoliday('${d}')">✕</button>
+    </div>`
+  ).join('') || '<div style="padding:10px 16px;font-size:13px;color:var(--muted)">暫無假期</div>';
+
+  // ── Classes ──
+  const classesHtml = Object.entries(CLASSES).map(([cid, cls]) => {
+    const isOpen = settingsOpenClass === cid;
+    const studentsHtml = cls.students.map(name =>
+      `<div class="settings-student-row">
+        <span>${name}</span>
+        <button class="btn-remove-student" onclick="removeStudent('${cid}','${name}')">移除</button>
+      </div>`
+    ).join('');
+
+    // Day of week selector
+    const dowHtml = [1,2,3,4,5,6,0].map(d =>
+      `<div class="dow-btn ${CLASS_DOW[cid]===d?'active':''}" onclick="setClassDow('${cid}',${d})">${CLASS_DOW_LABELS[d]}</div>`
+    ).join('');
+
+    return `
+    <div class="settings-section ${isOpen?'settings-class-open':''}" id="settings-cls-${cid}">
+      <div class="settings-class-header" onclick="toggleSettingsClass('${cid}')">
+        <div class="sch-left">
+          <span class="sch-pill">${cls.dayZh}</span>
+          <div>
+            <div class="sch-name">${cls.time}</div>
+            <div class="sch-count">${cls.students.length} 位學生</div>
+          </div>
+        </div>
+        <span class="sch-arrow">›</span>
+      </div>
+      <div class="settings-class-body">
+        <div style="padding:10px 16px 6px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">上課星期</div>
+        <div class="dow-selector">${dowHtml}</div>
+        <div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">上課時間</div>
+        <div style="padding:4px 16px 10px;display:flex;gap:8px;align-items:center">
+          <input class="settings-add-input" id="time-${cid}" value="${cls.time}"
+            placeholder="例：6–7pm" style="max-width:140px"
+            onchange="setClassTime('${cid}',this.value)">
+          <span style="font-size:12px;color:var(--muted)">更改後即時生效</span>
+        </div>
+        <div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">學生名單</div>
+        ${studentsHtml}
+        <div class="settings-add-row">
+          <input class="settings-add-input" id="add-student-${cid}" placeholder="輸入新學生姓名" 
+            onkeydown="if(event.key==='Enter')addStudent('${cid}')">
+          <button class="btn-add-student" onclick="addStudent('${cid}')">加入</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="settings-section-title">⚙️ 班別管理</div>
+    <p style="padding:0 4px 12px;font-size:13px;color:var(--muted);line-height:1.6">
+      修改後即時生效。學生名單、上課星期、時間都可以直接在這裡調整。
+    </p>
+    ${classesHtml}
+
+    <div class="settings-section-title" style="margin-top:8px">🗓 公眾假期（停課日）</div>
+    <div class="settings-section">
+      ${holidaysHtml}
+      <div class="settings-add-date-row">
+        <input type="date" class="settings-date-input" id="add-holiday-input"
+          style="flex:1" min="2026-01-01">
+        <button class="btn-add-student" onclick="addHoliday()">加入</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleSettingsClass(cid) {
+  settingsOpenClass = settingsOpenClass === cid ? null : cid;
+  renderSettings();
+  // Scroll to opened class
+  if (settingsOpenClass) {
+    setTimeout(() => {
+      document.getElementById(`settings-cls-${cid}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+}
+
+function addStudent(cid) {
+  const input = document.getElementById(`add-student-${cid}`);
+  const name = input?.value.trim();
+  if (!name) { toast('請輸入學生姓名', '⚠'); return; }
+  if (CLASSES[cid].students.includes(name)) { toast(`${name} 已在名單中`, '⚠'); return; }
+  CLASSES[cid].students.push(name);
+  input.value = '';
+  toast(`已加入 ${name}`, '✓');
+  renderSettings();
+  // Re-open the same class card
+  settingsOpenClass = cid;
+  renderSettings();
+}
+
+function removeStudent(cid, name) {
+  const idx = CLASSES[cid].students.indexOf(name);
+  if (idx < 0) return;
+  if (!confirm(`確定移除 ${name}？`)) return;
+  CLASSES[cid].students.splice(idx, 1);
+  // Also remove from PERF_CLASSES_STUDENTS if present
+  if (PERF_CLASSES_STUDENTS[cid]) {
+    const pi = PERF_CLASSES_STUDENTS[cid].indexOf(name);
+    if (pi >= 0) PERF_CLASSES_STUDENTS[cid].splice(pi, 1);
+  }
+  toast(`已移除 ${name}`, '✓');
+  settingsOpenClass = cid;
+  renderSettings();
+}
+
+function setClassDow(cid, dow) {
+  CLASS_DOW[cid] = dow;
+  CLASSES[cid].dayZh = DAY_LABELS_ZH[dow];
+  CLASSES[cid].day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow];
+  toast(`${CLASSES[cid].time} 已改為 ${DAY_LABELS_ZH[dow]}`, '✓');
+  settingsOpenClass = cid;
+  renderSettings();
+}
+
+function setClassTime(cid, val) {
+  if (!val.trim()) return;
+  CLASSES[cid].time = val.trim();
+  CLASSES[cid].label = `${CLASSES[cid].dayZh} ${val.trim()}`;
+  toast(`時間已更新為 ${val.trim()}`, '✓');
+}
+
+function addHoliday() {
+  const input = document.getElementById('add-holiday-input');
+  const d = input?.value;
+  if (!d) { toast('請選擇日期', '⚠'); return; }
+  if (PUBLIC_HOLIDAYS.has(d)) { toast('此日期已在假期列表', '⚠'); return; }
+  PUBLIC_HOLIDAYS.add(d);
+  input.value = '';
+  toast(`已加入假期 ${fmtDate(d)}`, '✓');
+  renderSettings();
+}
+
+function removeHoliday(d) {
+  PUBLIC_HOLIDAYS.delete(d);
+  toast(`已移除 ${fmtDate(d)}`, '✓');
+  renderSettings();
+}
 
 // ═══════════════════════════════════════════
 //  INIT
