@@ -236,16 +236,6 @@ body {
   </div>
 </div>
 
-<!-- Leaderboard — always visible, hidden only after search -->
-<div id="lb-section">
-  <div class="lb-header">
-    <span>🏆 成績排行榜</span>
-    <span style="font-size:11px;color:var(--muted)">各項目最佳成績</span>
-  </div>
-  <div class="lb-metric-row" id="lb-tabs"></div>
-  <div id="lb-list"></div>
-</div>
-
 <div class="search-section">
   <div class="search-label">查詢補堂記錄</div>
   <div class="search-row">
@@ -255,10 +245,20 @@ body {
       onkeydown="if(event.key==='Enter'){this.blur();search()}">
     <button class="btn-search" onclick="search()">查詢</button>
   </div>
-  <div class="search-hint">搜尋後排行榜會暫時隱藏 · 清空後重新顯示</div>
+  <div class="search-hint">輸入全名或部分姓名均可</div>
 </div>
 
 <div class="results" id="results"></div>
+
+<!-- Leaderboard — always visible, hidden only while showing search results -->
+<div id="lb-section">
+  <div class="lb-header">
+    <span>🏆 成績排行榜</span>
+    <span style="font-size:11px;color:var(--muted)">各項目最佳成績</span>
+  </div>
+  <div class="lb-metric-row" id="lb-tabs"></div>
+  <div id="lb-list"></div>
+</div>
 
 <div class="info-box">
   <p>
@@ -542,10 +542,14 @@ function getPB(name, mid) {
   return m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
 }
 
-// 隱藏姓名第一個字，保護隱私
+// 姓名只顯示後兩個字，保護隱私
+// 特別：余悅 → 悅悅
+const NAME_ALIASES = { '余悅': '悅悅' };
 function maskName(name) {
-  if (!name || name.length <= 1) return name;
-  return '＿' + name.slice(1);
+  if (!name) return name;
+  if (NAME_ALIASES[name]) return NAME_ALIASES[name];
+  // Show last 2 characters only
+  return name.length <= 2 ? name : name.slice(-2);
 }
 
 function renderLB() {
