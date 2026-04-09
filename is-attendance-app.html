@@ -1338,43 +1338,82 @@ html, body {
   display: flex; justify-content: space-between; font-size: 10px; color: var(--muted);
 }
 
-/* ─── LEADERBOARD AGE GROUP CARDS ─── */
+/* ─── LEADERBOARD AGE GROUP CARDS — new portrait grid ─── */
 .lb-age-section-title {
-  font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--cyan);
-  padding: 14px 0 8px;
-  border-bottom: 1px solid rgba(62,207,207,0.2);
-  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 14px;
+  display: inline-block;
+  margin-bottom: 10px;
 }
 .lb-age-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-  scrollbar-width: none;
+  margin-bottom: 20px;
 }
-.lb-age-grid::-webkit-scrollbar { display: none; }
 .lb-age-card {
-  flex-shrink: 0;
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: 14px;
-  padding: 12px 14px;
-  min-width: 90px;
+  padding: 12px 8px 10px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+  min-height: 100px;
 }
-.lb-age-card:first-child { border-color: #ffd700; background: rgba(255,215,0,0.08); }
-.lb-age-card:nth-child(2) { border-color: #c0c0c0; background: rgba(192,192,192,0.06); }
-.lb-age-card:nth-child(3) { border-color: #cd7f32; background: rgba(205,127,50,0.06); }
-.lb-age-rank { font-size: 22px; line-height: 1; }
-.lb-age-name { font-size: 13px; font-weight: 800; }
-.lb-age-val  { font-size: 22px; font-weight: 900; color: var(--cyan); line-height: 1; margin-top: 2px; }
+.lb-age-card.rank-1 { border-color: #ffd700; background: rgba(255,215,0,0.08); }
+.lb-age-card.rank-2 { border-color: #c0c0c0; background: rgba(192,192,192,0.06); }
+.lb-age-card.rank-3 { border-color: #cd7f32; background: rgba(205,127,50,0.06); }
+.lb-age-rank { font-size: 20px; line-height: 1; }
+.lb-age-name { font-size: 13px; font-weight: 800; line-height: 1.2; word-break: break-all; }
+.lb-age-val  { font-size: 20px; font-weight: 900; color: var(--cyan); line-height: 1; margin-top: 3px; }
 .lb-age-unit { font-size: 11px; font-weight: 400; color: var(--muted); }
 .lb-age-year { font-size: 10px; color: var(--muted); }
+
+/* Overall section at bottom */
+.lb-overall-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 14px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.lb-overall-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.lb-overall-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 8px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 100px;
+}
+.lb-overall-card.rank-1 { border-color: #ffd700; background: rgba(255,215,0,0.08); }
+.lb-overall-card.rank-2 { border-color: #c0c0c0; background: rgba(192,192,192,0.06); }
+.lb-overall-card.rank-3 { border-color: #cd7f32; background: rgba(205,127,50,0.06); }
 
 .settings-section {
   background: var(--surface); border: 1px solid var(--border);
@@ -3043,24 +3082,26 @@ function showPerfSummary(historyDate, historyMetrics) {
   const students = getPerfStudents(perfClass);
 
   // For each metric, find max number of attempts recorded on this date across all students
+  // Only count attempts that actually have data (not null)
   function getAttemptCount(metricId) {
     let max = 1;
     students.forEach(name => {
       const recs = PERF_RECORDS[name]?.[metricId] || [];
       const rec = recs.find(r => r.date === date);
       if (!rec) return;
-      // Count attempts: v1, v2, v3 stored on record
       const attempts = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
       if (attempts > max) max = attempts;
     });
     return max;
   }
 
-  // Build header
+  // Build header — only show attempt sub-columns if max attempts > 1
   let thead = `<tr><th rowspan="2" style="vertical-align:middle;white-space:nowrap">學生</th>`;
   selMetrics.forEach(m => {
     const attempts = getAttemptCount(m.id);
-    thead += `<th colspan="${attempts + 1}" style="border-bottom:1px solid rgba(255,255,255,0.1)">
+    // colspan = PB + attempt cols (only if > 1 attempt)
+    const colspan = attempts > 1 ? attempts + 1 : 2; // PB + (all attempts or single val)
+    thead += `<th colspan="${colspan}" style="border-bottom:1px solid rgba(255,255,255,0.1)">
       ${m.name}<span style="font-size:9px;font-weight:400;opacity:0.6;margin-left:3px">${m.unit||'RSI'}</span>
     </th>`;
   });
@@ -3068,16 +3109,18 @@ function showPerfSummary(historyDate, historyMetrics) {
   selMetrics.forEach(m => {
     const attempts = getAttemptCount(m.id);
     thead += `<th style="font-size:10px;font-weight:600;color:var(--amber)">PB</th>`;
-    for (let i = 1; i <= attempts; i++) {
-      const col = attempts === 1 ? fmtShort(date) : `第${i}次`;
-      const color = i === 1 ? 'var(--cyan)' : i === 2 ? 'var(--green)' : 'var(--purple)';
-      thead += `<th style="font-size:10px;font-weight:600;color:${color}">${col}</th>`;
+    if (attempts > 1) {
+      for (let i = 1; i <= attempts; i++) {
+        const color = i === 1 ? 'var(--cyan)' : i === 2 ? 'var(--green)' : 'var(--purple)';
+        thead += `<th style="font-size:10px;font-weight:600;color:${color}">第${i}次</th>`;
+      }
+    } else {
+      thead += `<th style="font-size:10px;font-weight:600;color:var(--cyan)">${fmtShort(date)}</th>`;
     }
   });
   thead += '</tr>';
 
   let tbody = '';
-  let hasAnyData = false;
 
   students.forEach(name => {
     const hasRecordToday = selMetrics.some(m => {
@@ -3095,10 +3138,11 @@ function showPerfSummary(historyDate, historyMetrics) {
       const todayRec = allRecs.find(r => r.date === date);
 
       if (!todayRec) {
-        rowHtml += `<td class="empty-cell">—</td>`;
-        for (let i = 0; i < attempts; i++) rowHtml += `<td class="empty-cell">—</td>`;
+        // No record: empty PB cell + empty attempt cells (no dash, just blank)
+        rowHtml += `<td class="empty-cell"></td>`;
+        const cols = attempts > 1 ? attempts : 1;
+        for (let i = 0; i < cols; i++) rowHtml += `<td class="empty-cell"></td>`;
       } else {
-        hasAnyData = true;
         const prevRecs = allRecs.filter(r => r.date < date);
         const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
         const isFirst  = prevBest === null;
@@ -3107,22 +3151,27 @@ function showPerfSummary(historyDate, historyMetrics) {
         const pbStyle = isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--amber);font-weight:900';
         rowHtml += `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
 
-        // Get attempts array dynamically from record
         const vals = [todayRec.v1, todayRec.v2, todayRec.v3];
         const recordedVals = vals.filter(v => v !== null && v !== undefined);
-        // If no v1/v2/v3 fields (old record), use val as single attempt
         const displayVals = recordedVals.length > 0 ? recordedVals : [todayRec.val];
-        const bestVal = todayRec.val; // already max
+        const bestVal = todayRec.val;
 
-        for (let i = 0; i < attempts; i++) {
-          const v = displayVals[i];
-          if (v === undefined || v === null) {
-            rowHtml += `<td class="empty-cell">—</td>`;
-          } else {
-            const isBestAttempt = v === bestVal && (isRecord || isFirst);
-            const style = isBestAttempt ? (isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--cyan);font-weight:700') : '';
-            rowHtml += `<td style="${style}">${v}${isRecord && v === bestVal ? '🏅' : isFirst && v === bestVal ? '✦' : ''}</td>`;
+        if (attempts > 1) {
+          for (let i = 0; i < attempts; i++) {
+            const v = displayVals[i];
+            if (v === undefined || v === null) {
+              // This student didn't have this attempt — show blank, not dash
+              rowHtml += `<td class="empty-cell"></td>`;
+            } else {
+              const isBestAttempt = v === bestVal && (isRecord || isFirst);
+              const style = isBestAttempt ? (isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--cyan);font-weight:700') : '';
+              rowHtml += `<td style="${style}">${v}${isRecord && v === bestVal ? '🏅' : isFirst && v === bestVal ? '✦' : ''}</td>`;
+            }
           }
+        } else {
+          // Single attempt
+          const style = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
+          rowHtml += `<td style="${style}">${displayVals[0]}${isRecord ? '🏅' : isFirst ? '✦' : ''}</td>`;
         }
       }
     });
@@ -3244,68 +3293,58 @@ function renderLB() {
 
   entries.sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
 
-  // ── Age group cards (horizontal grid) ──
-  function renderAgeGroupCards(list, title) {
+  // ── Build a portrait grid group ──
+  // title: the section label text
+  // list: sorted entries for this group
+  // cardClass: 'lb-age-card' or 'lb-overall-card'
+  // gridClass: 'lb-age-grid' or 'lb-overall-grid'
+  function renderGroup(list, title, cardClass, gridClass, titleClass) {
     if (!list.length) return '';
     const sorted = [...list].sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
     const cards = sorted.map((e, i) => {
-      const rankEmoji = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
-      const rankNum   = i===0?'':i===1?'':i===2?'':`${i+1}`;
-      return `<div class="lb-age-card">
-        <div class="lb-age-rank">${rankEmoji||rankNum}</div>
+      const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+      const re = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      return `<div class="${cardClass} ${rc}">
+        <div class="lb-age-rank">${re}</div>
         <div class="lb-age-name">${e.name}</div>
-        <div class="lb-age-val">${e.val}<span class="lb-age-unit">${m.unit||'RSI'}</span></div>
-        <div class="lb-age-year">${e.year?e.year+'年生':''}</div>
+        <div class="lb-age-val">${e.val}<span class="lb-age-unit"> ${m.unit||'RSI'}</span></div>
+        <div class="lb-age-year">${e.year ? e.year+'年生' : e.cls||''}</div>
       </div>`;
     }).join('');
-    return `<div class="lb-age-section-title">${title}</div>
-    <div class="lb-age-grid">${cards}</div>`;
-  }
-
-  // ── Overall rank list ──
-  function renderRankList(list) {
-    return list.map((e, i) => {
-      const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-      const rankTxt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-      return `
-      <div class="lb-rank-card">
-        <div class="lb-rank-num ${rankCls}">${rankTxt}</div>
-        <div class="lb-rank-info">
-          <div class="lb-rank-name">${e.name}</div>
-          <div class="lb-rank-class">${e.cls}${e.year?` · ${e.year}年生`:''}</div>
-        </div>
-        <div class="lb-rank-val">
-          ${e.val}
-          <span class="lb-rank-unit">${m.unit||'RSI'}</span>
-        </div>
-      </div>`;
-    }).join('');
+    return `<div class="${titleClass}">${title}</div>
+    <div class="${gridClass}">${cards}</div>`;
   }
 
   let html = '';
-
-  // Age group cards — youngest first (ascending birth year = youngest age first)
+  const cy = new Date().getFullYear();
   const withYear = entries.filter(e => e.year);
+
+  // ── Age groups — youngest first ──
   if (withYear.length >= 1) {
-    const cy = new Date().getFullYear();
     // 2020+ (youngest) first
     const younger = withYear.filter(e => e.year >= 2020);
     if (younger.length >= 1) {
-      html += renderAgeGroupCards(younger, `🔹 ${cy - 2020}歲或以下（2020年或以後）`);
+      html += renderGroup(younger,
+        `${cy - 2020}歲或以下`,
+        'lb-age-card', 'lb-age-grid', 'lb-age-section-title');
     }
-    // Then older years in ascending birth year order (youngest of "older" first)
-    const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => b - a); // descending birth year = ascending age... wait: higher birth year = younger age. Sort descending birth year = youngest older group first
+    // Older groups: descending birth year = ascending age
+    const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => b - a);
     olderYears.forEach(yr => {
       const grp = withYear.filter(e => e.year === yr);
-      html += renderAgeGroupCards(grp, `🔹 ${cy - yr}歲（${yr}年生）`);
+      html += renderGroup(grp,
+        `${cy - yr}歲`,
+        'lb-age-card', 'lb-age-grid', 'lb-age-section-title');
     });
   }
 
-  // Overall list at bottom
-  html += `<div class="lb-section-title" style="margin-top:20px">🏆 總排行 · ${m.name}</div>`;
-  html += renderRankList(entries);
+  // ── Overall at bottom ──
+  html += renderGroup(entries,
+    `總排行榜`,
+    'lb-overall-card', 'lb-overall-grid', 'lb-overall-section-title');
 
-  document.getElementById('lb-content').innerHTML = html;
+  document.getElementById('lb-content').innerHTML =
+    `<div style="padding:14px 12px 60px">${html}</div>`;
 }
 
 function setLBMetric(id) {
@@ -3424,58 +3463,82 @@ function loadAllClassesForDate(date) {
     studentRows.some(r => r.metrics[m.id])
   );
 
-  // Build table
+  // For each metric, find max attempts across all students on this date
+  function getHistAttemptCount(metricId) {
+    let max = 1;
+    studentRows.forEach(({ metrics }) => {
+      const rec = metrics[metricId];
+      if (!rec) return;
+      const cnt = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
+      if (cnt > max) max = cnt;
+    });
+    return max;
+  }
+
+  // Build table header
   let thead = `<tr><th style="white-space:nowrap">學生</th><th style="white-space:nowrap;font-size:10px;color:var(--muted)">班別</th>`;
   metricIdsOnDay.forEach(m => {
-    const isDual = DUAL_METRICS.has(m.id);
-    if (isDual) {
-      thead += `<th colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.1)">${m.name}<span style="font-size:9px;opacity:0.5;margin-left:3px">${m.unit}</span></th>`;
+    const attempts = getHistAttemptCount(m.id);
+    const colspan = attempts > 1 ? attempts + 1 : 2;
+    thead += `<th colspan="${colspan}" style="border-bottom:1px solid rgba(255,255,255,0.1)">${m.name}<span style="font-size:9px;opacity:0.5;margin-left:3px">${m.unit||'RSI'}</span></th>`;
+  });
+  thead += '</tr><tr><th></th><th></th>';
+  metricIdsOnDay.forEach(m => {
+    const attempts = getHistAttemptCount(m.id);
+    thead += `<th style="font-size:9px;color:var(--amber)">PB</th>`;
+    if (attempts > 1) {
+      for (let i = 1; i <= attempts; i++) {
+        const color = i===1?'var(--cyan)':i===2?'var(--green)':'var(--purple)';
+        thead += `<th style="font-size:9px;color:${color}">第${i}次</th>`;
+      }
     } else {
-      thead += `<th>${m.name}<br><span style="font-size:9px;opacity:0.5">${m.unit||'RSI'}</span></th>`;
+      thead += `<th style="font-size:9px;color:var(--cyan)">${fmtShort(date)}</th>`;
     }
   });
   thead += '</tr>';
-  if (metricIdsOnDay.some(m => DUAL_METRICS.has(m.id))) {
-    thead += '<tr><th></th><th></th>';
-    metricIdsOnDay.forEach(m => {
-      if (DUAL_METRICS.has(m.id)) {
-        thead += `<th style="font-size:9px;color:var(--cyan)">第1次</th><th style="font-size:9px;color:var(--green)">第2次</th>`;
-      } else {
-        thead += `<th></th>`;
-      }
-    });
-    thead += '</tr>';
-  }
 
   let tbody = '';
   studentRows.forEach(({ name, classLabel, metrics }) => {
     let row = `<tr><td class="name-col">${name}</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">${classLabel}</td>`;
     metricIdsOnDay.forEach(m => {
+      const attempts = getHistAttemptCount(m.id);
       const rec = metrics[m.id];
-      const isDual = DUAL_METRICS.has(m.id);
       const allRecs = PERF_RECORDS[name]?.[m.id] || [];
       const prevRecs = allRecs.filter(r => r.date < date);
       const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
       const pb = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
 
       if (!rec) {
-        row += isDual ? `<td class="empty-cell">—</td><td class="empty-cell">—</td>` : `<td class="empty-cell">—</td>`;
-      } else if (isDual) {
-        const v1 = rec.v1 ?? rec.val;
-        const v2 = rec.v2 ?? null;
-        const bestV = v2 !== null ? Math.max(v1,v2) : v1;
-        const isRecord = prevBest !== null && isBetter(m.id, bestV, prevBest);
-        const isFirst  = prevBest === null;
-        const v1Style = (v1 === bestV && (isRecord||isFirst)) ? 'color:var(--cyan);font-weight:700' : '';
-        const v2Style = (v2 !== null && v2 === bestV && (isRecord||isFirst)) ? 'color:var(--green);font-weight:700' : '';
-        row += `<td style="${v1Style}">${v1}${isRecord&&v1===bestV?'🏅':isFirst&&v1===bestV?'✦':''}</td>`;
-        row += `<td style="${v2Style}">${v2!==null?v2:'—'}${isRecord&&v2===bestV?'🏅':''}</td>`;
+        // Blank cells, no dash
+        row += `<td class="empty-cell"></td>`;
+        const cols = attempts > 1 ? attempts : 1;
+        for (let i = 0; i < cols; i++) row += `<td class="empty-cell"></td>`;
       } else {
-        const val = rec.val;
-        const isRecord = prevBest !== null && isBetter(m.id, val, prevBest);
+        const isRecord = prevBest !== null && isBetter(m.id, rec.val, prevBest);
         const isFirst  = prevBest === null;
-        const s = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
-        row += `<td style="${s}">${val}${isRecord?'🏅':isFirst?'✦':''}</td>`;
+        const pbStyle  = isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--amber);font-weight:900';
+        row += `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
+
+        const vals = [rec.v1, rec.v2, rec.v3];
+        const recordedVals = vals.filter(v => v !== null && v !== undefined);
+        const displayVals = recordedVals.length > 0 ? recordedVals : [rec.val];
+        const bestV = rec.val;
+
+        if (attempts > 1) {
+          for (let i = 0; i < attempts; i++) {
+            const v = displayVals[i];
+            if (v === undefined || v === null) {
+              row += `<td class="empty-cell"></td>`;
+            } else {
+              const isBest = v === bestV && (isRecord || isFirst);
+              const s = isBest ? (isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--cyan);font-weight:700') : '';
+              row += `<td style="${s}">${v}${isRecord&&v===bestV?'🏅':isFirst&&v===bestV?'✦':''}</td>`;
+            }
+          }
+        } else {
+          const s = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
+          row += `<td style="${s}">${displayVals[0]||rec.val}${isRecord?'🏅':isFirst?'✦':''}</td>`;
+        }
       }
     });
     row += '</tr>';
@@ -3761,15 +3824,31 @@ async function syncPhotos() {
 //  STAR STUDENTS SYSTEM
 // ═══════════════════════════════════════════
 // Historical records — permanently stored
+// 每批：奇數月起，每兩個月一期（1-2月, 3-4月, 5-6月...）
+// 第一批 = 2025年9-10月，第二批 = 2025年11-12月，第三批 = 2026年1-2月，以此類推
+function getStarPeriodLabel(batchNum) {
+  // batchNum is 1-based
+  // Batch 1 starts Sep 2025 (month 9), each batch = 2 months
+  const startMonth = 9 + (batchNum - 1) * 2; // 9, 11, 13(=1 next yr), 3, 5...
+  const year0 = 2025;
+  const absMonth = startMonth; // absolute months from Jan 2025
+  const y1 = year0 + Math.floor((absMonth - 1) / 12);
+  const m1 = ((absMonth - 1) % 12) + 1;
+  const y2 = year0 + Math.floor((absMonth) / 12);
+  const m2 = (absMonth % 12) + 1;
+  if (y1 === y2) return `${y1}年 ${m1}–${m2}月`;
+  return `${y1}年${m1}月 – ${y2}年${m2}月`;
+}
+
 let STAR_HISTORY = [
   {
     period: '第一批',
-    label: '2025年 上半年',
+    label: getStarPeriodLabel(1), // 2025年 9-10月
     students: [
       { name:'鄧可澄', shortName:'德瑜', class:'Wed 6-7' },
       { name:'翟悅廷', shortName:'若浩', class:'Mon 5-6' },
       { name:'郭栩澄', shortName:'棚澄', class:'Mon 6-7' },
-      { name:'周莉晶', shortName:'菊晶', class:'Sat 3-4' },
+      { name:'周莉晶', shortName:'周莉晶', class:'Sat 3-4' },
       { name:'鍾皓惟', shortName:'皓惟', class:'Sat 3-4' },
       { name:'余悅',   shortName:'悅悅', class:'Mon 5-6' },
       { name:'張雅堯', shortName:'雅堯', class:'Sat 11-12' },
@@ -3784,7 +3863,7 @@ let STAR_HISTORY = [
   },
   {
     period: '第二批',
-    label: '2026年 11–12月',
+    label: getStarPeriodLabel(2), // 2025年 11-12月
     students: [
       { name:'蔡芷彤', shortName:'芷彤', class:'Mon 5-6' },
       { name:'孔善盈', shortName:'善盈', class:'Mon 5-6' },
@@ -3797,7 +3876,7 @@ let STAR_HISTORY = [
       { name:'黎柏言', shortName:'柏言', class:'Fri 6-7' },
       { name:'呂洛希', shortName:'洛希', class:'Sat 11-12' },
       { name:'鄭宇喬', shortName:'宇喬', class:'Sat 3-4' },
-      { name:'周莉晶', shortName:'菊晶', class:'Sat 3-4' },
+      { name:'周莉晶', shortName:'周莉晶', class:'Sat 3-4' },
       { name:'張雅堯', shortName:'雨淳', class:'Sat 11-12' },
     ]
   }
@@ -3873,14 +3952,18 @@ function renderStarHistory() {
 function renderStarCreator() {
   const allStudents = getAllUniqueStudents();
 
+  const nextBatch = STAR_HISTORY.length + 1;
+  const suggestedPeriod = STAR_CURRENT.period || `第${nextBatch}批`;
+  const suggestedLabel  = STAR_CURRENT.label  || getStarPeriodLabel(nextBatch);
+
   const periodInput = `
     <div style="padding:14px 12px 0">
       <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">批次資料</div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="star-period" value="${STAR_CURRENT.period}" placeholder="批次名稱（如：第三批）"
+        <input id="star-period" value="${suggestedPeriod}" placeholder="批次名稱（如：第三批）"
           style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark"
           oninput="STAR_CURRENT.period=this.value">
-        <input id="star-label" value="${STAR_CURRENT.label}" placeholder="說明（如：2026年3-4月）"
+        <input id="star-label" value="${suggestedLabel}" placeholder="說明（如：2026年3-4月）"
           style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark"
           oninput="STAR_CURRENT.label=this.value">
       </div>
@@ -3967,6 +4050,11 @@ function removeStarStudent(idx) {
 function saveStarBatch() {
   if (!STAR_CURRENT.period.trim()) { toast('請填寫批次名稱', '⚠'); return; }
   if (!STAR_CURRENT.students.length) { toast('請先選擇學員', '⚠'); return; }
+  // Auto-fill label if blank
+  if (!STAR_CURRENT.label.trim()) {
+    const nextBatch = STAR_HISTORY.length + 1;
+    STAR_CURRENT.label = getStarPeriodLabel(nextBatch);
+  }
   STAR_HISTORY.push({ ...STAR_CURRENT, students: [...STAR_CURRENT.students] });
   STAR_CURRENT = { period:'', label:'', students:[] };
   toast('批次已儲存', '✓');
