@@ -1690,6 +1690,11 @@ html, body {
       </div>
     </div>
 
+    <!-- ══ STAR STUDENTS ══ -->
+    <div class="screen" id="screen-star">
+      <div id="star-content" style="padding:0 12px 100px"></div>
+    </div>
+
     <!-- ══ SETTINGS ══ -->
     <div class="screen" id="screen-settings">
       <div id="settings-content" style="padding:0 12px 100px"></div>
@@ -1721,6 +1726,10 @@ html, body {
     <button class="nav-item" onclick="showScreen('fee')" id="nav-fee">
       <span class="nav-icon">💰</span>
       <span class="nav-label">收費</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('star')" id="nav-star">
+      <span class="nav-icon">⭐</span>
+      <span class="nav-label">優秀學員</span>
     </button>
     <button class="nav-item" onclick="showScreen('settings')" id="nav-settings">
       <span class="nav-icon">⚙️</span>
@@ -1959,6 +1968,7 @@ function showScreen(id, pushStack=true) {
   if (id === 'lb')       renderLB();
   if (id === 'student')  renderStudentScreen();
   if (id === 'settings') renderSettings();
+  if (id === 'star')     renderStarScreen();
   if (id === 'parent')  { /* no auto-render */ }
 }
 
@@ -2534,16 +2544,30 @@ function getFeeDates(classId, period) {
   const p = PERIODS.find(x => x.id === period);
   if (!p) return [];
   const dow = CLASS_DOW[classId];
+  const cancelled = CLASS_CANCELLED_DATES[classId] || new Set();
+  const extra     = CLASS_EXTRA_DATES[classId]     || new Set();
   const dates = [];
   p.months.forEach(({ y, m }) => {
     const d = new Date(y, m, 1);
     while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
     while (d.getMonth() === m) {
-      dates.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+      const str = dateToStr(d);
+      if (!PUBLIC_HOLIDAYS.has(str) && !cancelled.has(str)) {
+        dates.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+      }
       d.setDate(d.getDate() + 7);
     }
   });
-  return dates;
+  // Add extra dates within the period months
+  extra.forEach(str => {
+    const [ey, em, ed] = str.split('-').map(Number);
+    const inPeriod = p.months.some(({ y, m }) => y === ey && m === em - 1);
+    if (inPeriod && !cancelled.has(str)) {
+      const dobj = new Date(ey, em - 1, ed);
+      if (!dates.some(d => dateToStr(d) === str)) dates.push(dobj);
+    }
+  });
+  return dates.sort((a, b) => a - b);
 }
 
 function fmtFeeDate(d) {
@@ -2678,9 +2702,8 @@ ${datesStr}
 ${makeupSection}
 💳 繳費方式：
 • FPS / PayMe：6709 3390
+  （請於${firstLesson}第一堂前完成轉數，付款後截圖發送至此 WhatsApp 作記錄🙏🏻）
 • 現金：請於${firstLesson}（第一堂）上課時交給張Sir
-
-付款後請截圖並發送至此 WhatsApp 作記錄🙏🏻
 
 請於${firstLesson}前完成繳費，謝謝合作！
 
@@ -2773,6 +2796,9 @@ let PERF_RECORDS = {};
 let perfClass    = 'c1';
 let perfMetrics  = [];
 let perfSession  = {};
+
+// Student photos: { name: dataURL }
+let STUDENT_PHOTOS = {};
 
 function isBetter(metricId, newVal, oldVal) {
   const m = METRICS.find(x => x.id === metricId);
@@ -2872,15 +2898,20 @@ function startPerfEntry() {
         const pbTxt = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
         const isDual = DUAL_METRICS.has(mid);
         if (isDual) {
-          // Two input fields: first attempt & second attempt
           return `
-          <div class="psc-metric-row" style="flex-wrap:wrap;gap:6px">
-            <span class="psc-metric-label" style="width:100%;margin-bottom:0">${m.name} <span style="font-size:10px;color:var(--muted)">(兩次)</span></span>
+          <div class="psc-metric-row" style="flex-wrap:wrap;gap:5px;align-items:center">
+            <span class="psc-metric-label" style="width:100%;margin-bottom:0">${m.name} <span style="font-size:10px;color:var(--muted)">(可輸入多次)</span></span>
             <input class="psc-input" type="number" inputmode="decimal"
               id="psc-${name}-${mid}-1" placeholder="第1次"
+              style="flex:1;min-width:60px"
               oninput="onPerfInputDual('${name}','${mid}')">
             <input class="psc-input" type="number" inputmode="decimal"
               id="psc-${name}-${mid}-2" placeholder="第2次"
+              style="flex:1;min-width:60px"
+              oninput="onPerfInputDual('${name}','${mid}')">
+            <input class="psc-input" type="number" inputmode="decimal"
+              id="psc-${name}-${mid}-3" placeholder="第3次"
+              style="flex:1;min-width:60px"
               oninput="onPerfInputDual('${name}','${mid}')">
             <span class="psc-pb" id="pb-${name}-${mid}" style="width:100%;text-align:right">${pbTxt}</span>
           </div>`;
@@ -2914,24 +2945,29 @@ function onPerfInput(name, metricId, rawVal) {
   updatePBDisplay(name, metricId, isNaN(val) ? null : val);
 }
 
-// Dual-input handler: read both fields, pick max, update PB display
+// Dual-input handler: read all fields, pick max, update PB display
 function onPerfInputDual(name, metricId) {
   const el1 = document.getElementById(`psc-${name}-${metricId}-1`);
   const el2 = document.getElementById(`psc-${name}-${metricId}-2`);
+  const el3 = document.getElementById(`psc-${name}-${metricId}-3`);
   const v1 = parseFloat(el1?.value);
   const v2 = parseFloat(el2?.value);
+  const v3 = parseFloat(el3?.value);
   if (!perfSession[name]) perfSession[name] = {};
   const hasV1 = !isNaN(v1) && el1?.value !== '';
   const hasV2 = !isNaN(v2) && el2?.value !== '';
-  if (!hasV1 && !hasV2) {
+  const hasV3 = !isNaN(v3) && el3?.value !== '';
+  if (!hasV1 && !hasV2 && !hasV3) {
     delete perfSession[name][metricId];
     updatePBDisplay(name, metricId, null);
     return;
   }
-  const best = hasV1 && hasV2 ? Math.max(v1, v2) : hasV1 ? v1 : v2;
+  const vals = [hasV1?v1:null, hasV2?v2:null, hasV3?v3:null].filter(v=>v!==null);
+  const best = Math.max(...vals);
   perfSession[name][metricId] = {
     v1: hasV1 ? v1 : null,
     v2: hasV2 ? v2 : null,
+    v3: hasV3 ? v3 : null,
   };
   updatePBDisplay(name, metricId, best);
 }
@@ -2969,13 +3005,15 @@ function finishPerfEntry() {
       // entry is { v1, v2 } or a plain number (legacy)
       const v1 = typeof entry === 'object' ? entry.v1 : entry;
       const v2 = typeof entry === 'object' ? entry.v2 : null;
-      const bestVal = (v1 !== null && v2 !== null)
-        ? Math.max(v1, v2)
-        : (v1 !== null ? v1 : v2);
-      // Store record: val = best value, also store both attempts if dual
+      const v3 = typeof entry === 'object' ? entry.v3 : null;
+      const attempts = [v1, v2, v3].filter(v => v !== null && v !== undefined);
+      const bestVal = attempts.length > 0 ? Math.max(...attempts) : (typeof entry === 'number' ? entry : 0);
+      // Store record: val = best value, also store all attempts
       const rec = { date, val: bestVal };
-      if (DUAL_METRICS.has(mid) && v2 !== null) {
-        rec.v1 = v1; rec.v2 = v2;
+      if (DUAL_METRICS.has(mid)) {
+        if (v1 !== null && v1 !== undefined) rec.v1 = v1;
+        if (v2 !== null && v2 !== undefined) rec.v2 = v2;
+        if (v3 !== null && v3 !== undefined) rec.v3 = v3;
       }
       PERF_RECORDS[name][mid].push(rec);
       if (oldPB === null) {
@@ -3004,24 +3042,36 @@ function showPerfSummary(historyDate, historyMetrics) {
   const selMetrics = (historyMetrics || perfMetrics).map(id => METRICS.find(m => m.id === id)).filter(Boolean);
   const students = getPerfStudents(perfClass);
 
-  // Table header: Name | date | per metric [PB, 當天成績]
-  let thead = `<tr>
-    <th rowspan="2" style="vertical-align:middle;white-space:nowrap">學生</th>`;
+  // For each metric, find max number of attempts recorded on this date across all students
+  function getAttemptCount(metricId) {
+    let max = 1;
+    students.forEach(name => {
+      const recs = PERF_RECORDS[name]?.[metricId] || [];
+      const rec = recs.find(r => r.date === date);
+      if (!rec) return;
+      // Count attempts: v1, v2, v3 stored on record
+      const attempts = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
+      if (attempts > max) max = attempts;
+    });
+    return max;
+  }
+
+  // Build header
+  let thead = `<tr><th rowspan="2" style="vertical-align:middle;white-space:nowrap">學生</th>`;
   selMetrics.forEach(m => {
-    const isDual = DUAL_METRICS.has(m.id);
-    thead += `<th colspan="${isDual?3:2}" style="border-bottom:1px solid rgba(255,255,255,0.1)">
+    const attempts = getAttemptCount(m.id);
+    thead += `<th colspan="${attempts + 1}" style="border-bottom:1px solid rgba(255,255,255,0.1)">
       ${m.name}<span style="font-size:9px;font-weight:400;opacity:0.6;margin-left:3px">${m.unit||'RSI'}</span>
     </th>`;
   });
   thead += '</tr><tr>';
   selMetrics.forEach(m => {
-    const isDual = DUAL_METRICS.has(m.id);
+    const attempts = getAttemptCount(m.id);
     thead += `<th style="font-size:10px;font-weight:600;color:var(--amber)">PB</th>`;
-    if (isDual) {
-      thead += `<th style="font-size:10px;font-weight:600;color:var(--cyan)">第1次</th>
-                <th style="font-size:10px;font-weight:600;color:var(--green)">第2次</th>`;
-    } else {
-      thead += `<th style="font-size:10px;font-weight:600;color:var(--cyan)">${fmtShort(date)}</th>`;
+    for (let i = 1; i <= attempts; i++) {
+      const col = attempts === 1 ? fmtShort(date) : `第${i}次`;
+      const color = i === 1 ? 'var(--cyan)' : i === 2 ? 'var(--green)' : 'var(--purple)';
+      thead += `<th style="font-size:10px;font-weight:600;color:${color}">${col}</th>`;
     }
   });
   thead += '</tr>';
@@ -3030,47 +3080,49 @@ function showPerfSummary(historyDate, historyMetrics) {
   let hasAnyData = false;
 
   students.forEach(name => {
-    // Only show students who have at least one metric recorded on this date
     const hasRecordToday = selMetrics.some(m => {
       const recs = PERF_RECORDS[name]?.[m.id] || [];
       return recs.some(r => r.date === date);
     });
-    if (!hasRecordToday) return; // skip absent / not recorded
+    if (!hasRecordToday) return;
 
     let rowHtml = `<tr><td class="name-col">${name}</td>`;
 
     selMetrics.forEach(m => {
+      const attempts = getAttemptCount(m.id);
       const allRecs = (PERF_RECORDS[name]?.[m.id] || []).slice().sort((a,b) => a.date.localeCompare(b.date));
       const pb = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
       const todayRec = allRecs.find(r => r.date === date);
-      const isDual = DUAL_METRICS.has(m.id);
 
       if (!todayRec) {
-        rowHtml += `<td class="empty-cell">—</td>${isDual?'<td class="empty-cell">—</td><td class="empty-cell">—</td>':'<td class="empty-cell">—</td>'}`;
+        rowHtml += `<td class="empty-cell">—</td>`;
+        for (let i = 0; i < attempts; i++) rowHtml += `<td class="empty-cell">—</td>`;
       } else {
         hasAnyData = true;
-        const val = todayRec.val;
         const prevRecs = allRecs.filter(r => r.date < date);
         const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
         const isFirst  = prevBest === null;
-        const isRecord = !isFirst && isBetter(m.id, val, prevBest);
+        const isRecord = !isFirst && isBetter(m.id, todayRec.val, prevBest);
 
-        // PB cell
         const pbStyle = isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--amber);font-weight:900';
         rowHtml += `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
 
-        if (isDual) {
-          // Show v1, v2 separately; highlight the best
-          const v1 = todayRec.v1 ?? val;
-          const v2 = todayRec.v2 ?? null;
-          const bestOfTwo = v2 !== null ? Math.max(v1, v2) : v1;
-          const v1Style = (v1 === bestOfTwo) ? 'font-weight:700;color:var(--cyan)' : '';
-          const v2Style = (v2 !== null && v2 === bestOfTwo) ? 'font-weight:700;color:var(--green)' : '';
-          rowHtml += `<td style="${v1Style}">${v1}${isRecord && v1===bestOfTwo?'🏅':isFirst&&v1===bestOfTwo?'✦':''}</td>`;
-          rowHtml += `<td style="${v2Style}">${v2 !== null ? v2 : '—'}${isRecord && v2===bestOfTwo?'🏅':''}</td>`;
-        } else {
-          const valStyle = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
-          rowHtml += `<td style="${valStyle}">${val}${isRecord?'🏅':isFirst?'✦':''}</td>`;
+        // Get attempts array dynamically from record
+        const vals = [todayRec.v1, todayRec.v2, todayRec.v3];
+        const recordedVals = vals.filter(v => v !== null && v !== undefined);
+        // If no v1/v2/v3 fields (old record), use val as single attempt
+        const displayVals = recordedVals.length > 0 ? recordedVals : [todayRec.val];
+        const bestVal = todayRec.val; // already max
+
+        for (let i = 0; i < attempts; i++) {
+          const v = displayVals[i];
+          if (v === undefined || v === null) {
+            rowHtml += `<td class="empty-cell">—</td>`;
+          } else {
+            const isBestAttempt = v === bestVal && (isRecord || isFirst);
+            const style = isBestAttempt ? (isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--cyan);font-weight:700') : '';
+            rowHtml += `<td style="${style}">${v}${isRecord && v === bestVal ? '🏅' : isFirst && v === bestVal ? '✦' : ''}</td>`;
+          }
         }
       }
     });
@@ -3092,7 +3144,6 @@ function showPerfSummary(historyDate, historyMetrics) {
       </div>
     </div>` : '';
 
-  const colCount = selMetrics.reduce((sum, m) => sum + (DUAL_METRICS.has(m.id) ? 3 : 2), 1);
   document.getElementById('perf-table-wrap').innerHTML = `
     <div style="padding:0 0 12px">
       ${histPills}
@@ -3106,7 +3157,7 @@ function showPerfSummary(historyDate, historyMetrics) {
     <div style="overflow-x:auto">
       <table class="perf-table">
         <thead>${thead}</thead>
-        <tbody>${hasAnyData ? tbody : `<tr><td colspan="${colCount}" style="text-align:center;color:var(--muted);padding:20px">當天無學生成績記錄</td></tr>`}</tbody>
+        <tbody>${tbody || `<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:20px">當天無學生成績記錄</td></tr>`}</tbody>
       </table>
     </div>
     <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">
@@ -3233,18 +3284,21 @@ function renderLB() {
 
   let html = '';
 
-  // Age group horizontal cards FIRST
+  // Age group cards — youngest first (ascending birth year = youngest age first)
   const withYear = entries.filter(e => e.year);
   if (withYear.length >= 1) {
-    const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => a - b);
-    olderYears.forEach(yr => {
-      const grp = withYear.filter(e => e.year === yr);
-      html += renderAgeGroupCards(grp, `${yr}年生（${new Date().getFullYear()-yr}歲）`);
-    });
+    const cy = new Date().getFullYear();
+    // 2020+ (youngest) first
     const younger = withYear.filter(e => e.year >= 2020);
     if (younger.length >= 1) {
-      html += renderAgeGroupCards(younger, `2020年或以後（${new Date().getFullYear()-2020}歲或以下）`);
+      html += renderAgeGroupCards(younger, `🔹 ${cy - 2020}歲或以下（2020年或以後）`);
     }
+    // Then older years in ascending birth year order (youngest of "older" first)
+    const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => b - a); // descending birth year = ascending age... wait: higher birth year = younger age. Sort descending birth year = youngest older group first
+    olderYears.forEach(yr => {
+      const grp = withYear.filter(e => e.year === yr);
+      html += renderAgeGroupCards(grp, `🔹 ${cy - yr}歲（${yr}年生）`);
+    });
   }
 
   // Overall list at bottom
@@ -3584,6 +3638,25 @@ function renderStudentDetail(name) {
     </div>`;
   }).filter(Boolean).join('') || '<div style="color:var(--muted);font-size:13px;padding:8px 0">暫無成績記錄</div>';
 
+  const photoDataUrl = STUDENT_PHOTOS[name] || null;
+  const photoHtml = `
+    <div class="body-card" style="margin-bottom:10px">
+      <div class="body-card-title">📷 學生照片</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+        <div id="photo-preview-${name.replace(/[^\w]/g,'_')}" style="width:72px;height:72px;border-radius:12px;background:var(--surface2);border:1.5px solid var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px">
+          ${photoDataUrl ? `<img src="${photoDataUrl}" style="width:100%;height:100%;object-fit:cover">` : '👤'}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">上傳照片後可用於優秀學員生成</div>
+          <label style="display:inline-block;background:var(--cyan);color:#111;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">
+            選擇照片
+            <input type="file" accept="image/*" style="display:none" onchange="uploadStudentPhoto('${name}',this)">
+          </label>
+          ${photoDataUrl ? `<button onclick="removeStudentPhoto('${name}')" style="margin-left:8px;background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:10px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">移除</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+
   document.getElementById('student-detail-panel').innerHTML = `
     <div class="std-header">
       <div class="std-back" onclick="renderStudentList()">‹</div>
@@ -3593,6 +3666,7 @@ function renderStudentDetail(name) {
       </div>
     </div>
     <div style="padding:12px 12px 0">
+      ${photoHtml}
       <div class="body-card">
         <div class="body-card-title">📏 體格測量</div>
         <div class="body-row">
@@ -3650,8 +3724,418 @@ function saveBodyRecord(name) {
 }
 
 // ═══════════════════════════════════════════
-//  STUDENT REPORT
+//  STUDENT PHOTO FUNCTIONS
 // ═══════════════════════════════════════════
+function uploadStudentPhoto(name, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    STUDENT_PHOTOS[name] = e.target.result;
+    toast(`${name} 的照片已上傳`, '📷');
+    syncPhotos();
+    renderStudentDetail(name);
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeStudentPhoto(name) {
+  delete STUDENT_PHOTOS[name];
+  toast(`已移除 ${name} 的照片`, '✓');
+  syncPhotos();
+  renderStudentDetail(name);
+}
+
+async function syncPhotos() {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_settings', data: {
+      ...buildSettingsPayload(),
+      student_photos: STUDENT_PHOTOS
+    }});
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+// ═══════════════════════════════════════════
+//  STAR STUDENTS SYSTEM
+// ═══════════════════════════════════════════
+// Historical records — permanently stored
+let STAR_HISTORY = [
+  {
+    period: '第一批',
+    label: '2025年 上半年',
+    students: [
+      { name:'鄧可澄', shortName:'德瑜', class:'Wed 6-7' },
+      { name:'翟悅廷', shortName:'若浩', class:'Mon 5-6' },
+      { name:'郭栩澄', shortName:'棚澄', class:'Mon 6-7' },
+      { name:'周莉晶', shortName:'菊晶', class:'Sat 3-4' },
+      { name:'鍾皓惟', shortName:'皓惟', class:'Sat 3-4' },
+      { name:'余悅',   shortName:'悅悅', class:'Mon 5-6' },
+      { name:'張雅堯', shortName:'雅堯', class:'Sat 11-12' },
+      { name:'胡苡晨', shortName:'苡晨', class:'Wed 5-6' },
+      { name:'陳信澄', shortName:'信澄', class:'Wed 6-7' },
+      { name:'吳瑋軒', shortName:'瑋軒', class:'Fri 6-7' },
+      { name:'羅靖誼', shortName:'靖誼', class:'Fri 6-7' },
+      { name:'陳柏晞', shortName:'柏晞', class:'Mon 6-7' },
+      { name:'黃玥晴', shortName:'玥晴', class:'Wed 5-6' },
+      { name:'王尉鏇', shortName:'尉鏇', class:'Sat 11-12' },
+    ]
+  },
+  {
+    period: '第二批',
+    label: '2026年 11–12月',
+    students: [
+      { name:'蔡芷彤', shortName:'芷彤', class:'Mon 5-6' },
+      { name:'孔善盈', shortName:'善盈', class:'Mon 5-6' },
+      { name:'羅君信', shortName:'君信', class:'Mon 5-6' },
+      { name:'翟悅廷', shortName:'宇浩', class:'Mon 6-7' },
+      { name:'鄧幗恩', shortName:'曉璧', class:'Wed 5-6' },
+      { name:'鄧可澄', shortName:'可澄', class:'Wed 5-6' },
+      { name:'陳卓楠', shortName:'卓謙', class:'Wed 6-7' },
+      { name:'郭可昕', shortName:'柏希', class:'Fri 6-7' },
+      { name:'黎柏言', shortName:'柏言', class:'Fri 6-7' },
+      { name:'呂洛希', shortName:'洛希', class:'Sat 11-12' },
+      { name:'鄭宇喬', shortName:'宇喬', class:'Sat 3-4' },
+      { name:'周莉晶', shortName:'菊晶', class:'Sat 3-4' },
+      { name:'張雅堯', shortName:'雨淳', class:'Sat 11-12' },
+    ]
+  }
+];
+
+// Current star batch being built
+let STAR_CURRENT = {
+  period: '',
+  label: '',
+  students: [] // { name, shortName, class }
+};
+
+let starTab = 'history'; // 'history' | 'create'
+
+function renderStarScreen() {
+  document.getElementById('header-title-text').textContent = '優秀學員';
+  document.getElementById('header-subtitle-text').textContent = '每兩個月評選一次';
+  const el = document.getElementById('star-content');
+
+  const tabHtml = `
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:0;background:var(--surface);position:sticky;top:0;z-index:10">
+      <button onclick="starTab='history';renderStarScreen()"
+        style="flex:1;padding:13px;font-family:inherit;font-size:13px;font-weight:700;background:transparent;border:none;border-bottom:2px solid ${starTab==='history'?'var(--cyan)':'transparent'};color:${starTab==='history'?'var(--cyan)':'var(--muted)'};cursor:pointer">
+        🏆 歷屆記錄
+      </button>
+      <button onclick="starTab='create';renderStarScreen()"
+        style="flex:1;padding:13px;font-family:inherit;font-size:13px;font-weight:700;background:transparent;border:none;border-bottom:2px solid ${starTab==='create'?'var(--cyan)':'transparent'};color:${starTab==='create'?'var(--cyan)':'var(--muted)'};cursor:pointer">
+        ✨ 製作新一批
+      </button>
+    </div>`;
+
+  if (starTab === 'history') {
+    el.innerHTML = tabHtml + renderStarHistory();
+  } else {
+    el.innerHTML = tabHtml + renderStarCreator();
+  }
+}
+
+function renderStarHistory() {
+  if (!STAR_HISTORY.length) {
+    return `<div style="padding:40px 16px;text-align:center;color:var(--muted)">暫無歷屆記錄</div>`;
+  }
+  return STAR_HISTORY.slice().reverse().map((batch, bi) => {
+    const cards = batch.students.map(s => {
+      const photo = STUDENT_PHOTOS[s.name];
+      return `<div style="flex-shrink:0;width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center">
+        <div style="width:60px;height:60px;border-radius:10px;background:var(--surface);border:1px solid var(--border);overflow:hidden;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:24px">
+          ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover">` : '👤'}
+        </div>
+        <div style="font-size:13px;font-weight:800;color:var(--text)">${s.shortName||s.name}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.class}</div>
+      </div>`;
+    }).join('');
+
+    return `<div style="padding:16px 12px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:16px;font-weight:900;color:var(--cyan)">⭐ ${batch.period} 優秀學員</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${batch.label} · ${batch.students.length} 位</div>
+        </div>
+        <button onclick="generateStarImage(${STAR_HISTORY.length - 1 - bi})"
+          style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+          🖼 生成圖片
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none">
+        ${cards}
+      </div>
+    </div>`;
+  }).join('') + `<div style="height:20px"></div>`;
+}
+
+function renderStarCreator() {
+  const allStudents = getAllUniqueStudents();
+
+  const periodInput = `
+    <div style="padding:14px 12px 0">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">批次資料</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="star-period" value="${STAR_CURRENT.period}" placeholder="批次名稱（如：第三批）"
+          style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark"
+          oninput="STAR_CURRENT.period=this.value">
+        <input id="star-label" value="${STAR_CURRENT.label}" placeholder="說明（如：2026年3-4月）"
+          style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark"
+          oninput="STAR_CURRENT.label=this.value">
+      </div>
+    </div>`;
+
+  const selectedNames = new Set(STAR_CURRENT.students.map(s => s.name));
+
+  const selectedCards = STAR_CURRENT.students.length
+    ? `<div style="padding:0 12px 8px">
+        <div style="font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">
+          已選學員（${STAR_CURRENT.students.length} 位）
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${STAR_CURRENT.students.map((s, i) => `
+            <div style="display:flex;align-items:center;gap:6px;background:var(--cyan-dim);border:1px solid var(--cyan);border-radius:20px;padding:6px 12px">
+              <span style="font-size:13px;font-weight:700">${s.shortName||s.name}</span>
+              <span style="font-size:11px;color:var(--muted)">${s.class}</span>
+              <button onclick="removeStarStudent(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 0 0 4px">✕</button>
+            </div>`).join('')}
+        </div>
+      </div>`
+    : '<div style="padding:0 12px 8px;font-size:13px;color:var(--muted)">尚未選擇學員</div>';
+
+  const addForm = `
+    <div style="padding:0 12px 8px">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">新增學員</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <select id="star-pick-name" style="flex:1;min-width:120px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark">
+          <option value="">選擇學生…</option>
+          ${allStudents.map(n => `<option value="${n}" ${selectedNames.has(n)?'disabled style="opacity:0.4"':''}>${n}</option>`).join('')}
+        </select>
+        <input id="star-pick-short" placeholder="顯示名稱（選填）"
+          style="flex:1;min-width:100px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark">
+        <input id="star-pick-class" placeholder="班別（如 Mon 5-6）"
+          style="flex:1;min-width:100px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark">
+      </div>
+      <button onclick="addStarStudent()"
+        style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">
+        ➕ 加入
+      </button>
+    </div>`;
+
+  const actionBtns = `
+    <div style="padding:12px;display:flex;gap:8px">
+      <button onclick="saveStarBatch()"
+        style="flex:1;background:var(--green);color:#111;border:none;border-radius:12px;padding:13px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">
+        💾 儲存此批次
+      </button>
+      <button onclick="generateStarImageCurrent()"
+        style="flex:1;background:var(--purple);color:#fff;border:none;border-radius:12px;padding:13px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">
+        🖼 預覽生成圖片
+      </button>
+    </div>`;
+
+  return periodInput + selectedCards + addForm + actionBtns;
+}
+
+function addStarStudent() {
+  const nameEl  = document.getElementById('star-pick-name');
+  const shortEl = document.getElementById('star-pick-short');
+  const classEl = document.getElementById('star-pick-class');
+  const name = nameEl?.value;
+  if (!name) { toast('請選擇學生', '⚠'); return; }
+
+  // Auto-fill class if blank
+  let classLabel = classEl?.value.trim();
+  if (!classLabel) {
+    const cls = Object.entries(CLASSES).find(([,c]) => c.students.includes(name));
+    classLabel = cls ? `${cls[1].day} ${cls[1].time}` : '';
+  }
+  // Auto short name = last 2 chars
+  const shortName = shortEl?.value.trim() || name.slice(-2);
+
+  STAR_CURRENT.students.push({ name, shortName, class: classLabel });
+  toast(`已加入 ${shortName}`, '✓');
+  renderStarScreen();
+}
+
+function removeStarStudent(idx) {
+  STAR_CURRENT.students.splice(idx, 1);
+  renderStarScreen();
+}
+
+function saveStarBatch() {
+  if (!STAR_CURRENT.period.trim()) { toast('請填寫批次名稱', '⚠'); return; }
+  if (!STAR_CURRENT.students.length) { toast('請先選擇學員', '⚠'); return; }
+  STAR_HISTORY.push({ ...STAR_CURRENT, students: [...STAR_CURRENT.students] });
+  STAR_CURRENT = { period:'', label:'', students:[] };
+  toast('批次已儲存', '✓');
+  syncStarData();
+  starTab = 'history';
+  renderStarScreen();
+}
+
+async function syncStarData() {
+  setSyncIndicator('saving');
+  try {
+    await apiPost({ action: 'save_settings', data: {
+      ...buildSettingsPayload(),
+      star_history: JSON.stringify(STAR_HISTORY),
+      student_photos: STUDENT_PHOTOS
+    }});
+    setSyncIndicator('ok');
+  } catch(e) { setSyncIndicator('error'); }
+}
+
+// ── Generate star student image (canvas-based) ──
+function generateStarImageCurrent() {
+  if (!STAR_CURRENT.students.length) { toast('請先選擇學員', '⚠'); return; }
+  renderStarCanvas({ ...STAR_CURRENT });
+}
+
+function generateStarImage(batchIdx) {
+  const batch = STAR_HISTORY[batchIdx];
+  if (!batch) return;
+  renderStarCanvas(batch);
+}
+
+function renderStarCanvas(batch) {
+  // Build a canvas-based image mimicking the photos layout
+  const students = batch.students;
+  const cols = 2;
+  const cardW = 320, cardH = 420;
+  const padX = 24, padY = 24, gap = 16;
+  const headerH = 100;
+  const rows = Math.ceil(students.length / cols);
+  const canvasW = cols * cardW + (cols + 1) * padX;
+  const canvasH = headerH + rows * (cardH + gap) + padY * 2 + 60; // footer
+
+  const win = window.open('', '_blank', `width=${Math.min(canvasW, 800)},height=${Math.min(canvasH, 900)},scrollbars=yes`);
+  if (!win) { toast('請允許彈出視窗', '⚠'); return; }
+
+  // Load all images first
+  const loadImage = (src) => new Promise(resolve => {
+    if (!src) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
+  const photoPromises = students.map(s => loadImage(STUDENT_PHOTOS[s.name] || null));
+
+  Promise.all(photoPromises).then(photos => {
+    const canvas = win.document.createElement('canvas');
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#0f0f0f';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Subtle grid pattern
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < canvasW; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvasH); ctx.stroke(); }
+    for (let y = 0; y < canvasH; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvasW,y); ctx.stroke(); }
+
+    // Header
+    ctx.fillStyle = '#3ECFCF';
+    ctx.font = 'bold 42px "PingFang HK", Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⭐ 優秀學員 ⭐', canvasW / 2, 56);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '22px "PingFang HK", Arial';
+    ctx.fillText(`${batch.period}　${batch.label}`, canvasW / 2, 90);
+
+    // Draw each student card
+    students.forEach((s, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = padX + col * (cardW + padX);
+      const y = headerH + padY + row * (cardH + gap);
+      const photo = photos[i];
+
+      // Card background
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.roundRect(x, y, cardW, cardH, 18);
+      ctx.fill();
+
+      // Card border
+      ctx.strokeStyle = 'rgba(62,207,207,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(x, y, cardW, cardH, 18);
+      ctx.stroke();
+
+      // Photo area
+      const photoX = x + (cardW - 240) / 2;
+      const photoY = y + 20;
+      const photoW = 240, photoH = 300;
+
+      ctx.fillStyle = '#252525';
+      ctx.beginPath();
+      ctx.roundRect(photoX, photoY, photoW, photoH, 12);
+      ctx.fill();
+
+      if (photo) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(photoX, photoY, photoW, photoH, 12);
+        ctx.clip();
+        // Fit photo
+        const scale = Math.max(photoW / photo.width, photoH / photo.height);
+        const dw = photo.width * scale;
+        const dh = photo.height * scale;
+        ctx.drawImage(photo, photoX + (photoW - dw) / 2, photoY + (photoH - dh) / 2, dw, dh);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.font = '80px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('👤', x + cardW / 2, photoY + photoH / 2 + 28);
+      }
+
+      // Name
+      ctx.fillStyle = '#f0f0f0';
+      ctx.font = 'bold 32px "PingFang HK", Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(s.shortName || s.name, x + cardW / 2, photoY + photoH + 44);
+
+      // Class
+      ctx.fillStyle = '#3ECFCF';
+      ctx.font = '20px "PingFang HK", Arial';
+      ctx.fillText(s.class, x + cardW / 2, photoY + photoH + 74);
+    });
+
+    // IS branding footer
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '18px "PingFang HK", Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Initiate Sports — Aim High Jump High', canvasW / 2, canvasH - 20);
+
+    // Render to page
+    win.document.write(`<!DOCTYPE html><html><head><title>優秀學員 ${batch.period}</title>
+      <style>body{margin:0;background:#111;display:flex;flex-direction:column;align-items:center;padding:20px}
+      canvas{max-width:100%;border-radius:16px}
+      .btn{margin-top:16px;padding:12px 28px;background:#3ECFCF;color:#111;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+      </style></head><body></body></html>`);
+    win.document.close();
+    win.document.body.appendChild(canvas);
+    const btn = win.document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = '💾 長按圖片儲存';
+    win.document.body.appendChild(btn);
+    btn.onclick = () => {
+      const a = win.document.createElement('a');
+      a.download = `IS優秀學員_${batch.period}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+  });
+}
 function renderReportStudentList() {
   const q   = document.getElementById('report-search')?.value.trim() || '';
   const all = getAllStudents().filter(n => !q || n.includes(q));
@@ -4131,7 +4615,9 @@ function buildSettingsPayload() {
     payload[`extra_${cid}`]     = [...(CLASS_EXTRA_DATES[cid]     || new Set())];
     payload[`cancelled_${cid}`] = [...(CLASS_CANCELLED_DATES[cid] || new Set())];
   });
-  payload['public_holidays'] = [...PUBLIC_HOLIDAYS];
+  payload['public_holidays']  = [...PUBLIC_HOLIDAYS];
+  payload['star_history']     = JSON.stringify(STAR_HISTORY);
+  payload['student_photos']   = STUDENT_PHOTOS;
   return payload;
 }
 
@@ -4159,6 +4645,19 @@ function restoreSettings(rows) {
   if (map['public_holidays']) {
     PUBLIC_HOLIDAYS.clear();
     map['public_holidays'].forEach(d => PUBLIC_HOLIDAYS.add(d));
+  }
+  // Restore star history
+  if (map['star_history']) {
+    try {
+      const parsed = typeof map['star_history'] === 'string'
+        ? JSON.parse(map['star_history'])
+        : map['star_history'];
+      if (Array.isArray(parsed) && parsed.length > 0) STAR_HISTORY = parsed;
+    } catch(e) {}
+  }
+  // Restore student photos
+  if (map['student_photos'] && typeof map['student_photos'] === 'object') {
+    Object.assign(STUDENT_PHOTOS, map['student_photos']);
   }
 }
 
@@ -4376,6 +4875,7 @@ function setClassDow(cid, dow) {
   syncSettings();
   settingsOpenClass = cid;
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 function setClassTime(cid, val) {
@@ -4398,6 +4898,7 @@ function addExtraDate(cid) {
   syncSettings();
   settingsOpenClass = cid;
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 function removeExtraDate(cid, d) {
@@ -4406,6 +4907,7 @@ function removeExtraDate(cid, d) {
   syncSettings();
   settingsOpenClass = cid;
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 function addCancelledDate(cid) {
@@ -4420,6 +4922,7 @@ function addCancelledDate(cid) {
   syncSettings();
   settingsOpenClass = cid;
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 function removeCancelledDate(cid, d) {
@@ -4428,6 +4931,7 @@ function removeCancelledDate(cid, d) {
   syncSettings();
   settingsOpenClass = cid;
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 function addHoliday() {
@@ -4440,6 +4944,7 @@ function addHoliday() {
   toast(`已加入假期 ${fmtDate(d)}`, '✓');
   syncSettings();
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 function removeHoliday(d) {
@@ -4447,6 +4952,7 @@ function removeHoliday(d) {
   toast(`已移除 ${fmtDate(d)}`, '✓');
   syncSettings();
   renderSettings();
+  if (currentScreen === 'fee') renderFee();
 }
 
 // ═══════════════════════════════════════════
