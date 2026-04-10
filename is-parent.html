@@ -45,41 +45,28 @@ body{background:#111!important;color:var(--text);font-family:-apple-system,"Ping
 .lb-tab{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.15s}
 .lb-tab.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
 
-/* Age group section title — box style matching diagram */
-.lb-group-title{
-  font-size:13px;font-weight:800;letter-spacing:0.04em;
-  color:var(--text);background:var(--surface);
-  border:1.5px solid var(--border);border-radius:10px;
-  padding:6px 16px;display:inline-block;margin-bottom:10px;
-}
+/* Age group row — 3 boxes side by side */
+.lb-age-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.lb-age-box{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 12px;min-height:100px}
+.lb-age-box-title{font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.lb-age-entry{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:4px}
+.lb-age-entry:last-child{border-bottom:none}
+.lb-age-entry-rank{font-size:10px;color:var(--muted);width:14px;flex-shrink:0;text-align:right}
+.lb-age-entry-name{font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-age-entry-name.gold{color:#ffd700}.lb-age-entry-name.silver{color:#c0c0c0}.lb-age-entry-name.bronze{color:#cd7f32}
+.lb-age-entry-val{font-size:12px;font-weight:900;color:var(--cyan);white-space:nowrap;flex-shrink:0}
 
-/* Portrait card grid — 4 columns, wrapping */
-.lb-card-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:8px;
-  margin-bottom:20px;
-}
-
-/* Portrait card */
-.lb-pcard{
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:14px;
-  padding:14px 8px 12px;
-  text-align:center;
-  display:flex;flex-direction:column;align-items:center;gap:5px;
-  min-height:110px;
-}
-.lb-pcard.rank-1{border-color:#ffd700;background:rgba(255,215,0,0.07)}
-.lb-pcard.rank-2{border-color:#c0c0c0;background:rgba(192,192,192,0.05)}
-.lb-pcard.rank-3{border-color:#cd7f32;background:rgba(205,127,50,0.06)}
-.lb-pcard-rank{font-size:18px;line-height:1}
-.lb-pcard-name{font-size:13px;font-weight:800;line-height:1.2;word-break:break-all}
-.lb-pcard-val{font-size:20px;font-weight:900;color:var(--cyan);line-height:1;margin-top:2px}
-.lb-pcard-unit{font-size:10px;font-weight:400;color:var(--muted)}
-.lb-pcard-year{font-size:10px;color:var(--muted)}
-
+/* Overall big box */
+.lb-overall-box{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.lb-overall-box-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.lb-overall-entry{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.lb-overall-entry:last-child{border-bottom:none}
+.lb-overall-rank{font-size:14px;font-weight:900;width:28px;flex-shrink:0;color:var(--muted)}
+.lb-overall-rank.gold{color:#ffd700}.lb-overall-rank.silver{color:#c0c0c0}.lb-overall-rank.bronze{color:#cd7f32}
+.lb-overall-name{flex:1;font-size:15px;font-weight:700}
+.lb-overall-val{font-size:18px;font-weight:900;color:var(--cyan)}
+.lb-overall-unit{font-size:11px;color:var(--muted);margin-left:2px}
+.lb-overall-year{font-size:11px;color:var(--muted)}
 .lb-empty{padding:32px 16px;color:var(--muted);font-size:14px;text-align:center;line-height:1.7}
 
 /* ── STAR STUDENTS ── */
@@ -368,37 +355,39 @@ function renderLB(){
     return;
   }
 
-  // Build a portrait-card grid group
-  function makeGroup(list,title){
-    if(!list.length)return'';
-    const sorted=[...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
-    const cards=sorted.map((e,i)=>{
-      const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
-      const re=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-      return `<div class="lb-pcard ${rc}">
-        <div class="lb-pcard-rank">${re}</div>
-        <div class="lb-pcard-name">${maskName(e.name)}</div>
-        <div class="lb-pcard-val">${e.val}<span class="lb-pcard-unit"> ${m.unit||'RSI'}</span></div>
-        <div class="lb-pcard-year">${e.year?e.year+'年生':''}</div>
-      </div>`;
-    }).join('');
-    return `<div class="lb-group-title">${title}</div><div class="lb-card-grid">${cards}</div>`;
-  }
-
   const cy=new Date().getFullYear();
   const withYear=entries.filter(e=>e.year);
-  let html='';
 
-  // Youngest first
+  function makeAgeBox(list,title){
+    if(!list.length)return'';
+    const sorted=[...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+    const rows=sorted.map((e,i)=>{
+      const rt=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+      const nc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      return `<div class="lb-age-entry"><span class="lb-age-entry-rank">${rt}</span><span class="lb-age-entry-name ${nc}">${maskName(e.name)}</span><span class="lb-age-entry-val">${e.val}<span style="font-size:9px;color:var(--muted);margin-left:1px">${m.unit||'RSI'}</span></span></div>`;
+    }).join('');
+    return `<div class="lb-age-box"><div class="lb-age-box-title">${title}</div>${rows}</div>`;
+  }
+
+  const ageGroups=[];
   const younger=withYear.filter(e=>e.year>=2020);
-  if(younger.length)html+=makeGroup(younger,`${cy-2020}歲或以下`);
+  if(younger.length)ageGroups.push({list:younger,title:`${cy-2020}歲或以下`});
   const olderYears=[...new Set(withYear.filter(e=>e.year<=2019).map(e=>e.year))].sort((a,b)=>b-a);
-  olderYears.forEach(yr=>html+=makeGroup(withYear.filter(e=>e.year===yr),`${cy-yr}歲`));
+  olderYears.forEach(yr=>{const g=withYear.filter(e=>e.year===yr);if(g.length)ageGroups.push({list:g,title:`${cy-yr}歲`})});
 
-  // Overall at bottom
-  html+=makeGroup(entries,'總排行榜');
+  let ageHtml='';
+  for(let i=0;i<ageGroups.length;i+=3){
+    const row=ageGroups.slice(i,i+3);
+    ageHtml+=`<div class="lb-age-row">${row.map(g=>makeAgeBox(g.list,g.title)).join('')}${row.length===1?'<div></div><div></div>':row.length===2?'<div></div>':''}</div>`;
+  }
 
-  document.getElementById('lb-content').innerHTML=`<div style="padding:0 0 8px">${html}</div>`;
+  const overallRows=entries.map((e,i)=>{
+    const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const rt=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+    return `<div class="lb-overall-entry"><span class="lb-overall-rank ${rc}">${rt}</span><span class="lb-overall-name">${maskName(e.name)}</span>${e.year?`<span class="lb-overall-year">${e.year}年生</span>`:''}<span class="lb-overall-val">${e.val}<span class="lb-overall-unit">${m.unit||'RSI'}</span></span></div>`;
+  }).join('');
+
+  document.getElementById('lb-content').innerHTML=`<div style="padding:0 0 8px">${ageHtml}<div class="lb-overall-box"><div class="lb-overall-box-title">總排行榜 · ${m.name}</div>${overallRows}</div></div>`;
 }
 
 function setLB(id){lbActive=id;renderLB();}

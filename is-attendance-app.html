@@ -1338,82 +1338,123 @@ html, body {
   display: flex; justify-content: space-between; font-size: 10px; color: var(--muted);
 }
 
-/* ─── LEADERBOARD AGE GROUP CARDS — new portrait grid ─── */
-.lb-age-section-title {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text);
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 14px;
-  display: inline-block;
-  margin-bottom: 10px;
-}
-.lb-age-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
-}
-.lb-age-card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 8px 10px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-height: 100px;
-}
-.lb-age-card.rank-1 { border-color: #ffd700; background: rgba(255,215,0,0.08); }
-.lb-age-card.rank-2 { border-color: #c0c0c0; background: rgba(192,192,192,0.06); }
-.lb-age-card.rank-3 { border-color: #cd7f32; background: rgba(205,127,50,0.06); }
-.lb-age-rank { font-size: 20px; line-height: 1; }
-.lb-age-name { font-size: 13px; font-weight: 800; line-height: 1.2; word-break: break-all; }
-.lb-age-val  { font-size: 20px; font-weight: 900; color: var(--cyan); line-height: 1; margin-top: 3px; }
-.lb-age-unit { font-size: 11px; font-weight: 400; color: var(--muted); }
-.lb-age-year { font-size: 10px; color: var(--muted); }
+/* ─── LEADERBOARD — age group boxes horizontal row, overall vertical list ─── */
 
-/* Overall section at bottom */
-.lb-overall-section-title {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text);
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 14px;
-  display: inline-block;
-  margin-bottom: 10px;
-}
-.lb-overall-grid {
+/* Row of age group boxes (3 per row) */
+.lb-age-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.lb-overall-card {
+
+/* Each age group box */
+.lb-age-box {
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: 14px;
-  padding: 12px 8px 10px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-height: 100px;
+  padding: 12px 14px;
+  min-height: 120px;
 }
-.lb-overall-card.rank-1 { border-color: #ffd700; background: rgba(255,215,0,0.08); }
-.lb-overall-card.rank-2 { border-color: #c0c0c0; background: rgba(192,192,192,0.06); }
-.lb-overall-card.rank-3 { border-color: #cd7f32; background: rgba(205,127,50,0.06); }
+.lb-age-box-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Each student row inside an age box */
+.lb-age-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  gap: 6px;
+}
+.lb-age-entry:last-child { border-bottom: none; }
+.lb-age-entry-name {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-age-entry-name.gold   { color: #ffd700; }
+.lb-age-entry-name.silver { color: #c0c0c0; }
+.lb-age-entry-name.bronze { color: #cd7f32; }
+.lb-age-entry-val {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--cyan);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.lb-age-entry-rank {
+  font-size: 11px;
+  color: var(--muted);
+  width: 16px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* Overall big box at bottom */
+.lb-overall-box {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.lb-overall-box-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.lb-overall-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.lb-overall-entry:last-child { border-bottom: none; }
+.lb-overall-rank {
+  font-size: 14px;
+  font-weight: 900;
+  width: 28px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.lb-overall-rank.gold   { color: #ffd700; }
+.lb-overall-rank.silver { color: #c0c0c0; }
+.lb-overall-rank.bronze { color: #cd7f32; }
+.lb-overall-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+.lb-overall-val {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--cyan);
+}
+.lb-overall-unit {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 2px;
+}
+.lb-overall-year {
+  font-size: 11px;
+  color: var(--muted);
+}
 
 .settings-section {
   background: var(--surface); border: 1px solid var(--border);
@@ -3259,6 +3300,7 @@ function renderLB() {
   const m = METRICS.find(x => x.id === lbMetric);
   if (!m) return;
 
+  // Collect all students with PB
   const entries = [];
   const seen = new Set();
   Object.entries(CLASSES).forEach(([cid, cls]) => {
@@ -3268,7 +3310,7 @@ function renderLB() {
       const pb = getPersonalBest(name, lbMetric);
       if (pb !== null) {
         const year = STUDENT_YEARS[name] || null;
-        entries.push({ name, cid, cls: cls.dayZh + ' ' + cls.time, val: pb, year });
+        entries.push({ name, val: pb, year });
       }
     });
   });
@@ -3278,9 +3320,8 @@ function renderLB() {
       seen.add(name);
       const pb = getPersonalBest(name, lbMetric);
       if (pb !== null) {
-        const cls = CLASSES[cid];
         const year = STUDENT_YEARS[name] || null;
-        entries.push({ name, cid, cls: cls?.dayZh + ' ' + cls?.time, val: pb, year });
+        entries.push({ name, val: pb, year });
       }
     });
   });
@@ -3293,58 +3334,72 @@ function renderLB() {
 
   entries.sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
 
-  // ── Build a portrait grid group ──
-  // title: the section label text
-  // list: sorted entries for this group
-  // cardClass: 'lb-age-card' or 'lb-overall-card'
-  // gridClass: 'lb-age-grid' or 'lb-overall-grid'
-  function renderGroup(list, title, cardClass, gridClass, titleClass) {
+  const cy = new Date().getFullYear();
+
+  // Build a single age-group box (vertical list of students inside)
+  function makeAgeBox(list, title) {
     if (!list.length) return '';
     const sorted = [...list].sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
-    const cards = sorted.map((e, i) => {
-      const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
-      const re = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
-      return `<div class="${cardClass} ${rc}">
-        <div class="lb-age-rank">${re}</div>
-        <div class="lb-age-name">${e.name}</div>
-        <div class="lb-age-val">${e.val}<span class="lb-age-unit"> ${m.unit||'RSI'}</span></div>
-        <div class="lb-age-year">${e.year ? e.year+'年生' : e.cls||''}</div>
+    const rows = sorted.map((e, i) => {
+      const rankTxt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+      const nameCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      return `<div class="lb-age-entry">
+        <span class="lb-age-entry-rank">${rankTxt}</span>
+        <span class="lb-age-entry-name ${nameCls}">${e.name}</span>
+        <span class="lb-age-entry-val">${e.val}<span style="font-size:10px;color:var(--muted);margin-left:2px">${m.unit||'RSI'}</span></span>
       </div>`;
     }).join('');
-    return `<div class="${titleClass}">${title}</div>
-    <div class="${gridClass}">${cards}</div>`;
+    return `<div class="lb-age-box">
+      <div class="lb-age-box-title">${title}</div>
+      ${rows}
+    </div>`;
   }
 
-  let html = '';
-  const cy = new Date().getFullYear();
+  // Group by age, youngest first
   const withYear = entries.filter(e => e.year);
+  const ageGroups = [];
 
-  // ── Age groups — youngest first ──
-  if (withYear.length >= 1) {
-    // 2020+ (youngest) first
-    const younger = withYear.filter(e => e.year >= 2020);
-    if (younger.length >= 1) {
-      html += renderGroup(younger,
-        `${cy - 2020}歲或以下`,
-        'lb-age-card', 'lb-age-grid', 'lb-age-section-title');
-    }
-    // Older groups: descending birth year = ascending age
-    const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => b - a);
-    olderYears.forEach(yr => {
-      const grp = withYear.filter(e => e.year === yr);
-      html += renderGroup(grp,
-        `${cy - yr}歲`,
-        'lb-age-card', 'lb-age-grid', 'lb-age-section-title');
-    });
+  const younger = withYear.filter(e => e.year >= 2020);
+  if (younger.length) ageGroups.push({ list: younger, title: `${cy-2020}歲或以下` });
+
+  const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => b-a);
+  olderYears.forEach(yr => {
+    const grp = withYear.filter(e => e.year === yr);
+    if (grp.length) ageGroups.push({ list: grp, title: `${cy-yr}歲` });
+  });
+
+  // Lay out age groups in rows of 3
+  let ageHtml = '';
+  for (let i = 0; i < ageGroups.length; i += 3) {
+    const row = ageGroups.slice(i, i + 3);
+    ageHtml += `<div class="lb-age-row">
+      ${row.map(g => makeAgeBox(g.list, g.title)).join('')}
+      ${row.length === 1 ? '<div></div><div></div>' : row.length === 2 ? '<div></div>' : ''}
+    </div>`;
   }
 
-  // ── Overall at bottom ──
-  html += renderGroup(entries,
-    `總排行榜`,
-    'lb-overall-card', 'lb-overall-grid', 'lb-overall-section-title');
+  // Overall — single large box, numbered list
+  const overallRows = entries.map((e, i) => {
+    const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const rankTxt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+    return `<div class="lb-overall-entry">
+      <span class="lb-overall-rank ${rankCls}">${rankTxt}</span>
+      <span class="lb-overall-name">${e.name}</span>
+      ${e.year ? `<span class="lb-overall-year">${e.year}年生</span>` : ''}
+      <span class="lb-overall-val">${e.val}<span class="lb-overall-unit">${m.unit||'RSI'}</span></span>
+    </div>`;
+  }).join('');
+
+  const overallHtml = `<div class="lb-overall-box">
+    <div class="lb-overall-box-title">總排行榜 · ${m.name}</div>
+    ${overallRows}
+  </div>`;
 
   document.getElementById('lb-content').innerHTML =
-    `<div style="padding:14px 12px 60px">${html}</div>`;
+    `<div style="padding:12px 12px 60px">
+      ${ageHtml}
+      ${overallHtml}
+    </div>`;
 }
 
 function setLBMetric(id) {
@@ -3919,34 +3974,115 @@ function renderStarHistory() {
   if (!STAR_HISTORY.length) {
     return `<div style="padding:40px 16px;text-align:center;color:var(--muted)">暫無歷屆記錄</div>`;
   }
-  return STAR_HISTORY.slice().reverse().map((batch, bi) => {
-    const cards = batch.students.map(s => {
+  return STAR_HISTORY.slice().reverse().map((batch, revIdx) => {
+    const batchIdx = STAR_HISTORY.length - 1 - revIdx;
+    const cards = batch.students.map((s, si) => {
       const photo = STUDENT_PHOTOS[s.name];
-      return `<div style="flex-shrink:0;width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center">
+      return `<div style="flex-shrink:0;width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;position:relative">
         <div style="width:60px;height:60px;border-radius:10px;background:var(--surface);border:1px solid var(--border);overflow:hidden;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:24px">
           ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover">` : '👤'}
         </div>
-        <div style="font-size:13px;font-weight:800;color:var(--text)">${s.shortName||s.name}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text)">${s.shortName||s.name}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.class}</div>
+        <button onclick="removeStarStudentFromHistory(${batchIdx},${si})"
+          style="position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:2px">✕</button>
       </div>`;
     }).join('');
 
-    return `<div style="padding:16px 12px 0">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-size:16px;font-weight:900;color:var(--cyan)">⭐ ${batch.period} 優秀學員</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">${batch.label} · ${batch.students.length} 位</div>
+    return `<div style="padding:14px 12px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="flex:1;min-width:0">
+          <!-- Editable period name -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <input value="${batch.period}" 
+              style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--cyan);font-size:16px;font-weight:900;font-family:inherit;outline:none;width:100px;color-scheme:dark"
+              onchange="editStarBatchField(${batchIdx},'period',this.value)">
+            <span style="font-size:12px;color:var(--muted)">優秀學員</span>
+          </div>
+          <!-- Editable label/date -->
+          <input value="${batch.label||''}"
+            style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;font-family:inherit;outline:none;width:160px;color-scheme:dark"
+            onchange="editStarBatchField(${batchIdx},'label',this.value)">
         </div>
-        <button onclick="generateStarImage(${STAR_HISTORY.length - 1 - bi})"
-          style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
-          🖼 生成圖片
-        </button>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="openAddStudentToHistory(${batchIdx})"
+            style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:10px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            ➕ 加學員
+          </button>
+          <button onclick="generateStarImage(${batchIdx})"
+            style="background:var(--purple-dim);border:1px solid var(--purple);color:var(--purple);border-radius:10px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            🖼 生成圖片
+          </button>
+          <button onclick="deleteStarBatch(${batchIdx})"
+            style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:10px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+            🗑
+          </button>
+        </div>
       </div>
       <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none">
         ${cards}
+        <!-- Add student slot -->
+        <div id="add-slot-${batchIdx}" style="display:none;flex-shrink:0;width:90px">
+          <select id="add-hist-name-${batchIdx}" 
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px;margin-bottom:4px;color-scheme:dark">
+            <option value="">選學生…</option>
+            ${getAllUniqueStudents().map(n=>`<option value="${n}">${n}</option>`).join('')}
+          </select>
+          <input id="add-hist-short-${batchIdx}" placeholder="顯示名"
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px;margin-bottom:4px;color-scheme:dark">
+          <input id="add-hist-class-${batchIdx}" placeholder="班別"
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px;margin-bottom:6px;color-scheme:dark">
+          <button onclick="confirmAddToHistory(${batchIdx})"
+            style="width:100%;background:var(--cyan);color:#111;border:none;border-radius:8px;padding:5px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">加入</button>
+        </div>
       </div>
     </div>`;
   }).join('') + `<div style="height:20px"></div>`;
+}
+
+function editStarBatchField(batchIdx, field, value) {
+  if (STAR_HISTORY[batchIdx]) {
+    STAR_HISTORY[batchIdx][field] = value;
+    syncStarData();
+    toast('已更新', '✓');
+  }
+}
+
+function removeStarStudentFromHistory(batchIdx, studentIdx) {
+  if (!confirm('確定移除此學員？')) return;
+  STAR_HISTORY[batchIdx].students.splice(studentIdx, 1);
+  syncStarData();
+  renderStarScreen();
+}
+
+function deleteStarBatch(batchIdx) {
+  if (!confirm(`確定刪除「${STAR_HISTORY[batchIdx].period}」整批記錄？`)) return;
+  STAR_HISTORY.splice(batchIdx, 1);
+  syncStarData();
+  renderStarScreen();
+}
+
+function openAddStudentToHistory(batchIdx) {
+  const slot = document.getElementById(`add-slot-${batchIdx}`);
+  if (slot) slot.style.display = slot.style.display === 'none' ? 'block' : 'none';
+}
+
+function confirmAddToHistory(batchIdx) {
+  const nameEl  = document.getElementById(`add-hist-name-${batchIdx}`);
+  const shortEl = document.getElementById(`add-hist-short-${batchIdx}`);
+  const classEl = document.getElementById(`add-hist-class-${batchIdx}`);
+  const name = nameEl?.value;
+  if (!name) { toast('請選擇學生', '⚠'); return; }
+  let classLabel = classEl?.value.trim();
+  if (!classLabel) {
+    const cls = Object.entries(CLASSES).find(([,c]) => c.students.includes(name));
+    classLabel = cls ? `${cls[1].day} ${cls[1].time}` : '';
+  }
+  const shortName = shortEl?.value.trim() || name.slice(-2);
+  STAR_HISTORY[batchIdx].students.push({ name, shortName, class: classLabel });
+  syncStarData();
+  toast(`已加入 ${shortName}`, '✓');
+  renderStarScreen();
 }
 
 function renderStarCreator() {
