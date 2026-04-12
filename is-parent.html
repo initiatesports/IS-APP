@@ -627,7 +627,7 @@ const METRICS=[
   {id:'rope30',name:'30秒前繩',unit:'次',higher:true},{id:'bike',name:'單車步',unit:'次',higher:true},
   {id:'double',name:'二重跳',unit:'次',higher:true},{id:'cross',name:'交叉開',unit:'次',higher:true},
   {id:'gripL',name:'握力(左)',unit:'kg',higher:true},{id:'gripR',name:'握力(右)',unit:'kg',higher:true},
-  {id:'cmj',name:'CMJ',unit:'cm',higher:true},{id:'ncmj',name:'NCMJ',unit:'cm',higher:true},
+  {id:'cmj',name:'立定跳高（CMJ）',unit:'cm',higher:true},
   {id:'sj',name:'立定跳遠',unit:'cm',higher:true},{id:'rsi',name:'RSI',unit:'',higher:true}
 ];
 
@@ -823,7 +823,9 @@ function renderLB(){
   const entries=[];
   all.forEach(({name,year})=>{const pb=getPB(name,lbActive);if(pb!==null)entries.push({name,val:pb,year})});
   entries.sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
-  if(!entries.length){document.getElementById('lb-content').innerHTML=`<div class="lb-empty">${dataLoaded?`暫無 ${m.name} 成績資料`:'⏳ 載入中…'}</div>`;return;}
+  // RSI 說明框
+  const rsiInfoBox = m.id==='rsi' ? `<div style="background:rgba(62,207,207,0.08);border:1px solid rgba(62,207,207,0.2);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.7"><span style="color:var(--cyan);font-weight:700">💡 什麼是 RSI（反應強度指數）？</span><br>RSI 是衡量跳躍爆發力和落地反彈效率的科學指標，數值越高代表爆發力越強。計算方式為：<strong style="color:var(--white)">跳躍高度 ÷ 接觸時間</strong>。IS 訓練計劃定期測試 RSI，幫助追蹤學員的爆發力進步。</div>` : '';
+  if(!entries.length){document.getElementById('lb-content').innerHTML=rsiInfoBox+`<div class="lb-empty">${dataLoaded?`暫無 ${m.name} 成績資料`:'⏳ 載入中…'}</div>`;return;}
   const cy=new Date().getFullYear();
   const withYear=entries.filter(e=>e.year);
   function makeAgeBox(list,title){
@@ -844,7 +846,7 @@ function renderLB(){
   const overallRows=entries.map((e,i)=>{const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';const rt=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
     return`<div class="lb-overall-entry"><span class="lb-overall-rank ${rc}">${rt}</span><span class="lb-overall-name">${maskName(e.name)}</span>${e.year?`<span class="lb-overall-year">${e.year}年生</span>`:''}<span class="lb-overall-val">${e.val}<span class="lb-overall-unit">${m.unit||'RSI'}</span></span></div>`;
   }).join('');
-  document.getElementById('lb-content').innerHTML=`${ageHtml}<div class="lb-overall-box"><div class="lb-overall-box-title">總排行榜 · ${m.name}</div>${overallRows}</div>`;
+  document.getElementById('lb-content').innerHTML=rsiInfoBox+`${ageHtml}<div class="lb-overall-box"><div class="lb-overall-box-title">總排行榜 · ${m.name}</div>${overallRows}</div>`;
 }
 function setLB(id){lbActive=id;renderLB();}
 
