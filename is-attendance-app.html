@@ -1710,7 +1710,9 @@ html, body {
           <input type="date" id="perf-hist-date-picker"
             style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:inherit;font-size:16px;padding:12px 14px;outline:none;color-scheme:dark;-webkit-appearance:none;margin-bottom:10px"
             onchange="onHistDatePick(this.value)">
-          <div id="perf-hist-available-dates" style="margin-bottom:10px"></div>
+          <div id="perf-hist-available-dates" style="margin-bottom:12px"></div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">篩選班別</div>
+          <div id="perf-hist-class-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
         </div>
         <div id="perf-hist-result" style="padding:0 12px 100px"></div>
       </div>
@@ -2921,6 +2923,7 @@ let PERF_RECORDS = {};
 let perfClass    = 'c1';
 let perfMetrics  = [];
 let perfSession  = {};
+let histFilterClasses = new Set(); // 空 = 顯示全部班別
 
 // Student photos: { name: dataURL }
 let STUDENT_PHOTOS = {};
@@ -3470,13 +3473,21 @@ function switchPerfTab(tab) {
 }
 
 function renderPerfHistoryPanel() {
-  // Show all available dates across ALL classes
+  // 渲染班別篩選按鈕
+  const filterEl = document.getElementById('perf-hist-class-filter');
+  if (filterEl) {
+    const isAll = histFilterClasses.size === 0;
+    const allBtn = `<div onclick="toggleHistClass('all')" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${isAll?'var(--cyan)':'var(--border)'};background:${isAll?'rgba(62,207,207,0.12)':'var(--surface2)'};color:${isAll?'var(--cyan)':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s">全部班別</div>`;
+    const classBtns = Object.entries(CLASSES).map(([cid, cls]) => {
+      const on = histFilterClasses.has(cid);
+      return `<div onclick="toggleHistClass('${cid}')" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${on?'var(--amber)':'var(--border)'};background:${on?'rgba(255,180,0,0.10)':'var(--surface2)'};color:${on?'var(--amber)':'var(--muted)'};font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s">${cls.dayZh} ${cls.time}</div>`;
+    }).join('');
+    filterEl.innerHTML = allBtn + classBtns;
+  }
+
   const allDates = getAllHistoryDates();
   const picker = document.getElementById('perf-hist-date-picker');
-  // Set default to most recent date with records
-  if (allDates.length && !picker.value) {
-    picker.value = allDates[0];
-  }
+  if (allDates.length && !picker.value) picker.value = allDates[0];
 
   const datesEl = document.getElementById('perf-hist-available-dates');
   if (!allDates.length) {
@@ -3485,7 +3496,6 @@ function renderPerfHistoryPanel() {
     return;
   }
 
-  // Show recent date pills for quick access
   const recent = allDates.slice(0, 8);
   datesEl.innerHTML = `
     <div style="font-size:11px;color:var(--muted);margin-bottom:6px">最近有記錄的日期：</div>
@@ -3501,8 +3511,22 @@ function renderPerfHistoryPanel() {
         </div>`).join('')}
     </div>`;
 
-  // Auto-load the most recent date
   if (allDates.length) loadAllClassesForDate(allDates[0]);
+}
+
+// 切換班別篩選
+function toggleHistClass(cid) {
+  if (cid === 'all') {
+    histFilterClasses.clear();
+  } else {
+    if (histFilterClasses.has(cid)) histFilterClasses.delete(cid);
+    else histFilterClasses.add(cid);
+    // 如果全部班別都選了就重置為「全部」
+    if (histFilterClasses.size === Object.keys(CLASSES).length) histFilterClasses.clear();
+  }
+  renderPerfHistoryPanel();
+  const d = document.getElementById('perf-hist-date-picker')?.value;
+  if (d) loadAllClassesForDate(d);
 }
 
 function pickHistDate(d) {
@@ -3535,8 +3559,11 @@ function loadAllClassesForDate(date) {
   const studentRows = []; // { name, classLabel, metrics: {mid: rec} }
   const seen = new Set();
 
-  // Iterate all classes in order
-  Object.entries(CLASSES).forEach(([cid, cls]) => {
+  // 依班別篩選（histFilterClasses 空 = 全部）
+  const _classEntries = histFilterClasses.size > 0
+    ? Object.entries(CLASSES).filter(([cid]) => histFilterClasses.has(cid))
+    : Object.entries(CLASSES);
+  _classEntries.forEach(([cid, cls]) => {
     const students = getPerfStudents(cid);
     students.forEach(name => {
       if (seen.has(name)) return;
@@ -3554,10 +3581,17 @@ function loadAllClassesForDate(date) {
     });
   });
 
+  // 同日期的身高體重記錄
+  const bodyOnDay = {};
+  Object.entries(BODY_RECORDS).forEach(([name, recs]) => {
+    const rec = (recs || []).find(r => r.date === date);
+    if (rec) bodyOnDay[name] = rec;
+  });
+
   const resultEl = document.getElementById('perf-hist-result');
-  if (!studentRows.length) {
+  if (!studentRows.length && Object.keys(bodyOnDay).length === 0) {
     resultEl.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:20px 4px;text-align:center">
-      ${fmtDate(date)} 沒有成績記錄
+      ${fmtDate(date)} 沒有成績或體格記錄
     </div>`;
     return;
   }
@@ -3586,6 +3620,10 @@ function loadAllClassesForDate(date) {
     const colspan = attempts > 1 ? attempts + 1 : 2;
     thead += `<th colspan="${colspan}" style="border-bottom:1px solid rgba(255,255,255,0.1)">${m.name}<span style="font-size:9px;opacity:0.5;margin-left:3px">${m.unit||'RSI'}</span></th>`;
   });
+  const hasBody = Object.keys(bodyOnDay).length > 0;
+  if (hasBody) {
+    thead += `<th colspan="2" style="border-bottom:1px solid rgba(62,207,207,0.3);color:var(--green);font-size:12px">📏 體格</th>`;
+  }
   thead += '</tr><tr><th></th><th></th>';
   metricIdsOnDay.forEach(m => {
     const attempts = getHistAttemptCount(m.id);
@@ -3599,6 +3637,9 @@ function loadAllClassesForDate(date) {
       thead += `<th style="font-size:9px;color:var(--cyan)">${fmtShort(date)}</th>`;
     }
   });
+  if (hasBody) {
+    thead += `<th style="font-size:9px;color:var(--green)">身高cm</th><th style="font-size:9px;color:var(--green)">體重kg</th>`;
+  }
   thead += '</tr>';
 
   let tbody = '';
@@ -3645,13 +3686,23 @@ function loadAllClassesForDate(date) {
         }
       }
     });
+    if (hasBody) {
+      const b = bodyOnDay[name];
+      if (b) {
+        row += `<td style="color:var(--green);font-weight:700;white-space:nowrap">${b.height||'—'}</td>`;
+        row += `<td style="color:var(--green);font-weight:700;white-space:nowrap">${b.weight||'—'}</td>`;
+      } else {
+        row += `<td class="empty-cell"></td><td class="empty-cell"></td>`;
+      }
+    }
     row += '</tr>';
     tbody += row;
   });
 
+  const _bodyCount = Object.keys(bodyOnDay).length;
   resultEl.innerHTML = `
     <div style="font-size:13px;color:var(--cyan);font-weight:700;margin-bottom:8px">
-      ${fmtDate(date)} · ${studentRows.length} 位學生有記錄
+      ${fmtDate(date)} · ${studentRows.length} 位學生有成績${_bodyCount ? ` · <span style="color:var(--green)">${_bodyCount} 位有體格記錄</span>` : ''}
       <span style="margin-left:8px;font-size:11px;color:var(--muted);font-weight:400">🏅破紀錄 ✦首次</span>
     </div>
     <div style="overflow-x:auto">
@@ -3898,10 +3949,24 @@ function uploadStudentPhoto(name, input) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    STUDENT_PHOTOS[name] = e.target.result;
-    toast(`${name} 的照片已上傳`, '📷');
-    syncPhotos();
-    renderStudentDetail(name);
+    // 壓縮縮圖 (max 180px, quality 0.70)，確保單張 < 20KB，符合 Sheets 格子限制
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 180;
+      let w = img.width, h = img.height;
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else        { w = Math.round(w * MAX / h); h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.70);
+      const kb = Math.round(compressed.length * 0.75 / 1024);
+      STUDENT_PHOTOS[name] = compressed;
+      toast(`${name} 照片已上傳（壓縮至 ${kb}KB）`, '📷');
+      syncPhotos();
+      renderStudentDetail(name);
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -3916,10 +3981,11 @@ function removeStudentPhoto(name) {
 async function syncPhotos() {
   setSyncIndicator('saving');
   try {
-    await apiPost({ action: 'save_settings', data: {
-      ...buildSettingsPayload(),
-      student_photos: STUDENT_PHOTOS
-    }});
+    // 每張照片獨立存為 photo_{name}，避免超出 Sheets 50K 字元限制
+    const extra = {};
+    Object.entries(STUDENT_PHOTOS).forEach(([n, d]) => { extra['photo_'+n] = d; });
+    extra['photo_index'] = JSON.stringify(Object.keys(STUDENT_PHOTOS));
+    await apiPost({ action: 'save_settings', data: { ...buildSettingsPayload(), ...extra }});
     setSyncIndicator('ok');
   } catch(e) { setSyncIndicator('error'); }
 }
@@ -4270,7 +4336,8 @@ async function syncStarData() {
     await apiPost({ action: 'save_settings', data: {
       ...buildSettingsPayload(),
       star_history: JSON.stringify(STAR_HISTORY),
-      student_photos: STUDENT_PHOTOS
+      ...Object.fromEntries(Object.entries(STUDENT_PHOTOS).map(([n,d])=>['photo_'+n,d])),
+      photo_index: JSON.stringify(Object.keys(STUDENT_PHOTOS))
     }});
     setSyncIndicator('ok');
   } catch(e) { setSyncIndicator('error'); }
@@ -4907,7 +4974,9 @@ function buildSettingsPayload() {
   });
   payload['public_holidays']  = [...PUBLIC_HOLIDAYS];
   payload['star_history']     = JSON.stringify(STAR_HISTORY);
-  payload['student_photos']   = STUDENT_PHOTOS;
+  // 每張照片獨立存，避免超出 Sheets 格子限制
+  Object.entries(STUDENT_PHOTOS).forEach(([n, d]) => { payload['photo_'+n] = d; });
+  payload['photo_index'] = JSON.stringify(Object.keys(STUDENT_PHOTOS));
   payload['badge_data']       = JSON.stringify(BADGE_DATA);
   payload['student_grades']   = JSON.stringify(STUDENT_GRADES);
   payload['knowledge_posts']  = JSON.stringify(KNOWLEDGE_POSTS);
@@ -4950,8 +5019,15 @@ function restoreSettings(rows) {
       if (Array.isArray(parsed) && parsed.length > 0) STAR_HISTORY = parsed;
     } catch(e) {}
   }
-  // Restore student photos
-  if (map['student_photos'] && typeof map['student_photos'] === 'object') {
+  // Restore student photos — 從獨立 key (photo_{name}) 讀回
+  const _photoIndex = map['photo_index'];
+  if (Array.isArray(_photoIndex) && _photoIndex.length) {
+    _photoIndex.forEach(name => {
+      const d = map['photo_' + name];
+      if (typeof d === 'string' && d.startsWith('data:')) STUDENT_PHOTOS[name] = d;
+    });
+  } else if (map['student_photos'] && typeof map['student_photos'] === 'object') {
+    // 舊格式 fallback
     Object.assign(STUDENT_PHOTOS, map['student_photos']);
   }
   // Restore CMS data
