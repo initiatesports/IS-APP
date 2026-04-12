@@ -3022,13 +3022,12 @@ function startPerfEntry() {
         const m   = METRICS.find(x => x.id === mid);
         const pb  = getPersonalBest(name, mid);
         const pbTxt = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
-        const rsiInfoHtml = isRSI ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">RSI（反應強度指數）</span> 是衡量爆發力及落地反彈效率的指標。數值越高代表爆發力越強。計算方式：跳躍高度 ÷ 接觸時間。IS 訓練計劃定期測試 RSI，追蹤學員爆發力進步。</div>` : '';
         const isDual = DUAL_METRICS.has(mid);
-      const isRSI = mid === 'rsi';
+        const isRSI  = mid === 'rsi';
+        const rsiInfoHtml = isRSI ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">RSI（反應強度指數）</span> 是衡量爆發力及落地反彈效率的指標。數值越高代表爆發力越強。計算方式：跳躍高度 ÷ 接觸時間。IS 訓練計劃定期測試 RSI，追蹤學員爆發力進步。</div>` : '';
         if (isDual) {
           return `
           <div class="psc-metric-row" style="flex-wrap:wrap;gap:5px;align-items:center">
-            ${rsiInfoHtml}
             <span class="psc-metric-label" style="width:100%;margin-bottom:0">${m.name} <span style="font-size:10px;color:var(--muted)">(可輸入多次)</span></span>
             <input class="psc-input" type="number" inputmode="decimal"
               id="psc-${name}-${mid}-1" placeholder="第1次"
@@ -3046,7 +3045,8 @@ function startPerfEntry() {
           </div>`;
         }
         return `
-        <div class="psc-metric-row">
+        <div class="psc-metric-row" style="flex-wrap:wrap">
+          ${rsiInfoHtml}
           <span class="psc-metric-label">${m.name}</span>
           <input class="psc-input" type="number" inputmode="decimal"
             id="psc-${name}-${mid}" placeholder="—"
