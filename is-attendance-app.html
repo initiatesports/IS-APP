@@ -1752,7 +1752,23 @@ html, body {
         <div id="student-detail-panel" style="display:none;padding:0 12px 100px"></div>
       </div>
       <div id="student-report-panel" style="display:none">
-        <div class="perf-section-label">選擇學生</div>
+        <!-- 一鍵批量生成 -->
+        <div style="background:rgba(62,207,207,0.08);border:1.5px solid rgba(62,207,207,0.2);border-radius:14px;margin:12px 16px 0;padding:14px">
+          <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:10px">📋 一鍵生成所有學生報告</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">開始日期</div>
+              <input type="date" id="bulk-from" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">結束日期</div>
+              <input type="date" id="bulk-to" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
+            </div>
+          </div>
+          <button class="btn-start-perf" style="width:100%" onclick="generateBulkReports()">🖨 生成全部學生報告（可列印）</button>
+        </div>
+
+        <div style="margin:14px 16px 4px;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.05em;text-transform:uppercase">或選擇單一學生</div>
         <div style="padding:0 16px 8px">
           <input class="search-input" id="report-search" type="text" placeholder="輸入姓名搜尋…"
             oninput="renderReportStudentList()" autocomplete="off"
@@ -3352,7 +3368,10 @@ function renderLB() {
   const m = METRICS.find(x => x.id === lbMetric);
   if (!m) return;
 
-  // Collect all students with PB
+  // 只顯示現役學生（在任何班別中的學生才顯示排行榜）
+  const activeStudentNames = new Set();
+  Object.values(CLASSES).forEach(cls => cls.students.forEach(n => activeStudentNames.add(n)));
+
   const entries = [];
   const seen = new Set();
   Object.entries(CLASSES).forEach(([cid, cls]) => {
@@ -3368,6 +3387,7 @@ function renderLB() {
   });
   Object.entries(PERF_CLASSES_STUDENTS).forEach(([cid, students]) => {
     students.forEach(name => {
+      if (!activeStudentNames.has(name)) return; // 不在任何班別則跳過
       if (seen.has(name)) return;
       seen.add(name);
       const pb = getPersonalBest(name, lbMetric);
@@ -3773,7 +3793,17 @@ function switchStudentTab(tab) {
   document.getElementById('student-profile-panel').style.display = tab==='profile'?'block':'none';
   document.getElementById('student-report-panel').style.display  = tab==='report' ?'block':'none';
   if (tab === 'profile') renderStudentList();
-  if (tab === 'report')  renderReportStudentList();
+  if (tab === 'report') {
+    renderReportStudentList();
+    // Default bulk range: last 6 months
+    const bf = document.getElementById('bulk-from');
+    const bt = document.getElementById('bulk-to');
+    if (bf && !bf.value) {
+      const d = new Date(); d.setMonth(d.getMonth()-6);
+      bf.value = d.toISOString().slice(0,10);
+    }
+    if (bt && !bt.value) bt.value = todayStr();
+  }
 }
 
 function getAllStudents() {
@@ -4561,6 +4591,281 @@ function setReportRange(mode) {
     }[mode])));
 }
 
+// ═══════════════════════════════════════════════════════
+// BMI 計算 (WHO / 香港衛生署指引)
+// ═══════════════════════════════════════════════════════
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  const h = heightCm / 100;
+  return +(weightKg / (h * h)).toFixed(1);
+}
+
+// 香港衛生署成人 BMI 分類（18歲或以上）
+// 兒童/青少年使用 BMI 百分位，但這裡用簡化版供報告參考
+function getBMIInfo(bmi, ageYear) {
+  if (!bmi) return null;
+  const age = new Date().getFullYear() - (ageYear || 2010);
+  
+  // 兒童/青少年（< 18 歲）用 WHO 國際標準
+  if (age < 18) {
+    // 簡化：參照 WHO 2007 兒童生長標準
+    if (bmi < 14.5)  return { status: '過輕', color: '#60a5fa', emoji: '⬇',
+      advice: '建議保持均衡飲食，確保足夠蛋白質和鈣質攝取，支持成長發育。可增加每日餐量，並諮詢兒科醫生或營養師。' };
+    if (bmi < 17.5)  return { status: '正常', color: '#34d399', emoji: '✅',
+      advice: '體重維持於健康範圍，繼續保持均衡飲食及每日至少60分鐘的中等強度體能活動，有助促進骨骼和肌肉發育。' };
+    if (bmi < 20.5)  return { status: '過重', color: '#fbbf24', emoji: '⚠',
+      advice: '體重略高於理想範圍。建議控制高糖高脂食物，增加蔬菜和全穀物攝取，並保持規律運動習慣。可諮詢醫生或營養師制訂計劃。' };
+    return             { status: '肥胖', color: '#f87171', emoji: '🔴',
+      advice: '體重超出健康範圍。建議諮詢醫生或營養師，制訂健康飲食及運動計劃。減少高能量食物，增加每日體能活動量，目標為體重逐步回復正常範圍。' };
+  }
+  
+  // 成人（18歲或以上）— 香港衛生署/WHO 亞太區標準
+  if (bmi < 18.5) return { status: '過輕', color: '#60a5fa', emoji: '⬇',
+    advice: '體重不足，可能影響免疫力及骨質密度。建議增加優質蛋白質和碳水化合物攝取，同時進行肌力訓練，並諮詢醫生或營養師。' };
+  if (bmi < 23.0) return { status: '正常', color: '#34d399', emoji: '✅',
+    advice: '體重維持於健康範圍（香港衛生署建議 18.5–22.9）。繼續保持均衡飲食，每週進行至少150分鐘中等強度體能活動。' };
+  if (bmi < 25.0) return { status: '過重', color: '#fbbf24', emoji: '⚠',
+    advice: '體重輕微超標（香港衛生署建議 BMI 23–24.9 為過重）。建議減少精製糖和飽和脂肪攝取，增加蔬菜、水果及全穀物，保持規律運動。' };
+  return             { status: '肥胖', color: '#f87171', emoji: '🔴',
+    advice: '體重超出健康範圍（BMI ≥ 25 為肥胖，香港衛生署標準）。建議諮詢醫生，制訂系統性的體重管理計劃，包括飲食調整和增加體能活動。' };
+}
+
+// ═══════════════════════════════════════════════════════
+// 一鍵批量生成所有學生報告
+// ═══════════════════════════════════════════════════════
+function generateBulkReports() {
+  const from = document.getElementById('bulk-from').value;
+  const to   = document.getElementById('bulk-to').value;
+  if (!from || !to) { toast('請先設定時間範圍', '⚠'); return; }
+
+  const allNames = getAllUniqueStudents();
+  if (!allNames.length) { toast('沒有學生資料', '⚠'); return; }
+
+  toast(`正在生成 ${allNames.length} 份報告…`, '⏳');
+
+  // Build all reports into one printable HTML page
+  const logoSrc = document.querySelector('.a4-logo img')?.src || '';
+  let reportsHtml = '';
+  allNames.forEach(name => {
+    reportsHtml += buildSingleReportHtml(name, from, to, logoSrc);
+  });
+
+  const win = window.open('', '_blank');
+  win.document.write(buildPrintWrapper(reportsHtml, `IS 學生報告 ${from} ~ ${to}`));
+  win.document.close();
+}
+
+// ═══════════════════════════════════════════════════════
+// 輔助：把一個學生的報告渲染成 HTML 字串
+// ═══════════════════════════════════════════════════════
+function buildSingleReportHtml(name, from, to, logoSrc) {
+  const yr  = STUDENT_YEARS[name];
+  const cls = getStudentClasses(name);
+  const grade = STUDENT_GRADES[name] || { attempted:0, certified:0 };
+  const attemptedLevel = grade.attempted || 0;
+  const certifiedLevel = grade.certified || 0;
+
+  const getBadgeName = (lvl) => {
+    if (!lvl) return '—';
+    const lv = BADGE_DATA.levels.find(l => l.id === lvl);
+    return lv ? lv.badge + ' ' + lv.name : `Level ${lvl}`;
+  };
+
+  const bodyInRange = (BODY_RECORDS[name]||[]).filter(r => r.date>=from && r.date<=to)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const bodyLast = bodyInRange[bodyInRange.length-1];
+  const bodyFirst = bodyInRange[0];
+
+  const perfSections = METRICS.map(m => {
+    const recs = (PERF_RECORDS[name]?.[m.id]||[])
+      .filter(r => r.date>=from && r.date<=to)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    if (!recs.length) return null;
+    const first = recs[0], last = recs[recs.length-1];
+    const pb = m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
+    const delta = last.val - first.val;
+    const deltaDir = m.higher ? (delta>0?'up':delta<0?'down':'same') : (delta<0?'up':delta>0?'down':'same');
+    return { m, recs, first, last, pb, delta, deltaDir };
+  }).filter(Boolean);
+
+  const noData = !bodyFirst && !perfSections.length;
+
+  // Build SVG line charts (same as existing makeLineChart but inline)
+  function makeChart(recs, m, cid) {
+    if (recs.length < 2) return '<div style="text-align:center;color:#888;font-size:11px;padding:10px 0">數據點不足</div>';
+    const vals = recs.map(r=>r.val);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const range = maxV-minV||1;
+    const W=340,H=90,padL=32,padR=8,padT=8,padB=22;
+    const cW=W-padL-padR, cH=H-padT-padB;
+    const pts = recs.map((r,i)=>({
+      x: padL+(i/(recs.length-1))*cW,
+      y: padT+cH-((r.val-minV)/range)*cH,
+      val:r.val, date:r.date
+    }));
+    const poly = pts.map(p=>`${p.x},${p.y}`).join(' ');
+    const area = `M${pts[0].x},${padT+cH} `+pts.map(p=>`L${p.x},${p.y}`).join(' ')+` L${pts[pts.length-1].x},${padT+cH} Z`;
+    const dots = pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="${p.val===maxV?5:3}" fill="${p.val===maxV?'#fbbf24':'#3ECFCF'}" stroke="#fff" stroke-width="1.5"/>`).join('');
+    const yLbls = [minV,Math.round((minV+maxV)/2),maxV].map(v=>{
+      const y=padT+cH-((v-minV)/range)*cH;
+      return `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v}</text>`;
+    }).join('');
+    const xLbls = [0,Math.floor((recs.length-1)/2),recs.length-1].filter((v,i,a)=>a.indexOf(v)===i).map(i=>{
+      const p=pts[i];
+      return `<text x="${p.x}" y="${H-4}" text-anchor="middle" font-size="8" fill="#999">${fmtShort(recs[i].date)}</text>`;
+    }).join('');
+    const grid=[0.25,0.5,0.75].map(f=>`<line x1="${padL}" y1="${padT+cH*(1-f)}" x2="${W-padR}" y2="${padT+cH*(1-f)}" stroke="#eee" stroke-width="1"/>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;margin:0 auto">
+      <defs><linearGradient id="g${cid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#3ECFCF" stop-opacity="0"/>
+      </linearGradient></defs>
+      ${grid}
+      <path d="${area}" fill="url(#g${cid})"/>
+      <polyline points="${poly}" fill="none" stroke="#3ECFCF" stroke-width="2" stroke-linejoin="round"/>
+      ${dots}${yLbls}${xLbls}
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+cH}" stroke="#ccc" stroke-width="1"/>
+      <line x1="${padL}" y1="${padT+cH}" x2="${W-padR}" y2="${padT+cH}" stroke="#ccc" stroke-width="1"/>
+    </svg>`;
+  }
+
+  // BMI
+  let bmiHtml = '';
+  if (bodyLast?.weight && bodyLast?.height) {
+    const bmi = calcBMI(bodyLast.weight, bodyLast.height);
+    const info = getBMIInfo(bmi, yr);
+    if (bmi && info) {
+      bmiHtml = `<div style="margin-top:10px;padding:10px 14px;background:#f8f9fa;border-radius:10px;border-left:4px solid ${info.color}">
+        <div style="font-size:13px;font-weight:700;color:${info.color}">${info.emoji} BMI ${bmi} — ${info.status}</div>
+        <div style="font-size:11px;color:#555;margin-top:5px;line-height:1.6">${info.advice}</div>
+        <div style="font-size:9px;color:#999;margin-top:4px">參考：世界衛生組織（WHO）/ 香港衛生署標準</div>
+      </div>`;
+    }
+  }
+
+  // Badge grades section
+  let gradeHtml = '';
+  if (attemptedLevel > 0 || certifiedLevel > 0) {
+    gradeHtml = `<div class="a4-section-title" style="color:#1a1a1a;border-color:#e0e0e0">🏅 考核章別等級</div>
+    <div style="display:flex;gap:12px;margin-bottom:14px">
+      <div style="flex:1;background:#fff7e6;border:1.5px solid #fbbf24;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#92400e;font-weight:700;margin-bottom:4px">已考等級</div>
+        <div style="font-size:15px;font-weight:900;color:#92400e">${attemptedLevel > 0 ? getBadgeName(attemptedLevel) : '—'}</div>
+      </div>
+      <div style="flex:1;background:#f0fdf4;border:1.5px solid #34d399;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px">證書等級</div>
+        <div style="font-size:15px;font-weight:900;color:#065f46">${certifiedLevel > 0 ? getBadgeName(certifiedLevel) : '—'}</div>
+      </div>
+    </div>`;
+  }
+
+  let html = `<div class="a4-report" style="page-break-after:always">
+    <div class="a4-header">
+      <div class="a4-logo" style="background:none;border-radius:0;padding:0">${logoSrc?`<img src="${logoSrc}" style="width:80px;height:80px;object-fit:contain">`:''}</div>
+      <div class="a4-header-info">
+        <div class="a4-name">${name}</div>
+        <div class="a4-meta">${yr?yr+'年生　':''}${cls||'—'}</div>
+        <div class="a4-range">📅 ${fmtDate(from)} — ${fmtDate(to)}</div>
+      </div>
+      <div class="a4-brand">Initiate Sports<br><span style="font-size:9px;font-weight:400;opacity:0.5">Aim High Jump High</span></div>
+    </div>`;
+
+  if (gradeHtml) html += gradeHtml;
+
+  if (bodyFirst) {
+    const hDelta = bodyLast.height&&bodyFirst.height ? (bodyLast.height-bodyFirst.height).toFixed(1) : null;
+    const wDelta = bodyLast.weight&&bodyFirst.weight ? (bodyLast.weight-bodyFirst.weight).toFixed(1) : null;
+    html += `<div class="a4-section-title" style="color:#1a1a1a;border-color:#e0e0e0">📏 體格發展</div>
+    <div class="a4-body-row">`;
+    if (bodyFirst.height) html += `<div class="a4-body-card"><div class="a4-body-label">身高</div><div class="a4-body-val">${bodyLast.height}<span class="a4-unit">cm</span></div>${hDelta!==null?`<div class="a4-delta ${+hDelta>=0?'up':'down'}">${+hDelta>=0?'▲':'▼'} ${Math.abs(hDelta)} cm</div>`:''}</div>`;
+    if (bodyFirst.weight) html += `<div class="a4-body-card"><div class="a4-body-label">體重</div><div class="a4-body-val">${bodyLast.weight}<span class="a4-unit">kg</span></div>${wDelta!==null?`<div class="a4-delta ${+wDelta>=0?'up':'down'}">${+wDelta>=0?'▲':'▼'} ${Math.abs(wDelta)} kg</div>`:''}</div>`;
+    html += `</div>${bmiHtml}`;
+  }
+
+  if (perfSections.length) {
+    html += `<div class="a4-section-title" style="color:#1a1a1a;border-color:#e0e0e0;margin-top:14px">🏅 體能表現趨勢</div><div class="a4-charts-grid">`;
+    perfSections.forEach(({ m, recs, pb, first, last, delta, deltaDir }, idx) => {
+      const cid = `bc-${name.replace(/[^a-z0-9]/gi,'')}-${m.id}-${idx}`;
+      html += `<div class="a4-chart-card">
+        <div class="a4-chart-header">
+          <div class="a4-chart-title">${m.name}</div>
+          <div class="a4-chart-stats">
+            <span class="a4-pb-badge">PB ${pb}${m.unit}</span>
+            <span class="a4-delta-badge ${deltaDir}">${deltaDir==='up'?'▲':deltaDir==='down'?'▼':'—'} ${Math.abs(delta)}${m.unit}</span>
+          </div>
+        </div>
+        ${makeChart(recs, m, cid)}
+        <div class="a4-chart-footer">
+          <span>${fmtShort(first.date)}: ${first.val}${m.unit}</span>
+          <span style="color:#3ECFCF">最近: ${last.val}${m.unit}</span>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  if (noData) html += '<div style="text-align:center;padding:40px 0;color:#999;font-size:13px">此時間範圍內沒有資料</div>';
+
+  html += `<div class="a4-footer"><div>報告生成日期：${fmtDate(todayStr())}</div><div>Initiate Sports © ${new Date().getFullYear()}</div></div>
+  </div>`;
+  return html;
+}
+
+// 包裝成完整 HTML 文件供列印
+function buildPrintWrapper(body, title) {
+  return `<!DOCTYPE html><html><head>
+  <meta charset="UTF-8"><title>${title}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,"PingFang HK","PingFang TC","Microsoft JhengHei",sans-serif;background:#fff;color:#1a1a1a}
+    @media print{
+      body{margin:0}
+      .a4-report{page-break-after:always;break-after:page}
+      .no-print{display:none}
+    }
+    .print-toolbar{position:fixed;top:0;left:0;right:0;z-index:999;background:#1a1a2e;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px}
+    .print-toolbar button{background:#3ECFCF;color:#111;border:none;border-radius:8px;padding:8px 20px;font-weight:700;font-size:14px;cursor:pointer}
+    .print-toolbar .info{font-size:13px;opacity:0.7}
+    .print-wrap{padding-top:56px}
+    .a4-report{width:210mm;min-height:297mm;padding:14mm 12mm;margin:0 auto 0;background:#fff;border-bottom:3px dashed #eee}
+    .a4-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid #e0e0e0}
+    .a4-logo{background:none!important;border-radius:0!important;border:none!important;padding:0!important;flex-shrink:0}
+    .a4-header-info{flex:1}
+    .a4-name{font-size:22px;font-weight:900}
+    .a4-meta{font-size:12px;color:#666;margin-top:3px}
+    .a4-range{font-size:11px;color:#3ECFCF;margin-top:4px;font-weight:600}
+    .a4-brand{font-size:12px;font-weight:700;color:#3ECFCF;text-align:right;white-space:nowrap}
+    .a4-section-title{font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid #e0e0e0}
+    .a4-body-row{display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+    .a4-body-card{background:#f8f9fa;border-radius:10px;padding:10px 14px;text-align:center;min-width:80px}
+    .a4-body-label{font-size:10px;color:#666;margin-bottom:3px}
+    .a4-body-val{font-size:20px;font-weight:900}
+    .a4-unit{font-size:11px;font-weight:400;margin-left:2px;color:#666}
+    .a4-delta{font-size:11px;margin-top:3px;font-weight:600}
+    .a4-delta.up{color:#34d399}.a4-delta.down{color:#f87171}.a4-delta.same{color:#94a3b8}
+    .a4-charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .a4-chart-card{background:#f8f9fa;border-radius:10px;padding:10px}
+    .a4-chart-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+    .a4-chart-title{font-size:11px;font-weight:700}
+    .a4-chart-stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+    .a4-pb-badge{background:#fef3c7;color:#92400e;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px}
+    .a4-delta-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px}
+    .a4-delta-badge.up{background:#d1fae5;color:#065f46}
+    .a4-delta-badge.down{background:#fee2e2;color:#991b1b}
+    .a4-delta-badge.same{background:#f1f5f9;color:#64748b}
+    .a4-chart-footer{display:flex;justify-content:space-between;font-size:9px;color:#888;margin-top:4px}
+    .a4-footer{margin-top:16px;padding-top:8px;border-top:1px solid #e0e0e0;display:flex;justify-content:space-between;font-size:9px;color:#999}
+    @media screen{.a4-report{box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:10px}}
+  </style>
+  </head><body>
+  <div class="print-toolbar no-print">
+    <button onclick="window.print()">🖨 列印 / 儲存 PDF</button>
+    <span class="info">${title}</span>
+  </div>
+  <div class="print-wrap">${body}</div>
+  </body></html>`;
+}
+
 function generateReport() {
   if (!reportStudent) { toast('請先選擇學生', '⚠'); return; }
   const from = document.getElementById('report-from').value;
@@ -4673,6 +4978,29 @@ function generateReport() {
       <div class="a4-brand">Initiate Sports<br><span style="font-size:9px;font-weight:400;opacity:0.6">Aim High Jump High</span></div>
     </div>`;
 
+  // Badge / Grade section
+  const grade = STUDENT_GRADES[name] || { attempted:0, certified:0 };
+  const _atLvl = grade.attempted || 0;
+  const _certLvl = grade.certified || 0;
+  const _getBadgeName = (lvl) => {
+    if (!lvl) return '—';
+    const lv = BADGE_DATA.levels.find(l => l.id === lvl);
+    return lv ? lv.badge + ' ' + lv.name : `Level ${lvl}`;
+  };
+  if (_atLvl > 0 || _certLvl > 0) {
+    html += `<div class="a4-section-title">🏅 考核章別等級</div>
+    <div style="display:flex;gap:12px;margin-bottom:14px">
+      <div style="flex:1;background:#fff7e6;border:1.5px solid #fbbf24;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#92400e;font-weight:700;margin-bottom:4px">已考等級</div>
+        <div style="font-size:15px;font-weight:900;color:#92400e">${_getBadgeName(_atLvl)}</div>
+      </div>
+      <div style="flex:1;background:#f0fdf4;border:1.5px solid #34d399;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px">證書等級</div>
+        <div style="font-size:15px;font-weight:900;color:#065f46">${_getBadgeName(_certLvl)}</div>
+      </div>
+    </div>`;
+  }
+
   // Body section
   if (bodyFirst && bodyInRange.length >= 1) {
     const hDelta = bodyLast.height && bodyFirst.height ? (bodyLast.height - bodyFirst.height).toFixed(1) : null;
@@ -4692,6 +5020,18 @@ function generateReport() {
         ${wDelta!==null?`<div class="a4-delta ${+wDelta>=0?'up':'down'}">${+wDelta>=0?'▲':'▼'} ${Math.abs(wDelta)} kg</div>`:''}
       </div>`;
     html += `</div>`;
+    // BMI
+    if (bodyLast?.weight && bodyLast?.height) {
+      const _bmi = calcBMI(bodyLast.weight, bodyLast.height);
+      const _info = getBMIInfo(_bmi, yr);
+      if (_bmi && _info) {
+        html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(255,255,255,0.05);border-radius:10px;border-left:4px solid ${_info.color}">
+          <div style="font-size:12px;font-weight:700;color:${_info.color}">${_info.emoji} BMI ${_bmi} — ${_info.status}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6">${_info.advice}</div>
+          <div style="font-size:9px;color:var(--muted);opacity:0.5;margin-top:3px">參考：世界衛生組織（WHO）/ 香港衛生署標準</div>
+        </div>`;
+      }
+    }
   }
 
   // Performance charts
