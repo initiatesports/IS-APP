@@ -1888,7 +1888,7 @@ const CLASSES = {
   c1: { label:'星期一 5:00–6:00 PM', day:'Mon', dayZh:'星期一', time:'5–6pm',
         students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩'] },
   c2: { label:'星期一 6:00–7:00 PM', day:'Mon', dayZh:'星期一', time:'6–7pm',
-        students:['翟悅廷','郭栩澄','陳柏晞','葉宇浩','梁德瑜','梁德澤','許思溢'] },
+        students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢'] },
   c3: { label:'星期三 5:00–6:00 PM', day:'Wed', dayZh:'星期三', time:'5–6pm',
         students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允'] },
   c4: { label:'星期三 6:00–7:00 PM', day:'Wed', dayZh:'星期三', time:'6–7pm',
@@ -1936,11 +1936,11 @@ const ATT_LOG = {
   "c1|2026-03-16":{"陳書雅":"present","余悅":"present","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
   "c1|2026-03-23":{"陳書雅":"absent","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
   "c1|2026-03-30":{"陳書雅":"present","余悅":"absent","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
-  "c2|2026-03-02":{"蘇穎悠":"present","陳柏晞":"absent","葉宇浩":"present"},
-  "c2|2026-03-09":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"absent","陳柏晞":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"absent"},
-  "c2|2026-03-16":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏晞":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"present"},
-  "c2|2026-03-23":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏晞":"present","葉宇浩":"absent","梁德瑜":"absent","梁德澤":"present"},
-  "c2|2026-03-30":{"翟悅廷":"absent","蘇穎悠":"absent","郭栩澄":"present","陳柏晞":"present","葉宇浩":"present","梁德瑜":"absent","梁德澤":"absent"},
+  "c2|2026-03-02":{"蘇穎悠":"present","陳柏睎":"absent","葉宇浩":"present"},
+  "c2|2026-03-09":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"absent","陳柏睎":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"absent"},
+  "c2|2026-03-16":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏睎":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"present"},
+  "c2|2026-03-23":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏睎":"present","葉宇浩":"absent","梁德瑜":"absent","梁德澤":"present"},
+  "c2|2026-03-30":{"翟悅廷":"absent","蘇穎悠":"absent","郭栩澄":"present","陳柏睎":"present","葉宇浩":"present","梁德瑜":"absent","梁德澤":"absent"},
   "c3|2026-03-04":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
   "c3|2026-03-11":{"鄧可澄":"present","鄧幗恩":"absent","胡苡晨":"present","胡汐森":"present","文柏升":"absent","陳曉瑩":"absent","何梓程":"present","梁正軒":"present"},
   "c3|2026-03-18":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
@@ -1970,7 +1970,7 @@ let ABSENCES = [
   {id:"imp8", name:"梁心朗",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
   {id:"imp9", name:"何芯蕾",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
   {id:"imp10",name:"余悅",  classId:"c1",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp11",name:"陳柏晞",classId:"c2",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
+  {id:"imp11",name:"陳柏睎",classId:"c2",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
   {id:"imp12",name:"郭栩澄",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
   {id:"imp13",name:"梁德澤",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
   {id:"imp14",name:"葉宇浩",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
@@ -2917,7 +2917,7 @@ const METRICS = [
 // 這些項目每次記錄兩個數據，取最大值作 PB 比較
 const DUAL_METRICS = new Set(['rope30','bike','double','cross']);
 
-const STUDENT_YEARS = {
+let STUDENT_YEARS = {
   "何梓程": 2020, "何芯蕾": 2018, "余悅": 2017, "劉家頤": 2017,
   "古卓謙": 2019, "古詩詠": 2016, "吳瑋軒": 2014, "呂洛希": 2019,
   "周莉晶": 2018, "姚心穎": 2017, "孔善盈": 2016, "張爾淳": 2017,
@@ -3908,12 +3908,56 @@ function renderStudentDetail(name) {
   document.getElementById('student-detail-panel').innerHTML = `
     <div class="std-header">
       <div class="std-back" onclick="renderStudentList()">‹</div>
-      <div>
+      <div style="flex:1">
         <div class="std-name">${name}</div>
-        <div class="std-meta">${yr}年生 · ${cls}</div>
+        <div class="std-meta">${yr !== '—' ? yr+'年生 · ' : ''}${cls}</div>
       </div>
     </div>
     <div style="padding:12px 12px 0">
+
+      <!-- ══ 學生基本資料編輯 ══ -->
+      <div class="body-card" style="margin-bottom:10px;border-color:rgba(62,207,207,0.3)">
+        <div class="body-card-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>✏️ 基本資料</span>
+          <button onclick="toggleStudentEdit('${name}')"
+            id="btn-edit-student-${name.replace(/[^\w]/g,'_')}"
+            style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:4px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">編輯</button>
+        </div>
+        <!-- 顯示模式 -->
+        <div id="student-info-view-${name.replace(/[^\w]/g,'_')}">
+          <div style="display:flex;gap:16px;margin-top:8px;font-size:13px;color:var(--muted)">
+            <span>👤 <span style="color:var(--text)">${name}</span></span>
+            <span>🎂 <span style="color:var(--text)">${yr !== '—' ? yr+'年' : '未設定'}</span></span>
+          </div>
+        </div>
+        <!-- 編輯模式（預設隱藏）-->
+        <div id="student-info-edit-${name.replace(/[^\w]/g,'_')}" style="display:none;margin-top:10px">
+          <div style="margin-bottom:8px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">學生姓名</div>
+            <input id="sei-name-${name.replace(/[^\w]/g,'_')}" value="${name}"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:15px;font-weight:700;padding:9px 12px;outline:none;color-scheme:dark;box-sizing:border-box">
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">出生年份</div>
+            <input id="sei-year-${name.replace(/[^\w]/g,'_')}" type="number"
+              value="${STUDENT_YEARS[name]||''}" placeholder="例：2015"
+              min="1990" max="2030"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:15px;padding:9px 12px;outline:none;color-scheme:dark;box-sizing:border-box">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="saveStudentInfo('${name}')"
+              style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 20px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;flex:1">💾 儲存</button>
+            <button onclick="toggleStudentEdit('${name}')"
+              style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 14px;font-family:inherit;font-size:13px;cursor:pointer">取消</button>
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;color:rgba(248,100,100,0.8);margin-bottom:6px;font-weight:600">⚠️ 危險操作</div>
+            <button onclick="deleteStudent('${name}')"
+              style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;width:100%">🗑 從所有班別移除此學生</button>
+          </div>
+        </div>
+      </div>
+
       ${photoHtml}
       <div class="body-card">
         <div class="body-card-title">📏 體格測量</div>
@@ -3946,6 +3990,145 @@ function renderStudentDetail(name) {
       </div>
     </div>`;
 }
+
+// ═══════════════════════════════════════════════════════
+//  STUDENT INFO EDITING (name + birth year)
+// ═══════════════════════════════════════════════════════
+
+function _safeId(name) {
+  return name.replace(/[^\w]/g, '_');
+}
+
+function toggleStudentEdit(name) {
+  const sid    = _safeId(name);
+  const view   = document.getElementById('student-info-view-' + sid);
+  const edit   = document.getElementById('student-info-edit-' + sid);
+  const btn    = document.getElementById('btn-edit-student-' + sid);
+  if (!view || !edit) return;
+  const isOpen = edit.style.display !== 'none';
+  view.style.display = isOpen ? 'block' : 'none';
+  edit.style.display = isOpen ? 'none'  : 'block';
+  if (btn) btn.textContent = isOpen ? '編輯' : '收起';
+}
+
+function saveStudentInfo(oldName) {
+  const sid     = _safeId(oldName);
+  const newName = (document.getElementById('sei-name-' + sid)?.value || '').trim();
+  const yearVal = document.getElementById('sei-year-' + sid)?.value.trim();
+  const newYear = yearVal ? parseInt(yearVal, 10) : null;
+
+  if (!newName) { toast('姓名不可為空', '⚠'); return; }
+
+  const nameChanged = newName !== oldName;
+  const yearChanged = newYear !== (STUDENT_YEARS[oldName] || null);
+
+  // ── 更改出生年份 ──
+  if (yearChanged) {
+    if (newYear) STUDENT_YEARS[newName] = newYear;
+    else delete STUDENT_YEARS[newName];
+  }
+
+  // ── 更改姓名（需要同步所有資料結構）──
+  if (nameChanged) {
+    // 1. 確認新名稱不與現有學生重複
+    const allExisting = getAllStudents();
+    if (allExisting.includes(newName)) {
+      toast('已有同名學生：' + newName, '⚠'); return;
+    }
+
+    // 2. CLASSES 中的學生名單
+    Object.values(CLASSES).forEach(cls => {
+      const idx = cls.students.indexOf(oldName);
+      if (idx >= 0) cls.students[idx] = newName;
+    });
+
+    // 3. PERF_CLASSES_STUDENTS（如有）
+    Object.entries(PERF_CLASSES_STUDENTS).forEach(([cid, arr]) => {
+      const idx = arr.indexOf(oldName);
+      if (idx >= 0) arr[idx] = newName;
+    });
+
+    // 4. PERF_RECORDS
+    if (PERF_RECORDS[oldName]) {
+      PERF_RECORDS[newName] = PERF_RECORDS[oldName];
+      delete PERF_RECORDS[oldName];
+    }
+
+    // 5. BODY_RECORDS
+    if (BODY_RECORDS[oldName]) {
+      BODY_RECORDS[newName] = BODY_RECORDS[oldName];
+      delete BODY_RECORDS[oldName];
+    }
+
+    // 6. STUDENT_PHOTOS
+    if (STUDENT_PHOTOS[oldName]) {
+      STUDENT_PHOTOS[newName] = STUDENT_PHOTOS[oldName];
+      delete STUDENT_PHOTOS[oldName];
+    }
+
+    // 7. STUDENT_GRADES
+    if (STUDENT_GRADES[oldName]) {
+      STUDENT_GRADES[newName] = STUDENT_GRADES[oldName];
+      delete STUDENT_GRADES[oldName];
+    }
+
+    // 8. STUDENT_YEARS（把舊名的年份搬到新名）
+    if (STUDENT_YEARS[oldName]) {
+      STUDENT_YEARS[newName] = newYear || STUDENT_YEARS[oldName];
+      delete STUDENT_YEARS[oldName];
+    } else if (newYear) {
+      STUDENT_YEARS[newName] = newYear;
+    }
+
+    // 9. FEE_PAID（key 格式：periodId|classId|name）
+    const newFee = {};
+    Object.entries(FEE_PAID).forEach(([k, v]) => {
+      const parts = k.split('|');
+      if (parts[2] === oldName) parts[2] = newName;
+      newFee[parts.join('|')] = v;
+    });
+    Object.keys(FEE_PAID).forEach(k => delete FEE_PAID[k]);
+    Object.assign(FEE_PAID, newFee);
+
+    // 10. STAR_HISTORY
+    STAR_HISTORY.forEach(batch => {
+      (batch.students || []).forEach(s => { if (s.name === oldName) s.name = newName; });
+    });
+    if (STAR_CURRENT?.students) {
+      STAR_CURRENT.students.forEach(s => { if (s.name === oldName) s.name = newName; });
+    }
+
+    toast(`${oldName} → ${newName} 已更新`, '✓');
+  } else if (yearChanged) {
+    toast('出生年份已更新', '✓');
+  } else {
+    toast('沒有改動', '—'); return;
+  }
+
+  // 同步雲端
+  syncSettings();
+  syncPerformance();
+  syncBody();
+
+  // 重新渲染（用新名稱）
+  setTimeout(() => {
+    openStudentDetail(newName);
+  }, 300);
+}
+
+function deleteStudent(name) {
+  if (!confirm(`確定要從所有班別移除「${name}」？
+
+注意：成績、體格、照片等記錄會保留，但學生將不再出現於點名、排行榜等功能。`)) return;
+  Object.values(CLASSES).forEach(cls => {
+    const idx = cls.students.indexOf(name);
+    if (idx >= 0) cls.students.splice(idx, 1);
+  });
+  syncSettings();
+  toast(`${name} 已從所有班別移除`, '✓');
+  renderStudentList();
+}
+
 
 function saveBodyRecord(name) {
   const h = parseFloat(document.getElementById(`bi-height-${name}`)?.value);
@@ -4056,7 +4239,7 @@ let STAR_HISTORY = [
       { name:'陳信澄', shortName:'信澄', class:'Wed 6-7' },
       { name:'吳瑋軒', shortName:'瑋軒', class:'Fri 6-7' },
       { name:'羅靖誼', shortName:'靖誼', class:'Fri 6-7' },
-      { name:'陳柏晞', shortName:'柏晞', class:'Mon 6-7' },
+      { name:'陳柏睎', shortName:'柏晞', class:'Mon 6-7' },
       { name:'黃玥晴', shortName:'玥晴', class:'Wed 5-6' },
       { name:'王尉鏇', shortName:'尉鏇', class:'Sat 11-12' },
     ]
@@ -5322,6 +5505,7 @@ function buildSettingsPayload() {
   payload['knowledge_posts']  = JSON.stringify(KNOWLEDGE_POSTS);
   payload['equipment_items']  = JSON.stringify(EQUIPMENT_ITEMS);
   payload['course_items']     = JSON.stringify(COURSE_ITEMS);
+  payload['student_years']    = JSON.stringify(STUDENT_YEARS);
   return payload;
 }
 
@@ -5386,6 +5570,8 @@ function restoreSettings(rows) {
   if (Array.isArray(ei)) EQUIPMENT_ITEMS = ei;
   const ci = tryParse('course_items', null);
   if (Array.isArray(ci)) COURSE_ITEMS = ci;
+  const sy = tryParse('student_years', null);
+  if (sy && typeof sy === 'object') Object.assign(STUDENT_YEARS, sy);
 }
 
 // ── Sync indicator ──
@@ -5770,35 +5956,35 @@ let EQUIPMENT_ITEMS = [
 let COURSE_ITEMS = [
   {
     id:'c1', name:'花式跳繩恆常班', age:'3歲或以上',
-    schedule:'每週一次', duration:'每節60分鐘', price:120,
+    schedule:'每週一次', duration:'每節60分鐘', price:120, priceUnit:'堂',
     priceNote:'按月收費｜試堂$100',
     desc:'課堂結合跳繩基礎技巧與多樣花式動作，配合趣味遊戲和團隊合作。提供定期評估與測試，配合章別考核計劃。更有機會參與跳繩比賽，培養競技精神與自信心。師生比例1:12，4人成班。\n\n課程特色：系統化訓練花式跳繩技巧與節奏感、強化身體協調性與專注力、培養團隊精神與堅毅態度、推薦參與比賽增強自信\n\n請假補課政策：請假請於課堂前一天通知，缺席可於兩個月內補課。學費不設順延，逾期未補堂視為自動放棄。',
     contact:'WhatsApp: 6331 7403', image:''
   },
   {
     id:'c2', name:'田徑恆常班', age:'小學一年級或以上',
-    schedule:'每週一次', duration:'每節60分鐘', price:120,
+    schedule:'每週一次', duration:'每節60分鐘', price:120, priceUnit:'堂',
     priceNote:'按期收費｜試堂$100',
     desc:'課程涵蓋田徑多項重要項目，包括跑步、跳遠與投擲等技術訓練。融合遊戲與競賽元素，激發學員運動興趣與競技精神。鼓勵學員積極參加田徑比賽，設有定期學習進度評估。師生比例1:10，4人成班。\n\n課程特色：教授短跑、跳遠、投擲等基本技能、強調速度爆發力及動作協調性、促進身體控制與敏捷度、鼓勵參與比賽實踐所學技能',
     contact:'WhatsApp: 6331 7403', image:''
   },
   {
     id:'c3', name:'綜合運動技能訓練班', age:'6歲或以上',
-    schedule:'每週一次', duration:'每節60分鐘', price:140,
+    schedule:'每週一次', duration:'每節60分鐘', price:140, priceUnit:'堂',
     priceNote:'按月預繳｜首堂試課$100',
     desc:'以運動科學及S&C（Strength and Conditioning）訓練理念為核心，全面提升學員運動表現與身體素質。每班最多8人小班教學，針對個別學員能力調整。新學員申請須通過簡單評估。\n\n重點訓練：基礎力量與核心穩定性、動作控制與神經肌肉協調、爆發力與速度訓練、靈敏度與平衡力發展、跑跳投等基本動作技能\n\n預備體育呈分試｜名額限定',
     contact:'WhatsApp: 6331 7403', image:''
   },
   {
     id:'c4', name:'私人訓練 — 兒童及青少年', age:'兒童及青少年',
-    schedule:'靈活時間', duration:'每節60分鐘', price:600,
+    schedule:'靈活時間', duration:'每節60分鐘', price:600, priceUnit:'堂',
     priceNote:'試堂$450｜5堂$2500($500/堂)｜10堂$4500($450/堂)｜20堂$8000($400/堂)',
     desc:'個別化指導，讓每一堂課都最有效率！適合希望加強體能、提升運動表現或針對性改善姿勢動作的學生。訓練方向可涵蓋：跳繩、體能、田徑、體操、各類球類運動敏捷反應、肌力與協調性等。\n\n此價格只限青衣及荃灣地區，1:2訓練加收50%費用。如需其他地區/3人以上小組訓練請WhatsApp查詢。',
     contact:'WhatsApp: 6331 7403', image:''
   },
   {
     id:'c5', name:'私人訓練 — 成人及樂齡人士', age:'成人及樂齡人士',
-    schedule:'靈活時間', duration:'每節60分鐘', price:600,
+    schedule:'靈活時間', duration:'每節60分鐘', price:600, priceUnit:'堂',
     priceNote:'試堂$600｜10堂$6500｜20堂$12000｜30堂$16500｜50堂$25000｜*可分期付款',
     desc:'適合想提升體能、改善身形或保持活動能力的成人與長者。\n\n訓練方向：✔ 肌力訓練（預防肌肉流失、提升生活功能）✔ 增肌減脂體能訓練 ✔ 運動表現提升 ✔ 舒緩生活/工作壓力 ✔ 處理簡單的痛症問題 ✔ 低衝擊體能訓練 ✔ 附設飲食指導服務\n\n1:2訓練加收50%費用。如需3人以上小組訓練，請WhatsApp查詢。',
     contact:'WhatsApp: 6331 7403', image:''
@@ -6068,79 +6254,228 @@ function renderCoursesScreen() {
   document.getElementById('header-subtitle-text').textContent = 'Our Courses';
   const el = document.getElementById('courses-content');
 
-  const coursesHtml = COURSE_ITEMS.map((c, i) => `
+  const inpStyle = 'background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;outline:none;color-scheme:dark;width:100%;box-sizing:border-box';
+
+  const coursesHtml = COURSE_ITEMS.map((co, i) => {
+    const unit = co.priceUnit || '月';
+    const imgHtml = co.image
+      ? `<img src="${co.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:10px">`
+      : '';
+    return `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px">
+      ${imgHtml}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div style="font-size:16px;font-weight:800">${c.name}</div>
-        <span style="font-size:14px;font-weight:900;color:var(--cyan)">HK$${c.price}<span style="font-size:11px;font-weight:400;color:var(--muted)">/月</span></span>
+        <div style="font-size:16px;font-weight:800;flex:1;margin-right:10px">${co.name}</div>
+        ${co.price ? `<span style="font-size:14px;font-weight:900;color:var(--cyan);white-space:nowrap">HK$${co.price}<span style="font-size:11px;font-weight:400;color:var(--muted)">/${unit}</span></span>` : ''}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="background:var(--cyan-dim);color:var(--cyan);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">👶 ${c.age}</span>
-        <span style="background:var(--purple-dim);color:var(--purple);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">📅 ${c.schedule}</span>
-        <span style="background:var(--amber-dim);color:var(--amber);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">⏱ ${c.duration}</span>
+        ${co.age      ? `<span style="background:var(--cyan-dim);color:var(--cyan);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">👶 ${co.age}</span>` : ''}
+        ${co.schedule ? `<span style="background:var(--purple-dim);color:var(--purple);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">📅 ${co.schedule}</span>` : ''}
+        ${co.duration ? `<span style="background:var(--amber-dim);color:var(--amber);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px">⏱ ${co.duration}</span>` : ''}
       </div>
-      <div style="font-size:13px;color:var(--muted);white-space:pre-line;margin-bottom:8px">${c.desc}</div>
-      ${c.priceNote ? `<div style="font-size:11px;color:var(--amber);margin-bottom:6px">💰 ${c.priceNote}</div>` : ''}
-      ${c.contact ? `<div style="font-size:12px;color:var(--green);margin-bottom:8px">📱 ${c.contact}</div>` : ''}
+      ${co.desc      ? `<div style="font-size:13px;color:var(--muted);white-space:pre-line;margin-bottom:8px">${co.desc}</div>` : ''}
+      ${co.priceNote ? `<div style="font-size:11px;color:var(--amber);margin-bottom:6px">💰 ${co.priceNote}</div>` : ''}
+      ${co.contact   ? `<div style="font-size:12px;color:var(--green);margin-bottom:8px">📱 ${co.contact}</div>` : ''}
       <div style="display:flex;gap:6px">
         <button onclick="editCourse(${i})" style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;cursor:pointer">✏️ 編輯</button>
         <button onclick="deleteCourse(${i})" style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;cursor:pointer">🗑 刪除</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   el.innerHTML = `
     <div style="padding:14px 0 12px;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:16px;font-weight:900">📋 課程介紹</div>
       <button onclick="addCourse()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">➕ 新增課程</button>
     </div>
-    <div id="course-editor" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">新增 / 編輯課程</div>
-      <input id="ce-name" placeholder="課程名稱" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="ce-age" placeholder="適合年齡" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
-        <input id="ce-price" type="number" placeholder="月費(HK$)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
+
+    <!-- ══ 課程編輯器 ══ -->
+    <div id="course-editor" style="display:none;background:var(--surface);border:1.5px solid var(--cyan);border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:14px">✏️ 新增 / 編輯課程</div>
+
+      <!-- 圖片上傳 -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">📷 課程圖片（可選）</div>
+        <div id="ce-img-preview" style="display:none;margin-bottom:8px">
+          <img id="ce-img-tag" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">
+          <button onclick="removeCourseImg()" style="margin-top:6px;background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:5px 12px;font-family:inherit;font-size:12px;cursor:pointer">🗑 移除圖片</button>
+        </div>
+        <label id="ce-img-label" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1.5px dashed var(--border);border-radius:10px;padding:11px 14px;cursor:pointer">
+          <span style="font-size:18px">📁</span>
+          <span style="font-size:13px;color:var(--muted)">點擊上傳圖片（JPG / PNG）</span>
+          <input type="file" accept="image/*" id="ce-img-input" style="display:none" onchange="loadCourseImg(this)">
+        </label>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="ce-schedule" placeholder="堂數(每週X次)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
-        <input id="ce-duration" placeholder="每堂時長" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
+
+      <!-- 課程名稱 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">課程名稱 *</div>
+        <input id="ce-name" placeholder="例：花式跳繩恆常班" style="${inpStyle}">
       </div>
-      <textarea id="ce-desc" placeholder="課程描述" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;resize:vertical;margin-bottom:10px;color-scheme:dark"></textarea>
+
+      <!-- 適合年齡 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">適合年齡</div>
+        <input id="ce-age" placeholder="例：3歲或以上" style="${inpStyle}">
+      </div>
+
+      <!-- 收費 + 單位 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">收費（HK$）及單位</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:14px;color:var(--muted);white-space:nowrap;flex-shrink:0">HK$</span>
+          <input id="ce-price" type="number" placeholder="例：600" style="${inpStyle}">
+          <span style="font-size:14px;color:var(--muted);white-space:nowrap;flex-shrink:0">/</span>
+          <input id="ce-priceunit" placeholder="堂 / 月 / 期…" style="${inpStyle}">
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;opacity:0.65">單位可自由輸入：堂、月、期、小時、課、次 等</div>
+      </div>
+
+      <!-- 收費備註 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">收費備註（可選）</div>
+        <input id="ce-pricenote" placeholder="例：試堂$100｜10堂$4500($450/堂)" style="${inpStyle}">
+      </div>
+
+      <!-- 堂數 + 時長 -->
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">堂數安排</div>
+          <input id="ce-schedule" placeholder="例：每週一次" style="${inpStyle}">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">每堂時長</div>
+          <input id="ce-duration" placeholder="例：每節60分鐘" style="${inpStyle}">
+        </div>
+      </div>
+
+      <!-- 課程描述 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">課程描述（可換行）</div>
+        <textarea id="ce-desc" placeholder="自由輸入課程詳情…" rows="6"
+          style="${inpStyle};resize:vertical;line-height:1.6"></textarea>
+      </div>
+
+      <!-- 聯絡資訊 -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">聯絡資訊（可選）</div>
+        <input id="ce-contact" placeholder="例：WhatsApp: 6331 7403" style="${inpStyle}">
+      </div>
+
       <input type="hidden" id="ce-idx" value="-1">
+      <input type="hidden" id="ce-img-data" value="">
+
       <div style="display:flex;gap:8px">
-        <button onclick="saveCourse()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">💾 儲存</button>
-        <button onclick="document.getElementById('course-editor').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 16px;font-family:inherit;font-size:14px;cursor:pointer">取消</button>
+        <button onclick="saveCourse()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:11px 22px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">💾 儲存課程</button>
+        <button onclick="document.getElementById('course-editor').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:11px 16px;font-family:inherit;font-size:14px;cursor:pointer">取消</button>
       </div>
     </div>
+
     ${coursesHtml || '<div style="color:var(--muted);text-align:center;padding:40px">暫無課程</div>'}`;
 }
 
+// 圖片上傳及壓縮
+function loadCourseImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.80);
+      document.getElementById('ce-img-data').value = compressed;
+      document.getElementById('ce-img-tag').src = compressed;
+      document.getElementById('ce-img-preview').style.display = 'block';
+      document.getElementById('ce-img-label').style.display = 'none';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCourseImg() {
+  document.getElementById('ce-img-data').value = '';
+  document.getElementById('ce-img-tag').src = '';
+  document.getElementById('ce-img-preview').style.display = 'none';
+  document.getElementById('ce-img-label').style.display = 'flex';
+  document.getElementById('ce-img-input').value = '';
+}
+
 function addCourse() {
-  ['ce-name','ce-age','ce-price','ce-schedule','ce-duration','ce-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('ce-idx').value='-1';document.getElementById('course-editor').style.display='block';
+  ['ce-name','ce-age','ce-price','ce-priceunit','ce-pricenote','ce-schedule','ce-duration','ce-desc','ce-contact'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ce-idx').value = '-1';
+  document.getElementById('ce-img-data').value = '';
+  const prev = document.getElementById('ce-img-preview');
+  const lbl  = document.getElementById('ce-img-label');
+  if (prev) prev.style.display = 'none';
+  if (lbl)  lbl.style.display  = 'flex';
+  const inp  = document.getElementById('ce-img-input');
+  if (inp) inp.value = '';
+  document.getElementById('course-editor').style.display = 'block';
+  document.getElementById('course-editor').scrollIntoView({ behavior:'smooth' });
 }
+
 function editCourse(i) {
-  const c=COURSE_ITEMS[i];
-  document.getElementById('ce-name').value=c.name;document.getElementById('ce-age').value=c.age;
-  document.getElementById('ce-price').value=c.price;document.getElementById('ce-schedule').value=c.schedule;
-  document.getElementById('ce-duration').value=c.duration;document.getElementById('ce-desc').value=c.desc;
-  document.getElementById('ce-idx').value=i;document.getElementById('course-editor').style.display='block';
+  const co = COURSE_ITEMS[i];
+  document.getElementById('ce-name').value      = co.name      || '';
+  document.getElementById('ce-age').value       = co.age       || '';
+  document.getElementById('ce-price').value     = co.price     || '';
+  document.getElementById('ce-priceunit').value = co.priceUnit || '堂';
+  document.getElementById('ce-pricenote').value = co.priceNote || '';
+  document.getElementById('ce-schedule').value  = co.schedule  || '';
+  document.getElementById('ce-duration').value  = co.duration  || '';
+  document.getElementById('ce-desc').value      = co.desc      || '';
+  document.getElementById('ce-contact').value   = co.contact   || '';
+  document.getElementById('ce-idx').value       = i;
+  if (co.image) {
+    document.getElementById('ce-img-data').value = co.image;
+    document.getElementById('ce-img-tag').src    = co.image;
+    document.getElementById('ce-img-preview').style.display = 'block';
+    document.getElementById('ce-img-label').style.display   = 'none';
+  } else {
+    document.getElementById('ce-img-data').value = '';
+    document.getElementById('ce-img-preview').style.display = 'none';
+    document.getElementById('ce-img-label').style.display   = 'flex';
+  }
+  document.getElementById('course-editor').style.display = 'block';
+  document.getElementById('course-editor').scrollIntoView({ behavior:'smooth' });
 }
+
 function saveCourse() {
-  const name=document.getElementById('ce-name').value.trim();
-  const age=document.getElementById('ce-age').value.trim();
-  const price=+document.getElementById('ce-price').value;
-  const schedule=document.getElementById('ce-schedule').value.trim();
-  const duration=document.getElementById('ce-duration').value.trim();
-  const desc=document.getElementById('ce-desc').value.trim();
-  const idx=+document.getElementById('ce-idx').value;
-  if(!name){toast('請填寫課程名稱','⚠');return;}
-  const course={id:idx>=0?COURSE_ITEMS[idx].id:'c'+Date.now(),name,age,price,schedule,duration,desc,image:''};
-  if(idx>=0)COURSE_ITEMS[idx]=course;else COURSE_ITEMS.push(course);
-  syncCMS();toast('課程已儲存','✓');renderCoursesScreen();
+  const name      = document.getElementById('ce-name').value.trim();
+  const age       = document.getElementById('ce-age').value.trim();
+  const priceRaw  = document.getElementById('ce-price').value.trim();
+  const priceUnit = document.getElementById('ce-priceunit').value.trim() || '堂';
+  const priceNote = document.getElementById('ce-pricenote').value.trim();
+  const schedule  = document.getElementById('ce-schedule').value.trim();
+  const duration  = document.getElementById('ce-duration').value.trim();
+  const desc      = document.getElementById('ce-desc').value.trim();
+  const contact   = document.getElementById('ce-contact').value.trim();
+  const image     = document.getElementById('ce-img-data').value;
+  const idx       = +document.getElementById('ce-idx').value;
+  if (!name) { toast('請填寫課程名稱','⚠'); return; }
+  const course = {
+    id: idx >= 0 ? COURSE_ITEMS[idx].id : 'c' + Date.now(),
+    name, age,
+    price: priceRaw !== '' ? +priceRaw : '',
+    priceUnit, priceNote, schedule, duration, desc, contact, image
+  };
+  if (idx >= 0) COURSE_ITEMS[idx] = course; else COURSE_ITEMS.push(course);
+  document.getElementById('course-editor').style.display = 'none';
+  syncCMS(); toast('課程已儲存 ✓','✓'); renderCoursesScreen();
 }
+
 function deleteCourse(i) {
-  if(!confirm('確定刪除此課程？'))return;
-  COURSE_ITEMS.splice(i,1);syncCMS();renderCoursesScreen();
+  if (!confirm('確定刪除此課程？')) return;
+  COURSE_ITEMS.splice(i, 1); syncCMS(); renderCoursesScreen();
 }
 
 // ─── CMS SYNC ───
