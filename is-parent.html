@@ -126,6 +126,16 @@ body {
   border: 1.5px solid rgba(62,207,207,0.35) !important;
   animation: newsFlash 2s ease-in-out infinite;
 }
+.summer-flash {
+  background: rgba(255,180,0,0.12) !important;
+  color: var(--gold) !important;
+  border: 1.5px solid rgba(255,180,0,0.35) !important;
+  animation: summerFlash 2.5s ease-in-out infinite;
+}
+@keyframes summerFlash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,180,0,0); }
+  50%       { box-shadow: 0 0 10px 3px rgba(255,180,0,0.28); }
+}
 @keyframes newsFlash {
   0%, 100% { box-shadow: 0 0 0 0 rgba(62,207,207,0); }
   50%       { box-shadow: 0 0 10px 3px rgba(62,207,207,0.3); }
@@ -539,6 +549,7 @@ body {
     <div class="nav-links">
       <button class="nav-link active" id="nav-home"      onclick="switchPanel('home')">首頁</button>
       <button class="nav-link news-flash"  id="nav-news"     onclick="switchPanel('news')">🔔 最新消息</button>
+      <button class="nav-link summer-flash" id="nav-summer"   onclick="switchPanel('summer')">🌞 暑期班</button>
       <button class="nav-link"        id="nav-makeup"    onclick="switchPanel('makeup')">補堂查詢</button>
       <button class="nav-link"        id="nav-lb"        onclick="switchPanel('lb')">排行榜</button>
       <button class="nav-link"        id="nav-badge"     onclick="switchPanel('badge')">章別考核計劃</button>
@@ -572,6 +583,11 @@ body {
         <div class="card-icon">🔔</div>
         <div class="card-title">最新消息</div>
         <div class="card-desc">2026年5月課程升級通知：花式跳繩 × S&C 體能強化訓練，學費調整及上課日期。</div>
+      </div>
+      <div class="card" onclick="switchPanel('summer')" style="cursor:pointer;border:1.5px solid rgba(255,180,0,0.3);background:linear-gradient(135deg,rgba(255,180,0,0.06),rgba(255,180,0,0.02))">
+        <div class="card-icon">🌞</div>
+        <div class="card-title">2026 暑期運動班</div>
+        <div class="card-desc">花式跳繩、基礎體操、體能、乒乓球、田徑、羽毛球 · 早鳥優惠即將截止！</div>
       </div>
       <div class="card" onclick="switchPanel('courses')" style="cursor:pointer">
         <div class="card-icon">🏃</div>
@@ -710,6 +726,10 @@ body {
     </div>
 
   </div>
+</div>
+
+<div class="panel" id="panel-summer">
+  <div id="summer-content"></div>
 </div>
 
 <div class="panel" id="panel-courses">
@@ -967,6 +987,252 @@ function renderNewsPanel(){
   // Could add dynamic announcements here in future
 }
 
+// ═══════════════════════════════════════════════════════
+//  SUMMER CAMP PANEL
+// ═══════════════════════════════════════════════════════
+let _summerCourse = 'jump';
+
+function renderSummerPanel() {
+  document.getElementById('summer-content').innerHTML = buildSummerHtml();
+}
+
+function showSummerCourse(id) {
+  _summerCourse = id;
+  renderSummerPanel();
+  document.getElementById('summer-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildSummerHtml() {
+  const courses = [
+    { id: 'jump',      label: '🪃 花式跳繩', theme: '#1e78c8,#0a3a80', slotBg: 'rgba(30,120,200,0.08)', slotBorder: 'rgba(30,120,200,0.25)', dayColor: '#1e50b4',
+      title: '暑期花式跳繩班', emoji: '🪃',
+      desc: '旨在為對花式跳繩有興趣的學生提供訓練，課程針對學生能力提供不同訓練。教授花式跳繩個人繩、雙人繩和交互繩等技巧。課堂融入趣味遊戲及團隊合作，全面提升敏捷性、平衡感、協調能力及專注力。',
+      age: '3歲或以上', ratio: '1 : 12', loc: '青衣區體育館',
+      slots: [
+        { day: '星期一班', time: '11:00 – 12:00', dates: ['7/13', '7/20', '7/27', '8/3', '8/10', '8/17', '8/24'] },
+        { day: '星期二班', time: '15:00 – 16:00', dates: ['7/14', '7/21', '7/28', '8/4', '8/11', '8/18', '8/25'] },
+        { day: '星期三班', time: '11:00 – 12:00', dates: ['7/15', '7/22', '7/29', '8/5', '8/12', '8/19', '8/26'] },
+        { day: '星期四班', time: '14:00 – 15:00', dates: ['7/16', '7/23', '7/30', '8/6', '8/13', '8/20', '8/27'] },
+      ],
+      prices: [
+        { row:'earlybird', label:'🟢 早鳥優惠', sub:'即日至5月15日', p1:'$1,010', p2:'$960',   p3:'$909'   },
+        { row:'mid',       label:'🟡 中期報名', sub:'5月16日–5月31日', p1:'$1,210', p2:'$1,150', p3:'$1,089' },
+        { row:'full',      label:'🔴 正價',     sub:'6月1日起',        p1:'$1,410', p2:'$1,340', p3:'$1,269' },
+      ],
+      gifts: [
+        { icon:'🎫', text: '報名即送 <strong>$100 課程現金券</strong>（9月報恆常班時扣減學費）' },
+        { icon:'🪢', text: '報名即送 <strong>專業拍子繩 + 專屬繩袋</strong>（價值 $140）' },
+        { icon:'🍶', text: '報兩班或以上額外送 <strong>獨家運動水樽</strong>（價值 $108）' },
+      ]
+    },
+    { id: 'gym', label: '🤸 基礎體操', theme: '#b040c0,#5a1070', slotBg: 'rgba(176,64,192,0.08)', slotBorder: 'rgba(176,64,192,0.25)', dayColor: '#8a2090',
+      title: '暑期基礎體操及柔韌度訓練班', emoji: '🤸',
+      desc: '旨在為對體操及柔韌度訓練有興趣的學生提供訓練，教授基礎體操動作包括翻滾、倒立、平衡等技巧，結合系統化柔韌度訓練，培養身體協調性、自律性及自信心，奠定良好運動基礎。',
+      age: '小學一年級或以上', ratio: '1 : 6', loc: '青衣區體育館',
+      slots: [
+        { day: '星期一班', time: '14:00 – 15:00', dates: ['7/13','7/20','7/27','8/3','8/10','8/17','8/24'] },
+        { day: '星期四班', time: '15:00 – 16:00', dates: ['7/16','7/23','7/30','8/6','8/13','8/20','8/27'] },
+      ],
+      prices: [
+        { row:'earlybird', label:'🟢 早鳥優惠', sub:'即日至5月15日', p1:'$1,250', p2:'$1,188', p3:'$1,125' },
+        { row:'mid',       label:'🟡 中期報名', sub:'5月16日–5月31日', p1:'$1,450', p2:'$1,378', p3:'$1,305' },
+        { row:'full',      label:'🔴 正價',     sub:'6月1日起',        p1:'$1,650', p2:'$1,568', p3:'$1,485' },
+      ],
+      gifts: [
+        { icon:'🎫', text: '報名即送 <strong>$100 課程現金券</strong>（9月報恆常班時扣減學費）' },
+        { icon:'🍶', text: '報兩班或以上額外送 <strong>獨家運動水樽</strong>（價值 $108）' },
+      ]
+    },
+    { id: 'fitness', label: '💪 體能', theme: '#1aaa60,#0a5a30', slotBg: 'rgba(26,170,96,0.08)', slotBorder: 'rgba(26,170,96,0.25)', dayColor: '#1a8a4a',
+      title: '暑期體能班', emoji: '💪',
+      desc: '以運動科學為基礎，針對學生能力提供不同訓練，涵蓋基礎肌力、核心穩定性、爆發力、速度、靈敏度及平衡力，全面強化身體素質，為參與其他運動打下紮實基礎。',
+      age: '小學一年級或以上', ratio: '1 : 12', loc: '青衣區體育館',
+      slots: [
+        { day: '星期一班', time: '15:00 – 16:00', dates: ['7/13','7/20','7/27','8/3','8/10','8/17','8/24'] },
+        { day: '星期五班', time: '15:00 – 16:00', dates: ['7/17','7/24','7/31','8/7','8/14','8/21','8/28'] },
+      ],
+      prices: [
+        { row:'earlybird', label:'🟢 早鳥優惠', sub:'即日至5月15日', p1:'$1,010', p2:'$960',   p3:'$909'   },
+        { row:'mid',       label:'🟡 中期報名', sub:'5月16日–5月31日', p1:'$1,210', p2:'$1,150', p3:'$1,089' },
+        { row:'full',      label:'🔴 正價',     sub:'6月1日起',        p1:'$1,410', p2:'$1,340', p3:'$1,269' },
+      ],
+      gifts: [
+        { icon:'🎫', text: '報名即送 <strong>$100 課程現金券</strong>（9月報恆常班時扣減學費）' },
+        { icon:'🧘', text: '報名即送 <strong>戶外訓練軟墊 + 冰巾</strong>（價值 $108）' },
+        { icon:'🍶', text: '報兩班或以上額外送 <strong>獨家運動水樽</strong>（價值 $108）' },
+      ]
+    },
+    { id: 'tt', label: '🏓 乒乓球', theme: '#e07820,#883000', slotBg: 'rgba(196,100,0,0.08)', slotBorder: 'rgba(196,100,0,0.25)', dayColor: '#c46400',
+      title: '暑期乒乓球班', emoji: '🏓',
+      desc: '教授乒乓球基礎技術包括握拍姿勢、正反手擊球、發球及步法運用等技巧，小班形式教學，讓教練針對每位學員個別指導，提升球技的同時培養對運動的熱情。',
+      age: '小學一年級或以上', ratio: '1 : 6', loc: '青衣區體育館',
+      slots: [
+        { day: '星期三班', time: '15:00 – 16:00', dates: ['7/15','7/22','7/29','8/5','8/12','8/19','8/26'] },
+        { day: '星期五班', time: '14:00 – 15:00', dates: ['7/17','7/24','7/31','8/7','8/14','8/21','8/28'] },
+      ],
+      prices: [
+        { row:'earlybird', label:'🟢 早鳥優惠', sub:'即日至5月15日', p1:'$1,090', p2:'$1,036', p3:'$981'   },
+        { row:'mid',       label:'🟡 中期報名', sub:'5月16日–5月31日', p1:'$1,290', p2:'$1,226', p3:'$1,161' },
+        { row:'full',      label:'🔴 正價',     sub:'6月1日起',        p1:'$1,490', p2:'$1,416', p3:'$1,341' },
+      ],
+      gifts: [
+        { icon:'🎫', text: '報名即送 <strong>$100 課程現金券</strong>（9月報恆常班時扣減學費）' },
+        { icon:'🍶', text: '報兩班或以上額外送 <strong>獨家運動水樽</strong>（價值 $108）' },
+      ]
+    },
+    { id: 'athletics', label: '🏃 田徑', theme: '#e03c1e,#801408', slotBg: 'rgba(180,40,20,0.08)', slotBorder: 'rgba(180,40,20,0.25)', dayColor: '#b42814',
+      title: '暑期田徑班', emoji: '🏃',
+      desc: '教授田徑跑、擲、跳技巧，涵蓋起跑與步伐訓練、速度與耐力提升、跳遠助跑與起跳技巧，以及基礎投擲動作，幫助學員全面發展力量與協調性。課堂融合遊戲與競賽元素，激發運動興趣與競技精神。',
+      age: '3歲或以上', ratio: '1 : 12', loc: '青衣運動場',
+      slots: [
+        { day: '星期二班', time: '17:00 – 18:00', dates: ['7/14','7/21','7/28','8/4','8/11','8/18','8/25'] },
+        { day: '星期四班', time: '17:00 – 18:00', dates: ['7/16','7/23','7/30','8/6','8/13','8/20','8/27'] },
+        { day: '星期六班', time: '17:00 – 18:00', dates: ['7/18','7/25','8/1','8/8','8/15','8/22','8/29'] },
+      ],
+      prices: [
+        { row:'earlybird', label:'🟢 早鳥優惠', sub:'即日至5月15日', p1:'$1,010', p2:'$960',   p3:'$909'   },
+        { row:'mid',       label:'🟡 中期報名', sub:'5月16日–5月31日', p1:'$1,210', p2:'$1,150', p3:'$1,089' },
+        { row:'full',      label:'🔴 正價',     sub:'6月1日起',        p1:'$1,410', p2:'$1,340', p3:'$1,269' },
+      ],
+      gifts: [
+        { icon:'🎫', text: '報名即送 <strong>$100 課程現金券</strong>（9月報恆常班時扣減學費）' },
+        { icon:'🧘', text: '報名即送 <strong>戶外訓練軟墊 + 冰巾</strong>（價值 $108）' },
+        { icon:'🍶', text: '報兩班或以上額外送 <strong>獨家運動水樽</strong>（價值 $108）' },
+      ]
+    },
+    { id: 'badminton', label: '🏸 羽毛球', theme: '#0090a8,#004a58', slotBg: 'rgba(0,144,168,0.08)', slotBorder: 'rgba(0,144,168,0.25)', dayColor: '#006b7a',
+      title: '暑期羽毛球班', emoji: '🏸',
+      desc: '教授羽毛球基礎技術包括握拍姿勢、正反手擊球、發球技巧及步法運用等，透過多球訓練及對打練習，全面提升擊球能力與比賽應變能力。',
+      age: '小學一年級或以上', ratio: '1 : 6', loc: '青衣區體育館',
+      warning: '⚠️ 場地安排說明：羽毛球場地需視乎訂場情況而定，上課時間為以下各時段內其中一小時，具體時間將於確認場地後另行通知學員，敬請留意。',
+      slots: [
+        { day: '星期二班', time: '13:00 – 15:00（其中一小時）', dates: ['7/14','7/21','7/28','8/4','8/11','8/18','8/25'] },
+        { day: '星期四班', time: '10:00 – 12:00（其中一小時）', dates: ['7/16','7/23','7/30','8/6','8/13','8/20','8/27'] },
+      ],
+      prices: [
+        { row:'earlybird', label:'🟢 早鳥優惠', sub:'即日至5月15日', p1:'$1,250', p2:'$1,188', p3:'$1,125' },
+        { row:'mid',       label:'🟡 中期報名', sub:'5月16日–5月31日', p1:'$1,450', p2:'$1,378', p3:'$1,305' },
+        { row:'full',      label:'🔴 正價',     sub:'6月1日起',        p1:'$1,650', p2:'$1,568', p3:'$1,485' },
+      ],
+
+      gifts: [
+        { icon:'🎫', text: '報名即送 <strong>$100 課程現金券</strong>（9月報恆常班時扣減學費）' },
+        { icon:'🍶', text: '報兩班或以上額外送 <strong>獨家運動水樽</strong>（價值 $108）' },
+      ]
+    },
+  ];
+
+  const rowColors = {
+    earlybird: { bg:'rgba(26,170,96,0.10)', labelColor:'#34d399', priceColor:'#34d399', discBg:'rgba(26,170,96,0.2)' },
+    mid:       { bg:'rgba(245,200,66,0.10)', labelColor:'var(--gold)', priceColor:'var(--gold)', discBg:'rgba(245,200,66,0.2)' },
+    full:      { bg:'rgba(248,100,100,0.10)', labelColor:'#f87171', priceColor:'#f87171', discBg:'rgba(248,100,100,0.2)' },
+  };
+
+  const cur = courses.find(c => c.id === _summerCourse) || courses[0];
+  const [c1, c2] = cur.theme.split(',');
+
+  // tab bar
+  const tabs = courses.map(c => {
+    const active = c.id === _summerCourse;
+    return `<div onclick="showSummerCourse('${c.id}')"
+      style="padding:10px 14px;font-size:13px;font-weight:${active?'800':'600'};white-space:nowrap;cursor:pointer;flex-shrink:0;
+        border-bottom:3px solid ${active?'var(--cyan)':'transparent'};
+        color:${active?'var(--cyan)':'var(--muted)'};transition:all 0.2s">${c.label}</div>`;
+  }).join('');
+
+  // slot cards
+  const slotHtml = cur.slots.map(s => `
+    <div style="background:${cur.slotBg};border:1px solid ${cur.slotBorder};border-radius:12px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:16px;font-weight:800;color:${cur.dayColor}">${s.day}</span>
+        <span style="font-size:13px;color:var(--muted)">${s.time}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${s.dates.map(d => `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--text)">${d}</span>`).join('')}
+      </div>
+    </div>`).join('');
+
+  // price table
+  const priceRows = cur.prices.map(pr => {
+    const rc = rowColors[pr.row];
+    return `<tr style="background:${rc.bg}">
+      <td style="padding:12px 12px;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:800;color:${rc.labelColor}">${pr.label}</div>
+        <div style="font-size:11px;color:var(--muted)">${pr.sub}</div>
+      </td>
+      <td style="padding:12px 10px;text-align:center;border-bottom:1px solid var(--border);font-size:16px;font-weight:900;color:${rc.priceColor}">${pr.p1}</td>
+      <td style="padding:12px 10px;text-align:center;border-bottom:1px solid var(--border);font-size:16px;font-weight:900;color:${rc.priceColor}">${pr.p2}</td>
+      <td style="padding:12px 10px;text-align:center;border-bottom:1px solid var(--border);font-size:16px;font-weight:900;color:${rc.priceColor}">${pr.p3}</td>
+    </tr>`;
+  }).join('');
+
+  // gifts
+  const giftHtml = cur.gifts.map(g => `
+    <div style="display:flex;align-items:flex-start;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+      <span style="font-size:20px;flex-shrink:0">${g.icon}</span>
+      <span style="font-size:13px;color:rgba(248,250,252,0.8);line-height:1.6">${g.text}</span>
+    </div>`).join('');
+
+  return `
+  <!-- 頂部橫幅 -->
+  <div style="background:linear-gradient(135deg,${c1} 0%,${c2} 100%);padding:28px 20px 24px;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 40%,rgba(255,255,255,0.08),transparent 60%);pointer-events:none"></div>
+    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.65);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">INITIATE SPORTS · 2026暑期</div>
+    <h2 style="font-size:22px;font-weight:900;color:#fff;margin:0 0 4px">${cur.emoji} ${cur.title}</h2>
+    <p style="font-size:13px;color:rgba(255,255,255,0.75);margin:0 0 14px;line-height:1.6">${cur.desc}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff">👶 ${cur.age}</span>
+      <span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff">👥 師生 ${cur.ratio}</span>
+      <span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff">📍 ${cur.loc}</span>
+      <span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 12px;font-size:12px;color:#fff">📅 7月13日起 · 共7節</span>
+    </div>
+  </div>
+
+  <!-- 課程分類 tab -->
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;display:flex;-webkit-overflow-scrolling:touch">
+    ${tabs}
+  </div>
+
+  <div style="padding:16px 16px 0">
+
+    ${cur.warning ? `<div style="background:rgba(245,200,66,0.1);border:1.5px solid rgba(245,200,66,0.3);border-radius:12px;padding:14px 16px;font-size:13px;color:rgba(245,200,66,0.9);margin-bottom:16px;line-height:1.6">${cur.warning}</div>` : ''}
+
+    <!-- 上課日期 -->
+    <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px">⏰ 上課時間及日期</div>
+    ${slotHtml}
+
+    <!-- 學費 -->
+    <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin:16px 0 10px">💰 學費（全期7節 / 每人）</div>
+    <div style="overflow-x:auto;margin-bottom:16px;border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:340px">
+        <thead>
+          <tr style="background:var(--surface2)">
+            <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--border)">報名期</th>
+            <th style="padding:10px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--border)">1人</th>
+            <th style="padding:10px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--border)">2人<br><span style="font-weight:400;opacity:0.6">95折</span></th>
+            <th style="padding:10px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--border)">3人+<br><span style="font-weight:400;opacity:0.6">9折</span></th>
+          </tr>
+        </thead>
+        <tbody>${priceRows}</tbody>
+      </table>
+    </div>
+
+    ${cur.refund ? `<div style="background:rgba(62,207,207,0.07);border:1.5px solid rgba(62,207,207,0.2);border-radius:12px;padding:14px 16px;font-size:13px;color:rgba(248,250,252,0.75);margin-bottom:16px;line-height:1.75"><strong style="color:var(--cyan)">💼 退款安排</strong>${cur.refund}</div>` : ''}
+
+    <!-- 禮品 -->
+    <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px">🎁 報名禮品</div>
+    ${giftHtml}
+
+    <!-- 查詢 -->
+    <div style="text-align:center;padding:20px 0 80px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">查詢及報名</div>
+      <div style="font-size:20px;font-weight:900;color:#4cde80">WhatsApp：6331 7403</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;opacity:0.6">最少4人成班</div>
+    </div>
+  </div>`;
+}
+
+
 function switchPanel(p){
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(el=>el.classList.remove('active'));
@@ -976,6 +1242,7 @@ function switchPanel(p){
   window.scrollTo({top:0,behavior:'smooth'});
   if(p==='lb')renderLB();
   if(p==='news')renderNewsPanel();
+  if(p==='summer')renderSummerPanel();
   if(p==='star')renderStarPanel();
   if(p==='badge')renderBadgePanel();
   if(p==='knowledge')renderKnowledgePanel();
@@ -1189,18 +1456,23 @@ function renderEquipmentPanel(){
 function renderCoursesPanel(){
   const el=document.getElementById('courses-list');
   if(!COURSE_ITEMS.length){el.innerHTML='<div class="lb-empty">暫無課程資料</div>';return;}
-  el.innerHTML=COURSE_ITEMS.map(c=>`
+  el.innerHTML=COURSE_ITEMS.map(co=>{
+    const unit = co.priceUnit || '月';
+    const imgHtml = co.image ? `<img src="${co.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px">` : '';
+    return `
     <div class="card" style="margin-bottom:14px">
-      <div class="card-title">${c.name}</div>
+      ${imgHtml}
+      <div class="card-title">${co.name}</div>
       <div class="card-tags">
-        <span class="tag">👶 ${c.age}</span>
-        <span class="tag purple">📅 ${c.schedule}</span>
-        <span class="tag amber">⏱ ${c.duration}</span>
+        ${co.age      ? `<span class="tag">👶 ${co.age}</span>` : ''}
+        ${co.schedule ? `<span class="tag purple">📅 ${co.schedule}</span>` : ''}
+        ${co.duration ? `<span class="tag amber">⏱ ${co.duration}</span>` : ''}
       </div>
-      <div class="card-price" style="margin-top:10px">HK$${c.price} <span style="font-size:12px;font-weight:400;color:var(--amber)">${c.priceNote||''}</span></div>
-      <div class="card-desc" style="margin-top:8px;white-space:pre-line">${c.desc}</div>
-      ${c.contact?`<div style="margin-top:10px;font-size:13px;color:var(--cyan);font-weight:600">📱 ${c.contact}</div>`:''}
-    </div>`).join('');
+      ${co.price ? `<div class="card-price" style="margin-top:10px">HK$${co.price}<span style="font-size:12px;font-weight:400;color:var(--muted)">/${unit}</span>${co.priceNote ? ` <span style="font-size:12px;font-weight:400;color:var(--amber)">${co.priceNote}</span>` : ''}</div>` : ''}
+      ${co.desc    ? `<div class="card-desc" style="margin-top:8px;white-space:pre-line">${co.desc}</div>` : ''}
+      ${co.contact ? `<div style="margin-top:10px;font-size:13px;color:var(--cyan);font-weight:600">📱 ${co.contact}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════
