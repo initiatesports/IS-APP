@@ -119,6 +119,127 @@ body {
   position: relative;
   overflow: hidden;
 }
+
+.news-flash {
+  background: rgba(62,207,207,0.12) !important;
+  color: var(--cyan) !important;
+  border: 1.5px solid rgba(62,207,207,0.35) !important;
+  animation: newsFlash 2s ease-in-out infinite;
+}
+@keyframes newsFlash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(62,207,207,0); }
+  50%       { box-shadow: 0 0 10px 3px rgba(62,207,207,0.3); }
+}
+.news-card {
+  border: 1.5px solid rgba(62,207,207,0.25) !important;
+  background: linear-gradient(135deg, rgba(62,207,207,0.07), rgba(62,207,207,0.02)) !important;
+}
+/* ── 動感動畫 ── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity:0; } to { opacity:1; }
+}
+@keyframes slideInLeft {
+  from { opacity:0; transform:translateX(-20px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(62,207,207,0.4); }
+  50%      { box-shadow: 0 0 0 12px rgba(62,207,207,0); }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes rotateBg {
+  from { transform: rotate(0deg) scale(1.2); }
+  to   { transform: rotate(360deg) scale(1.2); }
+}
+@keyframes countUp {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Hero 動畫背景球 */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(circle at 30% 40%, rgba(62,207,207,0.12) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(62,207,207,0.08) 0%, transparent 50%);
+  animation: rotateBg 20s linear infinite;
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  animation: shimmer 3s linear infinite;
+  background-size: 200%;
+}
+
+/* Hero logo 浮動 */
+.hero-logo img { animation: float 4s ease-in-out infinite; }
+
+/* Hero 文字淡入 */
+.hero-title   { animation: fadeUp 0.7s ease both; }
+.hero-sub     { animation: fadeUp 0.7s 0.15s ease both; }
+.hero-tagline { animation: fadeUp 0.7s 0.25s ease both; }
+.hero-search  { animation: fadeUp 0.7s 0.35s ease both; }
+
+/* 導航欄滑入 */
+.nav-item { transition: all 0.2s ease; }
+.nav-item.active { color: var(--cyan); }
+.nav-item:not(.active):hover { color: var(--white); }
+
+/* Panel 淡入 */
+.panel { animation: fadeIn 0.4s ease both; }
+
+/* 卡片懸停 */
+.card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+/* 排行榜條目淡入 */
+.lb-age-entry { animation: slideInLeft 0.3s ease both; }
+.lb-overall-entry { animation: slideInLeft 0.3s ease both; }
+
+/* Stat 數字動畫 */
+.stat-val { animation: countUp 0.5s ease both; }
+
+/* Cyan 按鈕脈衝 */
+.btn-search { animation: pulse 2.5s infinite; }
+
+/* Section title 底線滑入 */
+.section-title {
+  position: relative;
+  display: inline-block;
+}
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--cyan);
+  transition: width 0.5s ease;
+}
+.panel.active .section-title::after { width: 100%; }
+
+/* 星星閃爍 */
+@keyframes twinkle {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+.star-badge { display: inline-block; animation: twinkle 2s ease-in-out infinite; }
 .hero::before {
   content: '';
   position: absolute;
@@ -417,6 +538,7 @@ body {
     </a>
     <div class="nav-links">
       <button class="nav-link active" id="nav-home"      onclick="switchPanel('home')">首頁</button>
+      <button class="nav-link news-flash"  id="nav-news"     onclick="switchPanel('news')">🔔 最新消息</button>
       <button class="nav-link"        id="nav-makeup"    onclick="switchPanel('makeup')">補堂查詢</button>
       <button class="nav-link"        id="nav-lb"        onclick="switchPanel('lb')">排行榜</button>
       <button class="nav-link"        id="nav-badge"     onclick="switchPanel('badge')">章別考核計劃</button>
@@ -446,6 +568,11 @@ body {
   </div>
   <div class="content-wrap">
     <div class="card-grid">
+      <div class="card news-card" onclick="switchPanel('news')" style="cursor:pointer">
+        <div class="card-icon">🔔</div>
+        <div class="card-title">最新消息</div>
+        <div class="card-desc">2026年5月課程升級通知：花式跳繩 × S&C 體能強化訓練，學費調整及上課日期。</div>
+      </div>
       <div class="card" onclick="switchPanel('courses')" style="cursor:pointer">
         <div class="card-icon">🏃</div>
         <div class="card-title">專業跳繩課程</div>
@@ -481,6 +608,110 @@ body {
 </div>
 
 <!-- ══ COURSES ══ -->
+<div class="panel" id="panel-news">
+  <div style="padding:0 0 80px">
+
+    <!-- ══ 頂部橫幅 ══ -->
+    <div style="background:linear-gradient(135deg,#0d1b2a 0%,#0f2a3a 60%,#0d1b2a 100%);padding:28px 20px 22px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(62,207,207,0.12),transparent 60%);pointer-events:none"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">2026年5月題</div>
+      <h1 style="font-size:26px;font-weight:900;color:var(--white);margin:0 0 10px;line-height:1.2">課程升級通知</h1>
+      <p style="font-size:13px;color:rgba(248,250,252,0.65);margin:0;line-height:1.7">為了令每位學員得到更科學化、更全面的訓練，我們將於 2026 年 5 月起正式升級花式跳繩課程。</p>
+    </div>
+
+    <!-- ══ 課程升級：花式跳繩 × S&C ══ -->
+    <div style="margin:20px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px">
+      <div style="font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">課程升級</div>
+      <h2 style="font-size:20px;font-weight:900;color:var(--white);margin:0 0 14px">花式跳繩 × S&C 體能強化訓練</h2>
+      <p style="font-size:13px;color:rgba(248,250,252,0.7);margin:0 0 10px;line-height:1.7">S&C（Strength &amp; Conditioning）即「體能強化訓練」。很多家長可能對這個訓練比較陌生，其實它就是運動員在日常專項訓練必不可少的基礎。</p>
+      <p style="font-size:13px;color:rgba(248,250,252,0.7);margin:0 0 14px;line-height:1.7">S&C 的核心理念，是透過科學化的方法，有系統地提升運動員的核心體能——包括力量、爆發力、耐力、協調性及靈活度。當身體素質提升，學員在學習花式技巧時可以做得更準確、控制更好，同時大大減少受傷的風險。</p>
+      
+      <!-- 升級標語 -->
+      <div style="background:rgba(62,207,207,0.08);border-left:3px solid var(--cyan);border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700;color:var(--cyan)">從學花式，變成訓練花式</div>
+      </div>
+
+      <p style="font-size:13px;color:rgba(248,250,252,0.7);margin:0 0 14px;line-height:1.7">升級後，我們會將 S&C 體能訓練的環節融入所有課堂。課堂中將有面對學員身體發展需要而設計的體能訓練，幫助學員在科學化的環境中發掘潛能、突破自我——不只是訓練跳繩技巧，更是訓練一個全面發展的運動員。</p>
+
+      <!-- 五大體能指標 -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--cyan)">力量</div>
+        <div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--cyan)">爆發力</div>
+        <div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--cyan)">耐力</div>
+        <div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--cyan)">協調性</div>
+        <div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--cyan)">靈活度</div>
+      </div>
+    </div>
+
+    <!-- ══ 新增服務：定期體能評估 + 個人進度報告 ══ -->
+    <div style="margin:14px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px">
+      <div style="font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">新增服務</div>
+      <h2 style="font-size:19px;font-weight:900;color:var(--white);margin:0 0 14px">定期體能評估 + 個人進度報告</h2>
+      <p style="font-size:13px;color:rgba(248,250,252,0.7);margin:0 0 12px;line-height:1.7">升級後，我們將定期安排體能評估，針對每位學員進行一系列測試，測量學員在爆發力、協調性、耐力等方面的表現。</p>
+      <p style="font-size:13px;color:rgba(248,250,252,0.7);margin:0 0 14px;line-height:1.7">每次評估後，我們將為每位學員整理一份<span style="color:var(--white);font-weight:700">個人進度報告</span>，歸納實際數據，讓家長清楚了解學員的學習進度。</p>
+      
+      <!-- 報告內容列表 -->
+      <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px 16px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:rgba(248,250,252,0.5);margin-bottom:10px;letter-spacing:0.05em">報告內容包括</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="color:var(--cyan);font-size:14px;flex-shrink:0;margin-top:1px">●</span><span style="font-size:13px;color:rgba(248,250,252,0.75);line-height:1.5">該次各項體能指標表現</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="color:var(--cyan);font-size:14px;flex-shrink:0;margin-top:1px">●</span><span style="font-size:13px;color:rgba(248,250,252,0.75);line-height:1.5">跟上期相比的進步幅度</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="color:var(--cyan);font-size:14px;flex-shrink:0;margin-top:1px">●</span><span style="font-size:13px;color:rgba(248,250,252,0.75);line-height:1.5">學員的強項及需要努力的方向</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="color:var(--cyan);font-size:14px;flex-shrink:0;margin-top:1px">●</span><span style="font-size:13px;color:rgba(248,250,252,0.75);line-height:1.5">數據對下期訓練的建議方向</span></div>
+        </div>
+      </div>
+
+      <!-- 引言 -->
+      <div style="background:rgba(62,207,207,0.06);border:1px solid rgba(62,207,207,0.15);border-radius:12px;padding:14px 16px">
+        <p style="font-size:13px;color:rgba(248,250,252,0.75);margin:0;line-height:1.7;font-style:italic">「我們相信，運動的進步應該是看得見、數得出的。家長不再需要猜，教練也有詳細數據設計訓練方向。」</p>
+      </div>
+    </div>
+
+    <!-- ══ 學費調整 ══ -->
+    <div style="margin:14px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px">
+      <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">學費調整</div>
+      <h2 style="font-size:19px;font-weight:900;color:var(--white);margin:0 0 4px">2026年5月起</h2>
+      <div style="font-size:12px;color:rgba(248,250,252,0.5);margin-bottom:16px">按月收費，每期兩個月</div>
+      
+      <!-- 收費卡片 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 12px">
+          <div style="font-size:11px;color:rgba(248,250,252,0.5);margin-bottom:6px">每週 1 堂</div>
+          <div style="font-size:12px;color:rgba(248,250,252,0.6);margin-bottom:4px">$130／堂 × 8 堂</div>
+          <div style="font-size:28px;font-weight:900;color:var(--white);margin-bottom:2px">$1,040</div>
+          <div style="font-size:11px;color:rgba(248,250,252,0.45)">／期（約每月 $520）</div>
+        </div>
+        <div style="background:rgba(62,207,207,0.08);border:1.5px solid rgba(62,207,207,0.3);border-radius:14px;padding:14px 12px">
+          <div style="font-size:11px;color:rgba(248,250,252,0.5);margin-bottom:6px">每週 2 堂</div>
+          <div style="font-size:12px;color:rgba(248,250,252,0.6);margin-bottom:4px">$110／堂 × 16 堂</div>
+          <div style="font-size:28px;font-weight:900;color:var(--cyan);margin-bottom:2px">$1,760</div>
+          <div style="font-size:11px;color:rgba(248,250,252,0.45)">／期（約每月 $880）</div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:rgba(248,250,252,0.5);line-height:1.6">補堂安排維持不變，請假後可於兩個月內補回。</div>
+    </div>
+
+    <!-- ══ 對舊學員的感謝：5月份專屬禮遇 ══ -->
+    <div style="margin:14px 16px 0;background:linear-gradient(135deg,rgba(245,200,66,0.08),rgba(245,200,66,0.03));border:1.5px solid rgba(245,200,66,0.25);border-radius:16px;padding:20px">
+      <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">對舊學員的感謝</div>
+      <h2 style="font-size:19px;font-weight:900;color:var(--white);margin:0 0 12px">5月份專屬禮遇 🎁</h2>
+      <p style="font-size:13px;color:rgba(248,250,252,0.7);margin:0 0 14px;line-height:1.7">感謝各位舊學員一直以來的支持，我們將於5月份免費送贈每位現有學員全新訓練服套裝一套。</p>
+      
+      <div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);border-radius:12px;padding:14px 16px">
+        <p style="font-size:13px;color:rgba(248,250,252,0.75);margin:0;line-height:1.7">全新 INITIATE SPORTS 訓練服套裝（價值 $200）免費送贈現有學員。如需額外訂購，每套 $200，請向 Sir 查詢。</p>
+      </div>
+    </div>
+
+    <!-- ══ 底部聯絡 ══ -->
+    <div style="margin:14px 16px 0;text-align:center;padding:16px">
+      <p style="font-size:13px;color:rgba(248,250,252,0.45);margin:0 0 6px">如有任何查詢，請 WhatsApp 聯絡</p>
+      <p style="font-size:11px;color:rgba(248,250,252,0.25);margin:0;letter-spacing:0.05em">AIM HIGH JUMP HIGH · 1% better each time</p>
+    </div>
+
+  </div>
+</div>
+
 <div class="panel" id="panel-courses">
   <div class="content-wrap">
     <div class="section-title">📋 課程介紹</div>
@@ -731,6 +962,11 @@ function maskName(n){if(NAME_ALIASES[n])return NAME_ALIASES[n];return n.length<=
 //  PANEL SWITCHING
 // ═══════════════════════
 let currentPanel='home';
+function renderNewsPanel(){
+  // News panel is static HTML, no dynamic render needed
+  // Could add dynamic announcements here in future
+}
+
 function switchPanel(p){
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(el=>el.classList.remove('active'));
@@ -739,6 +975,7 @@ function switchPanel(p){
   currentPanel=p;
   window.scrollTo({top:0,behavior:'smooth'});
   if(p==='lb')renderLB();
+  if(p==='news')renderNewsPanel();
   if(p==='star')renderStarPanel();
   if(p==='badge')renderBadgePanel();
   if(p==='knowledge')renderKnowledgePanel();
