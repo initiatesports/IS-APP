@@ -1623,6 +1623,12 @@ html, body {
     <!-- ══ MAKEUP LOG ══ -->
     <div class="screen" id="screen-makeup">
       <div class="makeup-filter-bar" id="makeup-filters"></div>
+      <!-- 班別篩選：查看未補堂學生 -->
+      <div id="makeup-class-filter-wrap" style="display:none;padding:10px 12px 0">
+        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">查看指定班別的未補堂學生</div>
+        <div id="makeup-class-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <div id="makeup-class-result"></div>
+      </div>
       <div class="makeup-section" id="makeup-list"></div>
     </div>
 
@@ -1684,8 +1690,9 @@ html, body {
     <!-- ══ PERFORMANCE ══ -->
     <div class="screen" id="screen-perf">
       <div class="student-subtabs" id="perf-subtabs">
-        <div class="student-subtab active" id="ptab-new"  onclick="switchPerfTab('new')">📝 新記錄</div>
-        <div class="student-subtab"        id="ptab-hist" onclick="switchPerfTab('hist')">🕐 歷史查閱</div>
+        <div class="student-subtab active" id="ptab-new"   onclick="switchPerfTab('new')">📝 新記錄</div>
+        <div class="student-subtab"        id="ptab-hist"  onclick="switchPerfTab('hist')">🕐 歷史查閱</div>
+        <div class="student-subtab"        id="ptab-radar" onclick="switchPerfTab('radar')">📊 成績分析</div>
       </div>
       <div id="perf-setup" style="display:block">
         <div class="perf-section-label">選擇班別</div>
@@ -1715,6 +1722,9 @@ html, body {
           <div id="perf-hist-class-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
         </div>
         <div id="perf-hist-result" style="padding:0 12px 100px"></div>
+      </div>
+      <div id="perf-radar-panel" style="display:none;padding:0 12px 100px">
+        <div id="perf-radar-content"></div>
       </div>
       <div id="perf-entry" style="display:none">
         <div class="perf-entry-header" id="perf-entry-header"></div>
@@ -2455,6 +2465,350 @@ function saveRoll() {
 // ═══════════════════════════════════════════
 //  MAKEUP LOG
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  成績分析面板：手握力狀態指標 + 雷達圖
+// ═══════════════════════════════════════════════════════
+
+function renderPerfRadarPanel() {
+  const el = document.getElementById('perf-radar-content');
+  if (!el) return;
+
+  const allDates = getAllHistoryDates().slice(0, 10); // 最近10次
+  if (!allDates.length) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px">暫無成績數據可分析</div>';
+    return;
+  }
+
+  // 讓教練選日期，然後顯示分析
+  const latestDate = allDates[0];
+
+  el.innerHTML = `
+    <div style="padding:14px 0 10px">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px">選擇分析日期</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+        ${allDates.map(d => `
+          <div onclick="showRadarForDate('${d}')"
+            id="rpill-${d}"
+            style="padding:5px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);
+              color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.15s"
+            onmouseover="this.style.borderColor='var(--cyan)'"
+            onmouseout="if(!this.classList.contains('rp-active'))this.style.borderColor='var(--border)'">
+            ${fmtDate(d)}
+          </div>`).join('')}
+      </div>
+      <div id="radar-analysis-content"></div>
+    </div>`;
+
+  showRadarForDate(latestDate);
+}
+
+function showRadarForDate(date) {
+  // Update pill styles
+  document.querySelectorAll('[id^="rpill-"]').forEach(el => {
+    el.style.borderColor = 'var(--border)';
+    el.style.background  = 'var(--surface2)';
+    el.style.color       = 'var(--muted)';
+  });
+  const active = document.getElementById('rpill-' + date);
+  if (active) {
+    active.style.borderColor = 'var(--cyan)';
+    active.style.background  = 'rgba(62,207,207,0.12)';
+    active.style.color       = 'var(--cyan)';
+  }
+
+  const content = document.getElementById('radar-analysis-content');
+  if (!content) return;
+
+  // Collect all students with grip data on this date
+  const allStudents = getAllUniqueStudents();
+  const studentsData = allStudents.map(name => {
+    const gripL    = (PERF_RECORDS[name]?.gripL    || []).find(r => r.date === date);
+    const gripR    = (PERF_RECORDS[name]?.gripR    || []).find(r => r.date === date);
+    const cmj      = (PERF_RECORDS[name]?.cmj      || []).find(r => r.date === date);
+    const sj       = (PERF_RECORDS[name]?.sj       || []).find(r => r.date === date);
+    const rsi      = (PERF_RECORDS[name]?.rsi      || []).find(r => r.date === date);
+    const rope     = (PERF_RECORDS[name]?.rope30   || []).find(r => r.date === date);
+    const bike     = (PERF_RECORDS[name]?.bike     || []).find(r => r.date === date);
+    const dbl      = (PERF_RECORDS[name]?.double   || []).find(r => r.date === date);
+    const cross    = (PERF_RECORDS[name]?.cross    || []).find(r => r.date === date);
+    const bike2m   = (PERF_RECORDS[name]?.bike2m   || []).find(r => r.date === date);
+    const balanceL = (PERF_RECORDS[name]?.balanceL || []).find(r => r.date === date);
+    const balanceR = (PERF_RECORDS[name]?.balanceR || []).find(r => r.date === date);
+    const sitreach = (PERF_RECORDS[name]?.sitreach || []).find(r => r.date === date);
+    if (!gripL && !gripR) return null;
+
+    // Get personal bests BEFORE this date for comparison
+    const getPrevBest = (metricId, higher=true) => {
+      const recs = (PERF_RECORDS[name]?.[metricId] || []).filter(r => r.date < date);
+      if (!recs.length) return null;
+      return higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
+    };
+
+    const gripAvg = ((gripL?.val || 0) + (gripR?.val || 0)) / (gripL && gripR ? 2 : 1);
+    const prevGripL = getPrevBest('gripL');
+    const prevGripR = getPrevBest('gripR');
+    const prevGripAvg = prevGripL && prevGripR ? (prevGripL + prevGripR) / 2
+                       : prevGripL || prevGripR || null;
+
+    // Grip ratio vs PB (1.0 = at PB level, > 1.0 = surpassed)
+    const gripRatio = prevGripAvg ? gripAvg / prevGripAvg : null;
+
+    return {
+      name, date, gripAvg, gripRatio, prevGripAvg,
+      gripL: gripL?.val, gripR: gripR?.val,
+      cmj: cmj?.val, sj: sj?.val, rsi: rsi?.val,
+      rope: rope?.val, bike: bike?.val, dbl: dbl?.val, cross: cross?.val,
+      bike2m: bike2m?.val, balanceL: balanceL?.val, balanceR: balanceR?.val, sitreach: sitreach?.val,
+    };
+  }).filter(Boolean);
+
+  if (!studentsData.length) {
+    content.innerHTML = `<div style="color:var(--muted);text-align:center;padding:30px">${fmtDate(date)} 沒有手握力記錄</div>`;
+    return;
+  }
+
+  // ── 整體狀態概覽 ──
+  const withRatio = studentsData.filter(s => s.gripRatio !== null);
+  const avgRatio  = withRatio.length ? withRatio.reduce((s,x) => s + x.gripRatio, 0) / withRatio.length : null;
+
+  let overallStatus, overallColor, overallAdvice;
+  if (avgRatio === null) {
+    overallStatus = '首次測試'; overallColor = 'var(--cyan)';
+    overallAdvice = '今天是學生們的首次握力測試，建立基準數據。';
+  } else if (avgRatio >= 1.02) {
+    overallStatus = '狀態出色 🔥'; overallColor = '#34d399';
+    overallAdvice = '整體握力比歷史水平高出 ' + Math.round((avgRatio-1)*100) + '%，學生狀態良好，適合今天進行高強度訓練，預期其他項目成績亦會有較佳表現。';
+  } else if (avgRatio >= 0.96) {
+    overallStatus = '狀態正常 ✅'; overallColor = 'var(--cyan)';
+    overallAdvice = '整體握力接近歷史水平，學生狀態穩定。訓練強度維持正常即可，可期待正常水平的成績表現。';
+  } else if (avgRatio >= 0.90) {
+    overallStatus = '狀態偏低 ⚠️'; overallColor = 'var(--gold)';
+    overallAdvice = '整體握力比歷史水平低 ' + Math.round((1-avgRatio)*100) + '%，部分學生可能疲勞或狀態欠佳。建議適當降低訓練強度，注意學生的反應。';
+  } else {
+    overallStatus = '狀態較差 🔴'; overallColor = '#f87171';
+    overallAdvice = '整體握力明顯低於歷史水平，學生可能過度疲勞或健康狀況欠佳。建議今天以恢復性訓練為主，避免高強度訓練，並留意學生狀況。';
+  }
+
+  // ── 個別學生狀態卡片 + 相關性分析 ──
+  const studentCards = studentsData.map(s => {
+    const ratio = s.gripRatio;
+    let sColor, sLabel, sIcon;
+    if (ratio === null) { sColor = 'var(--muted)'; sLabel = '首次'; sIcon = '◉'; }
+    else if (ratio >= 1.02) { sColor = '#34d399'; sLabel = '佳'; sIcon = '▲'; }
+    else if (ratio >= 0.96) { sColor = 'var(--cyan)'; sLabel = '正常'; sIcon = '●'; }
+    else if (ratio >= 0.90) { sColor = 'var(--gold)'; sLabel = '偏低'; sIcon = '▼'; }
+    else { sColor = '#f87171'; sLabel = '差'; sIcon = '▼▼'; }
+
+    const gripDisplay = s.gripL && s.gripR
+      ? `左 ${s.gripL}kg / 右 ${s.gripR}kg`
+      : s.gripL ? `左 ${s.gripL}kg` : `右 ${s.gripR}kg`;
+
+    const perfItems = [
+      s.cmj      && `跳高 ${s.cmj}cm`,
+      s.sj       && `跳遠 ${s.sj}cm`,
+      s.rsi      && `RSI ${s.rsi}`,
+      s.rope     && `前繩30s ${s.rope}次`,
+      s.bike     && `單車步30s ${s.bike}次`,
+      s.bike2m   && `單車步2min ${s.bike2m}次`,
+      s.balanceL && `平衡左 ${s.balanceL}秒`,
+      s.balanceR && `平衡右 ${s.balanceR}秒`,
+      s.sitreach !== undefined && s.sitreach !== null && `前伸 ${s.sitreach}cm`,
+    ].filter(Boolean);
+
+    // If grip is high + other metrics recorded — check correlation
+    let corrNote = '';
+    if (ratio !== null && perfItems.length > 0) {
+      const checkMetric = (metricId, val, higher=true) => {
+        if (!val) return null;
+        const prev = (PERF_RECORDS[s.name]?.[metricId] || []).filter(r => r.date < date);
+        if (!prev.length) return null;
+        const prevBest = higher ? Math.max(...prev.map(r=>r.val)) : Math.min(...prev.map(r=>r.val));
+        return val / prevBest;
+      };
+      const ratios = [
+        checkMetric('cmj',     s.cmj),
+        checkMetric('sj',      s.sj),
+        checkMetric('rope30',  s.rope),
+        checkMetric('bike',    s.bike),
+        checkMetric('bike2m',  s.bike2m),
+        checkMetric('balanceL',s.balanceL),
+        checkMetric('sitreach',s.sitreach),
+      ].filter(x => x !== null);
+      if (ratios.length) {
+        const avgPerf = ratios.reduce((a,b)=>a+b,0)/ratios.length;
+        if (ratio >= 1.02 && avgPerf >= 1.0) corrNote = '✦ 握力佳，體能表現同樣出色，相關性良好';
+        else if (ratio >= 1.02 && avgPerf < 0.95) corrNote = '△ 握力佳但體能偏低，可能有其他因素影響表現';
+        else if (ratio < 0.93 && avgPerf < 0.95) corrNote = '⚠ 握力低，體能同步下降，狀態確實欠佳';
+        else if (ratio < 0.93 && avgPerf >= 1.0) corrNote = '○ 握力低但體能表現正常，可能只是手部疲勞';
+      }
+    }
+
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:14px;font-weight:800">${s.name}</span>
+        <span style="font-size:13px;font-weight:900;color:${sColor}">${sIcon} ${sLabel}
+          ${ratio !== null ? `<span style="font-size:10px;font-weight:400;color:var(--muted);margin-left:4px">${(ratio*100).toFixed(0)}% vs歷史</span>` : ''}
+        </span>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">握力：${gripDisplay}
+        ${s.prevGripAvg ? `<span style="margin-left:6px;opacity:0.6">歷史均值：${s.prevGripAvg.toFixed(1)}kg</span>` : ''}
+      </div>
+      ${perfItems.length ? `<div style="font-size:11px;color:rgba(248,250,252,0.5);margin-top:4px">${perfItems.join(' · ')}</div>` : ''}
+      ${corrNote ? `<div style="font-size:11px;color:rgba(62,207,207,0.7);margin-top:5px">${corrNote}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── 雷達圖（使用 SVG） ──
+  // Map IS metrics to 十角圖概念（10 axes）
+  // IS 版體能雷達圖（8軸，對應8個體能維度）
+  const radarAxes = [
+    { key:'rope30',   label:'前繩速度',  unit:'次', cat:'速度協調' },
+    { key:'bike',     label:'單車步30s', unit:'次', cat:'腳部速度' },
+    { key:'cmj',      label:'跳高CMJ',   unit:'cm', cat:'下肢爆發' },
+    { key:'sj',       label:'立定跳遠',  unit:'cm', cat:'爆發距離' },
+    { key:'rsi',      label:'RSI',       unit:'',   cat:'反彈效率' },
+    { key:'bike2m',   label:'單車步2min',unit:'次', cat:'心肺耐力' },
+    { key:'balanceL', label:'平衡力(左)',unit:'秒', cat:'平衡力' },
+    { key:'sitreach', label:'坐地前伸',  unit:'cm', cat:'柔軟度' },
+  ];
+
+  // Build radar for each student with enough data
+  const radarStudents = studentsData.filter(s => {
+    const count = radarAxes.filter(ax => s[ax.key]).length;
+    return count >= 3;
+  });
+
+  let radarHtml = '';
+  if (radarStudents.length) {
+    radarHtml = `
+    <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin:16px 0 10px">
+      📡 體能雷達圖（當日成績 vs 個人最佳）
+    </div>
+    <div style="font-size:11px;color:rgba(248,250,252,0.4);margin-bottom:12px">
+      虛線外框 = 個人最佳 · 青色填充 = 今日成績 · 🟡點 = PB · 越接近外框越理想
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px">
+      ${radarStudents.map(s => buildRadarSVG(s, radarAxes, date)).join('')}
+    </div>`;
+  }
+
+  content.innerHTML = `
+    <!-- 整體狀態 -->
+    <div style="background:rgba(${overallColor==='#34d399'?'52,211,153':'62,207,207'},0.1);border:1.5px solid rgba(${overallColor==='#34d399'?'52,211,153':'62,207,207'},0.3);border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:900;color:${overallColor};margin-bottom:6px">
+        今日整體狀態：${overallStatus}
+      </div>
+      <div style="font-size:13px;color:rgba(248,250,252,0.75);line-height:1.7">${overallAdvice}</div>
+      ${avgRatio !== null ? `<div style="font-size:11px;color:var(--muted);margin-top:6px">
+        整體握力相對歷史：${(avgRatio*100).toFixed(1)}% · 分析學生數：${withRatio.length}
+      </div>` : ''}
+    </div>
+
+    <!-- 科學說明 -->
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px">🔬 理論依據</div>
+      <div style="font-size:12px;color:rgba(248,250,252,0.6);line-height:1.7">
+        手握力是衡量學生當日神經肌肉系統激活程度的快速指標。研究顯示，手握力與下肢爆發力（立定跳）、速度及整體體能表現具有顯著正相關（r=0.6–0.8）。當握力低於個人平均水平時，通常代表中樞神經系統疲勞，其他體能測試成績亦傾向偏低。
+      </div>
+    </div>
+
+    <!-- 個別學生分析 -->
+    <div style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px">
+      👤 個別學生狀態
+    </div>
+    ${studentCards}
+
+    ${radarHtml}
+  `;
+}
+
+// ── 繪製雷達圖 SVG ──
+function buildRadarSVG(s, axes, date) {
+  const validAxes = axes.filter(ax => s[ax.key]);
+  if (validAxes.length < 3) return '';
+
+  const N = validAxes.length;
+  const cx = 110, cy = 110, R = 85;
+  const levels = 4;
+
+  // Get PB for each axis
+  const getPB = (key) => {
+    const recs = PERF_RECORDS[s.name]?.[key] || [];
+    if (!recs.length) return null;
+    const m = METRICS.find(x => x.id === key);
+    const higher = m ? m.higher : true;
+    return higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
+  };
+
+  const axisData = validAxes.map((ax, i) => {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const pb = getPB(ax.key);
+    const val = s[ax.key];
+    const ratio = pb ? Math.min(val / pb, 1.2) : 0.5; // cap at 120%
+    const norm = Math.min(ratio, 1.0); // normalize to 0-1 for drawing
+
+    return {
+      ...ax,
+      angle, val, pb, ratio, norm,
+      x: cx + Math.cos(angle) * R,
+      y: cy + Math.sin(angle) * R,
+      tx: cx + Math.cos(angle) * (R + 20),
+      ty: cy + Math.sin(angle) * (R + 20),
+      valX: cx + Math.cos(angle) * R * norm,
+      valY: cy + Math.sin(angle) * R * norm,
+    };
+  });
+
+  // Grid circles
+  let gridSvg = '';
+  for (let l = 1; l <= levels; l++) {
+    const r = R * l / levels;
+    gridSvg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  }
+
+  // Grid lines to each axis
+  const gridLines = axisData.map(ax =>
+    `<line x1="${cx}" y1="${cy}" x2="${ax.x}" y2="${ax.y}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`
+  ).join('');
+
+  // PB polygon (outer)
+  const pbPoly = axisData.map(ax => `${ax.x},${ax.y}`).join(' ');
+
+  // Value polygon (today)
+  const valPoly = axisData.map(ax => `${ax.valX},${ax.valY}`).join(' ');
+
+  // Labels
+  const labels = axisData.map(ax => {
+    const anchor = ax.tx < cx - 5 ? 'end' : ax.tx > cx + 5 ? 'start' : 'middle';
+    const dy = ax.ty < cy - 5 ? -8 : ax.ty > cy + 5 ? 16 : 4;
+    return `<text x="${ax.tx}" y="${ax.ty + dy}" text-anchor="${anchor}" font-size="9" fill="rgba(255,255,255,0.5)" font-family="PingFang HK,Arial">${ax.label}</text>
+            <text x="${ax.tx}" y="${ax.ty + dy + 11}" text-anchor="${anchor}" font-size="8" fill="rgba(62,207,207,0.7)" font-family="Arial">${ax.val}${ax.unit}</text>`;
+  }).join('');
+
+  // Avg ratio
+  const avgRatio = axisData.reduce((s,ax) => s + ax.ratio, 0) / axisData.length;
+  const scoreColor = avgRatio >= 0.98 ? '#34d399' : avgRatio >= 0.88 ? '#3ECFCF' : avgRatio >= 0.78 ? '#fbbf24' : '#f87171';
+
+  return `
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;min-width:240px">
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px">${s.name}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+      綜合比率 <span style="color:${scoreColor};font-weight:900">${(avgRatio*100).toFixed(0)}%</span> vs 個人最佳
+    </div>
+    <svg viewBox="0 0 220 220" width="200" height="200" style="display:block;margin:0 auto">
+      ${gridSvg}
+      ${gridLines}
+      <polygon points="${pbPoly}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <polygon points="${valPoly}" fill="rgba(62,207,207,0.2)" stroke="#3ECFCF" stroke-width="2"/>
+      ${axisData.map(ax => `<circle cx="${ax.valX}" cy="${ax.valY}" r="3.5" fill="#3ECFCF"/>`).join('')}
+      ${labels}
+      <text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.3)" font-family="Arial">IS</text>
+    </svg>
+  </div>`;
+}
+
+
 function renderMakeup() {
   document.getElementById('header-title-text').textContent = '補堂記錄';
   document.getElementById('header-subtitle-text').textContent = '所有班別';
@@ -2465,11 +2819,24 @@ function renderMakeup() {
     { key:'expired',  label:'已過期' },
     { key:'done',     label:'已完成' },
     { key:'all',      label:'全部' },
+    { key:'byclass',  label:'📋 按班別' },
   ];
 
   document.getElementById('makeup-filters').innerHTML = filters.map(f =>
     `<div class="filter-pill ${makeupFilter===f.key?'active':''}" onclick="setMakeupFilter('${f.key}')">${f.label}</div>`
   ).join('');
+
+  // 顯示/隱藏班別篩選區
+  const wrap = document.getElementById('makeup-class-filter-wrap');
+  if (makeupFilter === 'byclass') {
+    wrap.style.display = 'block';
+    renderMakeupByClass();
+    document.getElementById('makeup-list').style.display = 'none';
+    return;
+  } else {
+    wrap.style.display = 'none';
+    document.getElementById('makeup-list').style.display = 'block';
+  }
 
   const now = todayStr();
   let rows = [];
@@ -2540,6 +2907,103 @@ function renderMakeup() {
 function setMakeupFilter(f) {
   makeupFilter = f;
   renderMakeup();
+}
+
+// 按班別查看未補堂學生
+let makeupClassFilter = null; // null=全部班別
+
+function renderMakeupByClass() {
+  const pils = document.getElementById('makeup-class-pills');
+  const res  = document.getElementById('makeup-class-result');
+  if (!pils || !res) return;
+
+  // 班別按鈕
+  const allActive = makeupClassFilter === null;
+  pils.innerHTML =
+    `<div onclick="setMakeupClassFilter(null)"
+      style="padding:5px 14px;border-radius:20px;border:1.5px solid ${allActive?'var(--cyan)':'var(--border)'};
+        background:${allActive?'var(--cyan-dim)':'var(--surface2)'};color:${allActive?'var(--cyan)':'var(--muted)'};
+        font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">全部班別</div>` +
+    Object.entries(CLASSES).map(([cid, cls]) => {
+      const on = makeupClassFilter === cid;
+      return `<div onclick="setMakeupClassFilter('${cid}')"
+        style="padding:5px 14px;border-radius:20px;border:1.5px solid ${on?'var(--amber)':'var(--border)'};
+          background:${on?'rgba(255,180,0,0.1)':'var(--surface2)'};color:${on?'var(--amber)':'var(--muted)'};
+          font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">${cls.dayZh} ${cls.time}</div>`;
+    }).join('');
+
+  const now = todayStr();
+  // 收集要顯示的班別
+  const classesToShow = makeupClassFilter
+    ? [[makeupClassFilter, CLASSES[makeupClassFilter]]]
+    : Object.entries(CLASSES);
+
+  let html = '';
+  let totalPending = 0;
+
+  classesToShow.forEach(([cid, cls]) => {
+    const students = cls.students || [];
+    // 找每個學生在這個班別的未補堂記錄
+    const studentAbsences = students.map(name => {
+      const pending = ABSENCES.filter(a =>
+        a.name === name &&
+        a.classId === cid &&
+        !a.madeUpDate &&
+        a.deadline >= now
+      ).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+      const expiredAbs = ABSENCES.filter(a =>
+        a.name === name &&
+        a.classId === cid &&
+        !a.madeUpDate &&
+        a.deadline < now
+      );
+      return { name, pending, expired: expiredAbs.length };
+    }).filter(s => s.pending.length > 0 || s.expired > 0);
+
+    if (!studentAbsences.length) return; // 此班全部補完
+
+    totalPending += studentAbsences.reduce((sum, s) => sum + s.pending.length, 0);
+
+    html += `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px">
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:10px">
+        ${cls.dayZh} ${cls.time}
+        <span style="font-size:11px;font-weight:600;color:var(--muted);margin-left:6px">${studentAbsences.length} 人未補堂</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${studentAbsences.map(s => {
+          const earliest = s.pending[0];
+          const dl = earliest ? daysLeft(earliest.deadline) : null;
+          const urg = dl !== null && dl <= 14;
+          const statusColor = s.expired > 0 ? 'var(--red)' : urg ? 'var(--amber)' : 'var(--muted)';
+          return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:10px;padding:10px 12px">
+            <div>
+              <span style="font-size:14px;font-weight:700">${s.name}</span>
+              <span style="font-size:12px;color:var(--muted);margin-left:8px">${s.pending.length}節待補${s.expired?` · ${s.expired}節已過期`:''}</span>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${statusColor}">
+              ${s.expired > 0 ? '⚠ 有過期' : dl !== null ? (urg ? `⚠ 剩${dl}天` : `還有${dl}天`) : ''}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  if (!html) {
+    res.innerHTML = `<div class="empty-state"><div class="icon">✓</div><p>所有學生補堂情況良好</p></div>`;
+  } else {
+    res.innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">
+        共 <span style="color:var(--amber)">${totalPending}</span> 節待補堂
+      </div>
+      ${html}`;
+  }
+}
+
+function setMakeupClassFilter(cid) {
+  makeupClassFilter = cid;
+  renderMakeupByClass();
 }
 
 function markMakeupDone(id) {
@@ -2904,17 +3368,21 @@ function doUnlock() {
 //  PERFORMANCE TRACKING
 // ═══════════════════════════════════════════
 const METRICS = [
-  { id:'rope30',  name:'30秒前繩',  unit:'次',  higher:true },
-  { id:'bike',    name:'單車步',    unit:'次',  higher:true },
-  { id:'double',  name:'二重跳',    unit:'次',  higher:true },
-  { id:'cross',   name:'交叉開',    unit:'次',  higher:true },
-  { id:'gripL',   name:'手握力(左)', unit:'kg', higher:true },
-  { id:'gripR',   name:'手握力(右)', unit:'kg', higher:true },
+  { id:'rope30',  name:'30秒前繩',     unit:'次',  higher:true },
+  { id:'bike',    name:'30秒單車步',   unit:'次',  higher:true },
+  { id:'double',  name:'二重跳',       unit:'次',  higher:true },
+  { id:'cross',   name:'交叉開',       unit:'次',  higher:true },
+  { id:'gripL',   name:'手握力(左)',   unit:'kg',  higher:true },
+  { id:'gripR',   name:'手握力(右)',   unit:'kg',  higher:true },
   { id:'cmj',     name:'立定跳高（CMJ）', unit:'cm', higher:true },
-  { id:'sj',      name:'立定跳遠',  unit:'cm', higher:true },
-  { id:'rsi',     name:'RSI',       unit:'',   higher:true },
+  { id:'sj',      name:'立定跳遠',     unit:'cm',  higher:true },
+  { id:'rsi',     name:'RSI',          unit:'',    higher:true },
+  { id:'bike2m',  name:'2分鐘單車步', unit:'次',  higher:true },
+  { id:'balanceL',name:'閉目單腳站立(左)', unit:'秒', higher:true },
+  { id:'balanceR',name:'閉目單腳站立(右)', unit:'秒', higher:true },
+  { id:'sitreach',name:'坐地前伸',     unit:'cm',  higher:true },
 ];
-// 這些項目每次記錄兩個數據，取最大值作 PB 比較
+// 這些項目每次記錄多個嘗試，取最大值作 PB 比較
 const DUAL_METRICS = new Set(['rope30','bike','double','cross']);
 
 let STUDENT_YEARS = {
@@ -2983,7 +3451,9 @@ function renderPerf() {
   document.getElementById('perf-summary').style.display = 'none';
   document.getElementById('perf-history-panel').style.display = 'none';
   perfTabActive = 'new';
-  document.getElementById('ptab-new') ?.classList.add('active');
+  document.getElementById('ptab-new')  ?.classList.add('active');
+  document.getElementById('ptab-hist') ?.classList.remove('active');
+  document.getElementById('ptab-radar')?.classList.remove('active');
   document.getElementById('ptab-hist')?.classList.remove('active');
 
   document.getElementById('perf-class-bar').innerHTML =
@@ -3042,8 +3512,16 @@ function startPerfEntry() {
         const pb  = getPersonalBest(name, mid);
         const pbTxt = pb !== null ? `PB: ${pb}${m.unit}` : '首次';
         const isDual = DUAL_METRICS.has(mid);
-        const isRSI  = mid === 'rsi';
-        const rsiInfoHtml = isRSI ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">RSI（反應強度指數）</span> 是衡量爆發力及落地反彈效率的指標。數值越高代表爆發力越強。計算方式：跳躍高度 ÷ 接觸時間。IS 訓練計劃定期測試 RSI，追蹤學員爆發力進步。</div>` : '';
+        const isRSI     = mid === 'rsi';
+        const isBike2m  = mid === 'bike2m';
+        const isBalance = mid === 'balanceL' || mid === 'balanceR';
+        const isSitReach= mid === 'sitreach';
+        const rsiInfoHtml =
+          isRSI     ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">RSI（反應強度指數）</span> 是衡量爆發力及落地反彈效率的指標。數值越高代表爆發力越強。計算方式：跳躍高度 ÷ 接觸時間。</div>`
+          : isBike2m  ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">2分鐘單車步</span> 測試心肺耐力及肌耐力。連續踏單車步 2 分鐘，記錄完成次數。與 30 秒版本相比，2 分鐘版更能反映有氧閾值及肌耐力水平。</div>`
+          : isBalance ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">閉目單腳站立</span> 測試平衡力（本體感覺）。閉上眼睛，單腳站立，記錄堅持秒數。左腳右腳分別記錄。建議量兩次取最佳。</div>`
+          : isSitReach ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">坐地前伸</span> 測試柔軟度（後腿及下背）。坐地雙腿伸直，雙手緩慢向前伸展至最遠，記錄距離（cm）。以腳跟為基準點，超過腳跟為正數，未及為負數。</div>`
+          : '';
         if (isDual) {
           return `
           <div class="psc-metric-row" style="flex-wrap:wrap;gap:5px;align-items:center">
@@ -3257,8 +3735,20 @@ function showPerfSummary(historyDate, historyMetrics) {
         const isFirst  = prevBest === null;
         const isRecord = !isFirst && isBetter(m.id, todayRec.val, prevBest);
 
-        const pbStyle = isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--amber);font-weight:900';
-        rowHtml += `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
+        // PB 欄：如果今天破記錄，顯示 舊PB → 新PB
+        let pbCell;
+        if (isRecord) {
+          pbCell = `<td style="color:var(--green);font-weight:900;white-space:nowrap">
+            <span style="color:rgba(248,250,252,0.4);font-size:10px;text-decoration:line-through;font-weight:400">${prevBest}</span>
+            <span style="font-size:10px;color:rgba(62,207,207,0.7)"> → </span>
+            <span style="color:var(--green)">${pb}</span>
+            <span style="font-size:11px">🏅</span>
+          </td>`;
+        } else {
+          const pbStyle = 'color:var(--amber);font-weight:900';
+          pbCell = `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
+        }
+        rowHtml += pbCell;
 
         const vals = [todayRec.v1, todayRec.v2, todayRec.v3];
         const recordedVals = vals.filter(v => v !== null && v !== undefined);
@@ -3318,11 +3808,12 @@ function showPerfSummary(historyDate, historyMetrics) {
         <tbody>${tbody || `<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:20px">當天無學生成績記錄</td></tr>`}</tbody>
       </table>
     </div>
-    <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">
-      截圖此表格即可發送給家長 📱
-    </div>
-    <div style="margin-top:10px">
-      <button class="btn-start-perf" onclick="renderPerf();showScreen('perf')">返回設定</button>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button onclick="savePerfTableImage()"
+        style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 18px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;flex:1">
+        📥 儲存成績表圖片
+      </button>
+      <button class="btn-start-perf" onclick="renderPerf();showScreen('perf')" style="flex:1">返回設定</button>
     </div>
   `;
 }
@@ -3483,13 +3974,16 @@ let perfTabActive = 'new';
 
 function switchPerfTab(tab) {
   perfTabActive = tab;
-  document.getElementById('ptab-new') .classList.toggle('active', tab === 'new');
-  document.getElementById('ptab-hist').classList.toggle('active', tab === 'hist');
-  document.getElementById('perf-setup')         .style.display = tab === 'new'  ? 'block' : 'none';
-  document.getElementById('perf-history-panel') .style.display = tab === 'hist' ? 'block' : 'none';
+  document.getElementById('ptab-new')  ?.classList.toggle('active', tab === 'new');
+  document.getElementById('ptab-hist') ?.classList.toggle('active', tab === 'hist');
+  document.getElementById('ptab-radar')?.classList.toggle('active', tab === 'radar');
+  document.getElementById('perf-setup')         .style.display = tab === 'new'   ? 'block' : 'none';
+  document.getElementById('perf-history-panel') .style.display = tab === 'hist'  ? 'block' : 'none';
+  document.getElementById('perf-radar-panel')   .style.display = tab === 'radar' ? 'block' : 'none';
   document.getElementById('perf-entry')  .style.display = 'none';
   document.getElementById('perf-summary').style.display = 'none';
-  if (tab === 'hist') renderPerfHistoryPanel();
+  if (tab === 'hist')  renderPerfHistoryPanel();
+  if (tab === 'radar') renderPerfRadarPanel();
 }
 
 function renderPerfHistoryPanel() {
@@ -4130,6 +4624,73 @@ function deleteStudent(name) {
 }
 
 
+// ═══════════════════════════════════════════════════════
+//  SAVE PERF TABLE AS IMAGE
+// ═══════════════════════════════════════════════════════
+async function savePerfTableImage() {
+  const wrap = document.getElementById('perf-table-wrap');
+  if (!wrap) return;
+
+  const table = wrap.querySelector('.perf-table');
+  if (!table) { toast('找不到成績表', '⚠'); return; }
+
+  toast('正在生成圖片…', '⏳');
+
+  // Clone table and build a standalone HTML page for canvas rendering
+  const cls = CLASSES[perfClass];
+  const date = perfDate || todayStr();
+  const title = `${cls.dayZh} ${cls.time} · ${fmtDate(date)}`;
+
+  // Serialize table HTML
+  const tableHtml = table.outerHTML;
+
+  // Build a white-background print HTML
+  const printHtml = `<!DOCTYPE html><html><head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif;
+      background: #fff; color: #1a1a1a; padding: 20px; }
+    h2 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .sub { font-size: 12px; color: #666; margin-bottom: 14px; display:flex; gap:12px; flex-wrap:wrap; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th { background: #f0f4f8; padding: 9px 10px; text-align: center; font-size: 11px;
+      font-weight: 700; color: #444; border: 1px solid #e0e0e0; white-space: nowrap; }
+    td { padding: 9px 10px; text-align: center; border: 1px solid #e0e0e0; }
+    td.name-col { text-align: left; font-weight: 700; }
+    td.empty-cell { color: #ccc; }
+    .pb-new { color: #059669; font-weight: 900; }
+    .pb-old { color: #aaa; font-size: 10px; text-decoration: line-through; }
+    .legend { margin-top: 10px; font-size: 11px; color: #888; display:flex; gap:12px; }
+    .footer { margin-top: 12px; font-size: 10px; color: #aaa; text-align: right; }
+  </style>
+  </head><body>
+  <h2>INITIATE SPORTS · 成績表</h2>
+  <div class="sub">
+    <span>📅 ${title}</span>
+    <span style="color:#d97706">PB = 個人最佳</span>
+    <span style="color:#059669">🏅 = 今日破記錄（舊PB → 新PB）</span>
+    <span style="color:#2563eb">✦ = 首次記錄</span>
+  </div>
+  ${tableHtml}
+  <div class="footer">生成日期：${fmtDate(todayStr())} · Initiate Sports</div>
+  </body></html>`;
+
+  // Open in new window and capture
+  const win = window.open('', '_blank', 'width=900,height=600');
+  if (!win) { toast('請允許彈出視窗', '⚠'); return; }
+  win.document.write(printHtml);
+  win.document.close();
+
+  // Give it time to render, then trigger print (user can save as PDF/image)
+  setTimeout(() => {
+    win.focus();
+    win.print();
+    toast('✅ 成績表已開啟，可列印或儲存為PDF', '📥');
+  }, 600);
+}
+
+
 function saveBodyRecord(name) {
   const h = parseFloat(document.getElementById(`bi-height-${name}`)?.value);
   const w = parseFloat(document.getElementById(`bi-weight-${name}`)?.value);
@@ -4599,22 +5160,16 @@ function renderStarCanvas(batch) {
     canvas.height = canvasH;
     const ctx = canvas.getContext('2d');
 
-    // Background
-    ctx.fillStyle = '#0f0f0f';
+    // Background — white
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // Subtle grid pattern
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < canvasW; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvasH); ctx.stroke(); }
-    for (let y = 0; y < canvasH; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvasW,y); ctx.stroke(); }
-
     // Header
-    ctx.fillStyle = '#3ECFCF';
+    ctx.fillStyle = '#0d1b2a';
     ctx.font = 'bold 42px "PingFang HK", Arial';
     ctx.textAlign = 'center';
     ctx.fillText('⭐ 優秀學員 ⭐', canvasW / 2, 56);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'rgba(13,27,42,0.55)';
     ctx.font = '22px "PingFang HK", Arial';
     ctx.fillText(`${batch.period}　${batch.label}`, canvasW / 2, 90);
 
@@ -4841,6 +5396,145 @@ function generateBulkReports() {
 // ═══════════════════════════════════════════════════════
 // 輔助：把一個學生的報告渲染成 HTML 字串
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+//  學生報告用雷達圖 — IS 版 8 軸體能評估
+// ═══════════════════════════════════════════════════════
+const RADAR_AXES_REPORT = [
+  { key:'rope30',   label:'前繩速度',   unit:'次', higher:true, color:'#3ECFCF' },
+  { key:'bike',     label:'單車步30s',  unit:'次', higher:true, color:'#3ECFCF' },
+  { key:'cmj',      label:'跳高CMJ',    unit:'cm', higher:true, color:'#3ECFCF' },
+  { key:'sj',       label:'立定跳遠',   unit:'cm', higher:true, color:'#3ECFCF' },
+  { key:'rsi',      label:'RSI',        unit:'',   higher:true, color:'#3ECFCF' },
+  { key:'bike2m',   label:'耐力(2min)', unit:'次', higher:true, color:'#3ECFCF' },
+  { key:'balanceL', label:'平衡力(左)', unit:'秒', higher:true, color:'#3ECFCF' },
+  { key:'sitreach', label:'柔軟度',     unit:'cm', higher:true, color:'#3ECFCF' },
+];
+
+// 建立學生報告用雷達圖（SVG，適合 A4 列印白色底）
+function buildReportRadarSVG(name, from, to) {
+  // Get best value in range for each axis
+  const axisData = RADAR_AXES_REPORT.map((ax, i) => {
+    const recs = (PERF_RECORDS[name]?.[ax.key] || [])
+      .filter(r => r.date >= from && r.date <= to);
+    if (!recs.length) return { ...ax, i, val: null, pb: null, ratio: 0, norm: 0 };
+
+    const val = ax.higher ? Math.max(...recs.map(r => r.val)) : Math.min(...recs.map(r => r.val));
+    // PB = best ever (all time)
+    const allRecs = PERF_RECORDS[name]?.[ax.key] || [];
+    const pb = allRecs.length
+      ? (ax.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val)))
+      : val;
+    const ratio = pb > 0 ? Math.min(val / pb, 1.0) : 0.5;
+    return { ...ax, i, val, pb, ratio, norm: ratio };
+  });
+
+  const hasData = axisData.some(ax => ax.val !== null);
+  if (!hasData) return '';
+
+  const N = axisData.length;
+  const cx = 130, cy = 130, R = 100;
+  const levels = 4;
+
+  let gridSvg = '';
+  for (let l = 1; l <= levels; l++) {
+    const r = R * l / levels;
+    // Grid polygon
+    const pts = Array.from({length:N}, (_,i) => {
+      const a = (i/N)*Math.PI*2 - Math.PI/2;
+      return `${cx+Math.cos(a)*r},${cy+Math.sin(a)*r}`;
+    }).join(' ');
+    gridSvg += `<polygon points="${pts}" fill="none" stroke="${l===levels?'#ccc':'#e8e8e8'}" stroke-width="${l===levels?1.5:0.8}"/>`;
+  }
+
+  const gridLines = axisData.map((ax,i) => {
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    return `<line x1="${cx}" y1="${cy}" x2="${cx+Math.cos(a)*R}" y2="${cy+Math.sin(a)*R}" stroke="#e0e0e0" stroke-width="0.8"/>`;
+  }).join('');
+
+  // Value polygon
+  const valPts = axisData.map((ax,i) => {
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    const r = ax.val !== null ? R * ax.norm : 0;
+    return `${cx+Math.cos(a)*r},${cy+Math.sin(a)*r}`;
+  }).join(' ');
+
+  // PB polygon (all 1.0)
+  const pbPts = axisData.map((ax,i) => {
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    return `${cx+Math.cos(a)*R},${cy+Math.sin(a)*R}`;
+  }).join(' ');
+
+  // Labels and values
+  const labels = axisData.map((ax,i) => {
+    const a = (i/N)*Math.PI*2 - Math.PI/2;
+    const lx = cx + Math.cos(a) * (R + 18);
+    const ly = cy + Math.sin(a) * (R + 18);
+    const anchor = lx < cx-5 ? 'end' : lx > cx+5 ? 'start' : 'middle';
+    const dy = ly < cy-5 ? -10 : ly > cy+5 ? 20 : 4;
+    const fillColor = ax.val !== null ? '#1a1a1a' : '#bbb';
+    const valStr = ax.val !== null ? `${ax.val}${ax.unit}` : '—';
+    const pctStr = ax.val !== null ? `${Math.round(ax.ratio*100)}%` : '';
+    return `
+      <text x="${lx}" y="${ly+dy}" text-anchor="${anchor}" font-size="9.5" font-weight="700" fill="${fillColor}" font-family="PingFang HK,Arial">${ax.label}</text>
+      <text x="${lx}" y="${ly+dy+12}" text-anchor="${anchor}" font-size="9" fill="#3ECFCF" font-family="Arial">${valStr}</text>
+      ${pctStr ? `<text x="${lx}" y="${ly+dy+22}" text-anchor="${anchor}" font-size="8" fill="#999" font-family="Arial">${pctStr}</text>` : ''}`;
+  }).join('');
+
+  // Dots on value polygon
+  const dots = axisData.filter(ax => ax.val !== null).map((ax,i) => {
+    const idx = axisData.indexOf(ax);
+    const a = (idx/N)*Math.PI*2 - Math.PI/2;
+    const r = R * ax.norm;
+    const isPB = ax.ratio >= 0.99;
+    return `<circle cx="${cx+Math.cos(a)*r}" cy="${cy+Math.sin(a)*r}" r="4" fill="${isPB?'#f59e0b':'#3ECFCF'}" stroke="white" stroke-width="1.5"/>`;
+  }).join('');
+
+  const completedCount = axisData.filter(ax => ax.val !== null).length;
+  const avgScore = completedCount > 0
+    ? Math.round(axisData.filter(ax=>ax.val!==null).reduce((s,ax)=>s+ax.ratio,0)/completedCount*100)
+    : 0;
+  const scoreColor = avgScore >= 90 ? '#059669' : avgScore >= 75 ? '#3ECFCF' : avgScore >= 60 ? '#d97706' : '#dc2626';
+
+  return `
+  <div style="margin-top:14px">
+    <div style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin:0 0 4px;padding-bottom:4px;border-bottom:1px solid #e0e0e0">
+      📡 IS 體能雷達圖（時間段內最佳 vs 個人最佳）
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <svg viewBox="0 0 260 260" width="220" height="220" style="flex-shrink:0">
+        ${gridSvg}
+        ${gridLines}
+        <polygon points="${pbPts}" fill="none" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polygon points="${valPts}" fill="rgba(62,207,207,0.18)" stroke="#3ECFCF" stroke-width="2.5"/>
+        ${dots}
+        ${labels}
+      </svg>
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:22px;font-weight:900;color:${scoreColor};margin-bottom:4px">${avgScore}%</div>
+        <div style="font-size:11px;color:#666;margin-bottom:12px">綜合體能指數（本期最佳 vs 個人最佳）</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${axisData.filter(ax=>ax.val!==null).map(ax => {
+            const barW = Math.round(ax.ratio * 100);
+            const barColor = barW >= 99 ? '#f59e0b' : barW >= 85 ? '#3ECFCF' : barW >= 70 ? '#60a5fa' : '#f87171';
+            return `<div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:1px">
+                <span>${ax.label}</span><span style="color:${barColor};font-weight:700">${barW}%</span>
+              </div>
+              <div style="background:#f0f0f0;border-radius:3px;height:6px">
+                <div style="background:${barColor};border-radius:3px;height:6px;width:${barW}%"></div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="font-size:8.5px;color:#aaa;margin-top:8px">
+          ${completedCount}/${N} 項有數據 · 🟡圓點=PB · ⚪圓點=本期最佳<br>
+          虛線外框=個人最佳 · 填色=本期表現
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
 function buildSingleReportHtml(name, from, to, logoSrc) {
   const yr  = STUDENT_YEARS[name];
   const cls = getStudentClasses(name);
@@ -4989,6 +5683,10 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
 
   if (noData) html += '<div style="text-align:center;padding:40px 0;color:#999;font-size:13px">此時間範圍內沒有資料</div>';
 
+  // 雷達圖
+  const radarHtml = buildReportRadarSVG(name, from, to);
+  if (radarHtml) html += radarHtml;
+
   html += `<div class="a4-footer"><div>報告生成日期：${fmtDate(todayStr())}</div><div>Initiate Sports © ${new Date().getFullYear()}</div></div>
   </div>`;
   return html;
@@ -5039,6 +5737,9 @@ function buildPrintWrapper(body, title) {
     .a4-chart-footer{display:flex;justify-content:space-between;font-size:9px;color:#888;margin-top:4px}
     .a4-footer{margin-top:16px;padding-top:8px;border-top:1px solid #e0e0e0;display:flex;justify-content:space-between;font-size:9px;color:#999}
     @media screen{.a4-report{box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:10px}}
+    /* Radar chart */
+    polygon{shape-rendering:crispEdges}
+    @media print { .no-print{display:none} }
   </style>
   </head><body>
   <div class="print-toolbar no-print">
@@ -5244,6 +5945,10 @@ function generateReport() {
   if (noData) {
     html += `<div style="text-align:center;padding:60px 20px;color:rgba(0,0,0,0.35);font-size:14px">此時間範圍內沒有資料</div>`;
   }
+
+  // 雷達圖（加在 perf charts 後）
+  const _radarHtml = buildReportRadarSVG(name, from, to);
+  if (_radarHtml) html += _radarHtml;
 
   html += `
     <div class="a4-footer">
