@@ -6165,19 +6165,25 @@ function generateReport() {
   }).filter(Boolean);
 
   function makeLineChart(recs, m, chartId) {
-    if (recs.length < 2) {
-      return `<div style="text-align:center;color:var(--muted);font-size:11px;padding:12px 0">數據點不足，無法生成折線圖</div>`;
+    if (!recs || !recs.length) return `<div style="text-align:center;color:var(--muted);font-size:11px;padding:12px 0">沒有數據</div>`;
+    if (recs.length === 1) {
+      return `<div style="text-align:center;padding:10px 0">
+        <div style="font-size:26px;font-weight:900;color:#3ECFCF">${recs[0].val}${m.unit}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px">${fmtDate(recs[0].date)}</div>
+      </div>`;
     }
     const vals  = recs.map(r => r.val);
     const minV  = Math.min(...vals);
     const maxV  = Math.max(...vals);
     const range = maxV - minV || 1;
-    const W = 340, H = 90, padL = 32, padR = 8, padT = 8, padB = 22;
+    // Dynamic width: each point needs ~44px minimum
+    const W = Math.max(300, recs.length * 44 + 40);
+    const H = 110, padL = 30, padR = 12, padT = 20, padB = 38;
     const chartW = W - padL - padR;
     const chartH = H - padT - padB;
 
     const pts = recs.map((r, i) => {
-      const x = padL + (i / (recs.length - 1)) * chartW;
+      const x = padL + (recs.length > 1 ? (i / (recs.length - 1)) * chartW : chartW / 2);
       const y = padT + chartH - ((r.val - minV) / range) * chartH;
       return { x, y, val: r.val, date: r.date };
     });
@@ -6185,33 +6191,39 @@ function generateReport() {
     const polyline = pts.map(p => `${p.x},${p.y}`).join(' ');
     const areaPath = `M${pts[0].x},${padT+chartH} ` + pts.map(p=>`L${p.x},${p.y}`).join(' ') + ` L${pts[pts.length-1].x},${padT+chartH} Z`;
 
+    // Every point: circle + score above + date below (alternating to avoid overlap)
     const dots = pts.map((p, i) => {
       const isPB = p.val === maxV;
-      return `<circle cx="${p.x}" cy="${p.y}" r="${isPB?5:3}" fill="${isPB?'#fbbf24':'#3ECFCF'}" stroke="#111" stroke-width="1.5"/>`;
+      const isLast = i === pts.length - 1;
+      const dotR = isPB ? 5.5 : 4;
+      const dotFill = isPB ? '#fbbf24' : isLast ? '#22d3ee' : '#3ECFCF';
+      // Score label above the point
+      const labelY = p.y - dotR - 3;
+      const valLabel = `<text x="${p.x}" y="${labelY}" text-anchor="middle" font-size="9" font-weight="${isPB?'900':'700'}" fill="${dotFill}">${p.val}${m.unit}</text>`;
+      // Date label below x-axis, alternating rows
+      const dateY = H - (i % 2 === 0 ? 24 : 12);
+      const dateLabel = `<text x="${p.x}" y="${dateY}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.45)">${fmtShort(p.date)}</text>`;
+      return `<circle cx="${p.x}" cy="${p.y}" r="${dotR}" fill="${dotFill}" stroke="#111" stroke-width="1.5"/>
+        ${valLabel}${dateLabel}`;
     }).join('');
 
-    // Y axis labels
-    const yLabels = [minV, Math.round((minV+maxV)/2), maxV].map((v,i) => {
+    // Y axis labels (min / max)
+    const yLabels = [minV, maxV].map(v => {
       const y = padT + chartH - ((v - minV) / range) * chartH;
-      return `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.35)">${v}</text>`;
-    }).join('');
-
-    // X axis labels (first, middle, last)
-    const xLabels = [0, Math.floor((recs.length-1)/2), recs.length-1].filter((v,i,a)=>a.indexOf(v)===i).map(i => {
-      const p = pts[i];
-      return `<text x="${p.x}" y="${H-4}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.35)">${fmtShort(recs[i].date)}</text>`;
+      return `<text x="${padL-4}" y="${y+3}" text-anchor="end" font-size="8" fill="rgba(255,255,255,0.3)">${v}</text>`;
     }).join('');
 
     // Grid lines
     const gridLines = [0.25, 0.5, 0.75].map(f => {
       const y = padT + chartH * (1 - f);
-      return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+      return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>`;
     }).join('');
 
-    return `<svg id="${chartId}" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;margin:0 auto;overflow:visible">
+    return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <svg id="${chartId}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;min-width:${W}px;overflow:visible">
       <defs>
         <linearGradient id="g${chartId}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.3"/>
+          <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.25"/>
           <stop offset="100%" stop-color="#3ECFCF" stop-opacity="0"/>
         </linearGradient>
       </defs>
@@ -6220,10 +6232,9 @@ function generateReport() {
       <polyline points="${polyline}" fill="none" stroke="#3ECFCF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
       ${yLabels}
-      ${xLabels}
       <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
       <line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
-    </svg>`;
+    </svg></div>`;
   }
 
   const noData = !bodyFirst && !perfSections.length;
