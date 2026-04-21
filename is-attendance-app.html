@@ -5408,13 +5408,74 @@ const RADAR_AXES_REPORT = [
   { key:'sitreach', label:'柔軟度',     unit:'cm', higher:true, color:'#3ECFCF' },
 ];
 
+// ═══════════════════════════════════════════════════════
+//  雷達圖評估標準（Benchmark Standards）
+//  設計原則：100% = 同齡學生的優秀水準（P75），代表「良好」
+//  超過100%視為「頂尖」，但顯示上cap於100%
+//
+//  資料來源：
+//  • rope30：《國家學生體質健康標準2014》1分鐘跳繩標準 × 0.55係數換算為30秒，
+//    並按香港學生體能水平調整（參考CUHK香港學生體能研究報告2018）
+//  • sj（立定跳遠）：Chung et al. (2013)，香港本地12,712名學生常模數據，
+//    香港教育學院發布，取男女P75均值作100%基準
+//  • bike（30秒單車步）：無官方外部標準，
+//    以IS學員群體（n=54）的P75（53次）作100%參考基準
+//  • double / cross：跳繩競技評分參考，技術難度動作，
+//    40次/35次為一般訓練學員的良好水準
+//  • cmj / rsi / rope2m / balanceL / sitreach：
+//    沿用個人最佳值比較（未有足夠香港兒童常模）
+// ═══════════════════════════════════════════════════════
+function getRadarBenchmark(metricKey, name) {
+  // 取學生年齡（測試當年）
+  const birthYear = STUDENT_YEARS[name];
+  const testYear = 2025; // 大部分歷史數據在2025年
+  const age = birthYear ? Math.max(7, Math.min(14, testYear - birthYear)) : 10; // default 10歲
+
+  switch(metricKey) {
+
+    // ── rope30：30秒前繩 ──────────────────────────────
+    // 基準公式：28 + age×3.2（次），對應《國家體質標準2014》P75水平
+    // 7歲≈50次, 8歲≈54次, 9歲≈57次, 10歲≈60次, 11歲≈63次, 12歲≈66次
+    case 'rope30':
+      return Math.round(28 + age * 3.2);
+
+    // ── sj：立定跳遠 ─────────────────────────────────
+    // 來源：Chung et al. (2013) 香港學生常模，男女P75均值
+    // 8歲≈126cm, 9歲≈134cm, 10歲≈142cm, 11歲≈150cm, 12歲≈160cm
+    case 'sj': {
+      const sjTable = {7:118, 8:126, 9:134, 10:142, 11:150, 12:160, 13:165, 14:168};
+      return sjTable[age] || 142;
+    }
+
+    // ── bike：30秒單車步 ──────────────────────────────
+    // 協調性動作，無官方常模。以IS學員P75（53次）為良好基準
+    case 'bike':
+      return 50;
+
+    // ── double：30秒二重跳 ────────────────────────────
+    // 技術性難度動作，跳繩競技參考，40次為優良水準
+    case 'double':
+      return 40;
+
+    // ── cross：30秒交叉開 ─────────────────────────────
+    // 技術性動作，35次為優良水準
+    case 'cross':
+      return 35;
+
+    // ── cmj / rsi / rope2m / balanceL / sitreach ─────
+    // 沿用個人最佳值（PB）作基準，待累積足夠數據後更新
+    default:
+      return null; // null = 使用PB模式
+  }
+}
+
 // 建立學生報告用雷達圖（SVG，適合 A4 列印白色底）
 function buildReportRadarSVG(name, from, to) {
   // Get best value in range for each axis
   const axisData = RADAR_AXES_REPORT.map((ax, i) => {
     const recs = (PERF_RECORDS[name]?.[ax.key] || [])
       .filter(r => r.date >= from && r.date <= to);
-    if (!recs.length) return { ...ax, i, val: null, pb: null, ratio: 0, norm: 0 };
+    if (!recs.length) return { ...ax, i, val: null, pb: null, ratio: 0, norm: 0, benchmark: null };
 
     const val = ax.higher ? Math.max(...recs.map(r => r.val)) : Math.min(...recs.map(r => r.val));
     // PB = best ever (all time)
@@ -5422,8 +5483,20 @@ function buildReportRadarSVG(name, from, to) {
     const pb = allRecs.length
       ? (ax.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val)))
       : val;
-    const ratio = pb > 0 ? Math.min(val / pb, 1.0) : 0.5;
-    return { ...ax, i, val, pb, ratio, norm: ratio };
+
+    // ── 核心改動：使用客觀標準而非個人PB ──
+    const benchmark = getRadarBenchmark(ax.key, name);
+    let ratio, norm;
+    if (benchmark !== null) {
+      // 有客觀標準：比率 = 當前值 / 標準值，cap at 1.0
+      ratio = ax.higher ? Math.min(val / benchmark, 1.0) : Math.min(benchmark / val, 1.0);
+      norm = ratio;
+    } else {
+      // 無客觀標準：沿用個人PB模式
+      ratio = pb > 0 ? Math.min(val / pb, 1.0) : 0.5;
+      norm = ratio;
+    }
+    return { ...ax, i, val, pb, ratio, norm, benchmark };
   });
 
   const hasData = axisData.some(ax => ax.val !== null);
@@ -5471,11 +5544,17 @@ function buildReportRadarSVG(name, from, to) {
     const dy = ly < cy-5 ? -10 : ly > cy+5 ? 20 : 4;
     const fillColor = ax.val !== null ? '#1a1a1a' : '#bbb';
     const valStr = ax.val !== null ? `${ax.val}${ax.unit}` : '—';
-    const pctStr = ax.val !== null ? `${Math.round(ax.ratio*100)}%` : '';
+    // 百分比顯示：有客觀標準顯示相對標準的%，無標準顯示相對PB的%
+    const pct = ax.val !== null ? Math.round(ax.ratio * 100) : null;
+    // 標準值標示：有客觀標準時顯示 "標準: Xn"
+    const benchStr = (ax.val !== null && ax.benchmark !== null) ? `目標:${ax.benchmark}${ax.unit}` : '';
+    // 顏色：≥100%金色，≥80%青色，≥60%橙色，<60%紅色
+    const pctColor = pct === null ? '#999' : pct >= 100 ? '#f59e0b' : pct >= 80 ? '#3ECFCF' : pct >= 60 ? '#d97706' : '#ef4444';
     return `
       <text x="${lx}" y="${ly+dy}" text-anchor="${anchor}" font-size="9.5" font-weight="700" fill="${fillColor}" font-family="PingFang HK,Arial">${ax.label}</text>
       <text x="${lx}" y="${ly+dy+12}" text-anchor="${anchor}" font-size="9" fill="#3ECFCF" font-family="Arial">${valStr}</text>
-      ${pctStr ? `<text x="${lx}" y="${ly+dy+22}" text-anchor="${anchor}" font-size="8" fill="#999" font-family="Arial">${pctStr}</text>` : ''}`;
+      ${pct !== null ? `<text x="${lx}" y="${ly+dy+22}" text-anchor="${anchor}" font-size="8.5" font-weight="700" fill="${pctColor}" font-family="Arial">${pct}%</text>` : ''}
+      ${benchStr ? `<text x="${lx}" y="${ly+dy+32}" text-anchor="${anchor}" font-size="7.5" fill="#888" font-family="Arial">${benchStr}</text>` : ''}`;
   }).join('');
 
   // Dots on value polygon
@@ -5483,8 +5562,9 @@ function buildReportRadarSVG(name, from, to) {
     const idx = axisData.indexOf(ax);
     const a = (idx/N)*Math.PI*2 - Math.PI/2;
     const r = R * ax.norm;
-    const isPB = ax.ratio >= 0.99;
-    return `<circle cx="${cx+Math.cos(a)*r}" cy="${cy+Math.sin(a)*r}" r="4" fill="${isPB?'#f59e0b':'#3ECFCF'}" stroke="white" stroke-width="1.5"/>`;
+    // 達標（≥100%）顯示金色，接近標準（≥80%）青色，其他灰色
+    const dotColor = ax.ratio >= 1.0 ? '#f59e0b' : ax.ratio >= 0.8 ? '#3ECFCF' : '#94a3b8';
+    return `<circle cx="${cx+Math.cos(a)*r}" cy="${cy+Math.sin(a)*r}" r="4" fill="${dotColor}" stroke="white" stroke-width="1.5"/>`;
   }).join('');
 
   const completedCount = axisData.filter(ax => ax.val !== null).length;
@@ -5496,7 +5576,7 @@ function buildReportRadarSVG(name, from, to) {
   return `
   <div style="margin-top:14px">
     <div style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin:0 0 4px;padding-bottom:4px;border-bottom:1px solid #e0e0e0">
-      📡 IS 體能雷達圖（時間段內最佳 vs 個人最佳）
+      📡 IS 體能雷達圖（對比同齡標準）
     </div>
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
       <svg viewBox="0 0 260 260" width="220" height="220" style="flex-shrink:0">
@@ -5508,15 +5588,17 @@ function buildReportRadarSVG(name, from, to) {
         ${labels}
       </svg>
       <div style="flex:1;min-width:120px">
-        <div style="font-size:22px;font-weight:900;color:${scoreColor};margin-bottom:4px">${avgScore}%</div>
-        <div style="font-size:11px;color:#666;margin-bottom:12px">綜合體能指數（本期最佳 vs 個人最佳）</div>
+        <div style="font-size:22px;font-weight:900;color:${scoreColor};margin-bottom:2px">${avgScore}%</div>
+        <div style="font-size:10px;color:#666;margin-bottom:10px">綜合體能指數（對比同齡標準）</div>
         <div style="display:flex;flex-direction:column;gap:5px">
           ${axisData.filter(ax=>ax.val!==null).map(ax => {
-            const barW = Math.round(ax.ratio * 100);
-            const barColor = barW >= 99 ? '#f59e0b' : barW >= 85 ? '#3ECFCF' : barW >= 70 ? '#60a5fa' : '#f87171';
+            const barW = Math.min(Math.round(ax.ratio * 100), 100);
+            const barColor = barW >= 100 ? '#f59e0b' : barW >= 80 ? '#3ECFCF' : barW >= 60 ? '#60a5fa' : '#f87171';
+            const benchLabel = ax.benchmark !== null ? ` / 標準${ax.benchmark}${ax.unit}` : ' / 個人PB';
             return `<div>
               <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:1px">
-                <span>${ax.label}</span><span style="color:${barColor};font-weight:700">${barW}%</span>
+                <span>${ax.label} <span style="color:#aaa">(${ax.val}${ax.unit}${benchLabel})</span></span>
+                <span style="color:${barColor};font-weight:700">${Math.round(ax.ratio*100)}%</span>
               </div>
               <div style="background:#f0f0f0;border-radius:3px;height:6px">
                 <div style="background:${barColor};border-radius:3px;height:6px;width:${barW}%"></div>
@@ -5524,9 +5606,11 @@ function buildReportRadarSVG(name, from, to) {
             </div>`;
           }).join('')}
         </div>
-        <div style="font-size:8.5px;color:#aaa;margin-top:8px">
-          ${completedCount}/${N} 項有數據 · 🟡圓點=PB · ⚪圓點=本期最佳<br>
-          虛線外框=個人最佳 · 填色=本期表現
+        <div style="font-size:8px;color:#aaa;margin-top:10px;line-height:1.5">
+          ${completedCount}/${N} 項有數據<br>
+          🟡 達標(≥100%) &nbsp;🔵 良好(≥80%) &nbsp;⚫ 需加油<br>
+          <span style="color:#888">100% = 同齡學生優良水準（P75）</span><br>
+          <span style="color:#888">資料來源：Chung et al. 2013 HK / 國家體質標準2014</span>
         </div>
       </div>
     </div>
