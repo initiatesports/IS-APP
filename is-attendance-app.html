@@ -3408,6 +3408,7 @@ let STUDENT_YEARS = {
   "陳曉瑩": 2014, "陳書雅": 2018, "陳柏睎": 2021, "陳澔泓": 2017,
   "陳焯棋": 2018, "顧舒然": 2017, "馬仲然": 2018, "黃朗程": 2018,
   "黃梓昕": 2017, "黃玥晴": 2018, "黎柏希": 2015, "黎柏言": 2018,
+  "蘇穎悠": 2020,
 };
 
 let PERF_RECORDS = {};
@@ -6029,18 +6030,25 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
     }
   }
 
-  // Badge grades section
+  // Badge grades section — 顯示等級和 x/14 進度
   let gradeHtml = '';
   if (attemptedLevel > 0 || certifiedLevel > 0) {
+    const TOTAL_LEVELS = 14;
+    const atPct  = Math.round(attemptedLevel  / TOTAL_LEVELS * 100);
+    const cePct  = Math.round(certifiedLevel  / TOTAL_LEVELS * 100);
     gradeHtml = `<div class="a4-section-title" style="color:#1a1a1a;border-color:#e0e0e0">🏅 考核章別等級</div>
     <div style="display:flex;gap:12px;margin-bottom:14px">
       <div style="flex:1;background:#fff7e6;border:1.5px solid #fbbf24;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#92400e;font-weight:700;margin-bottom:4px">已考等級</div>
-        <div style="font-size:15px;font-weight:900;color:#92400e">${attemptedLevel > 0 ? getBadgeName(attemptedLevel) : '—'}</div>
+        <div style="font-size:10px;color:#92400e;font-weight:700;margin-bottom:4px">現時等級（已考）</div>
+        <div style="font-size:17px;font-weight:900;color:#92400e;line-height:1.1">${attemptedLevel > 0 ? getBadgeName(attemptedLevel) : '—'}</div>
+        ${attemptedLevel > 0 ? `<div style="font-size:12px;color:#b45309;font-weight:700;margin-top:3px">${attemptedLevel} / ${TOTAL_LEVELS}</div>
+        <div style="background:#fde68a;border-radius:6px;height:7px;margin-top:5px;overflow:hidden"><div style="background:#d97706;height:100%;border-radius:6px;width:${atPct}%"></div></div>` : ''}
       </div>
       <div style="flex:1;background:#f0fdf4;border:1.5px solid #34d399;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px">證書等級</div>
-        <div style="font-size:15px;font-weight:900;color:#065f46">${certifiedLevel > 0 ? getBadgeName(certifiedLevel) : '—'}</div>
+        <div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px">證書等級（已認證）</div>
+        <div style="font-size:17px;font-weight:900;color:#065f46;line-height:1.1">${certifiedLevel > 0 ? getBadgeName(certifiedLevel) : '—'}</div>
+        ${certifiedLevel > 0 ? `<div style="font-size:12px;color:#059669;font-weight:700;margin-top:3px">${certifiedLevel} / ${TOTAL_LEVELS}</div>
+        <div style="background:#a7f3d0;border-radius:6px;height:7px;margin-top:5px;overflow:hidden"><div style="background:#059669;height:100%;border-radius:6px;width:${cePct}%"></div></div>` : ''}
       </div>
     </div>`;
   }
@@ -6334,15 +6342,22 @@ function generateReport() {
     return lv ? lv.badge + ' ' + lv.name : `Level ${lvl}`;
   };
   if (_atLvl > 0 || _certLvl > 0) {
+    const _TOTAL = 14;
+    const _atPct = Math.round(_atLvl  / _TOTAL * 100);
+    const _cePct = Math.round(_certLvl / _TOTAL * 100);
     html += `<div class="a4-section-title">🏅 考核章別等級</div>
     <div style="display:flex;gap:12px;margin-bottom:14px">
-      <div style="flex:1;background:#fff7e6;border:1.5px solid #fbbf24;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#92400e;font-weight:700;margin-bottom:4px">已考等級</div>
-        <div style="font-size:15px;font-weight:900;color:#92400e">${_getBadgeName(_atLvl)}</div>
+      <div style="flex:1;background:rgba(251,191,36,0.1);border:1.5px solid rgba(251,191,36,0.5);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#fbbf24;font-weight:700;margin-bottom:4px">現時等級（已考）</div>
+        <div style="font-size:17px;font-weight:900;color:#fbbf24;line-height:1.1">${_getBadgeName(_atLvl)}</div>
+        ${_atLvl > 0 ? `<div style="font-size:12px;color:#fbbf24;font-weight:700;margin-top:3px">${_atLvl} / ${_TOTAL}</div>
+        <div style="background:rgba(251,191,36,0.2);border-radius:6px;height:7px;margin-top:5px;overflow:hidden"><div style="background:#fbbf24;height:100%;border-radius:6px;width:${_atPct}%"></div></div>` : ''}
       </div>
-      <div style="flex:1;background:#f0fdf4;border:1.5px solid #34d399;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#065f46;font-weight:700;margin-bottom:4px">證書等級</div>
-        <div style="font-size:15px;font-weight:900;color:#065f46">${_getBadgeName(_certLvl)}</div>
+      <div style="flex:1;background:rgba(52,211,153,0.1);border:1.5px solid rgba(52,211,153,0.5);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#34d399;font-weight:700;margin-bottom:4px">證書等級（已認證）</div>
+        <div style="font-size:17px;font-weight:900;color:#34d399;line-height:1.1">${_getBadgeName(_certLvl)}</div>
+        ${_certLvl > 0 ? `<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:3px">${_certLvl} / ${_TOTAL}</div>
+        <div style="background:rgba(52,211,153,0.2);border-radius:6px;height:7px;margin-top:5px;overflow:hidden"><div style="background:#34d399;height:100%;border-radius:6px;width:${_cePct}%"></div></div>` : ''}
       </div>
     </div>`;
   }
