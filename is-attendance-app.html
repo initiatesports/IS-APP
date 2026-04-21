@@ -1959,10 +1959,10 @@ const ATT_LOG = {
   "c4|2026-03-11":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"absent","古卓謙":"absent","梁心朗":"present","羅靖誼":"present","梁正宇":"present"},
   "c4|2026-03-18":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","梁心朗":"present","羅靖誼":"present","梁正宇":"present"},
   "c4|2026-03-25":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","梁心朗":"absent","羅靖誼":"present","梁正宇":"absent"},
-  "c5|2026-03-06":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"absent","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
-  "c5|2026-03-13":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
-  "c5|2026-03-20":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
-  "c5|2026-03-27":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"absent","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present","陳澔泓":"present"},
+  "c5|2026-03-06":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"absent","黃朗程":"present","姚心穎":"present","陳思允":"present"},
+  "c5|2026-03-13":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present"},
+  "c5|2026-03-20":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present"},
+  "c5|2026-03-27":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"absent","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present"},
   "c6|2026-02-28":{"陳焯棋":"present","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"absent","王斯顏":"absent","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
   "c6|2026-03-07":{"陳焯棋":"absent","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"present","王斯顏":"present","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
   "c7|2026-03-07":{"潘洛詩":"present","劉家頤":"absent","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"present","李灝宏":"present"},
@@ -2532,6 +2532,7 @@ function showRadarForDate(date) {
     const dbl      = (PERF_RECORDS[name]?.double   || []).find(r => r.date === date);
     const cross    = (PERF_RECORDS[name]?.cross    || []).find(r => r.date === date);
     const bike2m   = (PERF_RECORDS[name]?.bike2m   || []).find(r => r.date === date);
+    const rope2m   = (PERF_RECORDS[name]?.rope2m   || []).find(r => r.date === date);
     const balanceL = (PERF_RECORDS[name]?.balanceL || []).find(r => r.date === date);
     const balanceR = (PERF_RECORDS[name]?.balanceR || []).find(r => r.date === date);
     const sitreach = (PERF_RECORDS[name]?.sitreach || []).find(r => r.date === date);
@@ -2558,7 +2559,7 @@ function showRadarForDate(date) {
       gripL: gripL?.val, gripR: gripR?.val,
       cmj: cmj?.val, sj: sj?.val, rsi: rsi?.val,
       rope: rope?.val, bike: bike?.val, dbl: dbl?.val, cross: cross?.val,
-      bike2m: bike2m?.val, balanceL: balanceL?.val, balanceR: balanceR?.val, sitreach: sitreach?.val,
+      bike2m: bike2m?.val, rope2m: rope2m?.val, balanceL: balanceL?.val, balanceR: balanceR?.val, sitreach: sitreach?.val,
     };
   }).filter(Boolean);
 
@@ -2610,6 +2611,7 @@ function showRadarForDate(date) {
       s.rope     && `前繩30s ${s.rope}次`,
       s.bike     && `單車步30s ${s.bike}次`,
       s.bike2m   && `單車步2min ${s.bike2m}次`,
+      s.rope2m   && `前繩2min ${s.rope2m}次`,
       s.balanceL && `平衡左 ${s.balanceL}秒`,
       s.balanceR && `平衡右 ${s.balanceR}秒`,
       s.sitreach !== undefined && s.sitreach !== null && `前伸 ${s.sitreach}cm`,
@@ -2631,6 +2633,7 @@ function showRadarForDate(date) {
         checkMetric('rope30',  s.rope),
         checkMetric('bike',    s.bike),
         checkMetric('bike2m',  s.bike2m),
+        checkMetric('rope2m',  s.rope2m),
         checkMetric('balanceL',s.balanceL),
         checkMetric('sitreach',s.sitreach),
       ].filter(x => x !== null);
@@ -2663,14 +2666,14 @@ function showRadarForDate(date) {
   // Map IS metrics to 十角圖概念（10 axes）
   // IS 版體能雷達圖（8軸，對應8個體能維度）
   const radarAxes = [
-    { key:'rope30',   label:'前繩速度',  unit:'次', cat:'速度協調' },
-    { key:'bike',     label:'單車步30s', unit:'次', cat:'腳部速度' },
-    { key:'cmj',      label:'跳高CMJ',   unit:'cm', cat:'下肢爆發' },
-    { key:'sj',       label:'立定跳遠',  unit:'cm', cat:'爆發距離' },
-    { key:'rsi',      label:'RSI',       unit:'',   cat:'反彈效率' },
-    { key:'bike2m',   label:'單車步2min',unit:'次', cat:'心肺耐力' },
-    { key:'balanceL', label:'平衡力(左)',unit:'秒', cat:'平衡力' },
-    { key:'sitreach', label:'坐地前伸',  unit:'cm', cat:'柔軟度' },
+    { key:'rope30',   label:'前繩速度',   unit:'次', cat:'速度協調' },
+    { key:'bike',     label:'單車步30s',  unit:'次', cat:'腳部速度' },
+    { key:'cmj',      label:'跳高CMJ',    unit:'cm', cat:'下肢爆發' },
+    { key:'sj',       label:'立定跳遠',   unit:'cm', cat:'爆發距離' },
+    { key:'rsi',      label:'RSI',        unit:'',   cat:'反彈效率' },
+    { key:'rope2m',   label:'前繩耐力',   unit:'次', cat:'心肺耐力' },
+    { key:'balanceL', label:'平衡力(左)', unit:'秒', cat:'平衡力' },
+    { key:'sitreach', label:'坐地前伸',   unit:'cm', cat:'柔軟度' },
   ];
 
   // Build radar for each student with enough data
@@ -3378,6 +3381,7 @@ const METRICS = [
   { id:'sj',      name:'立定跳遠',     unit:'cm',  higher:true },
   { id:'rsi',     name:'RSI',          unit:'',    higher:true },
   { id:'bike2m',  name:'2分鐘單車步', unit:'次',  higher:true },
+  { id:'rope2m',  name:'2分鐘前繩跳', unit:'次',  higher:true },
   { id:'balanceL',name:'閉目單腳站立(左)', unit:'秒', higher:true },
   { id:'balanceR',name:'閉目單腳站立(右)', unit:'秒', higher:true },
   { id:'sitreach',name:'坐地前伸',     unit:'cm',  higher:true },
@@ -3514,11 +3518,13 @@ function startPerfEntry() {
         const isDual = DUAL_METRICS.has(mid);
         const isRSI     = mid === 'rsi';
         const isBike2m  = mid === 'bike2m';
+        const isRope2m  = mid === 'rope2m';
         const isBalance = mid === 'balanceL' || mid === 'balanceR';
         const isSitReach= mid === 'sitreach';
         const rsiInfoHtml =
           isRSI     ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">RSI（反應強度指數）</span> 是衡量爆發力及落地反彈效率的指標。數值越高代表爆發力越強。計算方式：跳躍高度 ÷ 接觸時間。</div>`
           : isBike2m  ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">2分鐘單車步</span> 測試心肺耐力及肌耐力。連續踏單車步 2 分鐘，記錄完成次數。與 30 秒版本相比，2 分鐘版更能反映有氧閾值及肌耐力水平。</div>`
+          : isRope2m  ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">2分鐘前繩跳</span> 測試心肺耐力及跳繩持久力。持續跳前繩 2 分鐘，記錄完成總次數（含雙搖、單搖均可計算）。反映學員在有氧負荷下維持跳繩節奏的能力。</div>`
           : isBalance ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">閉目單腳站立</span> 測試平衡力（本體感覺）。閉上眼睛，單腳站立，記錄堅持秒數。左腳右腳分別記錄。建議量兩次取最佳。</div>`
           : isSitReach ? `<div style="background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--muted);line-height:1.6"><span style="color:var(--cyan);font-weight:700">坐地前伸</span> 測試柔軟度（後腿及下背）。坐地雙腿伸直，雙手緩慢向前伸展至最遠，記錄距離（cm）。以腳跟為基準點，超過腳跟為正數，未及為負數。</div>`
           : '';
@@ -3735,20 +3741,11 @@ function showPerfSummary(historyDate, historyMetrics) {
         const isFirst  = prevBest === null;
         const isRecord = !isFirst && isBetter(m.id, todayRec.val, prevBest);
 
-        // PB 欄：如果今天破記錄，顯示 舊PB → 新PB
-        let pbCell;
-        if (isRecord) {
-          pbCell = `<td style="color:var(--green);font-weight:900;white-space:nowrap">
-            <span style="color:rgba(248,250,252,0.4);font-size:10px;text-decoration:line-through;font-weight:400">${prevBest}</span>
-            <span style="font-size:10px;color:rgba(62,207,207,0.7)"> → </span>
-            <span style="color:var(--green)">${pb}</span>
-            <span style="font-size:11px">🏅</span>
-          </td>`;
-        } else {
-          const pbStyle = 'color:var(--amber);font-weight:900';
-          pbCell = `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
-        }
-        rowHtml += pbCell;
+        // PB 欄：顯示「今天之前」的舊 PB（不在同一次更換 PB）
+        // 今天破 PB 只在成績格子標示 🏅，PB 欄永遠顯示舊 PB
+        const pbDisplay = prevBest !== null ? prevBest : (isFirst ? '—' : (pb !== null ? pb : '—'));
+        const pbCellStyle = isRecord ? 'color:var(--amber);font-weight:900' : 'color:var(--amber);font-weight:900';
+        rowHtml += `<td style="${pbCellStyle}">${pbDisplay}</td>`;
 
         const vals = [todayRec.v1, todayRec.v2, todayRec.v3];
         const recordedVals = vals.filter(v => v !== null && v !== undefined);
@@ -5406,7 +5403,7 @@ const RADAR_AXES_REPORT = [
   { key:'cmj',      label:'跳高CMJ',    unit:'cm', higher:true, color:'#3ECFCF' },
   { key:'sj',       label:'立定跳遠',   unit:'cm', higher:true, color:'#3ECFCF' },
   { key:'rsi',      label:'RSI',        unit:'',   higher:true, color:'#3ECFCF' },
-  { key:'bike2m',   label:'耐力(2min)', unit:'次', higher:true, color:'#3ECFCF' },
+  { key:'rope2m',   label:'前繩耐力',   unit:'次', higher:true, color:'#3ECFCF' },
   { key:'balanceL', label:'平衡力(左)', unit:'秒', higher:true, color:'#3ECFCF' },
   { key:'sitreach', label:'柔軟度',     unit:'cm', higher:true, color:'#3ECFCF' },
 ];
