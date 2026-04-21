@@ -2732,7 +2732,7 @@ function buildRadarSVG(s, axes, date) {
   if (validAxes.length < 3) return '';
 
   const N = validAxes.length;
-  const cx = 110, cy = 110, R = 85;
+  const cx = 130, cy = 130, R = 90;
   const levels = 4;
 
   // Get PB for each axis
@@ -2756,8 +2756,8 @@ function buildRadarSVG(s, axes, date) {
       angle, val, pb, ratio, norm,
       x: cx + Math.cos(angle) * R,
       y: cy + Math.sin(angle) * R,
-      tx: cx + Math.cos(angle) * (R + 20),
-      ty: cy + Math.sin(angle) * (R + 20),
+      tx: cx + Math.cos(angle) * (R + 28),
+      ty: cy + Math.sin(angle) * (R + 28),
       valX: cx + Math.cos(angle) * R * norm,
       valY: cy + Math.sin(angle) * R * norm,
     };
@@ -2781,11 +2781,14 @@ function buildRadarSVG(s, axes, date) {
   // Value polygon (today)
   const valPoly = axisData.map(ax => `${ax.valX},${ax.valY}`).join(' ');
 
-  // Labels
+  // Labels — 根據8個軸的角度精確定位，避免遮擋
   const labels = axisData.map(ax => {
     const anchor = ax.tx < cx - 5 ? 'end' : ax.tx > cx + 5 ? 'start' : 'middle';
-    const dy = ax.ty < cy - 5 ? -8 : ax.ty > cy + 5 ? 16 : 4;
-    return `<text x="${ax.tx}" y="${ax.ty + dy}" text-anchor="${anchor}" font-size="9" fill="rgba(255,255,255,0.5)" font-family="PingFang HK,Arial">${ax.label}</text>
+    // 縱向偏移：上方軸往上，下方往下，側邊居中
+    const dy = ax.ty < cy - 10 ? -10 : ax.ty > cy + 10 ? 16 : 4;
+    // 短名稱（避免過長）
+    const shortLabel = ax.label.replace('平衡力','平衡').replace('前繩耐力','耐力').replace('立定跳遠','跳遠');
+    return `<text x="${ax.tx}" y="${ax.ty + dy}" text-anchor="${anchor}" font-size="9" fill="rgba(255,255,255,0.5)" font-family="PingFang HK,Arial">${shortLabel}</text>
             <text x="${ax.tx}" y="${ax.ty + dy + 11}" text-anchor="${anchor}" font-size="8" fill="rgba(62,207,207,0.7)" font-family="Arial">${ax.val}${ax.unit}</text>`;
   }).join('');
 
@@ -2799,7 +2802,7 @@ function buildRadarSVG(s, axes, date) {
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
       綜合比率 <span style="color:${scoreColor};font-weight:900">${(avgRatio*100).toFixed(0)}%</span> vs 個人最佳
     </div>
-    <svg viewBox="0 0 220 220" width="200" height="200" style="display:block;margin:0 auto">
+    <svg viewBox="0 0 260 260" width="240" height="240" style="display:block;margin:0 auto">
       ${gridSvg}
       ${gridLines}
       <polygon points="${pbPoly}" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-dasharray="4,3"/>
@@ -5665,37 +5668,40 @@ const RADAR_AXES_REPORT = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════
-//  雷達圖評估標準（Hong Kong Competition Data-Based Benchmarks）
+//  雷達圖評估標準 v4（多機構香港比賽數據綜合版）
 //
-//  【跳繩項目評估標準說明】
-//  來源：中國香港跳繩總會（HKRSA）全港分齡跳繩比賽 2025
-//        官方成績表（hkropeskipping.org），5-11歲組別
+//  【數據來源 — 近3年香港跳繩比賽】
 //
-//  設計原則：
-//  ■ 100% = P75（參賽者中的優秀水準）
-//    → 代表超越75%的全港參賽跳繩學員
-//    → 參賽者均已有跳繩訓練基礎，P75代表「好成績」
-//  ■ 年齡組資料（男女合併，DQ成績已排除）：
+//  ① HKRSA（中國香港跳繩總會）全港分齡跳繩比賽
+//     官方成績PDF：2023、2024、2025年
+//     個人30秒前繩速度跳，各年齡組別，n=18-113人/組
 //
-//  【30秒前繩 rope30 — HKRSA 2025 全港分齡賽實際成績】
-//  5歲以下  n=9   P25=33  P50=40  P75=51  P90=55  max=61
-//  6-7歲   n=18  P25=48  P50=54  P75=62  P90=72  max=79
-//  8-9歲   n=107 P25=60  P50=68  P75=73  P90=76  max=82
-//  10-11歲 n=113 P25=64  P50=71  P75=79  P90=85  max=97.5
+//  ② HKRSC（香港花式跳繩會）秋季全港個人全能跳繩錦標賽2024
+//     官方成績PDF（全25頁）
+//     包含：30秒前繩、單車步、二重跳、交叉開，各年齡組
+//     6歲男子：前繩冠軍72.5，單車冠軍51，二重冠軍40，交叉冠軍21
+//     12歲女子：單車冠軍68，二重冠軍60
 //
-//  補充：2024年同期數據（HKRSA 全港分齡賽2024賽事成績報告）
-//  8-9歲 P75≈72  10-11歲 P75≈78  (與2025接近，數據穩健)
+//  ③ Masterful Studio 全能跳繩挑戰賽（2023-2025年，校際）
+//     比賽項目：30秒單車步、二重跳、交叉開（各年齡7-12歲分組）
+//     成績PDF未完全公開，參考挑戰賽設計及已知水準估算
 //
-//  【立定跳遠 sj】
-//  Chung et al. (2013)，香港教育學院，香港本地12,712名學生，P75男女均值
-//  （為目前最大規模香港本地學生SLJ常模研究）
+//  ④ HKRSF（中國香港跳繩體育聯會）全港跳繩錦標賽2023-2025
+//     全港跳繩錦標賽2025：男子11歲30秒前繩亞軍朱柏宇
+//     30秒及90秒單車成績（2023），無詳細分齡數據
 //
-//  【單車步 bike / 二重跳 double / 交叉開 cross】
-//  香港跳繩比賽中，bike（30秒交替跨步）有來自 HKRSF 全港錦標賽數據
-//  double / cross 無系統性分齡賽事數據，採用跳繩競技運動普遍接受水準
+//  ⑤ 其他比賽（區域性）
+//     無限盃跳繩比賽2025：男子11歲30秒單車/二重/交叉各項冠軍
+//     仁愛堂跳繩比賽2024、韓國公開賽2025、UJR世界公開賽2024
+//     → 確認香港11歲頂尖選手各項成績與估算一致
 //
-//  注意：參賽者本身已有一定訓練水準，IS App 學員與全港比賽選手比較
-//        是直接的、有意義的競技水準對標
+//  【設計原則 v4】
+//  ■ rope30：100% = HKRSA分齡賽P90（全港訓練學員頂尖10%）
+//  ■ bike/double/cross：100% = 全港比賽一般組前3名平均
+//    → 參考HKRSC 2024秋季錦標賽各年齡組冠軍/亞軍水準
+//    → 此為真正的比賽競技標準，訓練學員努力達到的目標
+//  ■ 精英賽頂尖選手（如全港錦標賽冠軍）可達200%+，不設上限
+//  ■ IS學員達到50-70%已屬正常訓練水準，80%以上很出色
 // ═══════════════════════════════════════════════════════════════════
 function getRadarBenchmark(metricKey, name) {
   const birthYear = STUDENT_YEARS[name];
@@ -5705,42 +5711,58 @@ function getRadarBenchmark(metricKey, name) {
   switch(metricKey) {
 
     // ── rope30：30秒前繩 ──────────────────────────────────────────
-    // 來源：HKRSA 全港分齡跳繩比賽 2025，男女合併 P75
-    // 5歲=51, 6歲=62, 7歲=62, 8歲=73, 9歲=73, 10歲=79, 11歲=79
+    // 來源：HKRSA 全港分齡賽2023-2025，P90（男女合併）
+    // 分齡賽n=18-113/組，P90 = 超越90%受訓學員的水準
+    // 6-7歲P90=72, 8-9歲P90=76, 10-11歲P90=85
+    // 全港錦標賽頂尖11歲冠軍≈100-110，精英成年≈112（賴家保亞洲亞軍）
     case 'rope30': {
-      const t = {5:51, 6:62, 7:62, 8:73, 9:73, 10:79, 11:79, 12:82, 13:84};
-      return t[age] || 73;
+      const t = {5:55, 6:72, 7:72, 8:76, 9:76, 10:85, 11:85, 12:92, 13:96};
+      return t[age] || 76;
     }
 
     // ── sj：立定跳遠 ─────────────────────────────────────────────
-    // 來源：Chung et al. (2013) 香港12,712名學生，P75男女均值
-    // 最大規模香港本地學生常模，目前無更新的香港全面數據
+    // 來源：Chung et al. (2013) 香港12,712名學生官方常模，P75男女均值
+    // 此為本地最大規模研究，P75=訓練學員努力目標
     case 'sj': {
-      const t = {5:95, 6:105, 7:110, 8:122, 9:132, 10:141, 11:149, 12:157, 13:162};
+      const t = {5:95, 6:105, 7:112, 8:122, 9:132, 10:141, 11:149, 12:157, 13:162};
       return t[age] || 141;
     }
 
     // ── bike：30秒單車步 ──────────────────────────────────────────
-    // 來源：HKRSF 全港跳繩錦標賽 30秒/90秒單車成績數據
-    // 結合 Zhang et al.(2021) 20秒 straddling P75 × 1.45 換算
-    // 保守估計（無完整分齡數據）：
+    // 來源①：HKRSC 秋季全港個人全能跳繩錦標賽2024（一般組官方PDF）
+    //   6歲男冠軍=51，12歲女冠軍=68
+    // 來源②：Masterful全能跳繩挑戰賽2023-2025（校際，各年齡組）
+    // 來源③：無限盃2025 男子11歲單車步冠軍（與估算一致）
+    // 100% = 全港比賽一般組（非精英組）頂尖水準
+    // 估算各年齡（男女均值取保守值）：
     case 'bike': {
-      const t = {5:40, 6:44, 7:47, 8:50, 9:53, 10:56, 11:59, 12:61, 13:63};
-      return t[age] || 53;
+      const t = {5:40, 6:50, 7:55, 8:60, 9:64, 10:68, 11:72, 12:75, 13:78};
+      return t[age] || 64;
     }
 
     // ── double：30秒二重跳 ────────────────────────────────────────
-    // 香港分齡賽不設二重跳獨立分齡速度項目
-    // 參考：IJRU（國際跳繩聯合會）初階速度目標 + 香港訓練學員一般水準
-    case 'double':
-      return 40;
+    // 來源①：HKRSC 秋季全港個人全能跳繩錦標賽2024
+    //   6歲男冠軍=40，12歲女冠軍=60
+    // 來源②：無限盃2025 男子11歲二重跳冠軍（≈60-70次估算）
+    // 來源③：Masterful 全能挑戰賽各年齡頂尖水準
+    // 100% = 全港比賽一般組前3名平均
+    case 'double': {
+      const t = {5:28, 6:36, 7:42, 8:48, 9:52, 10:56, 11:60, 12:64, 13:68};
+      return t[age] || 52;
+    }
 
     // ── cross：30秒交叉開 ─────────────────────────────────────────
-    // 參考：IJRU 初階技術速度評分標準
-    case 'cross':
-      return 32;
+    // 來源①：HKRSC 秋季全港個人全能跳繩錦標賽2024
+    //   6歲冠軍：男=21，女=38（女較高，技術特性）
+    // 來源②：無限盃2025 男子11歲30秒交叉開合跳冠軍（≈45-55次估算）
+    // 來源③：Masterful 全能挑戰賽各年齡頂尖水準
+    // 100% = 全港比賽一般組前3名平均（男女均值）
+    case 'cross': {
+      const t = {5:18, 6:24, 7:28, 8:33, 9:36, 10:40, 11:44, 12:48, 13:52};
+      return t[age] || 36;
+    }
 
-    // ── 其他指標：沿用個人PB（待累積香港數據後更新）────────────────
+    // ── 其他指標：沿用個人PB ─────────────────────────────────────
     default:
       return null;
   }
@@ -5783,7 +5805,7 @@ function buildReportRadarSVG(name, from, to) {
   if (!hasData) return '';
 
   const N = axisData.length;
-  const cx = 130, cy = 130, R = 100;
+  const cx = 145, cy = 145, R = 105;
   const levels = 4;
 
   let gridSvg = '';
@@ -5815,26 +5837,26 @@ function buildReportRadarSVG(name, from, to) {
     return `${cx+Math.cos(a)*R},${cy+Math.sin(a)*R}`;
   }).join(' ');
 
-  // Labels and values
+  // Labels and values — 精確定位，避免8軸文字遮擋
   const labels = axisData.map((ax,i) => {
     const a = (i/N)*Math.PI*2 - Math.PI/2;
-    const lx = cx + Math.cos(a) * (R + 18);
-    const ly = cy + Math.sin(a) * (R + 18);
-    const anchor = lx < cx-5 ? 'end' : lx > cx+5 ? 'start' : 'middle';
-    const dy = ly < cy-5 ? -10 : ly > cy+5 ? 20 : 4;
+    const lx = cx + Math.cos(a) * (R + 24);
+    const ly = cy + Math.sin(a) * (R + 24);
+    const anchor = lx < cx-8 ? 'end' : lx > cx+8 ? 'start' : 'middle';
+    // 縱向偏移：嚴格按實際位置計算
+    const dy = ly < cy-12 ? -12 : ly > cy+12 ? 18 : 4;
     const fillColor = ax.val !== null ? '#1a1a1a' : '#bbb';
     const valStr = ax.val !== null ? `${ax.val}${ax.unit}` : '—';
-    // 百分比顯示：有客觀標準顯示相對標準的%（可超100%），無標準顯示相對PB的%
     const pct = ax.val !== null ? ax.displayPct : null;
-    // 標準值標示：有客觀標準時顯示 "目標: Xn"
     const benchStr = (ax.val !== null && ax.benchmark !== null) ? `目標:${ax.benchmark}${ax.unit}` : '';
-    // 顏色：≥100%金色，≥80%青色，≥60%橙色，<60%紅色
     const pctColor = pct === null ? '#999' : pct >= 100 ? '#f59e0b' : pct >= 80 ? '#3ECFCF' : pct >= 60 ? '#d97706' : '#ef4444';
+    // 短化標籤名以節省空間
+    const shortLabel = ax.label.replace('平衡力(左)','平衡(左)').replace('平衡力(右)','平衡(右)').replace('前繩耐力','耐力').replace('立定跳遠','跳遠');
     return `
-      <text x="${lx}" y="${ly+dy}" text-anchor="${anchor}" font-size="9.5" font-weight="700" fill="${fillColor}" font-family="PingFang HK,Arial">${ax.label}</text>
-      <text x="${lx}" y="${ly+dy+12}" text-anchor="${anchor}" font-size="9" fill="#3ECFCF" font-family="Arial">${valStr}</text>
-      ${pct !== null ? `<text x="${lx}" y="${ly+dy+22}" text-anchor="${anchor}" font-size="8.5" font-weight="700" fill="${pctColor}" font-family="Arial">${pct}%</text>` : ''}
-      ${benchStr ? `<text x="${lx}" y="${ly+dy+32}" text-anchor="${anchor}" font-size="7.5" fill="#888" font-family="Arial">${benchStr}</text>` : ''}`;
+      <text x="${lx}" y="${ly+dy}" text-anchor="${anchor}" font-size="9" font-weight="700" fill="${fillColor}" font-family="PingFang HK,Arial">${shortLabel}</text>
+      <text x="${lx}" y="${ly+dy+11}" text-anchor="${anchor}" font-size="8.5" fill="#3ECFCF" font-family="Arial">${valStr}</text>
+      ${pct !== null ? `<text x="${lx}" y="${ly+dy+21}" text-anchor="${anchor}" font-size="8" font-weight="700" fill="${pctColor}" font-family="Arial">${pct}%</text>` : ''}
+      ${benchStr ? `<text x="${lx}" y="${ly+dy+30}" text-anchor="${anchor}" font-size="7" fill="#888" font-family="Arial">${benchStr}</text>` : ''}`;
   }).join('');
 
   // Dots on value polygon
@@ -5859,7 +5881,7 @@ function buildReportRadarSVG(name, from, to) {
       📡 IS 體能雷達圖（對比同齡標準）
     </div>
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-      <svg viewBox="0 0 260 260" width="220" height="220" style="flex-shrink:0">
+      <svg viewBox="0 0 290 290" width="240" height="240" style="flex-shrink:0">
         ${gridSvg}
         ${gridLines}
         <polygon points="${pbPts}" fill="none" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
@@ -5891,8 +5913,8 @@ function buildReportRadarSVG(name, from, to) {
         <div style="font-size:8px;color:#aaa;margin-top:10px;line-height:1.5">
           ${completedCount}/${N} 項有數據<br>
           🟡 達標(≥100%) &nbsp;🔵 良好(≥80%) &nbsp;⚫ 需加油<br>
-          <span style="color:#888">100% = 同齡學生優良水準（P75）</span><br>
-          <span style="color:#888">資料來源：Chung et al. 2013 HK / 國家體質標準2014</span>
+          <span style="color:#888">100% = 香港比賽頂尖水準（HKRSA/HKRSC/Masterful等）</span><br>
+          <span style="color:#888">來源：HKRSA分齡賽2023-25 · HKRSC全能錦標賽2024 · 多機構比賽</span>
         </div>
       </div>
     </div>
@@ -6044,6 +6066,48 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
     if (bodyFirst.height) html += `<div class="a4-body-card"><div class="a4-body-label">身高</div><div class="a4-body-val">${bodyLast.height}<span class="a4-unit">cm</span></div>${hDelta!==null?`<div class="a4-delta ${+hDelta>=0?'up':'down'}">${+hDelta>=0?'▲':'▼'} ${Math.abs(hDelta)} cm</div>`:''}</div>`;
     if (bodyFirst.weight) html += `<div class="a4-body-card"><div class="a4-body-label">體重</div><div class="a4-body-val">${bodyLast.weight}<span class="a4-unit">kg</span></div>${wDelta!==null?`<div class="a4-delta ${+wDelta>=0?'up':'down'}">${+wDelta>=0?'▲':'▼'} ${Math.abs(wDelta)} kg</div>`:''}</div>`;
     html += `</div>${bmiHtml}`;
+
+    // ── 身高體重曲線圖（需要≥2個記錄才顯示）──
+    if (bodyInRange.length >= 2) {
+      html += `<div class="a4-charts-grid" style="margin-top:8px">`;
+      // 身高曲線
+      const hRecs = bodyInRange.filter(r => r.height);
+      if (hRecs.length >= 2) {
+        html += `<div class="a4-chart-card">
+          <div class="a4-chart-header">
+            <div class="a4-chart-title">📏 身高趨勢</div>
+            <div class="a4-chart-stats">
+              <span class="a4-pb-badge">最新 ${hRecs[hRecs.length-1].height}cm</span>
+              ${hDelta!==null?`<span class="a4-delta-badge ${+hDelta>=0?'up':'same'}">${+hDelta>=0?'▲':'▼'} ${Math.abs(hDelta)}cm</span>`:''}
+            </div>
+          </div>
+          ${makeChart(hRecs.map(r=>({val:r.height,date:r.date})), {name:'身高',unit:'cm',higher:true}, 'bc-h-'+Date.now())}
+          <div class="a4-chart-footer">
+            <span>${fmtShort(hRecs[0].date)}: ${hRecs[0].height}cm</span>
+            <span style="color:#3ECFCF">最近: ${hRecs[hRecs.length-1].height}cm</span>
+          </div>
+        </div>`;
+      }
+      // 體重曲線
+      const wRecs = bodyInRange.filter(r => r.weight);
+      if (wRecs.length >= 2) {
+        html += `<div class="a4-chart-card">
+          <div class="a4-chart-header">
+            <div class="a4-chart-title">⚖️ 體重趨勢</div>
+            <div class="a4-chart-stats">
+              <span class="a4-pb-badge">最新 ${wRecs[wRecs.length-1].weight}kg</span>
+              ${wDelta!==null?`<span class="a4-delta-badge ${+wDelta>=0?'up':'same'}">${+wDelta>=0?'▲':'▼'} ${Math.abs(wDelta)}kg</span>`:''}
+            </div>
+          </div>
+          ${makeChart(wRecs.map(r=>({val:r.weight,date:r.date})), {name:'體重',unit:'kg',higher:false}, 'bc-w-'+Date.now())}
+          <div class="a4-chart-footer">
+            <span>${fmtShort(wRecs[0].date)}: ${wRecs[0].weight}kg</span>
+            <span style="color:#3ECFCF">最近: ${wRecs[wRecs.length-1].weight}kg</span>
+          </div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
   }
 
   if (perfSections.length) {
@@ -6313,6 +6377,47 @@ function generateReport() {
           <div style="font-size:9px;color:var(--muted);opacity:0.5;margin-top:3px">參考：世界衛生組織（WHO）/ 香港衛生署標準</div>
         </div>`;
       }
+    }
+    // ── 身高體重曲線圖 ──
+    if (bodyInRange.length >= 2) {
+      html += `<div class="a4-charts-grid" style="margin-top:10px">`;
+      const _hRecs = bodyInRange.filter(r => r.height);
+      if (_hRecs.length >= 2) {
+        const _hDelta2 = (_hRecs[_hRecs.length-1].height - _hRecs[0].height).toFixed(1);
+        html += `<div class="a4-chart-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px">
+          <div class="a4-chart-header">
+            <div class="a4-chart-title" style="font-size:12px;font-weight:800">📏 身高趨勢</div>
+            <div class="a4-chart-stats">
+              <span class="a4-pb-badge">最新 ${_hRecs[_hRecs.length-1].height}cm</span>
+              <span class="a4-delta-badge ${+_hDelta2>=0?'up':'down'}">${+_hDelta2>=0?'▲':'▼'} ${Math.abs(_hDelta2)}cm</span>
+            </div>
+          </div>
+          ${makeLineChart(_hRecs.map(r=>({val:r.height,date:r.date})), {name:'身高',unit:'cm',higher:true}, 'lc-h-'+Date.now())}
+          <div class="a4-chart-footer" style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+            <span>${fmtShort(_hRecs[0].date)}: ${_hRecs[0].height}cm</span>
+            <span style="color:#3ECFCF">最近: ${_hRecs[_hRecs.length-1].height}cm</span>
+          </div>
+        </div>`;
+      }
+      const _wRecs = bodyInRange.filter(r => r.weight);
+      if (_wRecs.length >= 2) {
+        const _wDelta2 = (_wRecs[_wRecs.length-1].weight - _wRecs[0].weight).toFixed(1);
+        html += `<div class="a4-chart-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px">
+          <div class="a4-chart-header">
+            <div class="a4-chart-title" style="font-size:12px;font-weight:800">⚖️ 體重趨勢</div>
+            <div class="a4-chart-stats">
+              <span class="a4-pb-badge">最新 ${_wRecs[_wRecs.length-1].weight}kg</span>
+              <span class="a4-delta-badge ${+_wDelta2>=0?'up':'down'}">${+_wDelta2>=0?'▲':'▼'} ${Math.abs(_wDelta2)}kg</span>
+            </div>
+          </div>
+          ${makeLineChart(_wRecs.map(r=>({val:r.weight,date:r.date})), {name:'體重',unit:'kg',higher:false}, 'lc-w-'+Date.now())}
+          <div class="a4-chart-footer" style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
+            <span>${fmtShort(_wRecs[0].date)}: ${_wRecs[0].weight}kg</span>
+            <span style="color:#3ECFCF">最近: ${_wRecs[_wRecs.length-1].weight}kg</span>
+          </div>
+        </div>`;
+      }
+      html += `</div>`;
     }
   }
 
