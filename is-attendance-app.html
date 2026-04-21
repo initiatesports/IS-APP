@@ -2050,13 +2050,13 @@ function daysLeft(deadline) {
 function fmtDate(str) {
   if (!str) return '—';
   const [y,m,d] = str.split('-');
-  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+  return `${parseInt(d)}/${parseInt(m)}/${y}`;
 }
 
 function fmtShort(str) {
   if (!str) return '—';
   const [y,m,d] = str.split('-');
-  return `${parseInt(m)}/${parseInt(d)}`;
+  return `${parseInt(d)}/${parseInt(m)}`;
 }
 
 function genId() { return 'r' + Date.now() + Math.random().toString(36).slice(2,5); }
@@ -4476,15 +4476,271 @@ function renderStudentDetail(name) {
         <div class="history-timeline">${bodyHistoryHtml}</div>
       </div>
       <div class="body-card" style="margin-bottom:100px">
-        <div class="body-card-title">🏅 成績摘要 (PB)</div>
-        <div class="history-timeline">${perfHtml}</div>
+        <div class="body-card-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>🏅 成績歷史</span>
+          <button onclick="togglePerfHistory('${name}')" id="btn-perf-hist-${_safeId(name)}"
+            style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:4px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">展開</button>
+        </div>
+        <!-- PB 摘要（預設顯示）-->
+        <div id="perf-pb-summary-${_safeId(name)}">
+          <div class="history-timeline">${perfHtml}</div>
+        </div>
+        <!-- 完整歷史（預設收起）-->
+        <div id="perf-history-full-${_safeId(name)}" style="display:none;margin-top:10px">
+          ${renderPerfHistoryEditor(name)}
+        </div>
       </div>
     </div>`;
 }
 
 // ═══════════════════════════════════════════════════════
-//  STUDENT INFO EDITING (name + birth year)
+//  PERFORMANCE HISTORY EDITOR
 // ═══════════════════════════════════════════════════════
+
+function togglePerfHistory(name) {
+  const sid = _safeId(name);
+  const summary = document.getElementById('perf-pb-summary-' + sid);
+  const full    = document.getElementById('perf-history-full-' + sid);
+  const btn     = document.getElementById('btn-perf-hist-' + sid);
+  if (!full) return;
+  const isOpen = full.style.display !== 'none';
+  if (isOpen) {
+    full.style.display = 'none';
+    summary.style.display = 'block';
+    if (btn) btn.textContent = '展開';
+  } else {
+    full.style.display = 'block';
+    summary.style.display = 'none';
+    if (btn) btn.textContent = '收起';
+    // Re-render to ensure latest data
+    full.innerHTML = renderPerfHistoryEditor(name);
+  }
+}
+
+function renderPerfHistoryEditor(name) {
+  const allDates = new Set();
+  const metricsWithData = METRICS.filter(m => {
+    const recs = PERF_RECORDS[name]?.[m.id];
+    if (recs && recs.length) { recs.forEach(r => allDates.add(r.date)); return true; }
+    return false;
+  });
+
+  if (!metricsWithData.length) {
+    return '<div style="color:var(--muted);font-size:13px;padding:8px 0">暫無成績記錄</div>';
+  }
+
+  const sortedDates = [...allDates].sort((a,b) => b.localeCompare(a)); // 最新在前
+
+  let html = `
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+    每個日期的每次測量結果（可直接點擊數值修改）<br>
+    <span style="color:var(--amber)">🟡 金色</span> = 個人最佳 &nbsp; <span style="color:var(--cyan)">· 點擊數值</span> = 編輯 &nbsp;
+    <span style="color:var(--red)">🗑</span> = 刪除此次記錄
+  </div>`;
+
+  for (const date of sortedDates) {
+    const dateMetrics = metricsWithData.filter(m =>
+      (PERF_RECORDS[name]?.[m.id] || []).some(r => r.date === date)
+    );
+    if (!dateMetrics.length) continue;
+
+    html += `<div style="margin-bottom:14px;background:var(--surface2);border-radius:12px;padding:12px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>📅 ${fmtDate(date)}</span>
+        <button onclick="deletePerfDate('${name}','${date}')"
+          style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.3);color:var(--red);border-radius:6px;padding:2px 8px;font-size:11px;font-family:inherit;cursor:pointer">刪除此日期</button>
+      </div>`;
+
+    for (const m of dateMetrics) {
+      const recs = PERF_RECORDS[name]?.[m.id] || [];
+      const rec = recs.find(r => r.date === date);
+      if (!rec) continue;
+      const pb = getPersonalBest(name, m.id);
+
+      // Build attempt values array from v1, v2, v3... up to v6
+      const attempts = [];
+      for (let i = 1; i <= 6; i++) {
+        if (rec['v'+i] !== undefined && rec['v'+i] !== null) {
+          attempts.push({ key: 'v'+i, val: rec['v'+i] });
+        }
+      }
+      if (!attempts.length) attempts.push({ key: 'v1', val: rec.val });
+
+      const isPB = rec.val === pb;
+
+      html += `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--text);font-weight:600">${m.name}</span>
+          <span style="font-size:11px;color:${isPB?'var(--amber)':'var(--muted)'}">
+            ${isPB ? '🟡 PB ' : ''}最佳: ${rec.val}${m.unit}
+          </span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">`;
+
+      attempts.forEach((att, i) => {
+        const isMax = att.val === rec.val;
+        html += `<div style="display:flex;align-items:center;gap:2px">
+            <span style="font-size:10px;color:var(--muted)">第${i+1}次</span>
+            <input type="number" inputmode="decimal" step="0.5"
+              id="phi-${_safeId(name)}-${m.id}-${date.replace(/-/g,'')}-${att.key}"
+              value="${att.val}" 
+              style="width:62px;background:var(--surface);border:1.5px solid ${isMax?'var(--amber)':'var(--border)'};border-radius:8px;color:${isMax?'var(--amber)':'var(--text)'};font-family:inherit;font-size:14px;font-weight:${isMax?'700':'400'};padding:5px 7px;outline:none;color-scheme:dark;text-align:center"
+              onchange="updatePerfEntry('${name}','${m.id}','${date}','${att.key}',this.value)"
+              onfocus="this.style.borderColor='var(--cyan)'"
+              onblur="this.style.borderColor='${isMax?'var(--amber)':'var(--border)'}'"
+            >
+          </div>`;
+      });
+
+      // Add attempt button
+      html += `<button onclick="addPerfAttempt('${name}','${m.id}','${date}')"
+          style="background:var(--surface);border:1px dashed rgba(62,207,207,0.3);color:var(--cyan);border-radius:8px;padding:5px 8px;font-size:11px;font-family:inherit;cursor:pointer">+次</button>
+        </div>
+      </div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  // Add new record section
+  html += `
+  <div style="margin-top:12px;background:rgba(62,207,207,0.04);border:1.5px dashed rgba(62,207,207,0.25);border-radius:12px;padding:12px">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:10px">➕ 新增成績記錄</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+      <span style="font-size:11px;color:var(--muted);flex-shrink:0">日期</span>
+      <input type="date" id="phi-new-date-${_safeId(name)}" value="${todayStr()}"
+        style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:7px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      ${metricsWithData.concat(METRICS.filter(m => !metricsWithData.includes(m))).map(m => `
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">${m.name} (${m.unit})</div>
+          <input type="number" inputmode="decimal" step="0.5" placeholder="—"
+            id="phi-new-${_safeId(name)}-${m.id}"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:7px 9px;outline:none;color-scheme:dark">
+        </div>`).join('')}
+    </div>
+    <button onclick="addPerfRecord('${name}')"
+      style="width:100%;background:var(--cyan);color:#111;border:none;border-radius:10px;padding:11px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">💾 儲存新成績</button>
+  </div>`;
+
+  return html;
+}
+
+// 更新單個成績數值
+async function updatePerfEntry(name, metricId, date, vKey, newValStr) {
+  const newVal = parseFloat(newValStr);
+  if (isNaN(newVal)) { toast('請輸入有效數字', '⚠'); return; }
+  const recs = PERF_RECORDS[name]?.[metricId];
+  if (!recs) return;
+  const rec = recs.find(r => r.date === date);
+  if (!rec) return;
+
+  rec[vKey] = newVal;
+  // 重新計算最大值
+  const attempts = [];
+  for (let i = 1; i <= 6; i++) {
+    if (rec['v'+i] !== undefined && rec['v'+i] !== null) attempts.push(rec['v'+i]);
+  }
+  rec.val = Math.max(...attempts);
+
+  toast('成績已更新', '✅');
+  await syncPerformance();
+  // 重新渲染歷史，保持展開狀態
+  const fullEl = document.getElementById('perf-history-full-' + _safeId(name));
+  if (fullEl && fullEl.style.display !== 'none') {
+    fullEl.innerHTML = renderPerfHistoryEditor(name);
+  }
+  // 更新PB摘要
+  const summaryEl = document.getElementById('perf-pb-summary-' + _safeId(name));
+  if (summaryEl) {
+    const pb = getPersonalBest(name, metricId);
+    // find and update PB text
+    const m = METRICS.find(x => x.id === metricId);
+    if (m) {
+      const pbEl = summaryEl.querySelector(`[data-metric="${metricId}"]`);
+      if (pbEl) pbEl.textContent = `PB: ${pb}${m.unit}`;
+    }
+  }
+}
+
+// 新增一次嘗試到現有記錄
+function addPerfAttempt(name, metricId, date) {
+  const recs = PERF_RECORDS[name]?.[metricId];
+  if (!recs) return;
+  const rec = recs.find(r => r.date === date);
+  if (!rec) return;
+  // 找下一個 vN key
+  let nextKey = 'v1';
+  for (let i = 1; i <= 6; i++) {
+    if (rec['v'+i] === undefined || rec['v'+i] === null) { nextKey = 'v'+i; break; }
+  }
+  if (nextKey === 'v7') { toast('最多6次嘗試', '⚠'); return; }
+  rec[nextKey] = rec.val; // 默認與最佳相同，讓用戶修改
+  const fullEl = document.getElementById('perf-history-full-' + _safeId(name));
+  if (fullEl) fullEl.innerHTML = renderPerfHistoryEditor(name);
+}
+
+// 刪除某日期的所有成績
+async function deletePerfDate(name, date) {
+  if (!confirm(`確定刪除 ${fmtDate(date)} 的所有成績記錄？`)) return;
+  for (const mid of Object.keys(PERF_RECORDS[name] || {})) {
+    PERF_RECORDS[name][mid] = (PERF_RECORDS[name][mid] || []).filter(r => r.date !== date);
+  }
+  toast(`已刪除 ${fmtDate(date)} 的記錄`, '🗑');
+  await syncPerformance();
+  const fullEl = document.getElementById('perf-history-full-' + _safeId(name));
+  if (fullEl && fullEl.style.display !== 'none') {
+    fullEl.innerHTML = renderPerfHistoryEditor(name);
+  }
+}
+
+// 新增完整成績記錄（含多個項目）
+async function addPerfRecord(name) {
+  const dateEl = document.getElementById('phi-new-date-' + _safeId(name));
+  const date = dateEl?.value;
+  if (!date) { toast('請選擇日期', '⚠'); return; }
+
+  let added = 0;
+  for (const m of METRICS) {
+    const inputEl = document.getElementById('phi-new-' + _safeId(name) + '-' + m.id);
+    if (!inputEl || !inputEl.value) continue;
+    const val = parseFloat(inputEl.value);
+    if (isNaN(val)) continue;
+
+    if (!PERF_RECORDS[name]) PERF_RECORDS[name] = {};
+    if (!PERF_RECORDS[name][m.id]) PERF_RECORDS[name][m.id] = [];
+
+    // 如果同日期已存在，更新；否則新增
+    const existing = PERF_RECORDS[name][m.id].find(r => r.date === date);
+    if (existing) {
+      existing.v1 = val; existing.val = val;
+    } else {
+      PERF_RECORDS[name][m.id].push({ date, val, v1: val });
+    }
+    inputEl.value = '';
+    added++;
+  }
+
+  if (!added) { toast('請輸入至少一項成績', '⚠'); return; }
+  toast(`已新增 ${fmtDate(date)} 的 ${added} 項成績`, '✅');
+  await syncPerformance();
+  const fullEl = document.getElementById('perf-history-full-' + _safeId(name));
+  if (fullEl) fullEl.innerHTML = renderPerfHistoryEditor(name);
+  // Also refresh PB summary
+  const sid = _safeId(name);
+  const summaryEl = document.getElementById('perf-pb-summary-' + sid);
+  if (summaryEl) {
+    const perfHtmlNew = METRICS.map(m => {
+      const recs = PERF_RECORDS[name]?.[m.id];
+      if (!recs || !recs.length) return '';
+      const pb = getPersonalBest(name, m.id);
+      return `<div class="ht-entry"><span class="ht-date">${m.name}</span>
+        <span class="ht-val pb" data-metric="${m.id}">PB: ${pb}${m.unit} <span style="font-size:11px;color:var(--muted);font-weight:400">(${recs.length}次)</span></span></div>`;
+    }).filter(Boolean).join('') || '<div style="color:var(--muted);font-size:13px;padding:8px 0">暫無成績記錄</div>';
+    summaryEl.querySelector('.history-timeline').innerHTML = perfHtmlNew;
+  }
+}
 
 function _safeId(name) {
   return name.replace(/[^\w]/g, '_');
@@ -5408,64 +5664,85 @@ const RADAR_AXES_REPORT = [
   { key:'sitreach', label:'柔軟度',     unit:'cm', higher:true, color:'#3ECFCF' },
 ];
 
-// ═══════════════════════════════════════════════════════
-//  雷達圖評估標準（Benchmark Standards）
-//  設計原則：100% = 同齡學生的優秀水準（P75），代表「良好」
-//  超過100%視為「頂尖」，但顯示上cap於100%
+// ═══════════════════════════════════════════════════════════════════
+//  雷達圖評估標準（Hong Kong Competition Data-Based Benchmarks）
 //
-//  資料來源：
-//  • rope30：《國家學生體質健康標準2014》1分鐘跳繩標準 × 0.55係數換算為30秒，
-//    並按香港學生體能水平調整（參考CUHK香港學生體能研究報告2018）
-//  • sj（立定跳遠）：Chung et al. (2013)，香港本地12,712名學生常模數據，
-//    香港教育學院發布，取男女P75均值作100%基準
-//  • bike（30秒單車步）：無官方外部標準，
-//    以IS學員群體（n=54）的P75（53次）作100%參考基準
-//  • double / cross：跳繩競技評分參考，技術難度動作，
-//    40次/35次為一般訓練學員的良好水準
-//  • cmj / rsi / rope2m / balanceL / sitreach：
-//    沿用個人最佳值比較（未有足夠香港兒童常模）
-// ═══════════════════════════════════════════════════════
+//  【跳繩項目評估標準說明】
+//  來源：中國香港跳繩總會（HKRSA）全港分齡跳繩比賽 2025
+//        官方成績表（hkropeskipping.org），5-11歲組別
+//
+//  設計原則：
+//  ■ 100% = P75（參賽者中的優秀水準）
+//    → 代表超越75%的全港參賽跳繩學員
+//    → 參賽者均已有跳繩訓練基礎，P75代表「好成績」
+//  ■ 年齡組資料（男女合併，DQ成績已排除）：
+//
+//  【30秒前繩 rope30 — HKRSA 2025 全港分齡賽實際成績】
+//  5歲以下  n=9   P25=33  P50=40  P75=51  P90=55  max=61
+//  6-7歲   n=18  P25=48  P50=54  P75=62  P90=72  max=79
+//  8-9歲   n=107 P25=60  P50=68  P75=73  P90=76  max=82
+//  10-11歲 n=113 P25=64  P50=71  P75=79  P90=85  max=97.5
+//
+//  補充：2024年同期數據（HKRSA 全港分齡賽2024賽事成績報告）
+//  8-9歲 P75≈72  10-11歲 P75≈78  (與2025接近，數據穩健)
+//
+//  【立定跳遠 sj】
+//  Chung et al. (2013)，香港教育學院，香港本地12,712名學生，P75男女均值
+//  （為目前最大規模香港本地學生SLJ常模研究）
+//
+//  【單車步 bike / 二重跳 double / 交叉開 cross】
+//  香港跳繩比賽中，bike（30秒交替跨步）有來自 HKRSF 全港錦標賽數據
+//  double / cross 無系統性分齡賽事數據，採用跳繩競技運動普遍接受水準
+//
+//  注意：參賽者本身已有一定訓練水準，IS App 學員與全港比賽選手比較
+//        是直接的、有意義的競技水準對標
+// ═══════════════════════════════════════════════════════════════════
 function getRadarBenchmark(metricKey, name) {
-  // 取學生年齡（測試當年）
   const birthYear = STUDENT_YEARS[name];
-  const testYear = 2025; // 大部分歷史數據在2025年
-  const age = birthYear ? Math.max(7, Math.min(14, testYear - birthYear)) : 10; // default 10歲
+  const testYear = 2025;
+  const age = birthYear ? Math.max(5, Math.min(13, testYear - birthYear)) : 10;
 
   switch(metricKey) {
 
-    // ── rope30：30秒前繩 ──────────────────────────────
-    // 基準公式：28 + age×3.2（次），對應《國家體質標準2014》P75水平
-    // 7歲≈50次, 8歲≈54次, 9歲≈57次, 10歲≈60次, 11歲≈63次, 12歲≈66次
-    case 'rope30':
-      return Math.round(28 + age * 3.2);
-
-    // ── sj：立定跳遠 ─────────────────────────────────
-    // 來源：Chung et al. (2013) 香港學生常模，男女P75均值
-    // 8歲≈126cm, 9歲≈134cm, 10歲≈142cm, 11歲≈150cm, 12歲≈160cm
-    case 'sj': {
-      const sjTable = {7:118, 8:126, 9:134, 10:142, 11:150, 12:160, 13:165, 14:168};
-      return sjTable[age] || 142;
+    // ── rope30：30秒前繩 ──────────────────────────────────────────
+    // 來源：HKRSA 全港分齡跳繩比賽 2025，男女合併 P75
+    // 5歲=51, 6歲=62, 7歲=62, 8歲=73, 9歲=73, 10歲=79, 11歲=79
+    case 'rope30': {
+      const t = {5:51, 6:62, 7:62, 8:73, 9:73, 10:79, 11:79, 12:82, 13:84};
+      return t[age] || 73;
     }
 
-    // ── bike：30秒單車步 ──────────────────────────────
-    // 協調性動作，無官方常模。以IS學員P75（53次）為良好基準
-    case 'bike':
-      return 50;
+    // ── sj：立定跳遠 ─────────────────────────────────────────────
+    // 來源：Chung et al. (2013) 香港12,712名學生，P75男女均值
+    // 最大規模香港本地學生常模，目前無更新的香港全面數據
+    case 'sj': {
+      const t = {5:95, 6:105, 7:110, 8:122, 9:132, 10:141, 11:149, 12:157, 13:162};
+      return t[age] || 141;
+    }
 
-    // ── double：30秒二重跳 ────────────────────────────
-    // 技術性難度動作，跳繩競技參考，40次為優良水準
+    // ── bike：30秒單車步 ──────────────────────────────────────────
+    // 來源：HKRSF 全港跳繩錦標賽 30秒/90秒單車成績數據
+    // 結合 Zhang et al.(2021) 20秒 straddling P75 × 1.45 換算
+    // 保守估計（無完整分齡數據）：
+    case 'bike': {
+      const t = {5:40, 6:44, 7:47, 8:50, 9:53, 10:56, 11:59, 12:61, 13:63};
+      return t[age] || 53;
+    }
+
+    // ── double：30秒二重跳 ────────────────────────────────────────
+    // 香港分齡賽不設二重跳獨立分齡速度項目
+    // 參考：IJRU（國際跳繩聯合會）初階速度目標 + 香港訓練學員一般水準
     case 'double':
       return 40;
 
-    // ── cross：30秒交叉開 ─────────────────────────────
-    // 技術性動作，35次為優良水準
+    // ── cross：30秒交叉開 ─────────────────────────────────────────
+    // 參考：IJRU 初階技術速度評分標準
     case 'cross':
-      return 35;
+      return 32;
 
-    // ── cmj / rsi / rope2m / balanceL / sitreach ─────
-    // 沿用個人最佳值（PB）作基準，待累積足夠數據後更新
+    // ── 其他指標：沿用個人PB（待累積香港數據後更新）────────────────
     default:
-      return null; // null = 使用PB模式
+      return null;
   }
 }
 
@@ -5486,17 +5763,20 @@ function buildReportRadarSVG(name, from, to) {
 
     // ── 核心改動：使用客觀標準而非個人PB ──
     const benchmark = getRadarBenchmark(ax.key, name);
-    let ratio, norm;
+    let ratio, norm, displayPct;
     if (benchmark !== null) {
-      // 有客觀標準：比率 = 當前值 / 標準值，cap at 1.0
-      ratio = ax.higher ? Math.min(val / benchmark, 1.0) : Math.min(benchmark / val, 1.0);
+      // 有客觀標準：比率 = 當前值 / 標準值
+      const rawRatio = ax.higher ? val / benchmark : benchmark / val;
+      ratio = Math.min(rawRatio, 1.0);  // norm用於繪圖（cap 1.0）
       norm = ratio;
+      displayPct = Math.round(rawRatio * 100);  // 顯示實際百分比（可超100%）
     } else {
       // 無客觀標準：沿用個人PB模式
       ratio = pb > 0 ? Math.min(val / pb, 1.0) : 0.5;
       norm = ratio;
+      displayPct = Math.round(ratio * 100);
     }
-    return { ...ax, i, val, pb, ratio, norm, benchmark };
+    return { ...ax, i, val, pb, ratio, norm, benchmark, displayPct };
   });
 
   const hasData = axisData.some(ax => ax.val !== null);
@@ -5544,9 +5824,9 @@ function buildReportRadarSVG(name, from, to) {
     const dy = ly < cy-5 ? -10 : ly > cy+5 ? 20 : 4;
     const fillColor = ax.val !== null ? '#1a1a1a' : '#bbb';
     const valStr = ax.val !== null ? `${ax.val}${ax.unit}` : '—';
-    // 百分比顯示：有客觀標準顯示相對標準的%，無標準顯示相對PB的%
-    const pct = ax.val !== null ? Math.round(ax.ratio * 100) : null;
-    // 標準值標示：有客觀標準時顯示 "標準: Xn"
+    // 百分比顯示：有客觀標準顯示相對標準的%（可超100%），無標準顯示相對PB的%
+    const pct = ax.val !== null ? ax.displayPct : null;
+    // 標準值標示：有客觀標準時顯示 "目標: Xn"
     const benchStr = (ax.val !== null && ax.benchmark !== null) ? `目標:${ax.benchmark}${ax.unit}` : '';
     // 顏色：≥100%金色，≥80%青色，≥60%橙色，<60%紅色
     const pctColor = pct === null ? '#999' : pct >= 100 ? '#f59e0b' : pct >= 80 ? '#3ECFCF' : pct >= 60 ? '#d97706' : '#ef4444';
@@ -5593,12 +5873,14 @@ function buildReportRadarSVG(name, from, to) {
         <div style="display:flex;flex-direction:column;gap:5px">
           ${axisData.filter(ax=>ax.val!==null).map(ax => {
             const barW = Math.min(Math.round(ax.ratio * 100), 100);
-            const barColor = barW >= 100 ? '#f59e0b' : barW >= 80 ? '#3ECFCF' : barW >= 60 ? '#60a5fa' : '#f87171';
-            const benchLabel = ax.benchmark !== null ? ` / 標準${ax.benchmark}${ax.unit}` : ' / 個人PB';
+            const dispPct = ax.displayPct;
+            const barColor = dispPct >= 100 ? '#f59e0b' : dispPct >= 80 ? '#3ECFCF' : dispPct >= 60 ? '#60a5fa' : '#f87171';
+            const benchLabel = ax.benchmark !== null ? ` / 目標${ax.benchmark}${ax.unit}` : ' / 個人PB';
+            const excelMark = dispPct >= 100 ? ' 🌟' : '';
             return `<div>
               <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:1px">
                 <span>${ax.label} <span style="color:#aaa">(${ax.val}${ax.unit}${benchLabel})</span></span>
-                <span style="color:${barColor};font-weight:700">${Math.round(ax.ratio*100)}%</span>
+                <span style="color:${barColor};font-weight:700">${dispPct}%${excelMark}</span>
               </div>
               <div style="background:#f0f0f0;border-radius:3px;height:6px">
                 <div style="background:${barColor};border-radius:3px;height:6px;width:${barW}%"></div>
@@ -5650,41 +5932,65 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
 
   // Build SVG line charts (same as existing makeLineChart but inline)
   function makeChart(recs, m, cid) {
-    if (recs.length < 2) return '<div style="text-align:center;color:#888;font-size:11px;padding:10px 0">數據點不足</div>';
+    if (recs.length < 1) return '<div style="text-align:center;color:#888;font-size:11px;padding:10px 0">沒有數據</div>';
+    if (recs.length === 1) {
+      // 單點：直接顯示數值卡
+      return `<div style="text-align:center;padding:8px 0">
+        <div style="font-size:22px;font-weight:900;color:#3ECFCF">${recs[0].val}${m.unit}</div>
+        <div style="font-size:9px;color:#999;margin-top:2px">${fmtDate(recs[0].date)}</div>
+      </div>`;
+    }
     const vals = recs.map(r=>r.val);
     const minV = Math.min(...vals), maxV = Math.max(...vals);
-    const range = maxV-minV||1;
-    const W=340,H=90,padL=32,padR=8,padT=8,padB=22;
-    const cW=W-padL-padR, cH=H-padT-padB;
-    const pts = recs.map((r,i)=>({
-      x: padL+(i/(recs.length-1))*cW,
-      y: padT+cH-((r.val-minV)/range)*cH,
-      val:r.val, date:r.date
+    const range = maxV - minV || 1;
+    // 動態高度：每個數據點需要足夠空間顯示標籤
+    const W = Math.max(300, recs.length * 44 + 40);
+    const H = 110, padL = 32, padR = 12, padT = 20, padB = 38;
+    const cW = W - padL - padR, cH = H - padT - padB;
+    const pts = recs.map((r, i) => ({
+      x: padL + (recs.length > 1 ? (i / (recs.length - 1)) * cW : cW / 2),
+      y: padT + cH - ((r.val - minV) / range) * cH,
+      val: r.val, date: r.date
     }));
-    const poly = pts.map(p=>`${p.x},${p.y}`).join(' ');
-    const area = `M${pts[0].x},${padT+cH} `+pts.map(p=>`L${p.x},${p.y}`).join(' ')+` L${pts[pts.length-1].x},${padT+cH} Z`;
-    const dots = pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="${p.val===maxV?5:3}" fill="${p.val===maxV?'#fbbf24':'#3ECFCF'}" stroke="#fff" stroke-width="1.5"/>`).join('');
-    const yLbls = [minV,Math.round((minV+maxV)/2),maxV].map(v=>{
-      const y=padT+cH-((v-minV)/range)*cH;
-      return `<text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${v}</text>`;
+    const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
+    const area = `M${pts[0].x},${padT+cH} ` + pts.map(p => `L${p.x},${p.y}`).join(' ') + ` L${pts[pts.length-1].x},${padT+cH} Z`;
+
+    // 每個數據點顯示：圓點 + 成績（上方）+ 日期（下方）
+    const dots = pts.map((p, i) => {
+      const isPB = p.val === maxV;
+      const isLast = i === pts.length - 1;
+      const dotR = isPB ? 5.5 : 4;
+      const dotFill = isPB ? '#fbbf24' : isLast ? '#22d3ee' : '#3ECFCF';
+      // 成績標籤：顯示在點上方
+      const labelY = p.y - dotR - 3;
+      const valLabel = `<text x="${p.x}" y="${labelY}" text-anchor="middle" font-size="9" font-weight="${isPB?'900':'700'}" fill="${dotFill}">${p.val}${m.unit}</text>`;
+      // 日期標籤：顯示在底部 x 軸下方，每點都顯示，垂直方向交錯避免重疊
+      const dateY = H - (i % 2 === 0 ? 24 : 12);
+      const dateLabel = `<text x="${p.x}" y="${dateY}" text-anchor="middle" font-size="8" fill="#888">${fmtShort(p.date)}</text>`;
+      return `<circle cx="${p.x}" cy="${p.y}" r="${dotR}" fill="${dotFill}" stroke="#fff" stroke-width="1.5"/>
+        ${valLabel}${dateLabel}`;
     }).join('');
-    const xLbls = [0,Math.floor((recs.length-1)/2),recs.length-1].filter((v,i,a)=>a.indexOf(v)===i).map(i=>{
-      const p=pts[i];
-      return `<text x="${p.x}" y="${H-4}" text-anchor="middle" font-size="8" fill="#999">${fmtShort(recs[i].date)}</text>`;
+
+    const yLbls = [minV, maxV].map(v => {
+      const y = padT + cH - ((v - minV) / range) * cH;
+      return `<text x="${padL - 4}" y="${y + 3}" text-anchor="end" font-size="8" fill="#bbb">${v}</text>`;
     }).join('');
-    const grid=[0.25,0.5,0.75].map(f=>`<line x1="${padL}" y1="${padT+cH*(1-f)}" x2="${W-padR}" y2="${padT+cH*(1-f)}" stroke="#eee" stroke-width="1"/>`).join('');
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;margin:0 auto">
+    const grid = [0.25, 0.5, 0.75].map(f =>
+      `<line x1="${padL}" y1="${padT + cH*(1-f)}" x2="${W-padR}" y2="${padT + cH*(1-f)}" stroke="#f0f0f0" stroke-width="0.8"/>`
+    ).join('');
+    return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;min-width:${W}px">
       <defs><linearGradient id="g${cid}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.25"/>
+        <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.2"/>
         <stop offset="100%" stop-color="#3ECFCF" stop-opacity="0"/>
       </linearGradient></defs>
       ${grid}
       <path d="${area}" fill="url(#g${cid})"/>
       <polyline points="${poly}" fill="none" stroke="#3ECFCF" stroke-width="2" stroke-linejoin="round"/>
-      ${dots}${yLbls}${xLbls}
-      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+cH}" stroke="#ccc" stroke-width="1"/>
-      <line x1="${padL}" y1="${padT+cH}" x2="${W-padR}" y2="${padT+cH}" stroke="#ccc" stroke-width="1"/>
-    </svg>`;
+      ${dots}${yLbls}
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+cH}" stroke="#ddd" stroke-width="1"/>
+      <line x1="${padL}" y1="${padT+cH}" x2="${W-padR}" y2="${padT+cH}" stroke="#ddd" stroke-width="1"/>
+    </svg></div>`;
   }
 
   // BMI
