@@ -1753,11 +1753,13 @@ html, body {
       </div>
       <div id="student-profile-panel">
         <div class="perf-section-label">選擇學生</div>
-        <div style="padding:0 16px 10px">
+        <div style="padding:0 16px 8px">
           <input class="search-input" id="student-search" type="text" placeholder="輸入姓名搜尋…"
             oninput="renderStudentList()" autocomplete="off"
             style="width:100%;font-size:15px;padding:11px 14px;border-radius:12px">
         </div>
+        <!-- 班別篩選 -->
+        <div style="padding:0 16px 10px;display:flex;gap:6px;flex-wrap:wrap" id="student-class-filter-bar"></div>
         <div id="student-list-panel" style="padding:0 12px 20px"></div>
         <div id="student-detail-panel" style="display:none;padding:0 12px 100px"></div>
       </div>
@@ -3679,15 +3681,21 @@ function showPerfSummary(historyDate, historyMetrics) {
   const students = getPerfStudents(perfClass);
 
   // For each metric, find max number of attempts recorded on this date across all students
-  // Only count attempts that actually have data (not null)
+  // Counts both v1/v2/v3 sub-attempts AND multiple records on the same date
   function getAttemptCount(metricId) {
     let max = 1;
     students.forEach(name => {
       const recs = PERF_RECORDS[name]?.[metricId] || [];
-      const rec = recs.find(r => r.date === date);
-      if (!rec) return;
-      const attempts = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
-      if (attempts > max) max = attempts;
+      // Count all records for this date (each separate save = one attempt)
+      const dateRecs = recs.filter(r => r.date === date);
+      if (!dateRecs.length) return;
+      // Sum up all sub-attempts across all date records
+      let total = 0;
+      dateRecs.forEach(rec => {
+        const subAttempts = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
+        total += subAttempts > 0 ? subAttempts : 1; // at least 1 per record
+      });
+      if (total > max) max = total;
     });
     return max;
   }
@@ -3732,40 +3740,48 @@ function showPerfSummary(historyDate, historyMetrics) {
       const attempts = getAttemptCount(m.id);
       const allRecs = (PERF_RECORDS[name]?.[m.id] || []).slice().sort((a,b) => a.date.localeCompare(b.date));
       const pb = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
-      const todayRec = allRecs.find(r => r.date === date);
+      // 取當天所有記錄（同一天可能有多筆）
+      const todayRecs = allRecs.filter(r => r.date === date);
 
-      if (!todayRec) {
-        // No record: empty PB cell + empty attempt cells (no dash, just blank)
+      if (!todayRecs.length) {
+        // No record: empty PB cell + empty attempt cells
         rowHtml += `<td class="empty-cell"></td>`;
         const cols = attempts > 1 ? attempts : 1;
         for (let i = 0; i < cols; i++) rowHtml += `<td class="empty-cell"></td>`;
       } else {
         const prevRecs = allRecs.filter(r => r.date < date);
         const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
+        // 今天的最高值
+        const todayBest = m.higher ? Math.max(...todayRecs.map(r=>r.val)) : Math.min(...todayRecs.map(r=>r.val));
         const isFirst  = prevBest === null;
-        const isRecord = !isFirst && isBetter(m.id, todayRec.val, prevBest);
+        const isRecord = !isFirst && isBetter(m.id, todayBest, prevBest);
 
-        // PB 欄：顯示「今天之前」的舊 PB（不在同一次更換 PB）
-        // 今天破 PB 只在成績格子標示 🏅，PB 欄永遠顯示舊 PB
+        // PB 欄：顯示「今天之前」的舊 PB
         const pbDisplay = prevBest !== null ? prevBest : (isFirst ? '—' : (pb !== null ? pb : '—'));
-        const pbCellStyle = isRecord ? 'color:var(--amber);font-weight:900' : 'color:var(--amber);font-weight:900';
-        rowHtml += `<td style="${pbCellStyle}">${pbDisplay}</td>`;
+        rowHtml += `<td style="color:var(--amber);font-weight:900">${pbDisplay}</td>`;
 
-        const vals = [todayRec.v1, todayRec.v2, todayRec.v3];
-        const recordedVals = vals.filter(v => v !== null && v !== undefined);
-        const displayVals = recordedVals.length > 0 ? recordedVals : [todayRec.val];
-        const bestVal = todayRec.val;
+        // 收集當天所有嘗試值（含 v1/v2/v3 子嘗試 + 多筆記錄）
+        const displayVals = [];
+        todayRecs.forEach(rec => {
+          const subs = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined);
+          if (subs.length > 0) {
+            subs.forEach(v => displayVals.push(v));
+          } else {
+            displayVals.push(rec.val);
+          }
+        });
 
         if (attempts > 1) {
           for (let i = 0; i < attempts; i++) {
             const v = displayVals[i];
             if (v === undefined || v === null) {
-              // This student didn't have this attempt — show blank, not dash
               rowHtml += `<td class="empty-cell"></td>`;
             } else {
-              const isBestAttempt = v === bestVal && (isRecord || isFirst);
-              const style = isBestAttempt ? (isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--cyan);font-weight:700') : '';
-              rowHtml += `<td style="${style}">${v}${isRecord && v === bestVal ? '🏅' : isFirst && v === bestVal ? '✦' : ''}</td>`;
+              const isBestAttempt = v === todayBest;
+              const style = isBestAttempt
+                ? (isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : 'color:var(--cyan);font-weight:700')
+                : '';
+              rowHtml += `<td style="${style}">${v}${isRecord && isBestAttempt ? '🏅' : isFirst && isBestAttempt ? '✦' : ''}</td>`;
             }
           }
         } else {
@@ -4071,7 +4087,7 @@ function loadAllClassesForDate(date) {
   if (!date) return;
 
   // Collect all students who have any record on this date
-  const studentRows = []; // { name, classLabel, metrics: {mid: rec} }
+  const studentRows = []; // { name, classLabel, metrics: {mid: recs[]} }
   const seen = new Set();
 
   // 依班別篩選（histFilterClasses 空 = 全部）
@@ -4086,8 +4102,9 @@ function loadAllClassesForDate(date) {
       let hasAny = false;
       METRICS.forEach(m => {
         const recs = PERF_RECORDS[name]?.[m.id] || [];
-        const rec = recs.find(r => r.date === date);
-        if (rec) { metricsForDay[m.id] = rec; hasAny = true; }
+        // 取當天所有記錄（同一天可能有多筆）
+        const dayRecs = recs.filter(r => r.date === date);
+        if (dayRecs.length) { metricsForDay[m.id] = dayRecs; hasAny = true; }
       });
       if (hasAny) {
         seen.add(name);
@@ -4117,13 +4134,19 @@ function loadAllClassesForDate(date) {
   );
 
   // For each metric, find max attempts across all students on this date
+  // For each metric, find max number of attempts on this date across all students
+  // metrics[m.id] is now an array of records
   function getHistAttemptCount(metricId) {
     let max = 1;
-    studentRows.forEach(({ metrics }) => {
-      const rec = metrics[metricId];
-      if (!rec) return;
-      const cnt = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
-      if (cnt > max) max = cnt;
+    studentRows.forEach(({ name, metrics }) => {
+      const dayRecs = metrics[metricId];
+      if (!dayRecs || !dayRecs.length) return;
+      let total = 0;
+      dayRecs.forEach(rec => {
+        const subs = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined).length;
+        total += subs > 0 ? subs : 1;
+      });
+      if (total > max) max = total;
     });
     return max;
   }
@@ -4162,27 +4185,32 @@ function loadAllClassesForDate(date) {
     let row = `<tr><td class="name-col">${name}</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">${classLabel}</td>`;
     metricIdsOnDay.forEach(m => {
       const attempts = getHistAttemptCount(m.id);
-      const rec = metrics[m.id];
+      const dayRecs = metrics[m.id]; // now an array
       const allRecs = PERF_RECORDS[name]?.[m.id] || [];
       const prevRecs = allRecs.filter(r => r.date < date);
       const prevBest = prevRecs.length ? (m.higher ? Math.max(...prevRecs.map(r=>r.val)) : Math.min(...prevRecs.map(r=>r.val))) : null;
       const pb = allRecs.length ? (m.higher ? Math.max(...allRecs.map(r=>r.val)) : Math.min(...allRecs.map(r=>r.val))) : null;
 
-      if (!rec) {
+      if (!dayRecs || !dayRecs.length) {
         // Blank cells, no dash
         row += `<td class="empty-cell"></td>`;
         const cols = attempts > 1 ? attempts : 1;
         for (let i = 0; i < cols; i++) row += `<td class="empty-cell"></td>`;
       } else {
-        const isRecord = prevBest !== null && isBetter(m.id, rec.val, prevBest);
+        // 今天的最高值
+        const todayBest = m.higher ? Math.max(...dayRecs.map(r=>r.val)) : Math.min(...dayRecs.map(r=>r.val));
+        const isRecord = prevBest !== null && isBetter(m.id, todayBest, prevBest);
         const isFirst  = prevBest === null;
-        const pbStyle  = isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--amber);font-weight:900';
+        const pbStyle  = 'color:var(--amber);font-weight:900';
         row += `<td style="${pbStyle}">${pb !== null ? pb : '—'}</td>`;
 
-        const vals = [rec.v1, rec.v2, rec.v3];
-        const recordedVals = vals.filter(v => v !== null && v !== undefined);
-        const displayVals = recordedVals.length > 0 ? recordedVals : [rec.val];
-        const bestV = rec.val;
+        // 收集當天所有嘗試值（含 v1/v2/v3 子嘗試 + 多筆記錄）
+        const displayVals = [];
+        dayRecs.forEach(rec => {
+          const subs = [rec.v1, rec.v2, rec.v3].filter(v => v !== null && v !== undefined);
+          if (subs.length > 0) subs.forEach(v => displayVals.push(v));
+          else displayVals.push(rec.val);
+        });
 
         if (attempts > 1) {
           for (let i = 0; i < attempts; i++) {
@@ -4190,14 +4218,14 @@ function loadAllClassesForDate(date) {
             if (v === undefined || v === null) {
               row += `<td class="empty-cell"></td>`;
             } else {
-              const isBest = v === bestV && (isRecord || isFirst);
+              const isBest = v === todayBest;
               const s = isBest ? (isRecord ? 'color:var(--green);font-weight:900' : 'color:var(--cyan);font-weight:700') : '';
-              row += `<td style="${s}">${v}${isRecord&&v===bestV?'🏅':isFirst&&v===bestV?'✦':''}</td>`;
+              row += `<td style="${s}">${v}${isRecord&&isBest?'🏅':isFirst&&isBest?'✦':''}</td>`;
             }
           }
         } else {
           const s = isRecord ? 'color:var(--green);font-weight:900' : isFirst ? 'color:var(--cyan);font-weight:700' : '';
-          row += `<td style="${s}">${displayVals[0]||rec.val}${isRecord?'🏅':isFirst?'✦':''}</td>`;
+          row += `<td style="${s}">${displayVals[0]}${isRecord?'🏅':isFirst?'✦':''}</td>`;
         }
       }
     });
@@ -4312,9 +4340,39 @@ function getStudentClasses(name) {
     .join('、');
 }
 
+// 學生資料頁班別篩選狀態（null = 全部）
+let studentClassFilter = null;
+
+function renderStudentClassFilter() {
+  const bar = document.getElementById('student-class-filter-bar');
+  if (!bar) return;
+  const pills = [{ id: null, label: '全部' }].concat(
+    Object.entries(CLASSES).map(([id, cls]) => ({ id, label: cls.dayZh + ' ' + cls.time }))
+  );
+  bar.innerHTML = pills.map(p => {
+    const active = studentClassFilter === p.id;
+    return `<div onclick="setStudentClassFilter(${p.id===null?'null':`'${p.id}'`})"
+      style="padding:5px 12px;border-radius:10px;border:1.5px solid ${active?'var(--cyan)':'var(--border)'};background:${active?'var(--cyan-dim)':'var(--surface2)'};color:${active?'var(--cyan)':'var(--muted)'};font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">${p.label}</div>`;
+  }).join('');
+}
+
+function setStudentClassFilter(cls) {
+  studentClassFilter = cls;
+  renderStudentClassFilter();
+  renderStudentList();
+}
+
 function renderStudentList() {
+  renderStudentClassFilter();
   const q = document.getElementById('student-search')?.value.trim() || '';
-  const all = getAllStudents().filter(n => !q || n.includes(q));
+  let all = getAllStudents();
+  // 班別篩選
+  if (studentClassFilter) {
+    const cls = CLASSES[studentClassFilter];
+    if (cls) all = all.filter(n => cls.students.includes(n));
+  }
+  // 搜尋篩選
+  if (q) all = all.filter(n => n.includes(q));
   const panel = document.getElementById('student-list-panel');
 
   if (!all.length) {
@@ -5669,101 +5727,94 @@ const RADAR_AXES_REPORT = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════
-//  雷達圖評估標準 v4（多機構香港比賽數據綜合版）
+//  雷達圖評估標準 v5（IS 官方體能評估標準表）
 //
-//  【數據來源 — 近3年香港跳繩比賽】
+//  【數據來源】
+//  IS App 官方體能評估標準表，三大類：
+//  1. 專項速度與耐力（跳繩項目）
+//  2. 爆發力與反應力指標
+//  3. 基礎力量與穩定平衡
 //
-//  ① HKRSA（中國香港跳繩總會）全港分齡跳繩比賽
-//     官方成績PDF：2023、2024、2025年
-//     個人30秒前繩速度跳，各年齡組別，n=18-113人/組
+//  【設計原則 v5】
+//  ■ 100% = 精英 Elite（最高水準，超越為卓越）
+//  ■ 80%  ≈ 優良 Advanced 上限
+//  ■ 年齡分組：≤5歲 / 6-9歲 / 10-13歲
 //
-//  ② HKRSC（香港花式跳繩會）秋季全港個人全能跳繩錦標賽2024
-//     官方成績PDF（全25頁）
-//     包含：30秒前繩、單車步、二重跳、交叉開，各年齡組
-//     6歲男子：前繩冠軍72.5，單車冠軍51，二重冠軍40，交叉冠軍21
-//     12歲女子：單車冠軍68，二重冠軍60
-//
-//  ③ Masterful Studio 全能跳繩挑戰賽（2023-2025年，校際）
-//     比賽項目：30秒單車步、二重跳、交叉開（各年齡7-12歲分組）
-//     成績PDF未完全公開，參考挑戰賽設計及已知水準估算
-//
-//  ④ HKRSF（中國香港跳繩體育聯會）全港跳繩錦標賽2023-2025
-//     全港跳繩錦標賽2025：男子11歲30秒前繩亞軍朱柏宇
-//     30秒及90秒單車成績（2023），無詳細分齡數據
-//
-//  ⑤ 其他比賽（區域性）
-//     無限盃跳繩比賽2025：男子11歲30秒單車/二重/交叉各項冠軍
-//     仁愛堂跳繩比賽2024、韓國公開賽2025、UJR世界公開賽2024
-//     → 確認香港11歲頂尖選手各項成績與估算一致
-//
-//  【設計原則 v4】
-//  ■ rope30：100% = HKRSA分齡賽P90（全港訓練學員頂尖10%）
-//  ■ bike/double/cross：100% = 全港比賽一般組前3名平均
-//    → 參考HKRSC 2024秋季錦標賽各年齡組冠軍/亞軍水準
-//    → 此為真正的比賽競技標準，訓練學員努力達到的目標
-//  ■ 精英賽頂尖選手（如全港錦標賽冠軍）可達200%+，不設上限
-//  ■ IS學員達到50-70%已屬正常訓練水準，80%以上很出色
+//  ─ 速度耐力 ─────────────────────────────────────────────
+//  30s 單車步(bike)   3-5歲>50  | 6-9歲>85  | 10-13歲>100
+//  30s 前繩(rope30)   3-5歲>45  | 6-9歲>100 | 10-13歲>120
+//  30s 二重跳(double) —         | 6-9歲>65  | 10-13歲>85
+//  30s 交叉開(cross)  —         | 6-9歲>45  | 10-13歲>60
+//  2min 單車步(bike2m)—         | 6-9歲>280 | 10-13歲>350
+//  2min 前繩(rope2m)  —         | 6-9歲>300 | 10-13歲>380
+//  ─ 爆發力 ────────────────────────────────────────────────
+//  CMJ(cmj)           —         | 6-9歲>30  | 10-13歲>45
+//  立定跳遠(sj)       —         | 6-9歲>165 | 10-13歲>210
+//  RSI(rsi)           —         | 6-9歲>1.3 | 10-13歲>2.0
+//  ─ 基礎力量與穩定 ────────────────────────────────────────
+//  手握力(gripL/R)    —         | 6-9歲>18  | 10-13歲>35
+//  閉目單腳站(balL/R) —         | 6-9歲>40  | 10-13歲>60
+//  坐地前伸(sitreach) —         | 6-9歲>32  | 10-13歲>40
 // ═══════════════════════════════════════════════════════════════════
 function getRadarBenchmark(metricKey, name) {
   const birthYear = STUDENT_YEARS[name];
   const testYear = 2025;
-  const age = birthYear ? Math.max(5, Math.min(13, testYear - birthYear)) : 10;
+  const rawAge = birthYear ? testYear - birthYear : 10;
+  const isU6   = rawAge <= 5;  // 3-5歲組
+  const isU10  = rawAge <= 9;  // 6-9歲組（else 10-13歲）
 
   switch(metricKey) {
 
-    // ── rope30：30秒前繩 ──────────────────────────────────────────
-    // 來源：HKRSA 全港分齡賽2023-2025，P90（男女合併）
-    // 分齡賽n=18-113/組，P90 = 超越90%受訓學員的水準
-    // 6-7歲P90=72, 8-9歲P90=76, 10-11歲P90=85
-    // 全港錦標賽頂尖11歲冠軍≈100-110，精英成年≈112（賴家保亞洲亞軍）
-    case 'rope30': {
-      const t = {5:55, 6:72, 7:72, 8:76, 9:76, 10:85, 11:85, 12:92, 13:96};
-      return t[age] || 76;
-    }
+    // ── rope30：30秒前繩速度跳（總次數）────────────────────────────
+    case 'rope30':
+      return isU6 ? 45 : isU10 ? 100 : 120;
 
-    // ── sj：立定跳遠 ─────────────────────────────────────────────
-    // 來源：Chung et al. (2013) 香港12,712名學生官方常模，P75男女均值
-    // 此為本地最大規模研究，P75=訓練學員努力目標
-    case 'sj': {
-      const t = {5:95, 6:105, 7:112, 8:122, 9:132, 10:141, 11:149, 12:157, 13:162};
-      return t[age] || 141;
-    }
+    // ── bike：30秒單車步（右腳次數，香港比賽慣例）──────────────────
+    case 'bike':
+      return isU6 ? 50 : isU10 ? 85 : 100;
 
-    // ── bike：30秒單車步 ──────────────────────────────────────────
-    // 來源①：HKRSC 秋季全港個人全能跳繩錦標賽2024（一般組官方PDF）
-    //   6歲男冠軍=51，12歲女冠軍=68
-    // 來源②：Masterful全能跳繩挑戰賽2023-2025（校際，各年齡組）
-    // 來源③：無限盃2025 男子11歲單車步冠軍（與估算一致）
-    // 100% = 全港比賽一般組（非精英組）頂尖水準
-    // 估算各年齡（男女均值取保守值）：
-    case 'bike': {
-      const t = {5:40, 6:50, 7:55, 8:60, 9:64, 10:68, 11:72, 12:75, 13:78};
-      return t[age] || 64;
-    }
+    // ── double：30秒二重跳（總次數）────────────────────────────────
+    case 'double':
+      return isU10 ? 65 : 85;
 
-    // ── double：30秒二重跳 ────────────────────────────────────────
-    // 來源①：HKRSC 秋季全港個人全能跳繩錦標賽2024
-    //   6歲男冠軍=40，12歲女冠軍=60
-    // 來源②：無限盃2025 男子11歲二重跳冠軍（≈60-70次估算）
-    // 來源③：Masterful 全能挑戰賽各年齡頂尖水準
-    // 100% = 全港比賽一般組前3名平均
-    case 'double': {
-      const t = {5:28, 6:36, 7:42, 8:48, 9:52, 10:56, 11:60, 12:64, 13:68};
-      return t[age] || 52;
-    }
+    // ── cross：30秒交叉開（總次數）─────────────────────────────────
+    case 'cross':
+      return isU10 ? 45 : 60;
 
-    // ── cross：30秒交叉開 ─────────────────────────────────────────
-    // 來源①：HKRSC 秋季全港個人全能跳繩錦標賽2024
-    //   6歲冠軍：男=21，女=38（女較高，技術特性）
-    // 來源②：無限盃2025 男子11歲30秒交叉開合跳冠軍（≈45-55次估算）
-    // 來源③：Masterful 全能挑戰賽各年齡頂尖水準
-    // 100% = 全港比賽一般組前3名平均（男女均值）
-    case 'cross': {
-      const t = {5:18, 6:24, 7:28, 8:33, 9:36, 10:40, 11:44, 12:48, 13:52};
-      return t[age] || 36;
-    }
+    // ── rope2m：2分鐘前繩耐力（總次數）────────────────────────────
+    case 'rope2m':
+      return isU10 ? 300 : 380;
 
-    // ── 其他指標：沿用個人PB ─────────────────────────────────────
+    // ── bike2m：2分鐘單車步耐力（右腳次數）────────────────────────
+    case 'bike2m':
+      return isU10 ? 280 : 350;
+
+    // ── cmj：立定跳高 CMJ（cm）──────────────────────────────────────
+    case 'cmj':
+      return isU10 ? 30 : 45;
+
+    // ── sj：立定跳遠（cm）───────────────────────────────────────────
+    case 'sj':
+      return isU10 ? 165 : 210;
+
+    // ── rsi：反應力量指數────────────────────────────────────────────
+    case 'rsi':
+      return isU10 ? 1.3 : 2.0;
+
+    // ── gripL / gripR：手握力（kg）──────────────────────────────────
+    case 'gripL':
+    case 'gripR':
+      return isU10 ? 18 : 35;
+
+    // ── balanceL / balanceR：閉目單腳站（秒）───────────────────────
+    case 'balanceL':
+    case 'balanceR':
+      return isU10 ? 40 : 60;
+
+    // ── sitreach：坐地前伸（cm）─────────────────────────────────────
+    case 'sitreach':
+      return isU10 ? 32 : 40;
+
     default:
       return null;
   }
@@ -5849,14 +5900,18 @@ function buildReportRadarSVG(name, from, to) {
     const fillColor = ax.val !== null ? '#1a1a1a' : '#bbb';
     const valStr = ax.val !== null ? `${ax.val}${ax.unit}` : '—';
     const pct = ax.val !== null ? ax.displayPct : null;
-    const benchStr = (ax.val !== null && ax.benchmark !== null) ? `目標:${ax.benchmark}${ax.unit}` : '';
-    const pctColor = pct === null ? '#999' : pct >= 100 ? '#f59e0b' : pct >= 80 ? '#3ECFCF' : pct >= 60 ? '#d97706' : '#ef4444';
+    // 標準值標示：顯示「優良:X」
+    const benchStr = (ax.val !== null && ax.benchmark !== null) ? `優良:${ax.benchmark}${ax.unit}` : '';
+    // 色階：≥125%精英金色，≥100%優良青色，≥80%橙色，<80%紅色
+    const pctColor = pct === null ? '#999' : pct >= 125 ? '#f59e0b' : pct >= 100 ? '#3ECFCF' : pct >= 80 ? '#d97706' : '#ef4444';
     // 短化標籤名以節省空間
     const shortLabel = ax.label.replace('平衡力(左)','平衡(左)').replace('平衡力(右)','平衡(右)').replace('前繩耐力','耐力').replace('立定跳遠','跳遠');
+    // 等級標示
+    const gradeTag = pct === null ? '' : pct >= 125 ? ' 精英' : pct >= 100 ? ' 優良' : '';
     return `
       <text x="${lx}" y="${ly+dy}" text-anchor="${anchor}" font-size="9" font-weight="700" fill="${fillColor}" font-family="PingFang HK,Arial">${shortLabel}</text>
       <text x="${lx}" y="${ly+dy+11}" text-anchor="${anchor}" font-size="8.5" fill="#3ECFCF" font-family="Arial">${valStr}</text>
-      ${pct !== null ? `<text x="${lx}" y="${ly+dy+21}" text-anchor="${anchor}" font-size="8" font-weight="700" fill="${pctColor}" font-family="Arial">${pct}%</text>` : ''}
+      ${pct !== null ? `<text x="${lx}" y="${ly+dy+21}" text-anchor="${anchor}" font-size="8" font-weight="700" fill="${pctColor}" font-family="Arial">${pct}%${gradeTag}</text>` : ''}
       ${benchStr ? `<text x="${lx}" y="${ly+dy+30}" text-anchor="${anchor}" font-size="7" fill="#888" font-family="Arial">${benchStr}</text>` : ''}`;
   }).join('');
 
@@ -5897,9 +5952,9 @@ function buildReportRadarSVG(name, from, to) {
           ${axisData.filter(ax=>ax.val!==null).map(ax => {
             const barW = Math.min(Math.round(ax.ratio * 100), 100);
             const dispPct = ax.displayPct;
-            const barColor = dispPct >= 100 ? '#f59e0b' : dispPct >= 80 ? '#3ECFCF' : dispPct >= 60 ? '#60a5fa' : '#f87171';
+            const barColor = dispPct >= 125 ? '#f59e0b' : dispPct >= 100 ? '#3ECFCF' : dispPct >= 80 ? '#60a5fa' : '#f87171';
             const benchLabel = ax.benchmark !== null ? ` / 目標${ax.benchmark}${ax.unit}` : ' / 個人PB';
-            const excelMark = dispPct >= 100 ? ' 🌟' : '';
+            const excelMark = dispPct >= 125 ? ' 🏆精英' : dispPct >= 100 ? ' ⭐優良' : '';
             return `<div>
               <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:1px">
                 <span>${ax.label} <span style="color:#aaa">(${ax.val}${ax.unit}${benchLabel})</span></span>
@@ -5913,9 +5968,9 @@ function buildReportRadarSVG(name, from, to) {
         </div>
         <div style="font-size:8px;color:#aaa;margin-top:10px;line-height:1.5">
           ${completedCount}/${N} 項有數據<br>
-          🟡 達標(≥100%) &nbsp;🔵 良好(≥80%) &nbsp;⚫ 需加油<br>
-          <span style="color:#888">100% = 香港比賽頂尖水準（HKRSA/HKRSC/Masterful等）</span><br>
-          <span style="color:#888">來源：HKRSA分齡賽2023-25 · HKRSC全能錦標賽2024 · 多機構比賽</span>
+          🏆 精英(≥125%) &nbsp;⭐ 優良(≥100%) &nbsp;🔵 進步中(≥80%) &nbsp;⚫ 需加油<br>
+          <span style="color:#888">100% = IS 精英(Elite) 標準</span><br>
+          <span style="color:#888">80% ≈ 優良(Advanced) 水準</span>
         </div>
       </div>
     </div>
@@ -5940,10 +5995,18 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
   const bodyFirst = bodyInRange[0];
 
   const perfSections = METRICS.map(m => {
-    const recs = (PERF_RECORDS[name]?.[m.id]||[])
+    const allRecs = (PERF_RECORDS[name]?.[m.id]||[])
       .filter(r => r.date>=from && r.date<=to)
       .sort((a,b)=>a.date.localeCompare(b.date));
-    if (!recs.length) return null;
+    if (!allRecs.length) return null;
+    // 報告曲線圖：每天只取一個點（最高值），避免同天多次記錄重複
+    const byDate = {};
+    allRecs.forEach(r => {
+      if (!byDate[r.date] || (m.higher ? r.val > byDate[r.date].val : r.val < byDate[r.date].val)) {
+        byDate[r.date] = r;
+      }
+    });
+    const recs = Object.values(byDate).sort((a,b)=>a.date.localeCompare(b.date));
     const first = recs[0], last = recs[recs.length-1];
     const pb = m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
     const delta = last.val - first.val;
@@ -6001,8 +6064,10 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
     const grid = [0.25, 0.5, 0.75].map(f =>
       `<line x1="${padL}" y1="${padT + cH*(1-f)}" x2="${W-padR}" y2="${padT + cH*(1-f)}" stroke="#f0f0f0" stroke-width="0.8"/>`
     ).join('');
-    return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;min-width:${W}px">
+    // 手機自適應：用 viewBox + width:100% 讓圖表縮放適應屏幕，多點時才啟用橫向滾動
+    const needsScroll = recs.length > 6;
+    return `<div style="${needsScroll ? 'overflow-x:auto;-webkit-overflow-scrolling:touch' : ''}">
+    <svg viewBox="0 0 ${W} ${H}" ${needsScroll ? `width="${W}" height="${H}" style="display:block;min-width:${W}px"` : `width="100%" height="${H}" style="display:block"`}>
       <defs><linearGradient id="g${cid}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.2"/>
         <stop offset="100%" stop-color="#3ECFCF" stop-opacity="0"/>
@@ -6225,10 +6290,18 @@ function generateReport() {
   const bodyLast  = bodyInRange[bodyInRange.length-1];
 
   const perfSections = METRICS.map(m => {
-    const recs = (PERF_RECORDS[name]?.[m.id]||[])
+    const allRecs = (PERF_RECORDS[name]?.[m.id]||[])
       .filter(r => r.date>=from && r.date<=to)
       .sort((a,b)=>a.date.localeCompare(b.date));
-    if (!recs.length) return null;
+    if (!allRecs.length) return null;
+    // 報告曲線圖：每天只取一個點（最高值），避免同天多次記錄重複
+    const byDate = {};
+    allRecs.forEach(r => {
+      if (!byDate[r.date] || (m.higher ? r.val > byDate[r.date].val : r.val < byDate[r.date].val)) {
+        byDate[r.date] = r;
+      }
+    });
+    const recs = Object.values(byDate).sort((a,b)=>a.date.localeCompare(b.date));
     const first = recs[0], last = recs[recs.length-1];
     const pb = m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
     const delta = last.val - first.val;
@@ -6291,8 +6364,8 @@ function generateReport() {
       return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>`;
     }).join('');
 
-    return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <svg id="${chartId}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;min-width:${W}px;overflow:visible">
+    return `<div style="${recs.length > 6 ? 'overflow-x:auto;-webkit-overflow-scrolling:touch' : ''}">
+    <svg id="${chartId}" viewBox="0 0 ${W} ${H}" ${recs.length > 6 ? `width="${W}" height="${H}" style="display:block;min-width:${W}px;overflow:visible"` : `width="100%" height="${H}" style="display:block;overflow:visible"`}>
       <defs>
         <linearGradient id="g${chartId}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#3ECFCF" stop-opacity="0.25"/>
