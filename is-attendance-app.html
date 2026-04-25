@@ -3554,13 +3554,18 @@ function startPerfEntry() {
           </div>`;
         }
         return `
-        <div class="psc-metric-row" style="flex-wrap:wrap">
+        <div class="psc-metric-row" style="flex-wrap:wrap;gap:5px;align-items:center">
           ${rsiInfoHtml}
-          <span class="psc-metric-label">${m.name}</span>
+          <span class="psc-metric-label" style="width:100%;margin-bottom:0">${m.name}</span>
           <input class="psc-input" type="number" inputmode="decimal"
-            id="psc-${name}-${mid}" placeholder="—"
-            oninput="onPerfInput('${name}','${mid}',this.value)">
-          <span class="psc-pb" id="pb-${name}-${mid}">${pbTxt}</span>
+            id="psc-${name}-${mid}-1" placeholder="第1次"
+            style="flex:1;min-width:60px"
+            oninput="onPerfInputDouble('${name}','${mid}')">
+          <input class="psc-input" type="number" inputmode="decimal"
+            id="psc-${name}-${mid}-2" placeholder="第2次"
+            style="flex:1;min-width:60px"
+            oninput="onPerfInputDouble('${name}','${mid}')">
+          <span class="psc-pb" id="pb-${name}-${mid}" style="width:100%;text-align:right">${pbTxt}</span>
         </div>`;
       }).join('');
 
@@ -3610,7 +3615,31 @@ function onPerfInputDual(name, metricId) {
   updatePBDisplay(name, metricId, best);
 }
 
-function updatePBDisplay(name, metricId, currentBest) {
+// Double-input handler: 2 attempts, pick max (for non-dual metrics)
+function onPerfInputDouble(name, metricId) {
+  const el1 = document.getElementById(`psc-${name}-${metricId}-1`);
+  const el2 = document.getElementById(`psc-${name}-${metricId}-2`);
+  const v1 = parseFloat(el1?.value);
+  const v2 = parseFloat(el2?.value);
+  if (!perfSession[name]) perfSession[name] = {};
+  const hasV1 = !isNaN(v1) && el1?.value !== '';
+  const hasV2 = !isNaN(v2) && el2?.value !== '';
+  if (!hasV1 && !hasV2) {
+    delete perfSession[name][metricId];
+    updatePBDisplay(name, metricId, null);
+    return;
+  }
+  const vals = [hasV1?v1:null, hasV2?v2:null].filter(v=>v!==null);
+  const best = Math.max(...vals);
+  perfSession[name][metricId] = {
+    v1: hasV1 ? v1 : null,
+    v2: hasV2 ? v2 : null,
+    v3: null,
+  };
+  updatePBDisplay(name, metricId, best);
+}
+
+
   const pb  = getPersonalBest(name, metricId);
   const m   = METRICS.find(x => x.id === metricId);
   const pbEl = document.getElementById(`pb-${name}-${metricId}`);
@@ -3648,11 +3677,10 @@ function finishPerfEntry() {
       const bestVal = attempts.length > 0 ? Math.max(...attempts) : (typeof entry === 'number' ? entry : 0);
       // Store record: val = best value, also store all attempts
       const rec = { date, val: bestVal };
-      if (DUAL_METRICS.has(mid)) {
-        if (v1 !== null && v1 !== undefined) rec.v1 = v1;
-        if (v2 !== null && v2 !== undefined) rec.v2 = v2;
-        if (v3 !== null && v3 !== undefined) rec.v3 = v3;
-      }
+      // Store v1/v2/v3 for all metrics (not just DUAL_METRICS)
+      if (v1 !== null && v1 !== undefined) rec.v1 = v1;
+      if (v2 !== null && v2 !== undefined) rec.v2 = v2;
+      if (v3 !== null && v3 !== undefined) rec.v3 = v3;
       PERF_RECORDS[name][mid].push(rec);
       if (oldPB === null) {
         firstCount++;
