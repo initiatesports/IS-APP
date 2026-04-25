@@ -3639,7 +3639,7 @@ function onPerfInputDouble(name, metricId) {
   updatePBDisplay(name, metricId, best);
 }
 
-
+function updatePBDisplay(name, metricId, currentBest) {
   const pb  = getPersonalBest(name, metricId);
   const m   = METRICS.find(x => x.id === metricId);
   const pbEl = document.getElementById(`pb-${name}-${metricId}`);
