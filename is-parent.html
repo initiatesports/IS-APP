@@ -1389,6 +1389,19 @@ body {
 
 <script>
 // ═══════════════════════
+//  NAVIGATION
+// ═══════════════════════
+function switchPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('panel-' + id);
+  const nav   = document.getElementById('nav-' + id);
+  if (panel) panel.classList.add('active');
+  if (nav)   nav.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════
 //  API
 // ═══════════════════════
 const API_URL='https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
