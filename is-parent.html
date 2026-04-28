@@ -1659,6 +1659,274 @@ function doSearch(){
 // ═══════════════════════
 //  INIT
 // ═══════════════════════
+
+
+
+
+
+// ═══════════════════════════════════════════
+//  DATA LOADING & RENDERING (migrated)
+// ═══════════════════════════════════════════
+function setSyncState(state) {
+  const icon   = document.getElementById('sync-icon');
+  const banner = document.getElementById('sync-banner');
+  const bannerText = document.getElementById('sync-banner-text');
+  const s = {
+    loading:{ icon:'⏳', show:true,  err:false, txt:'⏳ 正在載入最新數據…' },
+    ok:     { icon:'☁',  show:false, err:false, txt:'' },
+    error:  { icon:'❌', show:true,  err:true,  txt:'❌ 載入失敗，顯示本地備份數據。點擊右上角重試。' }
+  }[state] || {icon:'☁',show:false,err:false,txt:''};
+  if(icon) icon.textContent = s.icon;
+  banner.classList.toggle('visible', s.show);
+  banner.classList.toggle('error', s.err);
+  bannerText.textContent = s.txt;
+}
+
+function restoreSettings(rows) {
+  if (!rows || !rows.length) return;
+  const map = {};
+  rows.forEach(r => {
+    if (!r.key || r.value === null || r.value === undefined) return;
+    try { map[r.key] = JSON.parse(r.value); } catch(e) { map[r.key] = r.value; }
+  });
+  // Restore class data
+  Object.keys(CLASSES).forEach(cid => {
+    if (map[`class_${cid}_students`]) CLASSES[cid].students = map[`class_${cid}_students`];
+    if (map[`class_${cid}_dayZh`])   CLASSES[cid].dayZh    = map[`class_${cid}_dayZh`];
+    if (map[`class_${cid}_time`])    CLASSES[cid].time      = map[`class_${cid}_time`];
+  });
+  // Restore star history
+  if (map['star_history']) {
+    try {
+      const parsed = typeof map['star_history']==='string' ? JSON.parse(map['star_history']) : map['star_history'];
+      if (Array.isArray(parsed) && parsed.length > 0) STAR_HISTORY = parsed;
+    } catch(e) {}
+  }
+  // Restore student photos
+  if (map['student_photos'] && typeof map['student_photos']==='object') {
+    Object.assign(STUDENT_PHOTOS, map['student_photos']);
+  }
+}
+
+function showToast(msg) {
+  let el = document.getElementById('_toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_toast';
+    el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c1c1c;color:#f0f0f0;padding:10px 20px;border-radius:20px;font-size:14px;border:1px solid rgba(255,255,255,0.1);opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:9999';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;el.style.opacity='1';el.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(20px)';},2200);
+}
+
+async function loadFromSheets(manual=false) {
+  setSyncState('loading');
+  try {
+    const data = await apiGet({ action: 'load' });
+    if (data.error) throw new Error(data.error);
+
+    // 1. Settings (class names, star history, photos)
+    restoreSettings(data.settings || []);
+
+    // 2. Absences
+    if (data.absences && data.absences.length >= 0) {
+      ABSENCES.length = 0;
+      (data.absences || []).forEach(row => {
+        ABSENCES.push({
+          id: row.id, name: row.name, classId: row.classId,
+          absDate:    ensureDateStr(row.absDate),
+          deadline:   ensureDateStr(row.deadline),
+          madeUpDate: ensureDateStr(row.madeUpDate),
+        });
+      });
+    }
+
+    // 3. Performance
+    PERF_RECORDS = {};
+    (data.performance || []).forEach(row => {
+      if (!PERF_RECORDS[row.name]) PERF_RECORDS[row.name] = {};
+      if (!PERF_RECORDS[row.name][row.metricId]) PERF_RECORDS[row.name][row.metricId] = [];
+      PERF_RECORDS[row.name][row.metricId].push({ date: ensureDateStr(row.date), val: +row.val });
+    });
+
+    dataLoaded = true;
+    setSyncState('ok');
+    renderLB();
+    // Re-render star panel if active
+    const starPanel = document.getElementById('panel-star');
+    if (starPanel && starPanel.classList.contains('active')) renderStarPanel();
+    // Re-run search if results visible
+    const q = document.getElementById('q')?.value?.trim();
+    if (q) doSearch();
+    if (manual) showToast('數據已更新 ☁');
+  } catch(e) {
+    setSyncState('error');
+    renderLB();
+  }
+}
+
+function renderLB() {
+  const m = METRICS.find(x=>x.id===lbActive);
+
+  // Tabs
+  document.getElementById('lb-tabs').innerHTML = METRICS.map(mt=>
+    `<div class="lb-tab ${lbActive===mt.id?'active':''}" onclick="setLB('${mt.id}')">${mt.name}</div>`
+  ).join('');
+
+  // Collect PBs
+  const all = getAllStudentsWithYear();
+  const entries = [];
+  all.forEach(({name,year})=>{
+    const pb=getPB(name,lbActive);
+    if(pb!==null) entries.push({name,val:pb,year});
+  });
+  entries.sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+
+  if(!entries.length){
+    document.getElementById('lb-age-groups').innerHTML='';
+    document.getElementById('lb-overall-list').innerHTML=
+      `<div class="lb-empty">${dataLoaded
+        ?`暫無 ${m.name} 成績資料<br><span style="font-size:12px">數據由教練記錄後自動更新</span>`
+        :`<span style="font-size:13px">⏳ 載入中…</span>`}</div>`;
+    document.getElementById('overall-title').textContent=`🏆 總排行 · ${m.name}`;
+    return;
+  }
+
+  // ── Age group cards — YOUNGEST FIRST ──
+  const withYear = entries.filter(e=>e.year);
+  let ageHtml = '';
+
+  function makeAgeGroup(list, title) {
+    if(!list.length) return '';
+    const sorted=[...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+    const cards=sorted.map((e,i)=>{
+      const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+      const re=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      return `<div class="age-card ${rc}">
+        <div class="age-card-rank">${re}</div>
+        <div class="age-card-name">${maskName(e.name)}</div>
+        <div class="age-card-val">${e.val}<span class="age-card-unit"> ${m.unit||'RSI'}</span></div>
+        <div class="age-card-sub">${e.year}年生</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:16px">
+      <div class="age-group-title">🎂 ${title}</div>
+      <div class="age-cards-row">${cards}</div>
+    </div>`;
+  }
+
+  if(withYear.length>=1){
+    const cy=new Date().getFullYear();
+    // Youngest first: 2020+ group
+    const younger=withYear.filter(e=>e.year>=2020);
+    if(younger.length>=1)
+      ageHtml+=makeAgeGroup(younger,`🔹 ${cy-2020}歲或以下（2020年或以後）`);
+    // Then older groups, youngest of older first (descending birth year = ascending age)
+    const olderYears=[...new Set(withYear.filter(e=>e.year<=2019).map(e=>e.year))].sort((a,b)=>b-a);
+    olderYears.forEach(yr=>{
+      ageHtml+=makeAgeGroup(withYear.filter(e=>e.year===yr),`🔹 ${cy-yr}歲（${yr}年生）`);
+    });
+  }
+
+  document.getElementById('lb-age-groups').innerHTML =
+    ageHtml||'<div style="padding:8px 0 4px;font-size:12px;color:var(--muted)">（暫無按歲數分組資料）</div>';
+
+  // ── Overall list (BOTTOM) ──
+  document.getElementById('overall-title').textContent=`🏆 總排行 · ${m.name}`;
+  document.getElementById('lb-overall-list').innerHTML=entries.map((e,i)=>{
+    const nc=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const nt=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    return `<div class="lb-row">
+      <div class="lb-num ${nc}">${nt}</div>
+      <div>
+        <div class="lb-name">${maskName(e.name)}</div>
+        ${e.year?`<div class="lb-year">${e.year}年生`+'</div>':''}
+      </div>
+      <div class="lb-val">${e.val}<span class="lb-unit">${m.unit||'RSI'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function setLB(id){lbActive=id;renderLB();}
+
+function getAllStudentsWithYear() {
+  const seen=new Set(),list=[];
+  Object.values(CLASSES).forEach(cls=>{
+    cls.students.forEach(name=>{
+      if(!seen.has(name)){seen.add(name);list.push({name,year:STUDENT_YEARS[name]||null})}
+    });
+  });
+  return list;
+}
+
+function makeAgeGroup(list, title) {
+    if(!list.length) return '';
+    const sorted=[...list].sort((a,b)=>m.higher?b.val-a.val:a.val-b.val);
+    const cards=sorted.map((e,i)=>{
+      const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+      const re=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+      return `<div class="age-card ${rc}">
+        <div class="age-card-rank">${re}</div>
+        <div class="age-card-name">${maskName(e.name)}</div>
+        <div class="age-card-val">${e.val}<span class="age-card-unit"> ${m.unit||'RSI'}</span></div>
+        <div class="age-card-sub">${e.year}年生</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:16px">
+      <div class="age-group-title">🎂 ${title}</div>
+      <div class="age-cards-row">${cards}</div>
+    </div>`;
+  }
+
+function isExpired(dl){return dl<todayStr()}
+
+function renderStarPanel() {
+  const el = document.getElementById('star-list');
+  if (!STAR_HISTORY.length) {
+    el.innerHTML = `<div class="lb-empty" style="padding-top:40px">
+      ⭐ 暫無優秀學員記錄<br>
+      <span style="font-size:12px">由教練記錄後自動更新</span>
+    </div>`;
+    return;
+  }
+
+  // Show newest batch first
+  el.innerHTML = STAR_HISTORY.slice().reverse().map((batch, bi) => {
+    const cards = batch.students.map(s => {
+      const photo = STUDENT_PHOTOS[s.name];
+      return `<div class="star-card">
+        <div class="star-card-photo">
+          ${photo ? `<img src="${photo}" alt="${s.shortName||s.name}">` : '👤'}
+        </div>
+        <div class="star-card-name">${s.shortName || s.name.slice(-2)}</div>
+        <div class="star-card-class">${s.class||''}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="star-batch">
+      <div class="star-batch-header">
+        <div>
+          <div class="star-batch-title">⭐ ${batch.period} 優秀學員</div>
+          <div class="star-batch-meta">${batch.label||''}</div>
+        </div>
+        <div class="star-batch-count">${batch.students.length} 位</div>
+      </div>
+      <div class="star-cards-row">${cards}</div>
+    </div>
+    <div class="star-divider"></div>`;
+  }).join('') + `<div class="footer" style="padding-top:8px"><p>每兩個月評選一次 · 由教練記錄</p></div>`;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab === 'star') renderStarPanel();
+}
+
 loadFromSheets();
 </script>
 </body>
