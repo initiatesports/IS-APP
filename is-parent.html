@@ -151,48 +151,6 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
 .done-note{margin-top:8px;font-size:12px;color:var(--muted)}
 .no-result{text-align:center;padding:40px 20px;color:var(--muted)}
 
-/* ── LEADERBOARD ── */
-.lb-wrap{padding:16px 14px 24px}
-.lb-metric-scroll{
-  display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;
-  scrollbar-width:none;margin-bottom:16px;
-}
-.lb-metric-scroll::-webkit-scrollbar{display:none}
-.lb-tab{
-  flex-shrink:0;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;
-  border:1.5px solid var(--border);color:var(--muted);cursor:pointer;background:none;
-  font-family:inherit;transition:.2s;
-}
-.lb-tab.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
-.lb-tab:active{opacity:.7}
-.age-group-section{margin-bottom:20px}
-.age-title{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.08em;
-  text-transform:uppercase;margin-bottom:10px;padding:0 2px}
-.lb-item{
-  display:flex;align-items:center;gap:12px;padding:10px 12px;
-  background:var(--surface);border-radius:12px;margin-bottom:8px;
-  border:1px solid var(--border);
-}
-.lb-rank{font-size:13px;font-weight:700;color:var(--muted);width:22px;text-align:center}
-.lb-rank.gold{color:var(--gold)}
-.lb-rank.silver{color:#b0b8c8}
-.lb-rank.bronze{color:#cd7f32}
-.lb-name-wrap{flex:1}
-.lb-name{font-size:14px;font-weight:700}
-.lb-year{font-size:11px;color:var(--muted)}
-.lb-val{font-size:15px;font-weight:900;color:var(--cyan)}
-.lb-unit{font-size:11px;color:var(--muted)}
-.age-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
-.age-label{padding:10px 14px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.05em;background:var(--surface2);border-bottom:1px solid var(--border)}
-.lb-rank.gold{color:var(--gold)}
-.lb-rank.silver{color:#b0bec5}
-.lb-rank.bronze{color:#cd7f32}
-.lb-overall-section{margin-top:8px}
-.lb-overall-title{font-size:15px;font-weight:800;margin-bottom:10px;padding:0 2px}
-.lb-empty{
-  text-align:center;padding:40px 20px;color:var(--muted);
-  font-size:14px;line-height:1.7;
-}
 
 /* ── STAR STUDENTS ── */
 .star-wrap{padding:16px 14px 24px}
@@ -238,12 +196,7 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
   border-top:1px solid var(--border);margin-top:8px;
 }
 .footer-social{display:flex;gap:12px;justify-content:center;margin-top:12px}
-.footer-social a{
-  display:flex;align-items:center;gap:6px;padding:8px 16px;
-  border-radius:20px;border:1px solid var(--border);
-  color:var(--muted);text-decoration:none;font-size:13px;
-  transition:.2s;
-}
+.footer-social a{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;border:1px solid var(--border);color:var(--muted);text-decoration:none;font-size:13px;font-weight:600;transition:.2s}.footer-social a:hover{color:var(--fg);border-color:var(--fg)}
 .footer-social a:hover{color:var(--cyan);border-color:var(--cyan)}
 
 /* ── TOP NAV ── */
@@ -329,6 +282,36 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
 }
 .nav-sync:hover { color: var(--cyan); }
 
+
+
+/* ── LEADERBOARD (Coach-format) ── */
+.lb-wrap{padding:16px 14px 24px}
+.lb-metric-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;margin-bottom:4px}
+.lb-metric-scroll::-webkit-scrollbar{display:none}
+.lb-tab{flex-shrink:0;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;border:1.5px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:inherit;transition:.15s}
+.lb-tab.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+.lb-tab:active{opacity:.7}
+.lb-age-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.lb-age-box{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;min-height:120px}
+.lb-age-box-title{font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.lb-age-entry{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:6px}
+.lb-age-entry:last-child{border-bottom:none}
+.lb-age-entry-name{font-size:13px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-age-entry-name.gold{color:#ffd700}.lb-age-entry-name.silver{color:#c0c0c0}.lb-age-entry-name.bronze{color:#cd7f32}
+.lb-age-entry-val{font-size:13px;font-weight:900;color:var(--cyan);white-space:nowrap;flex-shrink:0}
+.lb-age-entry-rank{font-size:11px;color:var(--muted);width:16px;flex-shrink:0;text-align:right}
+.lb-overall-box{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.lb-overall-box-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.lb-overall-entry{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.lb-overall-entry:last-child{border-bottom:none}
+.lb-overall-rank{font-size:14px;font-weight:900;width:28px;flex-shrink:0;color:var(--muted)}
+.lb-overall-rank.gold{color:#ffd700}.lb-overall-rank.silver{color:#c0c0c0}.lb-overall-rank.bronze{color:#cd7f32}
+.lb-overall-name{flex:1;font-size:15px;font-weight:700}
+.lb-overall-val{font-size:18px;font-weight:900;color:var(--cyan)}
+.lb-overall-unit{font-size:11px;color:var(--muted);margin-left:2px}
+.lb-overall-year{font-size:11px;color:var(--muted)}
+.lb-empty{text-align:center;color:var(--muted);padding:32px 16px;font-size:13px}
+
 </style>
 </head>
 <body>
@@ -411,8 +394,17 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
       <div class="panel-footer">
         © 2025 Initiate Sports · All rights reserved.
         <div class="footer-social">
-          <a href="https://www.facebook.com/InitiateSport" target="_blank">📘 Facebook</a>
-          <a href="https://www.instagram.com/initiate_sports.2023" target="_blank">📷 Instagram</a>
+          <a href="https://www.facebook.com/InitiateSport" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            <span>Initiate Sport</span>
+          </a>
+          <a href="https://www.instagram.com/initiate_sports.2023" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="url(#ig-grad)">
+              <defs><linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#f09433"/><stop offset="25%" style="stop-color:#e6683c"/><stop offset="50%" style="stop-color:#dc2743"/><stop offset="75%" style="stop-color:#cc2366"/><stop offset="100%" style="stop-color:#bc1888"/></linearGradient></defs>
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+            </svg>
+            <span>@initiate_sports.2023</span>
+          </a>
         </div>
       </div>
     </div>
@@ -445,14 +437,9 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
       <div class="lb-wrap">
         <div class="section-header">
           <h2>🏆 成績排行榜</h2>
-          <p>各項目個人最佳成績排名</p>
         </div>
         <div class="lb-metric-scroll" id="lb-tabs"></div>
-        <div id="lb-age-groups" class="age-group-section"></div>
-        <div class="lb-overall-section">
-          <div class="lb-overall-title" id="overall-title">🏆 總排行</div>
-          <div id="lb-overall-list"></div>
-        </div>
+        <div id="lb-content"></div>
       </div>
     </div>
 
@@ -1113,12 +1100,9 @@ async function loadFromSheets(manual=false) {
 
 function renderLB() {
   const tabsEl = document.getElementById('lb-tabs');
-  const ageEl  = document.getElementById('lb-age-groups');
-  const overallEl = document.getElementById('lb-overall-list');
-  const overallTitle = document.getElementById('overall-title');
-  if (!tabsEl || !ageEl || !overallEl) return;
+  const contentEl = document.getElementById('lb-content');
+  if (!tabsEl || !contentEl) return;
 
-  // Build metric tabs
   tabsEl.innerHTML = METRICS.map(m =>
     `<div class="lb-tab ${lbMetric===m.id?'active':''}" onclick="setLBMetric('${m.id}')">${m.name}</div>`
   ).join('');
@@ -1126,84 +1110,86 @@ function renderLB() {
   const m = METRICS.find(x => x.id === lbMetric);
   if (!m) return;
 
-  // Collect all active students
-  const activeNames = new Set();
-  Object.values(CLASSES).forEach(cls => cls.students.forEach(n => activeNames.add(n)));
-
-  // Build ranked entries (dedup by name, take best)
+  // Collect active students with PB
   const seen = new Set();
   const entries = [];
-  activeNames.forEach(name => {
-    if (seen.has(name)) return; seen.add(name);
-    const recs = PERF_RECORDS[name]?.[m.id] || [];
-    if (!recs.length) return;
-    const best = m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
-    // Determine age group
-    const year = (() => {
-      for (const [cid, cls] of Object.entries(CLASSES)) {
-        if (cls.students.includes(name) && STUDENT_YEARS[name]) return STUDENT_YEARS[name];
-      }
-      return null;
-    })();
-    entries.push({ name, best, year });
+  Object.entries(CLASSES).forEach(([cid, cls]) => {
+    cls.students.forEach(name => {
+      if (seen.has(name)) return; seen.add(name);
+      const recs = (PERF_RECORDS[name]?.[m.id] || []);
+      if (!recs.length) return;
+      const best = m.higher ? Math.max(...recs.map(r=>r.val)) : Math.min(...recs.map(r=>r.val));
+      const year = STUDENT_YEARS[name] || null;
+      entries.push({ name, val: best, year });
+    });
   });
 
   if (!entries.length) {
-    ageEl.innerHTML = `<div class="lb-empty">暫無 ${m.name} 成績記錄</div>`;
-    overallEl.innerHTML = '';
-    if (overallTitle) overallTitle.style.display = 'none';
+    contentEl.innerHTML = `<div class="lb-empty" style="padding:40px 16px;text-align:center">暫無${m.name}成績資料</div>`;
     return;
   }
 
-  entries.sort((a,b) => m.higher ? b.best - a.best : a.best - b.best);
+  entries.sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
+  const cy = new Date().getFullYear();
 
-  // Age group helper
-  function ageGroup(yr) {
-    if (!yr) return null;
-    const age = new Date().getFullYear() - yr;
-    if (age <= 5)  return { label:'S1 (≤5歲)', key:'s1' };
-    if (age <= 8)  return { label:'S2 (6-8歲)', key:'s2' };
-    if (age <= 11) return { label:'S3 (9-11歲)', key:'s3' };
-    return { label:'S4 (12歲+)', key:'s4' };
-  }
-
-  // Group by age
-  const groups = {};
-  const noGroup = [];
-  entries.forEach(e => {
-    const g = ageGroup(e.year);
-    if (g) { (groups[g.key] = groups[g.key] || { label:g.label, items:[] }).items.push(e); }
-    else noGroup.push(e);
-  });
-
-  function renderRow(e, rank) {
-    const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
-    return `<div class="lb-item">
-      <div class="lb-rank ${rank===1?'gold':rank===2?'silver':rank===3?'bronze':''}">${medal||rank}</div>
-      <div class="lb-name-wrap">
-        <div class="lb-name">${e.name}</div>
-      </div>
-      <div class="lb-val">${e.best}<span class="lb-unit">${m.unit}</span></div>
+  function makeAgeBox(list, title) {
+    if (!list.length) return '';
+    const sorted = [...list].sort((a,b) => m.higher ? b.val - a.val : a.val - b.val);
+    const rows = sorted.map((e, i) => {
+      const rankTxt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+      const nameCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      return `<div class="lb-age-entry">
+        <span class="lb-age-entry-rank">${rankTxt}</span>
+        <span class="lb-age-entry-name ${nameCls}">${e.name}</span>
+        <span class="lb-age-entry-val">${e.val}<span style="font-size:10px;color:var(--muted);margin-left:2px">${m.unit||''}</span></span>
+      </div>`;
+    }).join('');
+    return `<div class="lb-age-box">
+      <div class="lb-age-box-title">${title}</div>
+      ${rows}
     </div>`;
   }
 
-  // Render age groups
-  const groupOrder = ['s1','s2','s3','s4'];
+  // Group by individual age (same as coach app)
+  const withYear = entries.filter(e => e.year);
+  const ageGroups = [];
+  const younger = withYear.filter(e => e.year >= 2020);
+  if (younger.length) ageGroups.push({ list: younger, title: `${cy-2020}歲或以下` });
+  const olderYears = [...new Set(withYear.filter(e => e.year <= 2019).map(e => e.year))].sort((a,b) => b-a);
+  olderYears.forEach(yr => {
+    const grp = withYear.filter(e => e.year === yr);
+    if (grp.length) ageGroups.push({ list: grp, title: `${cy-yr}歲` });
+  });
+
+  // 3-column grid layout
   let ageHtml = '';
-  groupOrder.forEach(key => {
-    const g = groups[key];
-    if (!g) return;
-    ageHtml += `<div class="age-card">
-      <div class="age-label">${g.label}</div>
-      ${g.items.map((e,i)=>renderRow(e,i+1)).join('')}
+  for (let i = 0; i < ageGroups.length; i += 3) {
+    const row = ageGroups.slice(i, i + 3);
+    ageHtml += `<div class="lb-age-row">
+      ${row.map(g => makeAgeBox(g.list, g.title)).join('')}
+      ${row.length === 1 ? '<div></div><div></div>' : row.length === 2 ? '<div></div>' : ''}
     </div>`;
-  });
-  ageEl.innerHTML = ageHtml || '';
+  }
 
-  // Overall top 10
-  if (overallTitle) overallTitle.style.display = '';
-  overallEl.innerHTML = entries.slice(0,10).map((e,i)=>renderRow(e,i+1)).join('') ||
-    `<div class="lb-empty">暫無成績</div>`;
+  // Overall list
+  const overallRows = entries.map((e, i) => {
+    const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const rankTxt = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+    return `<div class="lb-overall-entry">
+      <span class="lb-overall-rank ${rankCls}">${rankTxt}</span>
+      <span class="lb-overall-name">${e.name}</span>
+      ${e.year ? `<span class="lb-overall-year">${e.year}年生</span>` : ''}
+      <span class="lb-overall-val">${e.val}<span class="lb-overall-unit">${m.unit||''}</span></span>
+    </div>`;
+  }).join('');
+
+  contentEl.innerHTML = `<div style="padding:12px 12px 40px">
+    ${ageHtml}
+    <div class="lb-overall-box">
+      <div class="lb-overall-box-title">總排行榜 · ${m.name}</div>
+      ${overallRows}
+    </div>
+  </div>`;
 }
 
 let lbMetric = 'rope30';
@@ -1244,39 +1230,37 @@ function isExpired(dl){return dl<todayStr()}
 
 function renderStarPanel() {
   const el = document.getElementById('star-panel-list');
-  if (!STAR_HISTORY.length) {
+  if (!el) return;
+  if (!STAR_HISTORY || !STAR_HISTORY.length) {
     el.innerHTML = `<div class="lb-empty" style="padding-top:40px">
       ⭐ 暫無優秀學員記錄<br>
-      <span style="font-size:12px">由教練記錄後自動更新</span>
+      <span style="font-size:12px;margin-top:6px;display:block">由教練記錄後自動更新</span>
     </div>`;
     return;
   }
-
-  // Show newest batch first
-  el.innerHTML = STAR_HISTORY.slice().reverse().map((batch, bi) => {
+  el.innerHTML = STAR_HISTORY.slice().reverse().map(batch => {
     const cards = batch.students.map(s => {
       const photo = STUDENT_PHOTOS[s.name];
-      return `<div class="star-card">
-        <div class="star-card-photo">
-          ${photo ? `<img src="${photo}" alt="${s.shortName||s.name}">` : '👤'}
+      return `<div style="flex-shrink:0;width:90px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center">
+        <div style="width:56px;height:56px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:24px">
+          ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover">` : '⭐'}
         </div>
-        <div class="star-card-name">${s.shortName || s.name.slice(-2)}</div>
-        <div class="star-card-class">${s.class||''}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text)">${s.shortName||s.name}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.class||''}</div>
       </div>`;
     }).join('');
-
-    return `<div class="star-batch">
-      <div class="star-batch-header">
-        <div>
-          <div class="star-batch-title">⭐ ${batch.period} 優秀學員</div>
-          <div class="star-batch-meta">${batch.label||''}</div>
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:16px;font-weight:900;color:var(--cyan)">${batch.period||''} <span style="font-size:14px;color:var(--fg)">優秀學員</span></div>
+          ${batch.label ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${batch.label}</div>` : ''}
         </div>
-        <div class="star-batch-count">${batch.students.length} 位</div>
       </div>
-      <div class="star-cards-row">${cards}</div>
-    </div>
-    <div class="star-divider"></div>`;
-  }).join('') + `<div class="footer" style="padding-top:8px"><p>每兩個月評選一次 · 由教練記錄</p></div>`;
+      <div style="display:flex;gap:8px;overflow-x:auto;padding:14px 14px 16px;scrollbar-width:none">
+        ${cards}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function switchTab(tab) {
