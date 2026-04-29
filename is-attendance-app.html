@@ -1883,6 +1883,10 @@ html, body {
       <span class="nav-icon">📋</span>
       <span class="nav-label">課程介紹</span>
     </button>
+    <button class="nav-item" onclick="showScreen('parent')" id="nav-parent">
+      <span class="nav-icon">👨‍👩‍👧</span>
+      <span class="nav-label">補堂查詢</span>
+    </button>
     <button class="nav-item" onclick="showScreen('settings')" id="nav-settings">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">設定</span>
@@ -3394,7 +3398,7 @@ const METRICS = [
 // 這些項目每次記錄多個嘗試，取最大值作 PB 比較
 const DUAL_METRICS = new Set(['rope30','bike','double','cross']);
 
-let STUDENT_YEARS = {
+let STUDENT_YEARS = {"陳柏睎":2021,
   "何梓程": 2020, "何芯蕾": 2018, "余悅": 2017, "劉家頤": 2017,
   "古卓謙": 2019, "古詩詠": 2016, "吳瑋軒": 2014, "呂洛希": 2019,
   "周莉晶": 2018, "姚心穎": 2017, "孔善盈": 2016, "張爾淳": 2017,
@@ -5143,7 +5147,7 @@ let STAR_HISTORY = [
       { name:'陳信澄', shortName:'信澄', class:'Wed 6-7' },
       { name:'吳瑋軒', shortName:'瑋軒', class:'Fri 6-7' },
       { name:'羅靖誼', shortName:'靖誼', class:'Fri 6-7' },
-      { name:'陳柏睎', shortName:'柏晞', class:'Mon 6-7' },
+      { name:'陳柏睎', shortName:'柏睎', class:'Mon 6-7' },
       { name:'黃玥晴', shortName:'玥晴', class:'Wed 5-6' },
       { name:'王尉鏇', shortName:'尉鏇', class:'Sat 11-12' },
     ]
@@ -7154,6 +7158,11 @@ function renderSettings() {
   }).join('');
 
   el.innerHTML = `
+    <div style="padding:12px 0 8px">
+      <button onclick="showScreen('history')" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:14px;font-weight:700;cursor:pointer;text-align:left">
+        📋 查看出席歷史記錄
+      </button>
+    </div>
     <div class="settings-section-title">⚙️ 班別管理</div>
     <p style="padding:0 4px 12px;font-size:13px;color:var(--muted);line-height:1.6">
       修改後即時生效並同步至雲端。學生名單、上課星期、時間都可以直接在這裡調整。
