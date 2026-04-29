@@ -226,6 +226,11 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
 /* ── CONTENT PANELS ── */
 .content-wrap{padding:16px 14px 24px}
 .content-wrap h2,.section-title{font-size:20px;font-weight:900;margin-bottom:6px}
+/* ── CONTENT CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}
+.card-title{font-size:15px;font-weight:800;margin-bottom:6px}
+.card-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{background:rgba(62,207,207,0.1);border:1px solid rgba(62,207,207,0.2);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--cyan);font-weight:600}
 .section-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
 
 /* ── GRADE SEARCH ── */
@@ -566,7 +571,85 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
 
     <!-- ══ SUMMER ══ -->
     <div class="panel" id="panel-summer" style="padding:0">
-      
+      <div style="background:linear-gradient(135deg,#0d1b2a,#0f2a1a);padding:24px 16px 20px;position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 60% 40%,rgba(52,211,153,0.12),transparent 65%);pointer-events:none"></div>
+        <div style="position:relative">
+          <div style="display:inline-block;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:#34d399;letter-spacing:.08em;margin-bottom:10px">🌞 2026 暑期班</div>
+          <h2 style="font-size:22px;font-weight:900;line-height:1.2;margin-bottom:8px">IS 暑期運動班<br><span style="color:#34d399">2026</span></h2>
+          <p style="font-size:13px;color:rgba(248,250,252,0.6);line-height:1.5">花式跳繩 × 體能強化訓練<br>讓孩子度過精彩充實的暑假！</p>
+        </div>
+      </div>
+
+      <!-- Course Tabs -->
+      <div style="display:flex;gap:8px;padding:14px 14px 0;overflow-x:auto;scrollbar-width:none">
+        <button class="nav-tab active" onclick="showSummer2026('s1',this,'#34d399')" style="flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid rgba(52,211,153,0.4);background:rgba(52,211,153,0.12);color:#34d399;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">初級班</button>
+        <button class="nav-tab" onclick="showSummer2026('s2',this,'#3ECFCF')" style="flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">中級班</button>
+        <button class="nav-tab" onclick="showSummer2026('s3',this,'#a78bfa')" style="flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">高級班</button>
+        <button class="nav-tab" onclick="showSummer2026('s4',this,'#f5c842')" style="flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">S&C 體能班</button>
+      </div>
+
+      <div style="padding:14px 14px 100px">
+        <!-- 初級班 -->
+        <div class="course active" id="c-s1">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px">
+            <div style="font-size:16px;font-weight:900;color:#34d399;margin-bottom:12px">🟢 花式跳繩初級暑期班</div>
+            <div style="display:grid;gap:8px;font-size:13px">
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">對象</span><span>4–8歲初學者，零基礎歡迎參加</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">目標</span><span>掌握基本跳繩技巧、協調性及體能基礎</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">時間</span><span>每節60分鐘，每週2–3節</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">地點</span><span>TBC（香港各區）</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">學費</span><span>查詢教練</span></div>
+            </div>
+          </div>
+          <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:12px;padding:14px;font-size:12px;color:rgba(248,250,252,0.7);line-height:1.7">
+            📌 名額有限，先到先得。詳情請直接聯絡教練查詢。
+          </div>
+        </div>
+        <!-- 中級班 -->
+        <div class="course" id="c-s2" style="display:none">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px">
+            <div style="font-size:16px;font-weight:900;color:#3ECFCF;margin-bottom:12px">🔵 花式跳繩中級暑期班</div>
+            <div style="display:grid;gap:8px;font-size:13px">
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">對象</span><span>已掌握基本跳繩，Level 1–4</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">目標</span><span>提升速度、學習花式動作及連接技巧</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">時間</span><span>每節60分鐘，每週2–3節</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">地點</span><span>TBC（香港各區）</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">學費</span><span>查詢教練</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- 高級班 -->
+        <div class="course" id="c-s3" style="display:none">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px">
+            <div style="font-size:16px;font-weight:900;color:#a78bfa;margin-bottom:12px">🟣 花式跳繩高級暑期班</div>
+            <div style="display:grid;gap:8px;font-size:13px">
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">對象</span><span>Level 5 或以上，有競賽經驗優先</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">目標</span><span>系統強化訓練，備戰比賽及考核</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">時間</span><span>每節90分鐘，每週2–3節</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">地點</span><span>TBC（香港各區）</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">學費</span><span>查詢教練</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- S&C 體能班 -->
+        <div class="course" id="c-s4" style="display:none">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px">
+            <div style="font-size:16px;font-weight:900;color:#f5c842;margin-bottom:12px">💪 S&C 體能強化暑期班</div>
+            <div style="display:grid;gap:8px;font-size:13px">
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">對象</span><span>6歲或以上，所有程度</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">目標</span><span>全面提升力量、爆發力、協調性及柔韌性</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">時間</span><span>每節60分鐘，每週2節</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">地點</span><span>TBC（香港各區）</span></div>
+              <div style="display:flex;gap:8px"><span style="color:var(--muted);flex-shrink:0">學費</span><span>查詢教練</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;padding:16px;background:var(--cyan-dim);border:1px solid rgba(62,207,207,0.25);border-radius:14px;text-align:center">
+          <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:8px">📩 立即查詢暑期班詳情</div>
+          <div style="font-size:12px;color:var(--muted)">請聯絡教練或透過 Instagram @initiate_sports.2023 查詢</div>
+        </div>
+      </div>
     </div>
 
   </div><!-- end scroll-area -->
@@ -594,6 +677,15 @@ html,body{height:100%;background:var(--navy);color:var(--fg);font-family:-apple-
     <button class="nav-btn" id="nav-courses" onclick="switchPanel('courses')">
       <span class="nb-icon">📚</span>課程
     </button>
+    <button class="nav-btn" id="nav-summer" onclick="switchPanel('summer')">
+      <span class="nb-icon">🌞</span>暑期班
+    </button>
+    <button class="nav-btn" id="nav-knowledge" onclick="switchPanel('knowledge')">
+      <span class="nb-icon">💡</span>知識
+    </button>
+    <button class="nav-btn" id="nav-equipment" onclick="switchPanel('equipment')">
+      <span class="nb-icon">🛍</span>器材
+    </button>
   </nav>
 
 </div><!-- end app-wrap -->
@@ -612,8 +704,12 @@ function switchPanel(id) {
   if (btn)   btn.classList.add('active');
   document.querySelector('.scroll-area').scrollTop = 0;
   // Trigger renders
-  if (id === 'lb')   renderLB();
-  if (id === 'star') renderStarPanel();
+  if (id === 'lb')        renderLB();
+  if (id === 'star')      renderStarPanel();
+  if (id === 'courses')   renderCoursesPanel();
+  if (id === 'knowledge') renderKnowledgeScreen();
+  if (id === 'equipment') renderEquipmentScreen();
+  if (id === 'summer')    renderSummerPanel();
 }
 
 
@@ -896,6 +992,47 @@ function doSearch(){
 // ═══════════════════════════════════════════
 //  DATA LOADING & RENDERING (migrated)
 // ═══════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════
+//  RENDER — Knowledge & Equipment (parent-adapted)
+// ═══════════════════════════════════════════════════
+function renderKnowledgeScreen() {
+  const el = document.getElementById('knowledge-list');
+  if (!el) return;
+  if (!KNOWLEDGE_POSTS || !KNOWLEDGE_POSTS.length) {
+    el.innerHTML = '<div class="lb-empty">暫無知識分享內容</div>';
+    return;
+  }
+  el.innerHTML = KNOWLEDGE_POSTS.map((p, i) => `
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${p.date || ''}</div>
+      <div class="card-title" style="font-size:15px;margin-bottom:8px">${p.title}</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">${p.content || p.summary || ''}</div>
+      ${p.url ? `<a href="${p.url}" target="_blank" style="display:inline-block;margin-top:10px;color:var(--cyan);font-size:13px;font-weight:700;text-decoration:none">▶ 觀看影片</a>` : ''}
+    </div>
+  `).join('');
+}
+
+function renderEquipmentScreen() {
+  const el = document.getElementById('equipment-list');
+  if (!el) return;
+  if (!EQUIPMENT_ITEMS || !EQUIPMENT_ITEMS.length) {
+    el.innerHTML = '<div class="lb-empty">暫無器材資料</div>';
+    return;
+  }
+  el.innerHTML = EQUIPMENT_ITEMS.map(item => `
+    <div class="card" style="margin-bottom:14px">
+      ${item.image ? `<img src="${item.image}" style="width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:12px">` : ''}
+      <div class="card-title">${item.name}</div>
+      <div style="font-size:20px;font-weight:900;color:var(--cyan);margin:6px 0">HK$${item.price}</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">${item.desc || ''}</div>
+      <div style="margin-top:12px;padding:10px;background:var(--cyan-dim);border-radius:10px;font-size:12px;color:var(--muted)">
+        📩 查詢購買請聯絡教練
+      </div>
+    </div>
+  `).join('');
+}
+
 function setSyncState(state) {
   const icon   = document.getElementById('sync-icon');
   const banner = document.getElementById('sync-banner');
