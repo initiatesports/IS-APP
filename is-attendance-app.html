@@ -1978,7 +1978,15 @@ function getRollStudents(classId, dateStr) {
 const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6 };
 
 const CLASS_EXTRA_DATES = { c1:new Set(), c2:new Set(), c3:new Set(), c4:new Set(), c5:new Set(), c6:new Set(), c7:new Set() };
-const CLASS_CANCELLED_DATES = { c1:new Set(), c2:new Set(), c3:new Set(), c4:new Set(), c5:new Set(), c6:new Set(), c7:new Set() };
+const CLASS_CANCELLED_DATES = {
+  c1: new Set(['2026-05-25','2026-06-01']),
+  c2: new Set(['2026-05-25','2026-06-01']),
+  c3: new Set(['2026-05-27','2026-06-03']),
+  c4: new Set(['2026-05-27','2026-06-03']),
+  c5: new Set(['2026-05-29','2026-06-05']),
+  c6: new Set(['2026-05-30','2026-06-06']),
+  c7: new Set(['2026-05-30','2026-06-06']),
+};
 
 const PUBLIC_HOLIDAYS = new Set([
   '2026-04-05',
@@ -2014,7 +2022,12 @@ const ATT_LOG = {
   "c6|2026-02-28":{"陳焯棋":"present","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"absent","王斯顏":"absent","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
   "c6|2026-03-07":{"陳焯棋":"absent","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"present","王斯顏":"present","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
   "c7|2026-03-07":{"潘洛詩":"present","劉家頤":"absent","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"present","李灝宏":"present"},
-  "c7|2026-03-28":{"潘洛詩":"present","劉家頤":"present","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"absent","李灝宏":"absent"}
+  "c7|2026-03-28":{"潘洛詩":"present","劉家頤":"present","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"absent","李灝宏":"absent"},
+  "c1|2026-06-08":{"余悅":"exempt","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","羅君信":"present","羅君浩":"present"},
+  "c4|2026-06-10":{"陳卓楠":"present","曾愛斯":"present","王一言":"exempt","王一心":"exempt","古詩詠":"present","古卓謙":"present","梁心朗":"present","陳信澄":"present","陳澔泓":"present","梁正宇":"present","蘇穎悠":"present"},
+  "c5|2026-06-12":{"吳瑋軒":"present","黎柏言":"exempt","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","羅靖誼":"present","黎柏希":"exempt","陳焯棋":"present"},
+
+  "c5|2026-05-01":{"吳瑋軒": "absent", "黎柏言": "absent", "陳曉瑩": "absent", "梁正宇": "absent", "郭可昕": "absent", "黃玥晴": "absent", "黃朗程": "absent", "姚心穎": "absent", "羅靖誼": "absent", "黎柏希": "absent", "陳焯棋": "absent"},
 };
 
 let ABSENCES = [
@@ -2052,7 +2065,18 @@ let ABSENCES = [
   {id:"imp32",name:"劉家頤",classId:"c7",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
   {id:"imp33",name:"周莉晶",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
   {id:"imp34",name:"李灝宏",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
-  {id:"imp35",name:"陳書雅",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null}
+  {id:"imp35",name:"陳書雅",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
+  {id:"may1c5_1",name:"吳瑋軒",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_2",name:"黎柏言",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_3",name:"陳曉瑩",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_4",name:"梁正宇",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_5",name:"郭可昕",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_6",name:"黃玥晴",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_7",name:"黃朗程",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_8",name:"姚心穎",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_9",name:"羅靖誼",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_10",name:"黎柏希",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
+  {id:"may1c5_11",name:"陳焯棋",classId:"c5",absDate:"2026-05-01",deadline:"2026-07-01",madeUpDate:null},
 ];
 
 // ═══════════════════════════════════════════
