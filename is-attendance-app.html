@@ -6528,7 +6528,7 @@ function generateReport() {
     const range = maxV - minV || 1;
     // Dynamic width: each point needs ~44px minimum
     const W = Math.max(300, recs.length * 44 + 40);
-    const H = 90, padL = 28, padR = 10, padT = 16, padB = 32;
+    const H = 110, padL = 30, padR = 12, padT = 20, padB = 38;
     const chartW = W - padL - padR;
     const chartH = H - padT - padB;
 
@@ -6767,7 +6767,7 @@ function printReport(id) {
       * { margin:0; padding:0; box-sizing:border-box; }
       body { font-family: -apple-system,"PingFang HK","PingFang TC","Microsoft JhengHei",sans-serif;
         background:#fff; color:#1a1a1a; }
-      .a4-report { width:210mm; max-height:297mm; padding:10mm 12mm; margin:0 auto; background:#fff; overflow:hidden; }
+      .a4-report { width:210mm; padding:12mm 14mm; margin:0 auto; background:#fff; }
       .a4-header { display:flex; align-items:flex-start; gap:14px; margin-bottom:18px;
         padding-bottom:14px; border-bottom:2px solid #e0e0e0; }
       .a4-logo { background:none !important;border-radius:0 !important;
@@ -6777,10 +6777,10 @@ function printReport(id) {
       .a4-meta { font-size:12px; color:#666; margin-top:3px; }
       .a4-range { font-size:11px; color:#3ECFCF; margin-top:4px; font-weight:600; }
       .a4-brand { text-align:right; font-size:13px; font-weight:700; color:#3ECFCF; }
-      .a4-section-title { font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;
-        color:#666;margin:10px 0 8px;padding-bottom:3px;border-bottom:1px solid #eee; }
+      .a4-section-title { font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;
+        color:#666;margin:16px 0 10px;padding-bottom:4px;border-bottom:1px solid #eee; }
       .a4-body-row { display:flex; gap:12px; margin-bottom:14px; }
-      .a4-body-card { flex:1; background:#f8f8f8; border-radius:10px; padding:10px; text-align:center;
+      .a4-body-card { flex:1; background:#f8f8f8; border-radius:12px; padding:12px; text-align:center;
         border:1px solid #eee; }
       .a4-body-label { font-size:11px; color:#888; margin-bottom:4px; }
       .a4-body-val { font-size:28px; font-weight:900; color:#111; line-height:1; }
@@ -6788,7 +6788,7 @@ function printReport(id) {
       .a4-delta { font-size:12px; font-weight:700; margin-top:4px; }
       .a4-delta.up { color:#16a34a; } .a4-delta.down { color:#dc2626; }
       .a4-charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-      .a4-chart-card { background:#f9f9f9; border:1px solid #eee; border-radius:10px; padding:8px; }
+      .a4-chart-card { background:#f9f9f9; border:1px solid #eee; border-radius:12px; padding:10px; }
       .a4-chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
       .a4-chart-title { font-size:12px; font-weight:800; color:#111; }
       .a4-chart-stats { display:flex; gap:6px; }
@@ -6804,16 +6804,12 @@ function printReport(id) {
       .a4-footer { margin-top:auto; padding-top:16px; border-top:1px solid #eee;
         display:flex; justify-content:space-between; font-size:10px; color:#aaa; }
       @media print {
-        @page { size: A4 portrait; margin: 0; }
-        html, body { width:210mm; height:297mm; overflow:hidden; }
+        @page { size: A4 portrait; margin: 10mm 12mm; }
         body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-        .a4-report { 
-          padding:8mm 10mm; 
-          width:210mm; 
-          max-height:297mm;
-          overflow:hidden;
-          transform-origin:top left;
-        }
+        .a4-report { width:186mm; padding:0; }
+        .a4-footer { page-break-inside:avoid; }
+        .a4-chart-card { page-break-inside:avoid; break-inside:avoid; }
+        .a4-body-row { page-break-inside:avoid; break-inside:avoid; }
       }
     </style></head><body>`);
   // Inline the SVGs (already rendered)
@@ -6830,27 +6826,11 @@ function printReport(id) {
     if (el.getAttribute('fill')?.includes('url')) el.style.display = 'none';
   });
   win.document.write(clone.outerHTML);
-  win.document.write(`<script>
-    window.onload = function() {
-      // Auto-scale to fit A4 if content is taller than one page
-      const report = document.querySelector('.a4-report');
-      if (report) {
-        const a4h = 297 * 3.7795; // 297mm in px
-        const contentH = report.scrollHeight;
-        if (contentH > a4h) {
-          const scale = Math.min(1, a4h / contentH);
-          report.style.transform = 'scale(' + scale + ')';
-          report.style.transformOrigin = 'top center';
-          document.body.style.height = (contentH * scale) + 'px';
-          document.body.style.overflow = 'hidden';
-        }
-      }
-    };
-  <\/script>`);
+
   win.document.write('</body></html>');
   win.document.close();
   win.focus();
-  setTimeout(() => win.print(), 800);
+  setTimeout(() => win.print(), 600);
 }
 
 // ═══════════════════════════════════════════
