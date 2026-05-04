@@ -6760,153 +6760,191 @@ function printReport(id) {
   const el = document.getElementById(id);
   if (!el) return;
 
-  // ── Approach: inject a <style> that hides everything except this report,
-  // then call window.print(), then remove the style. ──
-  // This preserves ALL content including the logo image exactly as seen.
+  // Remember the original position in the DOM
+  const originalParent = el.parentNode;
+  const originalNextSibling = el.nextSibling;
 
-  // 1. Scroll to top so page break calculation is based on top of page
-  window.scrollTo(0, 0);
-
-  // 2. Build the print style
-  const styleId = '__print_report_style__';
-  let existing = document.getElementById(styleId);
-  if (existing) existing.remove();
+  // ── Inject print CSS ──
+  const styleId = '__print_style__';
+  let oldStyle = document.getElementById(styleId);
+  if (oldStyle) oldStyle.remove();
 
   const style = document.createElement('style');
   style.id = styleId;
-  style.innerHTML = `
+  style.textContent = `
     @media print {
-      /* Hide absolutely everything */
-      body > * { display: none !important; }
+      @page { size: A4 portrait; margin: 10mm 12mm; }
 
-      /* Show only our target report */
-      #${id} { display: block !important; }
-
-      /* Make all ancestor containers visible */
-      #${id}, #${id} * { visibility: visible; }
-
-      /* A4 page setup */
-      @page {
-        size: A4 portrait;
-        margin: 10mm 12mm;
+      /* 1. Hide everything */
+      body.printing-report > * {
+        display: none !important;
       }
 
-      /* Reset body for printing */
-      body {
-        background: #fff !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      /* Report container */
-      #${id} {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
+      /* 2. Show only the moved report */
+      body.printing-report > .a4-report {
+        display: block !important;
         width: 186mm !important;
         padding: 0 !important;
         margin: 0 !important;
         background: #fff !important;
         color: #111 !important;
-      }
-
-      /* Override dark-theme colors for print */
-      #${id} .a4-header {
-        border-bottom-color: #111 !important;
-      }
-      #${id} .a4-name { color: #111 !important; }
-      #${id} .a4-meta { color: #555 !important; }
-      #${id} .a4-range { color: #3ECFCF !important; }
-      #${id} .a4-section-title { color: #555 !important; border-bottom-color: #ccc !important; }
-
-      /* Logo */
-      #${id} .a4-logo-wrap img {
-        width: 90px !important;
-        height: 90px !important;
-        object-fit: contain !important;
-        display: block !important;
-        border: 2px solid #ddd !important;
-        border-radius: 10px !important;
-        background: #fff !important;
-        padding: 4px !important;
+        font-family: -apple-system,"PingFang HK","PingFang TC",sans-serif !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
 
-      /* Body measurement cards */
-      #${id} .a4-body-row {
+      /* 3. Force all text to dark */
+      body.printing-report > .a4-report * {
+        color: inherit;
+      }
+
+      /* 4. Header */
+      body.printing-report > .a4-report .a4-header {
         display: flex !important;
+        align-items: flex-start !important;
+        gap: 14px !important;
+        padding-bottom: 12px !important;
+        margin-bottom: 14px !important;
+        border-bottom: 2.5px solid #111 !important;
+        background: #fff !important;
+      }
+      body.printing-report > .a4-report .a4-name { color: #111 !important; font-size: 24px !important; font-weight: 900 !important; }
+      body.printing-report > .a4-report .a4-meta { color: #555 !important; }
+      body.printing-report > .a4-report .a4-range { color: #3ECFCF !important; font-weight: 700 !important; }
+
+      /* 5. LOGO */
+      body.printing-report > .a4-report .a4-logo-wrap {
+        flex-shrink: 0 !important;
+      }
+      body.printing-report > .a4-report .a4-logo-wrap img {
+        width: 90px !important;
+        height: 90px !important;
+        object-fit: contain !important;
+        display: block !important;
+        border: 2px solid #ccc !important;
+        border-radius: 10px !important;
+        background: #fff !important;
+        padding: 4px !important;
+      }
+
+      /* 6. Section titles */
+      body.printing-report > .a4-report .a4-section-title {
+        color: #444 !important;
+        border-bottom-color: #ccc !important;
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+      }
+
+      /* 7. Body cards - CRITICAL: ensure flex layout and sizing */
+      body.printing-report > .a4-report .a4-body-row {
+        display: flex !important;
+        flex-direction: row !important;
         gap: 12px !important;
+        margin-bottom: 12px !important;
+        width: 100% !important;
       }
-      #${id} .a4-body-card {
-        flex: 1 !important;
+      body.printing-report > .a4-report .a4-body-card {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        width: auto !important;
         background: #f7f7f7 !important;
-        border: 1px solid #e0e0e0 !important;
-        color: #111 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+        text-align: center !important;
+        display: block !important;
       }
-      #${id} .a4-body-label { color: #888 !important; }
-      #${id} .a4-body-val { color: #111 !important; }
-      #${id} .a4-delta.up { color: #16a34a !important; }
-      #${id} .a4-delta.down { color: #dc2626 !important; }
+      body.printing-report > .a4-report .a4-body-label { font-size: 11px !important; color: #666 !important; }
+      body.printing-report > .a4-report .a4-body-val { font-size: 26px !important; font-weight: 900 !important; color: #111 !important; line-height: 1 !important; }
+      body.printing-report > .a4-report .a4-unit { font-size: 13px !important; color: #888 !important; }
+      body.printing-report > .a4-report .a4-delta.up { color: #16a34a !important; }
+      body.printing-report > .a4-report .a4-delta.down { color: #dc2626 !important; }
 
-      /* Performance chart cards */
-      #${id} .a4-charts-grid {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-      }
-      #${id} .a4-chart-card {
-        background: #f9f9f9 !important;
-        border: 1px solid #e0e0e0 !important;
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      #${id} .a4-chart-title { color: #111 !important; }
-      #${id} .a4-pb-badge { background: #fef3c7 !important; color: #92400e !important; }
-      #${id} .a4-delta-badge.up { background: #d1fae5 !important; color: #065f46 !important; }
-      #${id} .a4-delta-badge.down { background: #fee2e2 !important; color: #991b1b !important; }
-      #${id} .a4-chart-footer { color: #888 !important; }
-
-      /* SVG elements */
-      #${id} svg text { fill: #555 !important; }
-      #${id} svg polyline { stroke: #3ECFCF !important; }
-      #${id} svg circle { stroke: #fff !important; stroke-width: 2 !important; }
-      #${id} svg line { stroke: #e0e0e0 !important; }
-      #${id} svg path[fill*="url"] { fill: rgba(62,207,207,0.15) !important; }
-
-      /* BMI card */
-      #${id} [style*="rgba(255,255,255,0.05)"] {
+      /* 8. BMI card */
+      body.printing-report > .a4-report [style*="rgba(255,255,255,0.05)"],
+      body.printing-report > .a4-report [style*="rgba(255,255,255,0.08)"] {
         background: #f0f9f9 !important;
       }
 
-      /* Radar chart text */
-      #${id} [style*="color:#555"] { color: #333 !important; }
-      #${id} [style*="color:#aaa"] { color: #666 !important; }
-      #${id} [style*="color:#888"] { color: #555 !important; }
-      #${id} [style*="color:rgba(248"] { color: #444 !important; }
+      /* 9. Charts grid */
+      body.printing-report > .a4-report .a4-charts-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+      }
+      body.printing-report > .a4-report .a4-chart-card {
+        background: #f9f9f9 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 10px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      body.printing-report > .a4-report .a4-chart-title { color: #111 !important; }
+      body.printing-report > .a4-report .a4-pb-badge { background: #fef3c7 !important; color: #92400e !important; }
+      body.printing-report > .a4-report .a4-delta-badge.up { background: #d1fae5 !important; color: #065f46 !important; }
+      body.printing-report > .a4-report .a4-delta-badge.down { background: #fee2e2 !important; color: #991b1b !important; }
+      body.printing-report > .a4-report .a4-delta-badge.same { background: #f3f4f6 !important; color: #6b7280 !important; }
+      body.printing-report > .a4-report .a4-chart-footer { color: #777 !important; }
 
-      /* Section breaks */
-      #${id} .a4-section-title { break-after: avoid; page-break-after: avoid; }
+      /* 10. SVG — charts and radar */
+      body.printing-report > .a4-report svg text { fill: #444 !important; font-family: -apple-system,"PingFang HK",sans-serif !important; }
+      body.printing-report > .a4-report svg polyline { stroke: #3ECFCF !important; }
+      body.printing-report > .a4-report svg circle { stroke: #fff !important; stroke-width: 2 !important; }
+      body.printing-report > .a4-report svg line { stroke: #ddd !important; }
+      body.printing-report > .a4-report svg polygon { stroke: #3ECFCF !important; fill: rgba(62,207,207,0.15) !important; }
+      body.printing-report > .a4-report svg path { fill: rgba(62,207,207,0.12) !important; }
+      body.printing-report > .a4-report svg [fill="#3ECFCF"] { fill: #3ECFCF !important; }
+      body.printing-report > .a4-report svg [stroke="#3ECFCF"] { stroke: #3ECFCF !important; }
 
-      /* Hide the footer date/copyright line */
-      #${id} .a4-footer { display: none !important; }
+      /* 11. Radar chart text specifically */
+      body.printing-report > .a4-report [style*="color:#aaa"] { color: #555 !important; }
+      body.printing-report > .a4-report [style*="color:#888"] { color: #444 !important; }
+      body.printing-report > .a4-report [style*="color:#999"] { color: #555 !important; }
+      body.printing-report > .a4-report [style*="color:rgba(248"] { color: #333 !important; }
+      body.printing-report > .a4-report [style*="color:var(--muted)"] { color: #555 !important; }
+      body.printing-report > .a4-report [style*="color:var(--text)"] { color: #111 !important; }
+      body.printing-report > .a4-report [style*="color:var(--fg)"] { color: #111 !important; }
+      body.printing-report > .a4-report [style*="background:var(--surface)"] { background: #f8f8f8 !important; }
+      body.printing-report > .a4-report [style*="background:var(--surface2)"] { background: #f0f0f0 !important; }
+      body.printing-report > .a4-report [style*="border.*var(--border)"] { border-color: #ddd !important; }
+
+      /* 12. Footer hidden */
+      body.printing-report > .a4-report .a4-footer { display: none !important; }
+
+      /* 13. Page breaks */
+      body.printing-report > .a4-report .a4-section-title { break-after: avoid; }
+      body.printing-report > .a4-report .a4-chart-card { break-inside: avoid; }
+      body.printing-report > .a4-report .a4-body-row { break-inside: avoid; }
     }
   `;
   document.head.appendChild(style);
 
-  // 3. Print
+  // ── Move report to body ──
+  document.body.appendChild(el);
+  document.body.classList.add('printing-report');
+
+  // ── Print ──
   window.print();
 
-  // 4. Remove the print style after printing
-  window.addEventListener('afterprint', function cleanup() {
+  // ── Restore after print ──
+  function restore() {
+    document.body.classList.remove('printing-report');
+    // Move back to original position
+    if (originalNextSibling) {
+      originalParent.insertBefore(el, originalNextSibling);
+    } else {
+      originalParent.appendChild(el);
+    }
     const s = document.getElementById(styleId);
     if (s) s.remove();
-    window.removeEventListener('afterprint', cleanup);
+  }
+
+  window.addEventListener('afterprint', function onAfterPrint() {
+    window.removeEventListener('afterprint', onAfterPrint);
+    restore();
   });
-  // Fallback cleanup in case afterprint doesn't fire
-  setTimeout(function() {
-    const s = document.getElementById(styleId);
-    if (s) s.remove();
-  }, 3000);
+  // Fallback if afterprint doesn't fire
+  setTimeout(restore, 5000);
 }
 
 // ═══════════════════════════════════════════
