@@ -6760,8 +6760,10 @@ function printReport(id) {
   const el = document.getElementById(id);
   if (!el) return;
 
-  // ── Step 1: Get HTML and fix all dark-mode CSS variables ──
-  let html = el.innerHTML;
+  // ── Use outerHTML so the .a4-report div itself is included ──
+  let html = el.outerHTML;
+
+  // ── Fix dark-mode CSS variables to print-safe values ──
   html = html
     .replace(/var\(--surface2\)/g, '#f0f0f0')
     .replace(/var\(--surface\)/g, '#f8f8f8')
@@ -6771,32 +6773,35 @@ function printReport(id) {
     .replace(/var\(--muted\)/g, '#888')
     .replace(/var\(--cyan\)/g, '#3ECFCF')
     .replace(/var\(--gold\)/g, '#f5c842')
+    .replace(/var\(--cyan-dim\)/g, '#e0fafa')
     .replace(/rgba\(255,255,255,0\.05\)/g, '#f5f5f5')
     .replace(/rgba\(255,255,255,0\.1\)/g, '#ebebeb')
+    .replace(/rgba\(255,255,255,0\.15\)/g, '#e0e0e0')
+    .replace(/rgba\(255,255,255,0\.2\)/g, '#d8d8d8')
     .replace(/rgba\(248,250,252,0\.[0-9.]+\)/g, '#888')
     .replace(/rgba\(13,27,42,[0-9.]+\)/g, '#f8f8f8')
-    .replace(/rgba\(0,0,0,0\.[0-9.]+\)/g, 'transparent');
-
-  // ── Step 2: Open print window ──
-  const win = window.open('', '_blank');
+    .replace(/rgba\(0,0,0,0\.[0-9.]+\)/g, 'transparent')
+    // Fix the dark header border
+    .replace(/border-bottom:2px solid rgba\(255,255,255,0\.15\)/g,
+             'border-bottom:2.5px solid #111')
+    .replace(/border-bottom:2\.5px solid rgba\(255,255,255,0\.15\)/g,
+             'border-bottom:2.5px solid #111');
 
   const CSS = `
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body {
       background:#fff;
-      font-family: -apple-system,"PingFang HK","PingFang TC","Microsoft JhengHei",sans-serif;
+      font-family:-apple-system,"PingFang HK","PingFang TC","Microsoft JhengHei",sans-serif;
       color:#1a1a1a;
     }
-
-    /* ── A4 wrapper — NO overflow, natural height ── */
+    /* A4 wrapper */
     .a4-report {
       width:186mm;
       padding:10mm 12mm;
       margin:0 auto;
       background:#fff;
     }
-
-    /* ── HEADER ── */
+    /* Header */
     .a4-header {
       display:flex !important;
       align-items:flex-start !important;
@@ -6805,62 +6810,46 @@ function printReport(id) {
       padding-bottom:12px !important;
       border-bottom:2.5px solid #111 !important;
     }
-    .a4-logo-wrap { flex-shrink:0 !important; }
-    .a4-logo-wrap img,
-    .a4-report img[src^="data:image/png"] {
-      width:90px !important;
-      height:90px !important;
-      object-fit:contain !important;
-      display:block !important;
-      border:2px solid #ddd !important;
-      border-radius:10px !important;
-      background:#fff !important;
-      padding:4px !important;
+    /* Logo — target both wrapper and any direct img in report header */
+    .a4-logo-wrap { flex-shrink:0; }
+    .a4-logo-wrap img {
+      width:90px !important; height:90px !important;
+      object-fit:contain !important; display:block !important;
+      border:2px solid #ddd !important; border-radius:10px !important;
+      background:#fff !important; padding:4px !important;
     }
     .a4-name { font-size:24px; font-weight:900; color:#111; }
     .a4-meta { font-size:12px; color:#555; margin-top:4px; }
     .a4-range { font-size:11px; color:#3ECFCF; margin-top:4px; font-weight:700; }
-
-    /* ── SECTION TITLE ── */
+    /* Section title */
     .a4-section-title {
       font-size:10px; font-weight:800; letter-spacing:0.1em;
       text-transform:uppercase; color:#555;
-      margin:12px 0 8px; padding-bottom:4px;
-      border-bottom:1px solid #ccc;
+      margin:12px 0 8px; padding-bottom:4px; border-bottom:1px solid #ccc;
     }
-
-    /* ── BODY MEASUREMENT CARDS ── */
+    /* Body cards */
     .a4-body-row {
-      display:flex !important;
-      gap:10px !important;
-      margin-bottom:10px !important;
+      display:flex !important; gap:12px !important; margin-bottom:12px !important;
     }
     .a4-body-card {
-      flex:1 !important;
-      background:#f7f7f7 !important;
-      border-radius:10px !important;
-      padding:10px 12px !important;
-      text-align:center !important;
+      flex:1 !important; min-width:0 !important;
+      background:#f7f7f7 !important; border-radius:10px !important;
+      padding:12px 14px !important; text-align:center !important;
       border:1px solid #e0e0e0 !important;
     }
-    .a4-body-label { font-size:10px; color:#888; margin-bottom:3px; }
-    .a4-body-val { font-size:24px; font-weight:900; color:#111; line-height:1; }
-    .a4-unit { font-size:12px; font-weight:400; color:#888; }
-    .a4-delta { font-size:11px; font-weight:700; margin-top:3px; }
+    .a4-body-label { font-size:11px; color:#888; margin-bottom:4px; }
+    .a4-body-val { font-size:26px; font-weight:900; color:#111; line-height:1; }
+    .a4-unit { font-size:13px; font-weight:400; color:#888; }
+    .a4-delta { font-size:11px; font-weight:700; margin-top:4px; }
     .a4-delta.up { color:#16a34a; }
     .a4-delta.down { color:#dc2626; }
-
-    /* ── PERF CHARTS ── */
+    /* Charts */
     .a4-charts-grid {
-      display:grid !important;
-      grid-template-columns:1fr 1fr !important;
-      gap:10px !important;
+      display:grid !important; grid-template-columns:1fr 1fr !important; gap:10px !important;
     }
     .a4-chart-card {
-      background:#f9f9f9 !important;
-      border:1px solid #e0e0e0 !important;
-      border-radius:10px !important;
-      padding:8px 10px !important;
+      background:#f9f9f9 !important; border:1px solid #e0e0e0 !important;
+      border-radius:10px !important; padding:8px 10px !important;
     }
     .a4-chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
     .a4-chart-title { font-size:11px; font-weight:800; color:#111; }
@@ -6871,25 +6860,19 @@ function printReport(id) {
     .a4-delta-badge.down { background:#fee2e2; color:#991b1b; }
     .a4-delta-badge.same { background:#f3f4f6; color:#6b7280; }
     .a4-chart-footer { display:flex; justify-content:space-between; font-size:9px; color:#888; margin-top:3px; }
-
-    /* ── SVG ── */
+    /* SVG */
     svg text { font-family:-apple-system,"PingFang HK",sans-serif; fill:#555 !important; }
     svg polyline { stroke:#3ECFCF !important; }
     svg circle { stroke:#fff !important; stroke-width:2 !important; }
     svg line { stroke:#e0e0e0 !important; }
-
-    /* ── FOOTER HIDDEN ── */
+    /* Footer hidden */
     .a4-footer { display:none !important; }
-
-    /* ── PAGE BREAK DIVIDER ── */
-    .page-break-divider {
-      width:100%; height:0;
-      page-break-after:always;
-      break-after:page;
-      display:block;
+    /* Page break helper */
+    .page-break-here {
+      display:block; width:100%; height:0;
+      page-break-after:always; break-after:page;
     }
-
-    /* ── PRINT RULES ── */
+    /* Print settings */
     @media print {
       @page { size:A4 portrait; margin:0; }
       html, body {
@@ -6899,53 +6882,58 @@ function printReport(id) {
       }
       .a4-report { width:186mm; padding:10mm 12mm; }
       .a4-footer { display:none !important; }
-      .page-break-divider { page-break-after:always; break-after:page; }
+      /* CRITICAL: prevent charts grid from being split across pages */
+      .a4-charts-grid { break-inside:auto; }
+      .a4-chart-card { break-inside:avoid; page-break-inside:avoid; }
+      .a4-section-title { break-after:avoid; page-break-after:avoid; }
+      .a4-body-row { break-inside:avoid; page-break-inside:avoid; }
     }
   `;
 
-  // ── Step 3: Write to window ──
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>IS 學生報告</title><style>' + CSS + '</style></head><body>');
-  win.document.write('<div class="a4-report">' + html + '</div>');
-  win.document.write('</body></html>');
+  const win = window.open('', '_blank');
+  win.document.write(
+    '<!DOCTYPE html><html><head>' +
+    '<meta charset="UTF-8">' +
+    '<title>IS 學生報告</title>' +
+    '<style>' + CSS + '</style>' +
+    '</head><body>' +
+    html +
+    '</body></html>'
+  );
   win.document.close();
 
-  // ── Step 4: After content loads, insert page break at correct position ──
-  win.onload = function() {
+  // ── After document is ready, measure and insert page break ──
+  setTimeout(function() {
     try {
       const doc = win.document;
       const report = doc.querySelector('.a4-report');
       if (!report) { win.print(); return; }
 
-      // A4 content area height in px (at 96dpi): (297mm - 20mm padding) * 3.7795
-      const PAGE_H_PX = Math.floor((297 - 20) * 3.7795); // ~1047px per page
+      // A4 usable height: 297mm total, 10mm top + 10mm bottom padding = 277mm
+      // At 96 DPI screen: 1mm = 3.7795px
+      const PAGE_H = Math.floor(277 * 3.7795); // ≈1047px
 
-      // Find the best break point — after the last chart row that fits on page 1
-      const chartsGrid = report.querySelector('.a4-charts-grid');
-      if (!chartsGrid) { win.print(); return; }
-
-      // Get all direct block-level children of the report
-      const children = Array.from(report.children);
-      let accumulated = 0;
-      let breakInserted = false;
-
-      for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        if (child.classList.contains('page-break-divider')) continue;
-        const h = child.getBoundingClientRect().height || child.offsetHeight;
-        if (!breakInserted && accumulated + h > PAGE_H_PX && accumulated > 0) {
-          // Insert break before this child
+      // Walk block children and find where page 1 ends
+      let cumH = 0;
+      const kids = Array.from(report.children);
+      for (let i = 0; i < kids.length; i++) {
+        const kid = kids[i];
+        if (kid.classList.contains('page-break-here') ||
+            kid.classList.contains('a4-footer')) continue;
+        const h = kid.getBoundingClientRect().height;
+        if (cumH + h > PAGE_H && cumH > 0) {
+          // Insert page break before this element
           const br = doc.createElement('div');
-          br.className = 'page-break-divider';
-          report.insertBefore(br, child);
-          breakInserted = true;
+          br.className = 'page-break-here';
+          report.insertBefore(br, kid);
           break;
         }
-        accumulated += h;
+        cumH += h;
       }
-    } catch(e) { /* ignore */ }
+    } catch(e) { /* ignore sizing errors */ }
 
-    setTimeout(function() { win.print(); }, 500);
-  };
+    setTimeout(function() { win.print(); }, 400);
+  }, 600);
 }
 
 // ═══════════════════════════════════════════
