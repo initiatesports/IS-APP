@@ -112,10 +112,16 @@ html, body {
   border-top: 1px solid var(--border);
   display: flex;
   padding-bottom: var(--safe-bot);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.bottom-nav::-webkit-scrollbar { display: none; }
 
 .nav-item {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 64px;
   display: flex;
   flex-direction: column;
   align-items: center;
