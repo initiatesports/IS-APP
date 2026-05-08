@@ -6343,7 +6343,7 @@ function buildSingleReportHtml(name, from, to, logoSrc) {
         <div class="a4-meta" style="font-size:12px;color:#666;margin-top:3px">${yr?yr+'年生　':''}${cls||'—'}</div>
         <div class="a4-range" style="font-size:11px;color:#3ECFCF;margin-top:4px;font-weight:600">📅 ${fmtDate(from)} — ${fmtDate(to)}</div>
       </div>
-      ${logoSrc ? `<img src="${logoSrc}" style="width:90px;height:90px;object-fit:contain;flex-shrink:0;border-radius:10px;border:2px solid #e0e0e0;background:#fff;padding:4px;">` : ''}
+      ${logoSrc ? `<img src="${logoSrc}" style="display:block;width:90px;height:90px;object-fit:contain;flex-shrink:0;border-radius:10px;border:2px solid #e0e0e0;background:#fff;padding:4px;">` : ''}
     </div>`;
 
   if (gradeHtml) html += gradeHtml;
