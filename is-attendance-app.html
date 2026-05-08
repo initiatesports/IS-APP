@@ -1780,7 +1780,7 @@ html, body {
       <div id="student-report-panel" style="display:none">
         <!-- 一鍵批量生成 -->
         <div style="background:rgba(62,207,207,0.08);border:1.5px solid rgba(62,207,207,0.2);border-radius:14px;margin:12px 16px 0;padding:14px">
-          <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:10px">📋 一鍵生成所有學生報告</div>
+          <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:10px">📋 批量生成學生報告</div>
           <div style="display:flex;gap:8px;margin-bottom:10px">
             <div style="flex:1">
               <div style="font-size:11px;color:var(--muted);margin-bottom:4px">開始日期</div>
@@ -1791,7 +1791,14 @@ html, body {
               <input type="date" id="bulk-to" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
             </div>
           </div>
-          <button class="btn-start-perf" style="width:100%" onclick="generateBulkReports()">🖨 生成全部學生報告（可列印）</button>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">選擇班別</div>
+            <div id="bulk-class-pills" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-start-perf" style="flex:1" onclick="generateBulkReports('all')">🖨 全部學生</button>
+            <button class="btn-start-perf" style="flex:1;background:var(--surface2)" onclick="generateBulkReports('class')">📚 按班別生成</button>
+          </div>
         </div>
 
         <div style="margin:14px 16px 4px;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.05em;text-transform:uppercase">或選擇單一學生</div>
@@ -4365,6 +4372,7 @@ function switchStudentTab(tab) {
   if (tab === 'profile') renderStudentList();
   if (tab === 'report') {
     renderReportStudentList();
+    initBulkClassPills();
     // Default bulk range: last 6 months
     const bf = document.getElementById('bulk-from');
     const bt = document.getElementById('bulk-to');
@@ -5756,20 +5764,75 @@ function getBMIInfo(bmi, ageYear) {
 // ═══════════════════════════════════════════════════════
 // 一鍵批量生成所有學生報告
 // ═══════════════════════════════════════════════════════
-function generateBulkReports() {
+function initBulkClassPills() {
+  const container = document.getElementById('bulk-class-pills');
+  if (!container) return;
+  // Build class pills with multi-select support
+  container.innerHTML = Object.entries(CLASSES).map(([cid, cls]) =>
+    `<button id="bulk-pill-${cid}"
+      onclick="toggleBulkPill('${cid}')"
+      style="padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;
+             border:1.5px solid var(--border);background:none;color:var(--muted);
+             cursor:pointer;font-family:inherit;transition:.15s"
+    >${cls.dayZh} ${cls.time}</button>`
+  ).join('');
+}
+
+function toggleBulkPill(cid) {
+  const btn = document.getElementById('bulk-pill-' + cid);
+  if (!btn) return;
+  const active = btn.style.background !== 'none' && btn.style.background !== '';
+  if (active) {
+    btn.style.background = 'none';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'var(--border)';
+  } else {
+    btn.style.background = 'var(--cyan-dim)';
+    btn.style.color = 'var(--cyan)';
+    btn.style.borderColor = 'var(--cyan)';
+  }
+}
+
+function getSelectedBulkClasses() {
+  return Object.keys(CLASSES).filter(cid => {
+    const btn = document.getElementById('bulk-pill-' + cid);
+    return btn && btn.style.background !== 'none' && btn.style.background !== '';
+  });
+}
+
+function generateBulkReports(mode) {
   const from = document.getElementById('bulk-from').value;
   const to   = document.getElementById('bulk-to').value;
   if (!from || !to) { toast('請先設定時間範圍', '⚠'); return; }
 
-  const allNames = getAllUniqueStudents();
-  if (!allNames.length) { toast('沒有學生資料', '⚠'); return; }
+  let names = [];
 
-  toast(`正在生成 ${allNames.length} 份報告…`, '⏳');
+  if (mode === 'class') {
+    // Generate reports for selected classes only
+    const selectedClasses = getSelectedBulkClasses();
+    if (!selectedClasses.length) {
+      toast('請先選擇班別（可多選）', '⚠'); return;
+    }
+    // Collect unique students from selected classes
+    const seen = new Set();
+    selectedClasses.forEach(cid => {
+      (CLASSES[cid].students || []).forEach(name => {
+        if (!seen.has(name)) { seen.add(name); names.push(name); }
+      });
+    });
+    if (!names.length) { toast('所選班別沒有學生', '⚠'); return; }
+    toast(`正在生成 ${names.length} 份報告（${selectedClasses.length} 個班別）…`, '⏳');
+  } else {
+    // Generate for ALL students
+    names = getAllUniqueStudents();
+    if (!names.length) { toast('沒有學生資料', '⚠'); return; }
+    toast(`正在生成 ${names.length} 份報告…`, '⏳');
+  }
 
   // Build all reports into one printable HTML page
   const logoSrc = document.querySelector('#header-title-text img')?.src || document.querySelector('.app-header img')?.src || '';
   let reportsHtml = '';
-  allNames.forEach(name => {
+  names.forEach(name => {
     reportsHtml += buildSingleReportHtml(name, from, to, logoSrc);
   });
 
