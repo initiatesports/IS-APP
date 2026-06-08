@@ -339,10 +339,14 @@ if(!isDemo) $("#demoBanner").classList.add("hidden");
 
 function renderNav(){
   const n=$("#navRight");
-  if(!S.session){n.innerHTML="";return;}
-  n.innerHTML=`<button class="chip-btn ${S.mode==='parent'?'active':''}" onclick="setMode('parent')">家長</button>
-    <button class="chip-btn ${S.mode==='coach'?'active':''}" onclick="setMode('coach')">教練</button>
-    <button class="chip-btn" onclick="logout()">登出</button>`;
+  if(S.session){
+    n.innerHTML=`<button class="chip-btn ${S.mode==='parent'?'active':''}" onclick="setMode('parent')">家長</button>
+      <button class="chip-btn ${S.mode==='coach'?'active':''}" onclick="setMode('coach')">教練</button>
+      <button class="chip-btn" onclick="logout()">登出</button>`;
+  } else if(S.coachOk){
+    n.innerHTML=`<button class="chip-btn active">教練</button>
+      <button class="chip-btn" onclick="logout()">登出</button>`;
+  } else { n.innerHTML=""; }
 }
 function setMode(m){ if(m==="coach"&&!S.coachOk){ return askCoach(); } S.mode=m; renderNav(); routeMain(); }
 function logout(){ S.session=null; S.coachOk=false; S.mode="parent"; renderNav(); renderLogin(); }
@@ -357,7 +361,7 @@ function renderLogin(){
     <label class="fld"><span class="lbl">小朋友中文全名</span>
       <input id="li-name" inputmode="text" placeholder="例如：陳大文" autocomplete="off"></label>
     <label class="fld"><span class="lbl">家長手機號碼後 4 位</span>
-      <input id="li-last4" inputmode="numeric" maxlength="4" class="codein" placeholder="••••"></label>
+      <input id="li-last4" inputmode="text" maxlength="12" class="codein" placeholder="••••"></label>
     <button class="btn" id="li-go" onclick="doLogin()">登入</button>
     <a class="ig-btn" href="https://www.instagram.com/initiate_sports.2023?igsh=aW5ud3FmNWpnZ2J2&utm_source=qr" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
@@ -367,10 +371,10 @@ function renderLogin(){
       追蹤我哋 Facebook</a>
     ${isDemo?`<p class="hint">示範帳號：<b>陳大文 / 3456</b>、<b>李曉晴 / 7890</b>、<b>黃浩然 / 1122</b></p>`:""}
   </div>`;
-  $("#li-last4").addEventListener("input",e=>e.target.value=e.target.value.replace(/\D/g,""));
 }
 async function doLogin(){
   const name=$("#li-name").value.trim(), last4=$("#li-last4").value.trim();
+  if(last4===CONFIG.COACH_PASS){ S.coachOk=true; S.mode="coach"; renderNav(); renderCoach(); return; }
   if(!name||last4.length!==4) return toast("請填中文全名同 4 位數字");
   $("#li-go").disabled=true; $("#li-go").textContent="登入中…";
   const r=await api("login",{name,last4});
