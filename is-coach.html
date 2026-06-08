@@ -162,10 +162,12 @@ async function load(){
   const date=S.date, d=new Date(date+"T00:00:00");
   $("#sum").textContent=`${date}（星期${WDN[d.getDay()]}）`;
   const box=$("#list"); box.innerHTML=`<div class="empty">載入中…</div>`;
-  const r=await api("dailyList",{date,coachPass:CONFIG.COACH_PASS});
-  if(!r||!r.ok){box.innerHTML=`<div class="empty">載入失敗，請檢查網絡再試</div>`;return;}
-  if(!r.list.length){box.innerHTML=`<div class="empty">呢日冇堂。<br>請揀返星期一～五嘅暑期班日期。</div>`;return;}
-  box.innerHTML=r.list.map((g,gi)=>grp(g,gi,date)).join("");
+  try{
+    const r=await api("dailyList",{date,coachPass:CONFIG.COACH_PASS});
+    if(!r||!r.ok){box.innerHTML=`<div class="empty">載入失敗${r&&r.err?'：'+r.err:''}</div>`;return;}
+    if(!r.list.length){box.innerHTML=`<div class="empty">呢日冇堂（暑期班 7 月 13 日先開始）。<br>請揀返星期一～五嘅上課日，例如 7/16。</div>`;return;}
+    box.innerHTML=r.list.map((g,gi)=>grp(g,gi,date)).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">連線錯誤：${(e&&e.message)||e}</div>`; }
 }
 function grp(g,gi,date){
   const sp=SPORT[g.c.sport], key=g.c.sport+"|"+g.c.wd;
@@ -188,11 +190,13 @@ function row(r,gi,ri,key,date){
     </div></div>`;
 }
 async function mark(name,key,date,status,btn,gi,mk){
-  const r=await api("markAttendance",{name,key,date,status,makeup:!!mk});
-  if(!r||!r.ok)return toast("儲存失敗，請再試");
-  const row=btn.closest(".att"); row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); btn.classList.add("on");
-  recount(gi);
-  toast(`${name}：${status}　已存`);
+  try{
+    const r=await api("markAttendance",{name,key,date,status,makeup:!!mk});
+    if(!r||!r.ok){ toast(r&&r.err? "存唔到："+r.err : "儲存失敗，請再試"); return; }
+    const row=btn.closest(".att"); row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); btn.classList.add("on");
+    recount(gi);
+    toast(`${name}：${status}　已存`);
+  }catch(e){ toast("連線錯誤："+((e&&e.message)||e)); }
 }
 async function markAll(gi,key,date,btn){
   const grp=$("#g"+gi); const rows=[...grp.querySelectorAll(".att")];
