@@ -256,17 +256,23 @@ function remainCap(slot, dateIso){
   return slot.cap - base - booked;
 }
 /* 計一個 class 嘅統計 */
-function classStats(name, c){
-  const sess = sessionsFor(c.wd);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const mine = DEMO.log.filter(l=>l.name===name && l.key===classKey(c));
-  const leaves = mine.filter(l=>l.action==="leave");
-  const makeups = DEMO.log.filter(l=>l.name===name && l.action==="makeup" && l.fromKey===classKey(c));
-  const attended = mine.filter(l=>l.action==="attend"&&l.status==="出席").length
-                 + makeups.filter(m=>m.attended).length;
-  const eligibleLeaves = leaves.filter(l=>l.eligible).length;
-  const owed = eligibleLeaves - makeups.length;
-  return {total:7, sess, leaves, makeups, attended, owed:Math.max(0,owed)};
+function demoClass(name, c){
+  const sess=sessionsFor(c.wd), key=classKey(c);
+  const mine=DEMO.log.filter(l=>l.name===name && l.key===key);
+  const makeups=DEMO.log.filter(l=>l.name===name && l.action==="makeup" && l.fromKey===key);
+  const sessions=sess.map(d=>{
+    const di=iso(d);
+    const att=mine.find(l=>l.action==="attend"&&l.date===di);
+    const lv=mine.find(l=>l.action==="leave"&&l.date===di);
+    let status="";
+    if(att) status=att.status;
+    else if(lv) status=lv.eligible?"請假":"缺席";
+    return {date:di,status};
+  });
+  const attended=sessions.filter(s=>s.status==="出席"||s.status==="補堂").length;
+  const leave=sessions.filter(s=>s.status==="請假").length;
+  return {sport:c.sport,wd:c.wd,time:c.time,total:7,attended,leave,
+    owed:Math.max(0,leave-makeups.length), sessions};
 }
 
 /* ============================================================
@@ -288,7 +294,7 @@ function demoHandle(action,p){
     const key=`${p.name}|${p.last4}`;
     const s=DEMO.students[key]||Object.values(DEMO.students).find(x=>x.name===p.name);
     if(!s) return {ok:false,err:"搵唔到呢位學生，請檢查中文全名"};
-    return {ok:true, student:{name:s.name, last4:p.last4}, classes:s.classes};
+    return {ok:true, student:{name:s.name, last4:p.last4}, classes:s.classes.map(c=>demoClass(s.name,c))};
   }
   if(action==="applyLeave"){
     DEMO.log.push({name:p.name,key:p.key,action:"leave",date:p.date,
@@ -392,46 +398,47 @@ function renderParent(){
   const name=S.session.name;
   let html=`<div class="wrap"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;margin:4px 2px 14px">${name} 的課堂</div>`;
   S.classes.forEach((c,ci)=>{
-    const sp=SPORT[c.sport], st=classStats(name,c);
+    const sp=SPORT[c.sport], owed=c.owed||0;
     html+=`<div class="card">
       <div class="topline"><span class="dot" style="background:${sp.color}"></span>
         <h3>${sp.name}</h3></div>
-      <div class="meta">逢星期${c.wd} ${c.time}　·　共 7 堂</div>
+      <div class="meta">逢星期${c.wd} ${c.time}　·　共 ${c.total||7} 堂</div>
       <div class="stats">
-        <div class="stat"><div class="n">7</div><div class="k">總堂</div></div>
-        <div class="stat"><div class="n">${st.attended}</div><div class="k">已上</div></div>
-        <div class="stat"><div class="n">${st.leaves.length}</div><div class="k">請假</div></div>
-        <div class="stat ${st.owed>0?'alert':''}"><div class="n">${st.owed}</div><div class="k">待補</div></div>
+        <div class="stat"><div class="n">${c.total||7}</div><div class="k">總堂</div></div>
+        <div class="stat"><div class="n">${c.attended||0}</div><div class="k">已上</div></div>
+        <div class="stat"><div class="n">${c.leave||0}</div><div class="k">請假</div></div>
+        <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">待補</div></div>
       </div>
       <div class="rowbtns">
         <button class="btn ghost sm" onclick="openLeave(${ci})">申請請假</button>
-        <button class="btn sm" onclick="openMakeup(${ci})" ${st.owed<=0?'disabled':''}>申請補堂${st.owed>0?` (${st.owed})`:''}</button>
+        <button class="btn sm" onclick="openMakeup(${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
       </div>
-      <div style="margin-top:6px">${st.sess.map(d=>sessRow(name,c,d)).join("")}</div>
+      <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
     </div>`;
   });
   html+=`</div>`; view.innerHTML=html;
 }
-function sessRow(name,c,d){
-  const di=iso(d), today=new Date(); today.setHours(0,0,0,0);
-  const leave=DEMO.log.find(l=>l.name===name&&l.key===classKey(c)&&l.action==="leave"&&l.date===di);
-  const att=DEMO.log.find(l=>l.name===name&&l.key===classKey(c)&&l.action==="attend"&&l.date===di);
+function sessRow(s){
+  const d=new Date(s.date+"T00:00:00"), today=new Date(); today.setHours(0,0,0,0);
   let pill=`<span class="pill p-up">未上</span>`;
-  if(leave) pill=`<span class="pill p-leave">請假</span>`;
-  else if(att) pill=att.status==="出席"?`<span class="pill p-go">出席</span>`:`<span class="pill p-absent">缺席</span>`;
+  if(s.status==="請假") pill=`<span class="pill p-leave">請假</span>`;
+  else if(s.status==="補堂") pill=`<span class="pill p-makeup">補堂</span>`;
+  else if(s.status==="出席") pill=`<span class="pill p-go">出席</span>`;
+  else if(s.status==="缺席") pill=`<span class="pill p-absent">缺席</span>`;
   else if(d<today) pill=`<span class="pill p-up">已過</span>`;
   return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span></span>${pill}</div>`;
+}
+async function refresh(){
+  const r=await api("login",{name:S.session.name,last4:S.session.last4});
+  if(r&&r.ok){ S.classes=r.classes; renderParent(); }
 }
 
 /* ---------- 請假 sheet ---------- */
 let LF={};
 function openLeave(ci){
-  const c=S.classes[ci], name=S.session.name;
+  const c=S.classes[ci];
   const today=new Date(); today.setHours(0,0,0,0);
-  const opts=sessionsFor(c.wd).filter(d=>{
-    if(d<today) return false;
-    return !DEMO.log.some(l=>l.name===name&&l.key===classKey(c)&&l.action==="leave"&&l.date===iso(d));
-  });
+  const opts=(c.sessions||[]).filter(s=> new Date(s.date+"T00:00:00")>today && !s.status).map(s=>s.date);
   LF={ci,date:null,type:"事假",code:""};
   if(!opts.length){ openSheet(`<h2>申請請假</h2><p class="sd">${SPORT[c.sport].name} 已經冇可請假嘅未來堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   openSheet(`<h2>申請請假 · ${SPORT[c.sport].name}</h2>
@@ -439,8 +446,8 @@ function openLeave(ci){
     <div class="seg"><button class="on" onclick="setLeaveType('事假',this)">事假</button>
       <button onclick="setLeaveType('病假',this)">病假</button></div>
     <div class="lbl" style="font-size:13px;font-weight:500;margin-bottom:6px">揀請假堂數</div>
-    <div id="lf-opts">${opts.map(d=>`<div class="opt" onclick="pickLeave('${iso(d)}',this)">
-        <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div></div></div>`).join("")}</div>
+    <div id="lf-opts">${opts.map(di=>{const d=new Date(di+"T00:00:00");return `<div class="opt" onclick="pickLeave('${di}',this)">
+        <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div></div></div>`;}).join("")}</div>
     <div id="lf-rule"></div>
     <div id="lf-confirm"></div>`);
 }
@@ -463,10 +470,9 @@ function evalLeave(){
   $("#lf-rule").innerHTML=`<div class="notice ${cls}">${msg}</div>`;
   $("#lf-confirm").innerHTML=`
     <div class="confirm-q">確認申請 · 請輸入你手機後 4 位</div>
-    <input id="lf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="••••">
+    <input id="lf-code" inputmode="text" maxlength="12" class="codein" placeholder="••••">
     <div style="height:12px"></div>
     <button class="btn" onclick="submitLeave()">提交請假申請</button>`;
-  $("#lf-code").addEventListener("input",e=>e.target.value=e.target.value.replace(/\D/g,""));
 }
 async function submitLeave(){
   const code=$("#lf-code").value.trim();
@@ -474,15 +480,15 @@ async function submitLeave(){
   const c=S.classes[LF.ci];
   await api("applyLeave",{name:S.session.name,key:classKey(c),date:LF.date,
     leaveType:LF.type,eligible:LF.eligible,reason:""});
-  closeSheet(); renderParent();
+  closeSheet(); await refresh();
   toast(LF.eligible?"已提交，可申請補堂 · 已通知教練":"已提交（此堂不設補堂）· 已通知教練");
 }
 
 /* ---------- 補堂 sheet ---------- */
 let MF={};
 function openMakeup(ci){
-  const c=S.classes[ci], name=S.session.name, st=classStats(name,c);
-  if(st.owed<=0){ openSheet(`<h2>申請補堂</h2><p class="sd">暫時冇待補堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
+  const c=S.classes[ci], owed=c.owed||0;
+  if(owed<=0){ openSheet(`<h2>申請補堂</h2><p class="sd">暫時冇待補堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   const slots=makeupSlotsFor(c);
   if(!slots.length){ openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
      <div class="notice warn">呢個班別暫未設網上補堂時段，請 WhatsApp 張 Sir 另約。</div>
@@ -502,7 +508,7 @@ function openMakeup(ci){
         <div class="s">${s.time}${s.note?' · '+s.note:''}</div></div></div>`;
   }).join("");
   openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
-    <p class="sd">待補 ${st.owed} 堂${refund?'':`　·　補堂須於 ${fmt(deadline)} 前完成`}</p>
+    <p class="sd">待補 ${owed} 堂${refund?'':`　·　補堂須於 ${fmt(deadline)} 前完成`}</p>
     ${refund?`<div class="notice warn">籃球設兩日後備補堂日；如兩日都未能出席，將作退款處理。</div>`:''}
     ${opts||'<div class="notice warn">截止前已冇可補時段，請 WhatsApp 張 Sir。</div>'}
     <div id="mf-confirm"></div>`);
@@ -511,9 +517,8 @@ function pickMakeup(i,el){
   MF.pick=MF.cands[i];
   document.querySelectorAll("#sheet .opt").forEach(o=>o.classList.remove("on")); el.classList.add("on");
   $("#mf-confirm").innerHTML=`<div class="confirm-q">確認申請 · 請輸入你手機後 4 位</div>
-    <input id="mf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="••••">
+    <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="••••">
     <div style="height:12px"></div><button class="btn" onclick="submitMakeup()">提交補堂申請</button>`;
-  $("#mf-code").addEventListener("input",e=>e.target.value=e.target.value.replace(/\D/g,""));
 }
 async function submitMakeup(){
   const code=$("#mf-code").value.trim();
@@ -522,7 +527,7 @@ async function submitMakeup(){
   const r=await api("bookMakeup",{name:S.session.name,fromKey:classKey(c),fromDate:"",
     toKey:s.sport+"|"+s.wd,toDate:MF.pick.date});
   if(!r.ok) return toast(r.err||"申請失敗");
-  closeSheet(); renderParent();
+  closeSheet(); await refresh();
   toast(`已約 ${fmt(new Date(MF.pick.date+'T00:00:00'))} 補堂 · 已通知教練`);
 }
 
@@ -556,18 +561,18 @@ async function loadDaily(){
   }).join("");
 }
 function attRow(g,row,date){
-  const key=g.c.sport+"|"+g.c.wd;
+  const key=g.c.sport+"|"+g.c.wd, mk=row.makeup?1:0;
   const go=row.status==="出席", no=row.status==="缺席";
   return `<div class="att"><span class="nm">${row.name}</span>
     ${row.makeup?'<span class="tag">補堂</span>':''}
     <div class="marks">
-      <button class="mk go ${go?'on':''}" onclick="mark('${row.name}','${key}','${date}','出席',this)">出</button>
-      <button class="mk no ${no?'on':''}" onclick="mark('${row.name}','${key}','${date}','缺席',this)">缺</button>
+      <button class="mk go ${go?'on':''}" onclick="mark('${row.name}','${key}','${date}','出席',this,${mk})">出</button>
+      <button class="mk no ${no?'on':''}" onclick="mark('${row.name}','${key}','${date}','缺席',this,${mk})">缺</button>
     </div></div>`;
 }
-async function mark(name,key,date,status,btn){
+async function mark(name,key,date,status,btn,mk){
   const wrap=btn.closest(".att");
-  const r=await api("markAttendance",{name,key,date,status});
+  const r=await api("markAttendance",{name,key,date,status,makeup:!!mk});
   if(!r||!r.ok){ toast("儲存失敗，請檢查網絡再試"); return; }
   wrap.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); btn.classList.add("on");
   toast(`${name}：${status}　已儲存`);

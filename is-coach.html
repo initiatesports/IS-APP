@@ -173,16 +173,16 @@ function grp(g,gi,date){
     ${g.rows.map((r,ri)=>row(r,gi,ri,key,date)).join("")}</div>`;
 }
 function row(r,gi,ri,key,date){
-  const go=r.status==="出席",no=r.status==="缺席";
-  return `<div class="att" data-g="${gi}">
+  const go=r.status==="出席",no=r.status==="缺席",mk=r.makeup?1:0;
+  return `<div class="att" data-mk="${mk}">
     <span class="nm">${r.name}</span>${r.makeup?'<span class="tag">補堂</span>':''}
     <div class="marks">
-      <button class="mk go ${go?'on':''}" onclick="mark('${r.name}','${key}','${date}','出席',this,${gi})">出席</button>
-      <button class="mk no ${no?'on':''}" onclick="mark('${r.name}','${key}','${date}','缺席',this,${gi})">缺席</button>
+      <button class="mk go ${go?'on':''}" onclick="mark('${r.name}','${key}','${date}','出席',this,${gi},${mk})">出席</button>
+      <button class="mk no ${no?'on':''}" onclick="mark('${r.name}','${key}','${date}','缺席',this,${gi},${mk})">缺席</button>
     </div></div>`;
 }
-async function mark(name,key,date,status,btn,gi){
-  const r=await api("markAttendance",{name,key,date,status});
+async function mark(name,key,date,status,btn,gi,mk){
+  const r=await api("markAttendance",{name,key,date,status,makeup:!!mk});
   if(!r||!r.ok)return toast("儲存失敗，請再試");
   const row=btn.closest(".att"); row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); btn.classList.add("on");
   recount(gi);
@@ -193,7 +193,8 @@ async function markAll(gi,key,date,btn){
   btn.textContent="儲存中…";
   for(const row of rows){
     const name=row.querySelector(".nm").textContent;
-    await api("markAttendance",{name,key,date,status:"出席"});
+    const mk=row.dataset.mk==="1";
+    await api("markAttendance",{name,key,date,status:"出席",makeup:mk});
     row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on"));
     row.querySelector(".mk.go").classList.add("on");
   }
