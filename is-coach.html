@@ -55,6 +55,11 @@ input:focus{border-color:var(--accent)}
 .grp-h .ct{margin-left:auto;font-size:13px;font-weight:700;color:var(--ok)}
 .grp .time{font-size:12.5px;color:var(--muted);margin:-2px 0 8px 20px}
 .allbtn{font-size:12.5px;font-weight:600;color:var(--accent-ink);background:#E9F8F9;border-radius:99px;padding:6px 12px;margin:2px 0 10px}
+.wxbtn{width:100%;border:none;border-radius:12px;background:var(--bad-bg);color:var(--bad);font-weight:700;font-size:14px;padding:13px;margin:0 0 14px}
+.cancelpanel{background:#fff;border:1.5px solid var(--makeup);border-radius:16px;padding:14px;margin:0 0 16px}
+.cancelpanel .cp-h{font-weight:700;font-size:14px;margin-bottom:10px}
+.cancelpanel textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;margin-bottom:10px;color:var(--ink)}
+.cancelpanel .btn{width:100%}
 .att{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
 .att:first-of-type{border-top:none}
 .att .nm{font-weight:500}
@@ -123,6 +128,7 @@ function demo(action,p){
   if(action==="markAttendance"){let l=demoLog();
     l=l.filter(x=>!(x.name===p.name&&x.key===p.key&&x.date===p.date));
     l.push({name:p.name,key:p.key,date:p.date,status:p.status}); demoSave(l); return {ok:true};}
+  if(action==="cancelDay"){ return {ok:true,date:p.date,classes:[]}; }
   return {ok:false};
 }
 
@@ -152,6 +158,7 @@ function renderMain(){
       <button class="mini" onclick="setToday()">今日</button>
       <button class="mini" onclick="load()">↻</button>
     </div>
+    <button class="wxbtn" onclick="weatherCancel()">🌧 天氣停課（當日全部）</button>
     <div class="daysum" id="sum"></div>
     <div id="list"></div></div>`;
   $("#d").addEventListener("change",e=>{S.date=e.target.value;load();});
@@ -172,10 +179,11 @@ async function load(){
 function grp(g,gi,date){
   const sp=SPORT[g.c.sport], key=g.c.sport+"|"+g.c.wd;
   const present=g.rows.filter(r=>r.status==="出席").length;
+  const miss=g.rows.filter(r=>!r.status||r.status==="補堂").length;
   return `<div class="grp" id="g${gi}">
     <div class="grp-h"><span class="dot" style="background:${sp.color}"></span>
       <span class="nm">${sp.name}</span>
-      <span class="ct" id="ct${gi}">出席 ${present} / ${g.rows.length}</span></div>
+      <span class="ct" id="ct${gi}">出席 ${present} / ${g.rows.length}${miss?`・未點 ${miss}`:''}</span></div>
     <div class="time">逢星期${g.c.wd} ${g.c.time||''}</div>
     <div style="display:flex;gap:8px;margin:2px 0 10px">
       <button class="allbtn" onclick="markAll(${gi},'${key}','${date}','出席',this)">✓ 全部出席</button>
@@ -184,9 +192,9 @@ function grp(g,gi,date){
     ${g.rows.map((r,ri)=>row(r,gi,ri,key,date)).join("")}</div>`;
 }
 function row(r,gi,ri,key,date){
-  const go=r.status==="出席",no=r.status==="缺席",mk=r.makeup?1:0;
+  const go=r.status==="出席",no=r.status==="缺席",cc=r.status==="停課",mk=r.makeup?1:0;
   return `<div class="att" data-mk="${mk}">
-    <span class="nm">${r.name}</span>${r.makeup?'<span class="tag">補堂</span>':''}
+    <span class="nm">${r.name}</span>${r.makeup?'<span class="tag">補堂</span>':''}${cc?'<span class="tag" style="background:#E2E3E5;color:#5F6368">停課</span>':''}
     <div class="marks">
       <button class="mk go ${go?'on':''}" onclick="mark('${r.name}','${key}','${date}','出席',this,${gi},${mk})">出席</button>
       <button class="mk no ${no?'on':''}" onclick="mark('${r.name}','${key}','${date}','缺席',this,${gi},${mk})">缺席</button>
@@ -218,9 +226,49 @@ async function markAll(gi,key,date,status,btn){
   btn.textContent=old;
 }
 function recount(gi){
-  const grp=$("#g"+gi); const total=grp.querySelectorAll(".att").length;
+  const grp=$("#g"+gi); const atts=[...grp.querySelectorAll(".att")];
   const present=grp.querySelectorAll(".mk.go.on").length;
-  $("#ct"+gi).textContent=`出席 ${present} / ${total}`;
+  const miss=atts.filter(a=>!a.querySelector(".mk.on")&&!/停課/.test(a.textContent)).length;
+  $("#ct"+gi).textContent=`出席 ${present} / ${atts.length}`+(miss?`・未點 ${miss}`:"");
+}
+/* ---- 天氣停課 ---- */
+function cancelText(date){
+  const d=new Date(date+"T00:00:00");
+  return `【INITIATE SPORTS．停課通知】
+各位家長 🙏
+因應天文台發出黑色暴雨警告／八號或以上風球，今日（${d.getMonth()+1}/${d.getDate()}・星期${WDN[d.getDay()]}）課堂取消。
+按報名須知之天氣安排，是次取消將計算一堂學費，不設補堂，敬請留意。
+不便之處，敬請見諒；如有查詢歡迎 WhatsApp 6331 7403。
+INITIATE SPORTS`;
+}
+function weatherCancel(){
+  const date=S.date, d=new Date(date+"T00:00:00");
+  if(!confirm(`確定將 ${d.getMonth()+1}/${d.getDate()}（星期${WDN[d.getDay()]}）所有課堂標記為「停課」，並產生家長通知文案？`)) return;
+  doWeatherCancel(date);
+}
+async function doWeatherCancel(date){
+  toast("處理中…");
+  let r; try{ r=await api("cancelDay",{date,coachPass:CONFIG.COACH_PASS}); }
+  catch(e){ toast("連線錯誤，請再試"); return; }
+  if(!r||!r.ok){ toast("失敗"+(r&&r.err?"："+r.err:"")); return; }
+  await load();
+  showCancelPanel(date);
+  toast(`已停課 ${r.classes?r.classes.length:0} 班`);
+}
+function showCancelPanel(date){
+  const box=$("#list"); if(!box) return;
+  const p=document.createElement("div");
+  p.className="cancelpanel";
+  p.innerHTML=`<div class="cp-h">📣 家長群組文案（已自動將當日全部點名為「停課」）</div>
+    <textarea id="cptext" readonly rows="7">${cancelText(date)}</textarea>
+    <button class="btn" onclick="copyCancel()">複製文案</button>`;
+  box.prepend(p);
+}
+function copyCancel(){
+  const t=$("#cptext"); if(!t) return; t.select(); t.setSelectionRange(0,99999);
+  const done=()=>toast("已複製，可貼去 WhatsApp 群組");
+  try{ navigator.clipboard.writeText(t.value).then(done,()=>{document.execCommand("copy");done();}); }
+  catch(e){ try{document.execCommand("copy");done();}catch(_){toast("請長按文字手動複製");} }
 }
 renderGate();
 </script>
