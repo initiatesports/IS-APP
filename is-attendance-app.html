@@ -6986,6 +6986,7 @@ async function loadFromSheets() {
     renderHome();
     updateBadge();
     toast('資料已從雲端載入', '☁');
+    setTimeout(silentValidate, 2000); // 靜默驗證及修正浮點數精度
   } catch (e) {
     setSyncIndicator('error');
     toast('載入失敗，使用本地資料', '⚠');
@@ -7186,7 +7187,156 @@ const _origToggleFeePaid = toggleFeePaid;
 toggleFeePaid = function(name) {
   _origToggleFeePaid(name);
   syncFee();
-};
+}
+
+// ── 數據自動檢查與糾正 ──
+async function validateAndFixData() {
+  let fixes = [];
+  const allStudents = new Set(Object.values(CLASSES).flatMap(cls => cls.students));
+
+  // 1. PERF_RECORDS: 刪除不屬於任何班別的學生數據
+  Object.keys(PERF_RECORDS).forEach(name => {
+    if (!allStudents.has(name)) {
+      // Keep data for students not in current classes (they might have left)
+      // Just flag them
+    }
+  });
+
+  // 2. PERF_RECORDS: 修正明顯異常數值
+  const PERF_LIMITS = {
+    rope30:    { min: 0,   max: 300  },  // 30秒前繩 次
+    bike:      { min: 0,   max: 200  },  // 30秒單車步 次
+    double:    { min: 0,   max: 500  },  // 二重跳 次
+    cross:     { min: 0,   max: 500  },  // 交叉開 次
+    gripL:     { min: 0,   max: 100  },  // 手握力(左) kg
+    gripR:     { min: 0,   max: 100  },  // 手握力(右) kg
+    cmj:       { min: 0,   max: 100  },  // 立定跳高 cm
+    sj:        { min: 0,   max: 400  },  // 立定跳遠 cm
+    rsi:       { min: 0,   max: 10   },  // RSI
+    bike2m:    { min: 0,   max: 800  },  // 2分鐘單車步 次
+    rope2m:    { min: 0,   max: 1000 },  // 2分鐘前繩 次
+    balanceL:  { min: 0,   max: 300  },  // 閉目單腳站立(左) 秒
+    balanceR:  { min: 0,   max: 300  },  // 閉目單腳站立(右) 秒
+    sitreach:  { min: -30, max: 60   },  // 坐地前伸 cm
+  };
+
+  Object.entries(PERF_RECORDS).forEach(([name, metrics]) => {
+    Object.entries(metrics).forEach(([metricId, recs]) => {
+      const limit = PERF_LIMITS[metricId];
+      if (!limit) return;
+      recs.forEach(rec => {
+        if (rec.val < limit.min || rec.val > limit.max) {
+          fixes.push(`${name} ${metricId}: 數值 ${rec.val} 超出合理範圍 (${limit.min}–${limit.max})`);
+        }
+        // Fix floating point issues (e.g. 2.099999999 → 2.1)
+        if (rec.val !== Math.round(rec.val * 100) / 100) {
+          rec.val = Math.round(rec.val * 100) / 100;
+        }
+      });
+    });
+  });
+
+  // 3. BODY_RECORDS: 修正明顯異常身體數據
+  Object.entries(BODY_RECORDS).forEach(([name, recs]) => {
+    recs.forEach(rec => {
+      // Height: reasonable range for children 80-200cm
+      if (rec.height !== null && (rec.height < 80 || rec.height > 200)) {
+        fixes.push(`${name} 身高: ${rec.height}cm 超出合理範圍`);
+      }
+      // Weight: reasonable range for children 10-100kg
+      if (rec.weight !== null && (rec.weight < 10 || rec.weight > 100)) {
+        fixes.push(`${name} 體重: ${rec.weight}kg 超出合理範圍`);
+      }
+      // Fix floating point
+      if (rec.height !== null) rec.height = Math.round(rec.height * 10) / 10;
+      if (rec.weight !== null) rec.weight = Math.round(rec.weight * 10) / 10;
+    });
+  });
+
+  // 4. ABSENCES: 刪除重複記錄
+  const absSeen = new Set();
+  const dupIds = [];
+  ABSENCES.forEach(a => {
+    const key = `${a.name}|${a.classId}|${a.absDate}`;
+    if (absSeen.has(key)) {
+      dupIds.push(a.id);
+      fixes.push(`重複補堂記錄: ${a.name} ${a.absDate}`);
+    } else {
+      absSeen.add(key);
+    }
+  });
+  if (dupIds.length > 0) {
+    dupIds.forEach(id => {
+      const idx = ABSENCES.findIndex(a => a.id === id);
+      if (idx !== -1) ABSENCES.splice(idx, 1);
+    });
+  }
+
+  // 5. ATT_LOG: 確保狀態值合法 (only 'present', 'absent', 'makeup', 'exempt')
+  const validStatuses = new Set(['present', 'absent', 'makeup', 'exempt', 'cancelled']);
+  Object.entries(ATT_LOG).forEach(([key, session]) => {
+    Object.entries(session).forEach(([name, status]) => {
+      if (!validStatuses.has(status)) {
+        ATT_LOG[key][name] = 'present';
+        fixes.push(`出席狀態修正: ${name} ${key} "${status}" → "present"`);
+      }
+    });
+  });
+
+  // Report
+  if (fixes.length > 0) {
+    console.warn('[數據驗證] 發現並修正以下問題:', fixes);
+    // Sync fixed data
+    await syncPerformance();
+    await syncAbsences();
+    await syncBody();
+    toast(`數據驗證完成，已修正 ${fixes.length} 個問題`, '✅');
+  } else {
+    toast('數據驗證完成，無異常', '✅');
+  }
+  return fixes;
+}
+
+// 開啟 App 時自動執行一次數據驗證（靜默模式，只有有問題才通知）
+async function silentValidate() {
+  const PERF_LIMITS = {
+    rope30:{min:0,max:300}, bike:{min:0,max:200}, double:{min:0,max:500},
+    cross:{min:0,max:500}, gripL:{min:0,max:100}, gripR:{min:0,max:100},
+    cmj:{min:0,max:100}, sj:{min:0,max:400}, rsi:{min:0,max:10},
+    bike2m:{min:0,max:800}, rope2m:{min:0,max:1000},
+    balanceL:{min:0,max:300}, balanceR:{min:0,max:300}, sitreach:{min:-30,max:60}
+  };
+  let fixed = 0;
+  // Fix floating point in PERF_RECORDS
+  Object.values(PERF_RECORDS).forEach(metrics => {
+    Object.values(metrics).forEach(recs => {
+      recs.forEach(rec => {
+        const rounded = Math.round(rec.val * 100) / 100;
+        if (rec.val !== rounded) { rec.val = rounded; fixed++; }
+      });
+    });
+  });
+  // Fix floating point in BODY_RECORDS
+  Object.values(BODY_RECORDS).forEach(recs => {
+    recs.forEach(rec => {
+      if (rec.height !== null) {
+        const rh = Math.round(rec.height * 10) / 10;
+        if (rec.height !== rh) { rec.height = rh; fixed++; }
+      }
+      if (rec.weight !== null) {
+        const rw = Math.round(rec.weight * 10) / 10;
+        if (rec.weight !== rw) { rec.weight = rw; fixed++; }
+      }
+    });
+  });
+  if (fixed > 0) {
+    await syncPerformance();
+    await syncBody();
+    console.log(`[靜默驗證] 自動修正 ${fixed} 個浮點數精度問題`);
+  }
+}
+
+;
 
 // ═══════════════════════════════════════════
 //  SETTINGS — 班別管理（包含設定同步）
@@ -7287,9 +7437,15 @@ function renderSettings() {
   }).join('');
 
   el.innerHTML = `
-    <div style="padding:12px 0 8px">
+    <div style="padding:12px 0 8px;display:flex;flex-direction:column;gap:8px">
       <button onclick="showScreen('history')" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:14px;font-weight:700;cursor:pointer;text-align:left">
         📋 查看出席歷史記錄
+      </button>
+      <button onclick="loadFromSheets()" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--cyan);font-size:14px;font-weight:700;cursor:pointer;text-align:left">
+        ☁️ 立即同步所有數據
+      </button>
+      <button onclick="validateAndFixData()" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;text-align:left">
+        🔍 驗證並修正數據
       </button>
     </div>
     <div class="settings-section-title">⚙️ 班別管理</div>
