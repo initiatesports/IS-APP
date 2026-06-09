@@ -177,7 +177,10 @@ function grp(g,gi,date){
       <span class="nm">${sp.name}</span>
       <span class="ct" id="ct${gi}">出席 ${present} / ${g.rows.length}</span></div>
     <div class="time">逢星期${g.c.wd} ${g.c.time||''}</div>
-    <button class="allbtn" onclick="markAll(${gi},'${key}','${date}',this)">✓ 全部標出席</button>
+    <div style="display:flex;gap:8px;margin:2px 0 10px">
+      <button class="allbtn" onclick="markAll(${gi},'${key}','${date}','出席',this)">✓ 全部出席</button>
+      <button class="allbtn" style="background:var(--bad-bg);color:var(--bad)" onclick="markAll(${gi},'${key}','${date}','缺席',this)">✗ 全部缺席</button>
+    </div>
     ${g.rows.map((r,ri)=>row(r,gi,ri,key,date)).join("")}</div>`;
 }
 function row(r,gi,ri,key,date){
@@ -198,17 +201,21 @@ async function mark(name,key,date,status,btn,gi,mk){
     toast(`${name}：${status}　已存`);
   }catch(e){ toast("連線錯誤："+((e&&e.message)||e)); }
 }
-async function markAll(gi,key,date,btn){
+async function markAll(gi,key,date,status,btn){
   const grp=$("#g"+gi); const rows=[...grp.querySelectorAll(".att")];
-  btn.textContent="儲存中…";
-  for(const row of rows){
-    const name=row.querySelector(".nm").textContent;
-    const mk=row.dataset.mk==="1";
-    await api("markAttendance",{name,key,date,status:"出席",makeup:mk});
-    row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on"));
-    row.querySelector(".mk.go").classList.add("on");
-  }
-  btn.textContent="✓ 全部標出席"; recount(gi); toast("已全部標出席");
+  const old=btn.textContent; btn.textContent="儲存中…";
+  try{
+    for(const row of rows){
+      const name=row.querySelector(".nm").textContent;
+      const mk=row.dataset.mk==="1";
+      const r=await api("markAttendance",{name,key,date,status,makeup:mk});
+      if(!r||!r.ok) continue;
+      row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on"));
+      row.querySelector(status==="出席"?".mk.go":".mk.no").classList.add("on");
+    }
+    recount(gi); toast(status==="出席"?"已全部標出席":"已全部標缺席");
+  }catch(e){ toast("連線錯誤："+((e&&e.message)||e)); }
+  btn.textContent=old;
 }
 function recount(gi){
   const grp=$("#g"+gi); const total=grp.querySelectorAll(".att").length;

@@ -445,52 +445,45 @@ function openLeave(ci){
   const c=S.classes[ci];
   const today=new Date(); today.setHours(0,0,0,0);
   const opts=(c.sessions||[]).filter(s=> new Date(s.date+"T00:00:00")>today && !s.status).map(s=>s.date);
-  LF={ci,date:null,type:"事假",code:""};
+  LF={ci,type:"事假",dates:[]};
   if(!opts.length){ openSheet(`<h2>申請請假</h2><p class="sd">${SPORT[c.sport].name} 已經冇可請假嘅未來堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   openSheet(`<h2>申請請假 · ${SPORT[c.sport].name}</h2>
-    <p class="sd">逢星期${c.wd} ${c.time}</p>
+    <p class="sd">逢星期${c.wd} ${c.time}　·　可一次揀多堂</p>
     <div class="seg"><button class="on" onclick="setLeaveType('事假',this)">事假</button>
       <button onclick="setLeaveType('病假',this)">病假</button></div>
-    <div class="lbl" style="font-size:13px;font-weight:500;margin-bottom:6px">揀請假堂數</div>
-    <div id="lf-opts">${opts.map(di=>{const d=new Date(di+"T00:00:00");return `<div class="opt" onclick="pickLeave('${di}',this)">
-        <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div></div></div>`;}).join("")}</div>
-    <div id="lf-rule"></div>
-    <div id="lf-confirm"></div>`);
-}
-function setLeaveType(t,btn){LF.type=t;[...btn.parentNode.children].forEach(b=>b.classList.remove("on"));btn.classList.add("on");if(LF.date)evalLeave();}
-function pickLeave(di,el){LF.date=di;[...el.parentNode.children].forEach(o=>o.classList.remove("on"));el.classList.add("on");evalLeave();}
-function evalLeave(){
-  const d=new Date(LF.date+"T"+(S.classes[LF.ci].time.slice(0,5))+":00");
-  const hrs=(d-new Date())/36e5;
-  let eligible,msg,cls;
-  if(LF.type==="事假"){
-    eligible = hrs>=24;
-    msg = eligible?"事假提前 24 小時以上 · 可補堂 ✔":"距離上課不足 24 小時 · 將扣一堂、不設補堂";
-    cls = eligible?"ok":"bad";
-  }else{
-    eligible=true;
-    msg="病假：請於上課前 WhatsApp 告知，並於 48 小時內提交醫生證明，方可補堂。";
-    cls="warn";
-  }
-  LF.eligible=eligible;
-  $("#lf-rule").innerHTML=`<div class="notice ${cls}">${msg}</div>`;
-  $("#lf-confirm").innerHTML=`
-    <div class="confirm-q">確認申請 · 請輸入你手機後 4 位</div>
-    <input id="lf-code" inputmode="text" maxlength="12" class="codein" placeholder="••••">
+    <div class="lbl" style="font-size:13px;font-weight:500;margin-bottom:6px">揀請假堂數（可多選）</div>
+    <div id="lf-opts">${opts.map(di=>{const d=new Date(di+"T00:00:00");return `<div class="opt" onclick="toggleLeave('${di}',this)">
+      <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div></div>
+      <div class="cap" style="display:none">✓</div></div>`;}).join("")}</div>
+    <div class="notice warn" style="font-size:12.5px">事假需提前 24 小時，否則該堂計缺席、不設補堂；病假需 48 小時內交醫生證明。</div>
+    <div class="confirm-q" id="lf-count">未揀任何堂</div>
+    <input id="lf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
-    <button class="btn" onclick="submitLeave()">提交請假申請</button>`;
+    <button class="btn" id="lf-go" onclick="submitLeave()" disabled>提交請假</button>`);
+}
+function setLeaveType(t,btn){LF.type=t;[...btn.parentNode.children].forEach(b=>b.classList.remove("on"));btn.classList.add("on");}
+function toggleLeave(di,el){
+  const i=LF.dates.indexOf(di);
+  if(i>=0){LF.dates.splice(i,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
+  else{LF.dates.push(di);el.classList.add("on");el.querySelector(".cap").style.display="";}
+  $("#lf-count").textContent= LF.dates.length? `已揀 ${LF.dates.length} 堂`:"未揀任何堂";
+  $("#lf-go").disabled = LF.dates.length===0;
 }
 async function submitLeave(){
   const code=$("#lf-code").value.trim();
   if(code!==S.session.last4) return toast("後 4 位數字唔啱");
-  const c=S.classes[LF.ci];
-  await api("applyLeave",{name:S.session.name,key:classKey(c),date:LF.date,
-    leaveType:LF.type,eligible:LF.eligible,reason:""});
+  if(!LF.dates.length) return;
+  const c=S.classes[LF.ci], hhmm=(c.time||"00:00").slice(0,5);
+  const btn=$("#lf-go"); btn.disabled=true; btn.textContent="提交中…";
+  for(const date of LF.dates){
+    const eligible = LF.type==="病假" ? true : ((new Date(date+"T"+hhmm+":00")-new Date())/36e5)>=24;
+    await api("applyLeave",{name:S.session.name,key:classKey(c),date,leaveType:LF.type,eligible});
+  }
   closeSheet(); await refresh();
-  toast(LF.eligible?"已提交，可申請補堂 · 已通知教練":"已提交（此堂不設補堂）· 已通知教練");
+  toast(`已提交 ${LF.dates.length} 堂請假 · 已通知教練`);
 }
 
-/* ---------- 補堂 sheet ---------- */
+/* ---------- 補堂 sheet（可多選） ---------- */
 let MF={};
 function openMakeup(ci){
   const c=S.classes[ci], owed=c.owed||0;
@@ -506,35 +499,45 @@ function openMakeup(ci){
     if(s.fixed){ s.fixed.forEach(di=>{ if(new Date(di+"T00:00:00")>today) cands.push({slot:s,date:di}); }); }
     else { sessionsFor(s.wd).filter(d=>d>today && d<=deadline).forEach(d=>cands.push({slot:s,date:iso(d)})); }
   });
-  MF={ci,cands,pick:null};
+  MF={ci,cands,picks:[],owed};
   const opts=cands.map((cd,i)=>{
     const s=cd.slot, d=new Date(cd.date+"T00:00:00");
-    return `<div class="opt" onclick="pickMakeup(${i},this)">
+    return `<div class="opt" onclick="toggleMakeup(${i},this)">
       <div><div class="t">${SPORT[s.sport].name}・${fmt(d)}（星期${WDN[d.getDay()]}）</div>
-        <div class="s">${s.time}${s.note?' · '+s.note:''}</div></div></div>`;
+        <div class="s">${s.time}${s.note?' · '+s.note:''}</div></div>
+      <div class="cap" style="display:none">✓</div></div>`;
   }).join("");
   openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
-    <p class="sd">待補 ${owed} 堂${refund?'':`　·　補堂須於 ${fmt(deadline)} 前完成`}</p>
+    <p class="sd">待補 ${owed} 堂，可揀最多 ${owed} 堂${refund?'':`　·　須於 ${fmt(deadline)} 前完成`}</p>
     ${refund?`<div class="notice warn">籃球設兩日後備補堂日；如兩日都未能出席，將作退款處理。</div>`:''}
     ${opts||'<div class="notice warn">截止前已冇可補時段，請 WhatsApp 張 Sir。</div>'}
-    <div id="mf-confirm"></div>`);
+    <div class="confirm-q" id="mf-count">未揀任何堂</div>
+    <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
+    <div style="height:12px"></div>
+    <button class="btn" id="mf-go" onclick="submitMakeup()" disabled>提交補堂</button>`);
 }
-function pickMakeup(i,el){
-  MF.pick=MF.cands[i];
-  document.querySelectorAll("#sheet .opt").forEach(o=>o.classList.remove("on")); el.classList.add("on");
-  $("#mf-confirm").innerHTML=`<div class="confirm-q">確認申請 · 請輸入你手機後 4 位</div>
-    <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="••••">
-    <div style="height:12px"></div><button class="btn" onclick="submitMakeup()">提交補堂申請</button>`;
+function toggleMakeup(i,el){
+  const idx=MF.picks.indexOf(i);
+  if(idx>=0){MF.picks.splice(idx,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
+  else{
+    if(MF.picks.length>=MF.owed) return toast(`最多揀 ${MF.owed} 堂`);
+    MF.picks.push(i);el.classList.add("on");el.querySelector(".cap").style.display="";
+  }
+  $("#mf-count").textContent= MF.picks.length? `已揀 ${MF.picks.length} 堂`:"未揀任何堂";
+  $("#mf-go").disabled = MF.picks.length===0;
 }
 async function submitMakeup(){
   const code=$("#mf-code").value.trim();
   if(code!==S.session.last4) return toast("後 4 位數字唔啱");
-  const c=S.classes[MF.ci], s=MF.pick.slot;
-  const r=await api("bookMakeup",{name:S.session.name,fromKey:classKey(c),fromDate:"",
-    toKey:s.sport+"|"+s.wd,toDate:MF.pick.date});
-  if(!r.ok) return toast(r.err||"申請失敗");
+  if(!MF.picks.length) return;
+  const c=S.classes[MF.ci]; const btn=$("#mf-go"); btn.disabled=true; btn.textContent="提交中…";
+  for(const i of MF.picks){
+    const cd=MF.cands[i], s=cd.slot;
+    await api("bookMakeup",{name:S.session.name,fromKey:classKey(c),fromDate:"",
+      toKey:s.sport+"|"+s.wd,toDate:cd.date});
+  }
   closeSheet(); await refresh();
-  toast(`已約 ${fmt(new Date(MF.pick.date+'T00:00:00'))} 補堂 · 已通知教練`);
+  toast(`已約 ${MF.picks.length} 堂補堂 · 已通知教練`);
 }
 
 /* ---------- 教練版 ---------- */
