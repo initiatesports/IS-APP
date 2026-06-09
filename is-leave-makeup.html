@@ -278,7 +278,8 @@ function demoClass(name, c){
   const attended=sessions.filter(s=>s.status==="出席"||s.status==="補堂").length;
   const leave=sessions.filter(s=>s.status==="請假").length;
   return {sport:c.sport,wd:c.wd,time:c.time,total:7,attended,leave,
-    owed:Math.max(0,leave-makeups.length), sessions};
+    owed:Math.max(0,leave-makeups.length), sessions,
+    makeups: makeups.map(m=>({to:m.toKey,date:m.toDate,status:""}))};
 }
 
 /* ============================================================
@@ -420,10 +421,17 @@ function renderParent(){
         <button class="btn sm" onclick="openMakeup(${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
       </div>
       <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
+      ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
+        <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
+        ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
+          <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span>
+          <span style="color:${m.status==='出席'?'#157347':'#1F4E79'};font-weight:600">${m.status||'待出席'}</span></div>`;}).join("")}
+      </div>`:''}
     </div>`;
   });
   html+=`</div>`; view.innerHTML=html;
 }
+function classLabel(key){ const a=key.split("|"); return (SPORT[a[0]]?SPORT[a[0]].name:a[0])+"("+a[1]+")"; }
 function sessRow(s){
   const d=new Date(s.date+"T00:00:00"), today=new Date(); today.setHours(0,0,0,0);
   let pill=`<span class="pill p-up">未上</span>`;
