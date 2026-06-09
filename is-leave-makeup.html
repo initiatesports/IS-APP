@@ -423,9 +423,9 @@ function renderParent(){
       <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
       ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
         <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
-        ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
+        ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
           <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span>
-          <span style="color:${m.status==='出席'?'#157347':'#1F4E79'};font-weight:600">${m.status||'待出席'}</span></div>`;}).join("")}
+          <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
       </div>`:''}
     </div>`;
   });
