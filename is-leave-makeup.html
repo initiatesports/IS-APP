@@ -475,12 +475,16 @@ async function submitLeave(){
   if(!LF.dates.length) return;
   const c=S.classes[LF.ci], hhmm=(c.time||"00:00").slice(0,5);
   const btn=$("#lf-go"); btn.disabled=true; btn.textContent="提交中…";
+  let fail=0, err="";
   for(const date of LF.dates){
     const eligible = LF.type==="病假" ? true : ((new Date(date+"T"+hhmm+":00")-new Date())/36e5)>=24;
-    await api("applyLeave",{name:S.session.name,key:classKey(c),date,leaveType:LF.type,eligible});
+    try{ const r=await api("applyLeave",{name:S.session.name,key:classKey(c),date,leaveType:LF.type,eligible});
+      if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
+    catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
   closeSheet(); await refresh();
-  toast(`已提交 ${LF.dates.length} 堂請假 · 已通知教練`);
+  if(fail) toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`);
+  else toast(`已提交 ${LF.dates.length} 堂請假 · 已通知教練`);
 }
 
 /* ---------- 補堂 sheet（可多選） ---------- */
@@ -531,13 +535,17 @@ async function submitMakeup(){
   if(code!==S.session.last4) return toast("後 4 位數字唔啱");
   if(!MF.picks.length) return;
   const c=S.classes[MF.ci]; const btn=$("#mf-go"); btn.disabled=true; btn.textContent="提交中…";
+  let fail=0, err="";
   for(const i of MF.picks){
     const cd=MF.cands[i], s=cd.slot;
-    await api("bookMakeup",{name:S.session.name,fromKey:classKey(c),fromDate:"",
-      toKey:s.sport+"|"+s.wd,toDate:cd.date});
+    try{ const r=await api("bookMakeup",{name:S.session.name,fromKey:classKey(c),fromDate:"",
+        toKey:s.sport+"|"+s.wd,toDate:cd.date});
+      if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
+    catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
   closeSheet(); await refresh();
-  toast(`已約 ${MF.picks.length} 堂補堂 · 已通知教練`);
+  if(fail) toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`);
+  else toast(`已約 ${MF.picks.length} 堂補堂 · 已通知教練`);
 }
 
 /* ---------- 教練版 ---------- */
