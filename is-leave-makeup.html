@@ -68,6 +68,20 @@ input:focus,select:focus{border-color:var(--accent)}
 
 /* cards */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;margin:0 0 14px}
+.banner{border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:14px;line-height:1.5}
+.banner.cancel{background:#FCE6E2;border:1.5px solid #D6432F;color:#9C0006;font-weight:600}
+.banner.next{background:#E9F8F9;border:1px solid var(--accent);display:flex;align-items:center;gap:10px}
+.banner.next .nx-l{flex:1;min-width:0}
+.banner.next .nx-k{font-size:12px;color:var(--accent-ink);font-weight:600}
+.banner.next .nx-v{font-weight:700;font-size:15px;color:#0B3a40}
+.banner.next .nx-btn{flex:none;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;border-radius:10px;padding:9px 12px;white-space:nowrap}
+.dlnote{margin:8px 0 2px;background:#FFF6E5;border:1px solid #F0C36B;border-radius:11px;padding:9px 12px;font-size:13px;color:#7A5200;line-height:1.5}
+.hist{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;margin:0 0 14px}
+.hist-h{font-weight:700;font-size:14px;margin-bottom:8px}
+.hist-row{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:5px 0;border-top:1px solid var(--line)}
+.hist-row:first-of-type{border-top:none}
+.hist-d{color:var(--muted);white-space:nowrap}
+.hist-t{font-weight:600;text-align:right}
 .card .topline{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .dot{width:10px;height:10px;border-radius:99px;flex:none}
 .card h3{margin:0;font-size:17px;font-weight:700}
@@ -292,6 +306,7 @@ function demoClass(name, c){
   const leave=sessions.filter(s=>s.status==="請假").length;
   return {sport:c.sport,wd:c.wd,time:c.time,total:7,attended,leave,
     owed:Math.max(0,leave-makeups.length), sessions,
+    deadline: sess.length? iso(sess[sess.length-1]) : "",
     makeups: makeups.map(m=>({to:m.toKey,date:m.toDate,status:""}))};
 }
 
@@ -314,7 +329,13 @@ function demoHandle(action,p){
     const key=`${p.name}|${p.last4}`;
     const s=DEMO.students[key]||Object.values(DEMO.students).find(x=>x.name===p.name);
     if(!s) return {ok:false,err:"搵唔到呢位學生，請檢查中文全名"};
-    return {ok:true, student:{name:s.name, last4:p.last4}, classes:s.classes.map(c=>demoClass(s.name,c))};
+    // 同一後4位 = 一家人
+    const fam=Object.values(DEMO.students).filter(x=>String(x.last4||p.last4)===String(p.last4));
+    const list=(fam.length?fam:[s]);
+    const seen={}, children=[];
+    list.forEach(x=>{ if(seen[x.name])return; seen[x.name]=1; children.push({name:x.name, classes:x.classes.map(c=>demoClass(x.name,c))}); });
+    return {ok:true, family:{last4:p.last4}, children,
+      student:{name:s.name,last4:p.last4}, classes:children.length?children[0].classes:[]};
   }
   if(action==="applyLeave"){
     DEMO.log.push({name:p.name,key:p.key,action:"leave",date:p.date,
@@ -355,7 +376,7 @@ function demoDaily(dateIso){
 /* ============================================================
    狀態 + 畫面
    ============================================================ */
-let S={ session:null, mode:"parent", activeChild:0 };
+let S={ session:null, family:null, mode:"parent", activeChild:0 };
 const $=(s,el=document)=>el.querySelector(s);
 const view=$("#view");
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),2200);}
@@ -407,7 +428,10 @@ async function doLogin(){
   const r=await api("login",{name,last4});
   $("#li-go").disabled=false; $("#li-go").textContent="登入";
   if(!r.ok) return toast(r.err||"登入失敗");
-  S.session={name:r.student.name,last4}; S.classes=r.classes; S.activeChild=0;
+  const kids = (r.children&&r.children.length) ? r.children
+    : [{name:(r.student&&r.student.name)||name, classes:r.classes||[]}];
+  S.family={ authName:name, last4, children:kids };
+  S.session={name, last4};            // 保留俾確認碼用
   S.mode="parent"; renderNav(); routeMain();
 }
 
@@ -416,34 +440,123 @@ function routeMain(){ S.mode==="coach"?renderCoach():renderParent(); }
 
 /* ---------- 家長主頁 ---------- */
 function renderParent(){
-  const name=S.session.name;
-  let html=`<div class="wrap"><div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;margin:4px 2px 14px">${name} 的課堂</div>`;
-  S.classes.forEach((c,ci)=>{
-    const sp=SPORT[c.sport], owed=c.owed||0;
-    html+=`<div class="card">
-      <div class="topline"><span class="dot" style="background:${sp.color}"></span>
-        <h3>${sp.name}</h3></div>
-      <div class="meta">逢星期${c.wd} ${c.time}　·　共 ${c.total||7} 堂</div>
-      <div class="stats">
-        <div class="stat"><div class="n">${c.total||7}</div><div class="k">總堂</div></div>
-        <div class="stat"><div class="n">${c.attended||0}</div><div class="k">已上</div></div>
-        <div class="stat"><div class="n">${c.leave||0}</div><div class="k">請假</div></div>
-        <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">待補</div></div>
-      </div>
-      <div class="rowbtns">
-        <button class="btn ghost sm" onclick="openLeave(${ci})">申請請假</button>
-        <button class="btn sm" onclick="openMakeup(${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
-      </div>
-      <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
-      ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
-        <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
-        ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
-          <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span>
-          <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
-      </div>`:''}
-    </div>`;
+  const kids=(S.family&&S.family.children)||[];
+  let html=`<div class="wrap">`;
+  if(kids.length>1){
+    html+=`<div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:15px;color:var(--muted);margin:2px 2px 10px">👨‍👩‍👧‍👦 一個電話・睇晒 ${kids.length} 個小朋友</div>`;
+  }
+  kids.forEach((child,ki)=>{
+    html+=`<div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;margin:${ki?'22px':'4px'} 2px 12px">${child.name} 的課堂</div>`;
+    // 今日停課橫額
+    const cx=cancelToday(child);
+    if(cx) html+=`<div class="banner cancel">⚠️ 今日（${cx}）天氣停課，所有課堂取消。請留意 WhatsApp 群組通知。</div>`;
+    // 下一堂提示 + 加入行事曆
+    const nx=nextClassInfo(child);
+    if(nx){
+      const d=new Date(nx.date+"T00:00:00");
+      html+=`<div class="banner next">
+        <div class="nx-l"><div class="nx-k">下一堂</div>
+          <div class="nx-v">${SPORT[nx.sport]?SPORT[nx.sport].name:nx.sport}・${fmt(d)}（星期${WDN[d.getDay()]}）${nx.time?' '+nx.time:''}</div></div>
+        <button class="nx-btn" onclick="downloadICS(${ki})">＋ 加入行事曆</button></div>`;
+    }
+    child.classes.forEach((c,ci)=> html+= classCard(child,ki,c,ci));
+    // 申請紀錄
+    const h=historyHTML(child);
+    if(h) html+=h;
   });
   html+=`</div>`; view.innerHTML=html;
+}
+function classCard(child,ki,c,ci){
+  const sp=SPORT[c.sport], owed=c.owed||0;
+  const dl=c.deadline?`　·　補堂限期 ${fmt(new Date(c.deadline+"T00:00:00"))}前`:"";
+  return `<div class="card">
+    <div class="topline"><span class="dot" style="background:${sp.color}"></span>
+      <h3>${sp.name}</h3></div>
+    <div class="meta">逢星期${c.wd} ${c.time}　·　共 ${c.total||7} 堂</div>
+    <div class="stats">
+      <div class="stat"><div class="n">${c.total||7}</div><div class="k">總堂</div></div>
+      <div class="stat"><div class="n">${c.attended||0}</div><div class="k">已上</div></div>
+      <div class="stat"><div class="n">${c.leave||0}</div><div class="k">請假</div></div>
+      <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">待補</div></div>
+    </div>
+    ${owed>0&&c.deadline?`<div class="dlnote">⏰ 你有 ${owed} 堂待補，請於 <b>${fmt(new Date(c.deadline+"T00:00:00"))}（星期${WDN[new Date(c.deadline+"T00:00:00").getDay()]}）前</b>補返。</div>`:''}
+    <div class="rowbtns">
+      <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">申請請假</button>
+      <button class="btn sm" onclick="openMakeup(${ki},${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
+    </div>
+    <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
+    ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
+      <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
+      ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
+        <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span>
+        <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
+    </div>`:''}
+  </div>`;
+}
+/* 今日是否停課（回傳 M/D 或空） */
+function cancelToday(child){
+  const t=iso(new Date());
+  for(const c of child.classes){
+    if((c.sessions||[]).some(s=>s.date===t && s.status==="停課")) { const d=new Date(t+"T00:00:00"); return fmt(d); }
+    if((c.makeups||[]).some(m=>m.date===t && m.status==="停課")) { const d=new Date(t+"T00:00:00"); return fmt(d); }
+  }
+  return "";
+}
+/* 下一堂：所有班別中，今日或之後、唔係請假/停課嘅最早一堂（含補堂） */
+function nextClassInfo(child){
+  const t=iso(new Date()); let best=null;
+  child.classes.forEach(c=>{
+    (c.sessions||[]).forEach(s=>{
+      if(s.date>=t && s.status!=="請假" && s.status!=="停課" && s.status!=="缺席"){
+        if(!best||s.date<best.date) best={date:s.date,sport:c.sport,wd:c.wd,time:c.time};
+      }
+    });
+    (c.makeups||[]).forEach(m=>{
+      if(m.date>=t && m.status!=="停課" && m.status!=="缺席"){
+        const a=m.to.split("|");
+        if(!best||m.date<best.date) best={date:m.date,sport:a[0],wd:a[1],time:""};
+      }
+    });
+  });
+  return best;
+}
+/* 申請紀錄：請假 + 已約補堂，按日期排 */
+function historyHTML(child){
+  const items=[];
+  child.classes.forEach(c=>{
+    (c.sessions||[]).forEach(s=>{ if(s.status==="請假") items.push({date:s.date,kind:"請假",text:`${SPORT[c.sport].name}（星期${c.wd}）請假`,color:"#9C6500"}); });
+    (c.makeups||[]).forEach(m=>{ const lbl=m.status==="出席"?"補堂已出席":(m.status==="缺席"?"補堂缺席":"已約補堂"); items.push({date:m.date,kind:"補堂",text:`補堂 → ${classLabel(m.to)}（${lbl}）`,color:"#1F4E79"}); });
+  });
+  if(!items.length) return "";
+  items.sort((a,b)=> a.date<b.date?-1:1);
+  return `<div class="hist"><div class="hist-h">📋 申請紀錄</div>${items.map(it=>{const d=new Date(it.date+"T00:00:00");
+    return `<div class="hist-row"><span class="hist-d">${fmt(d)}（星期${WDN[d.getDay()]}）</span><span class="hist-t" style="color:${it.color}">${it.text}</span></div>`;}).join("")}</div>`;
+}
+/* 產生並下載該小朋友所有未來課堂嘅 .ics 行事曆檔 */
+function downloadICS(ki){
+  const child=S.family.children[ki]; if(!child) return;
+  const t=iso(new Date()); const ev=[];
+  const push=(date,sport,wd,time,tag)=>{
+    const tt=(time||"").replace(/[–—]/g,"-").split("-");
+    const st=(tt[0]||"00:00").trim(), en=(tt[1]||"").trim();
+    const ds=date.replace(/-/g,"");
+    const dtS=ds+"T"+st.replace(":","")+"00";
+    const dtE=en?ds+"T"+en.replace(":","")+"00":dtS;
+    ev.push(["BEGIN:VEVENT","UID:"+date+"-"+sport+wd+tag+"@initiate","DTSTART:"+dtS,"DTEND:"+dtE,
+      "SUMMARY:INITIATE "+(SPORT[sport]?SPORT[sport].name:sport)+(tag==="MK"?"（補堂）":""),
+      "LOCATION:INITIATE SPORTS","DESCRIPTION:"+child.name+" "+(SPORT[sport]?SPORT[sport].name:sport),"END:VEVENT"].join("\r\n"));
+  };
+  child.classes.forEach(c=>{
+    (c.sessions||[]).forEach(s=>{ if(s.date>=t && s.status!=="請假" && s.status!=="停課" && s.status!=="缺席") push(s.date,c.sport,c.wd,c.time,"R"); });
+    (c.makeups||[]).forEach(m=>{ if(m.date>=t && m.status!=="停課" && m.status!=="缺席"){ const a=m.to.split("|"); push(m.date,a[0],a[1],"",  "MK"); } });
+  });
+  if(!ev.length){ toast("暫時冇未來課堂可加入"); return; }
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//INITIATE SPORTS//ZH//","CALSCALE:GREGORIAN",...ev,"END:VCALENDAR"].join("\r\n");
+  const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download="INITIATE_"+child.name+".ics"; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },300);
+  toast("已產生行事曆檔，揀「加入行事曆／日曆」即可");
 }
 function classLabel(key){ const a=key.split("|"); return (SPORT[a[0]]?SPORT[a[0]].name:a[0])+"("+a[1]+")"; }
 function sessRow(s){
@@ -458,17 +571,22 @@ function sessRow(s){
   return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span></span>${pill}</div>`;
 }
 async function refresh(){
-  const r=await api("login",{name:S.session.name,last4:S.session.last4});
-  if(r&&r.ok){ S.classes=r.classes; renderParent(); }
+  if(!S.family) return;
+  const r=await api("login",{name:S.family.authName,last4:S.family.last4});
+  if(r&&r.ok){
+    S.family.children=(r.children&&r.children.length)?r.children
+      :[{name:(r.student&&r.student.name)||S.family.authName,classes:r.classes||[]}];
+    renderParent();
+  }
 }
 
 /* ---------- 請假 sheet ---------- */
 let LF={};
-function openLeave(ci){
-  const c=S.classes[ci];
+function openLeave(ki,ci){
+  const child=S.family.children[ki], c=child.classes[ci];
   const today=new Date(); today.setHours(0,0,0,0);
   const opts=(c.sessions||[]).filter(s=> new Date(s.date+"T00:00:00")>today && !s.status).map(s=>s.date);
-  LF={ci,type:"事假",dates:[]};
+  LF={ki,ci,type:"事假",dates:[]};
   if(!opts.length){ openSheet(`<h2>申請請假</h2><p class="sd">${SPORT[c.sport].name} 已經冇可請假嘅未來堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   openSheet(`<h2>申請請假 · ${SPORT[c.sport].name}</h2>
     <p class="sd">逢星期${c.wd} ${c.time}　·　可一次揀多堂</p>
@@ -494,14 +612,14 @@ function toggleLeave(di,el){
 }
 async function submitLeave(){
   const code=$("#lf-code").value.trim();
-  if(code!==S.session.last4) return toast("後 4 位數字唔啱");
+  if(code!==S.family.last4) return toast("後 4 位數字唔啱");
   if(!LF.dates.length) return;
-  const c=S.classes[LF.ci], hhmm=(c.time||"00:00").slice(0,5);
+  const child=S.family.children[LF.ki], c=child.classes[LF.ci], hhmm=(c.time||"00:00").slice(0,5);
   const btn=$("#lf-go"); btn.disabled=true; btn.textContent="提交中…";
   let fail=0, err="";
   for(const date of LF.dates){
     const eligible = LF.type==="病假" ? true : ((new Date(date+"T"+hhmm+":00")-new Date())/36e5)>=24;
-    try{ const r=await api("applyLeave",{name:S.session.name,key:classKey(c),date,leaveType:LF.type,eligible});
+    try{ const r=await api("applyLeave",{name:child.name,key:classKey(c),date,leaveType:LF.type,eligible});
       if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
@@ -512,8 +630,8 @@ async function submitLeave(){
 
 /* ---------- 補堂 sheet（可多選） ---------- */
 let MF={};
-function openMakeup(ci){
-  const c=S.classes[ci], owed=c.owed||0;
+function openMakeup(ki,ci){
+  const child=S.family.children[ki], c=child.classes[ci], owed=c.owed||0;
   if(owed<=0){ openSheet(`<h2>申請補堂</h2><p class="sd">暫時冇待補堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   const slots=makeupSlotsFor(c);
   if(!slots.length){ openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
@@ -526,7 +644,7 @@ function openMakeup(ci){
     if(s.fixed){ s.fixed.forEach(di=>{ if(new Date(di+"T00:00:00")>today) cands.push({slot:s,date:di}); }); }
     else { sessionsFor(s.wd).filter(d=>d>today && d<=deadline).forEach(d=>cands.push({slot:s,date:iso(d)})); }
   });
-  MF={ci,cands,picks:[],owed};
+  MF={ki,ci,cands,picks:[],owed};
   const opts=cands.map((cd,i)=>{
     const s=cd.slot, d=new Date(cd.date+"T00:00:00");
     return `<div class="opt" onclick="toggleMakeup(${i},this)">
@@ -555,13 +673,13 @@ function toggleMakeup(i,el){
 }
 async function submitMakeup(){
   const code=$("#mf-code").value.trim();
-  if(code!==S.session.last4) return toast("後 4 位數字唔啱");
+  if(code!==S.family.last4) return toast("後 4 位數字唔啱");
   if(!MF.picks.length) return;
-  const c=S.classes[MF.ci]; const btn=$("#mf-go"); btn.disabled=true; btn.textContent="提交中…";
+  const child=S.family.children[MF.ki], c=child.classes[MF.ci]; const btn=$("#mf-go"); btn.disabled=true; btn.textContent="提交中…";
   let fail=0, err="";
   for(const i of MF.picks){
     const cd=MF.cands[i], s=cd.slot;
-    try{ const r=await api("bookMakeup",{name:S.session.name,fromKey:classKey(c),fromDate:"",
+    try{ const r=await api("bookMakeup",{name:child.name,fromKey:classKey(c),fromDate:"",
         toKey:s.sport+"|"+s.wd,toDate:cd.date});
       if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
