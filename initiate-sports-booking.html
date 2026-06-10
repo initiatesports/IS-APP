@@ -1,0 +1,626 @@
+<!-- INITIATE SPORTS · 6–7月特別課程報名 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Noto+Sans+HK:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#EEF1EF; --surface:#FFFFFF; --ink:#15201B; --muted:#66736D;
+    --line:#DCE3DE; --green:#00734A; --green-d:#00553A; --green-tint:#E6F1EB;
+    --yellow:#FFC400; --coral:#E0484D; --coral-tint:#FCEBEB; --wa:#25D366;
+    --sans:'Noto Sans HK','PingFang HK','Microsoft JhengHei',sans-serif;
+    --display:'Archivo',var(--sans);
+    --r:16px; --shadow:0 1px 2px rgba(21,32,27,.06),0 6px 22px rgba(21,32,27,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;padding-bottom:120px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:740px;margin:0 auto;padding:0 16px}
+
+  .bar{position:sticky;top:0;z-index:40;background:rgba(238,241,239,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:8px}
+  .brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;letter-spacing:.03em;font-size:14px;flex-shrink:1;min-width:0}
+  .brand .dot{width:11px;height:11px;border-radius:3px;background:var(--green);box-shadow:3px 0 0 var(--yellow);flex-shrink:0}
+  .acts{display:flex;gap:7px;flex-shrink:0}
+  .navbtn{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.01em;background:none;border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--ink);cursor:pointer;white-space:nowrap}
+  .navbtn:hover{border-color:var(--green);color:var(--green)}
+
+  .hero{padding:32px 0 4px}
+  .eyebrow{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);display:flex;gap:8px;align-items:center}
+  .eyebrow::before{content:"";width:22px;height:2px;background:var(--yellow)}
+  h1.lead{font-family:var(--display);font-weight:900;font-size:clamp(30px,8vw,46px);line-height:1.04;margin:14px 0 12px;letter-spacing:-.01em}
+  h1.lead b{color:var(--green)}
+  .lead-sub{color:var(--muted);font-size:15px;max-width:42ch}
+  .venue{margin-top:16px;display:inline-flex;gap:7px;align-items:center;font-size:13px;font-weight:500;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px}
+  .venue b{color:var(--green)}
+
+  .section-h{font-family:var(--display);font-weight:900;font-size:26px;margin:34px 0 14px;letter-spacing:-.01em}
+  .rules{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .rule{display:flex;gap:14px;padding:15px 18px;border-bottom:1px solid var(--line)}
+  .rule:last-child{border-bottom:0}
+  .rule .num{font-family:var(--display);font-weight:900;font-size:15px;color:#fff;background:var(--green);min-width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .rule .rt b{display:block;font-weight:700;margin-bottom:3px}
+  .rule .rt{font-size:14px;color:var(--muted)}
+  .rule .rt .em{color:var(--ink);font-weight:500}
+
+  .filters{display:flex;gap:8px;overflow-x:auto;padding:6px 0 2px;margin-top:26px;-webkit-overflow-scrolling:touch}
+  .filters::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-family:var(--display);font-weight:700;font-size:13px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap;color:var(--ink)}
+  .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+
+  .dategroup{margin-top:26px}
+  .datehead{display:flex;align-items:center;gap:12px;margin:0 2px 14px}
+  .datehead .d{font-family:var(--display);font-weight:900;font-size:23px;letter-spacing:-.01em}
+  .datehead .holiday{font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:.04em;background:var(--coral-tint);color:var(--coral);border-radius:6px;padding:4px 9px}
+  .datehead .line{flex:1;height:1px;background:var(--line)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+  .card.sel{border-color:var(--green);box-shadow:0 0 0 2px var(--green-tint),var(--shadow)}
+  .crow{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+  .ctitle{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.01em}
+  .ctitle .emo{font-size:21px;font-family:var(--sans)}
+  .time{font-family:var(--display);font-weight:700;font-size:13px;color:var(--muted);letter-spacing:.02em;margin-top:3px}
+  .price{font-family:var(--display);font-weight:900;font-size:22px;text-align:right;white-space:nowrap}
+  .price span{font-size:12px;font-weight:600;color:var(--muted);display:block;letter-spacing:.04em}
+  .cnote{font-size:13px;color:var(--muted);margin-top:10px}
+  .slots{margin-top:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .pips{display:flex;gap:5px}
+  .pip{width:15px;height:22px;border-radius:5px;border:2px solid var(--green);background:transparent;transition:transform .25s,background .25s}
+  .pip.on{background:var(--green);border-color:var(--green);animation:pop .3s ease}
+  .pip.wl{border-color:var(--coral);border-style:dashed}
+  .pip.wl.on{background:var(--coral);border-color:var(--coral)}
+  @keyframes pop{0%{transform:scale(.4)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .slotinfo{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.02em}
+  .slotinfo .left{color:var(--green-d)} .slotinfo .wlt{color:var(--coral)}
+  .formed{font-size:12px;color:var(--muted);margin-top:7px}
+  .formed b{color:var(--ink)} .formed.warn b{color:#B7791F}
+  .addbtn{margin-top:16px;width:100%;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.02em;border:0;border-radius:11px;padding:13px;background:var(--green);color:#fff;cursor:pointer;transition:background .15s}
+  .addbtn:hover{background:var(--green-d)} .addbtn.added{background:var(--ink)} .addbtn.wl{background:var(--coral)}
+  .addbtn:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+
+  .cartbar{position:fixed;left:0;right:0;bottom:0;z-index:45;transform:translateY(140%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+  .cartbar.show{transform:translateY(0)}
+  .cartinner{max-width:740px;margin:0 auto;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;border-radius:18px 18px 0 0;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 -10px 30px rgba(21,32,27,.18)}
+  .cartmeta{font-size:13px;line-height:1.3} .cartmeta .n{font-family:var(--display);font-weight:700} .cartmeta .tot{font-family:var(--display);font-weight:900;font-size:20px}
+  .cartgo{font-family:var(--display);font-weight:800;font-size:15px;background:var(--yellow);color:var(--ink);border:0;border-radius:11px;padding:13px 20px;cursor:pointer;white-space:nowrap}
+  .cartgo:hover{filter:brightness(1.05)}
+
+  .scrim{position:fixed;inset:0;z-index:60;background:rgba(21,32,27,.5);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center}
+  .scrim.open{display:flex}
+  .sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;animation:rise .3s ease}
+  @media(min-width:600px){.scrim{align-items:center}.sheet{border-radius:20px}}
+  @keyframes rise{from{transform:translateY(40px);opacity:.6}to{transform:translateY(0);opacity:1}}
+  .sheet-h{position:sticky;top:0;background:var(--bg);display:flex;justify-content:space-between;align-items:center;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+  .sheet-h h2{font-family:var(--display);font-weight:900;font-size:20px}
+  .x{background:none;border:0;font-size:24px;line-height:1;color:var(--muted);cursor:pointer;padding:4px}
+  .sheet-b{padding:18px 20px 24px}
+  .sumrow{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:9px;font-size:14px}
+  .sumrow .si{font-family:var(--display);font-weight:700} .sumrow .st{font-size:12px;color:var(--muted)}
+  .badge{font-family:var(--display);font-weight:700;font-size:11px;padding:3px 8px;border-radius:6px}
+  .badge.ok{background:var(--green-tint);color:var(--green-d)} .badge.wl{background:var(--coral-tint);color:var(--coral)}
+  .totline{display:flex;justify-content:space-between;font-family:var(--display);font-weight:900;font-size:20px;margin:14px 2px 18px}
+  label.fld{display:block;margin-bottom:14px}
+  label.fld .lt{font-size:13px;font-weight:700;margin-bottom:6px;display:block}
+  label.fld .lt s{color:var(--coral);text-decoration:none}
+  .inp{width:100%;font-family:var(--sans);font-size:16px;padding:13px 14px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--ink)}
+  .inp:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-tint)}
+  .err{color:var(--coral);font-size:12px;margin-top:5px;display:none}
+  .submit{width:100%;font-family:var(--display);font-weight:800;font-size:16px;border:0;border-radius:12px;padding:15px;background:var(--green);color:#fff;cursor:pointer;margin-top:4px}
+  .submit:hover{background:var(--green-d)}
+
+  .done-ic{width:54px;height:54px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;margin:4px auto 12px}
+  .done-h{font-family:var(--display);font-weight:900;font-size:22px;text-align:center;margin-bottom:4px}
+  .done-sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:20px}
+  .paybox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .paybox .pamt{font-family:var(--display);font-weight:900;font-size:34px;text-align:center;color:var(--green-d)}
+  .paybox .palb{text-align:center;font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-family:var(--display);font-weight:700;margin-bottom:10px}
+  .paymethods{display:flex;gap:10px;margin:16px 0 4px}
+  .pm{flex:1;border:1px solid var(--line);border-radius:11px;padding:12px;text-align:center}
+  .pm .pmname{font-family:var(--display);font-weight:800;font-size:14px}
+  .pm .pmnum{font-family:var(--display);font-weight:900;font-size:19px;letter-spacing:.02em;margin-top:3px}
+  .copybtn{margin-top:14px;width:100%;font-family:var(--display);font-weight:700;font-size:14px;border:1px dashed var(--green);background:var(--green-tint);color:var(--green-d);border-radius:11px;padding:12px;cursor:pointer}
+  .copybtn.copied{background:var(--green);color:#fff;border-style:solid}
+  .paynote{font-size:13px;color:var(--muted);margin-top:14px;line-height:1.55} .paynote b{color:var(--ink)}
+  .reassure{background:var(--green-tint);border:1px solid #BFE0CF;border-radius:11px;padding:12px 14px;font-size:13.5px;color:var(--green-d);line-height:1.55;margin-top:6px} .reassure b{font-weight:800}
+  .demobanner{background:#FFF4D6;border:1px solid #F0D88A;color:#7A5B00;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;margin-top:18px}
+
+  .statusline{font-size:13.5px;margin-top:6px;color:var(--muted)} .statusline b{font-family:var(--display)}
+  .uplbtn{width:100%;font-family:var(--display);font-weight:800;font-size:14px;border:1px dashed var(--green);background:var(--green-tint);color:var(--green-d);border-radius:11px;padding:12px;cursor:pointer;margin-top:10px}
+  .proofthumb{width:100%;max-height:240px;object-fit:contain;border-radius:11px;border:1px solid var(--line);background:#fff;margin-top:10px;display:block}
+  .notifyrow{display:flex;gap:9px;margin-top:11px}
+  .nbtn{flex:1;text-align:center;font-family:var(--display);font-weight:800;font-size:13px;border-radius:11px;padding:12px 6px;text-decoration:none;display:block;border:0;cursor:pointer}
+  .nbtn.wa{background:var(--wa);color:#fff} .nbtn.em{background:var(--ink);color:#fff}
+  .contactnote{font-size:12px;color:var(--muted);margin-top:9px;text-align:center;line-height:1.6} .contactnote b{color:var(--ink)}
+
+  .adminwrap{display:none}
+  .pinrow{display:flex;gap:10px;margin:10px 0 20px}
+  .acard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:13px}
+  .ahead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .ahead .at{font-family:var(--display);font-weight:800;font-size:16px}
+  .ahead .ac{font-family:var(--display);font-weight:700;font-size:12px;color:var(--muted);white-space:nowrap}
+  .editbtn{font-family:var(--display);font-weight:700;font-size:11px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 10px;cursor:pointer;margin:6px 0 4px;color:var(--green-d)}
+  .areg{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;flex-wrap:wrap}
+  .areg .ai{flex:1 1 130px;min-width:120px} .areg .ai b{font-weight:700} .areg .ai span{color:var(--muted);font-size:13px}
+  .pchip{font-family:var(--display);font-weight:700;font-size:11px;padding:5px 9px;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:#fff;white-space:nowrap}
+  .pchip.paid{background:var(--green);color:#fff;border-color:var(--green)}
+  .wlrow{opacity:.85}
+  .wlpill{font-family:var(--display);font-weight:700;font-size:10px;background:var(--coral-tint);color:var(--coral);padding:2px 6px;border-radius:5px;margin-left:6px}
+  .adel{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 4px}
+  .empty{color:var(--muted);font-size:13px;padding:10px 0}
+  .arev{font-family:var(--display);font-weight:900;font-size:15px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between}
+  .afilter{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+  .afilter::-webkit-scrollbar{display:none}
+  .exportbtn{width:100%;font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.02em;border:1px solid var(--green);background:var(--green-tint);color:var(--green-d);border-radius:11px;padding:12px;cursor:pointer;margin-bottom:16px}
+  .exportbtn:hover{background:var(--green);color:#fff}
+  details.addcls{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0 18px;margin-top:18px;box-shadow:var(--shadow)}
+  details.addcls summary{font-family:var(--display);font-weight:800;font-size:15px;padding:16px 0;cursor:pointer}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .small{font-size:12px;color:var(--muted);margin:6px 2px 0}
+
+  .foot{text-align:center;color:var(--muted);font-size:12px;padding:30px 0 10px;line-height:1.7} .foot b{color:var(--green)}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:11px;font-size:14px;font-weight:500;opacity:0;transition:.25s;z-index:80;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+<div class="bar"><div class="wrap">
+  <div class="brand"><span class="dot"></span>INITIATE SPORTS</div>
+  <div class="acts"><button class="navbtn" id="myToggle">查詢報名</button><button class="navbtn" id="adminToggle">教練管理</button></div>
+</div></div>
+
+<div id="parentView"><div class="wrap">
+  <div id="demoBanner" class="demobanner" style="display:none"></div>
+  <section class="hero">
+    <div class="eyebrow">6–7月 · 平日特別課程</div>
+    <h1 class="lead">揀堂、報名、付款,<br><b>一次過喺度搞掂。</b></h1>
+    <p class="lead-sub">6 月中至 7 月中合共十多日課堂,單堂任揀。報名前請先睇下面嘅須知,報名後跟付款指示同上傳截圖即可。</p>
+    <div class="venue">📍 全部課堂於 <b>青衣區體育館</b> 上課</div>
+  </section>
+
+  <h2 class="section-h">報名須知(請先閱讀)</h2>
+  <div class="rules">
+    <div class="rule"><div class="num">1</div><div class="rt"><b>惡劣天氣</b><span class="em">教練會於班組開始 2 小時前通知是否取消(視乎體育館安排)。如取消會全額退款。</span></div></div>
+    <div class="rule"><div class="num">2</div><div class="rt"><b>教練突發未能出席</b><span class="em">如沒有代堂教練頂替,當天班組會取消並退款。</span></div></div>
+    <div class="rule"><div class="num">3</div><div class="rt"><b>個人事假缺席</b><span class="em">教練會因應人數安排活動內容,並已預訂場地。請於活動前通知,並建議自行找朋友頂替🙏🏻 暫不處理退款。</span></div></div>
+    <div class="rule"><div class="num">4</div><div class="rt"><b>4 人成班 · 不成班全額退款</b><span class="em">所有班別需 4 人或以上才能成班。成班後需於活動前 1 星期付款作實(需預訂場地)。若最終人數不足、未能成班,已付款項將全額退回,可安心報名👋🏻</span></div></div>
+    <div class="rule"><div class="num">5</div><div class="rt"><b>即日加人</b><span class="em">當天想加人,可即時聯絡教練並當天付款即可。</span></div></div>
+  </div>
+
+  <h2 class="section-h">課堂時間表</h2>
+  <div class="filters" id="filterRow"></div>
+  <div id="courseList"></div>
+
+  <div class="foot">INITIATE SPORTS · 報名查詢請聯絡教練<br>WhatsApp <b>6331 7403</b> · 收款 <b>6709 3390</b>(FPS / PayMe)</div>
+</div></div>
+
+<div id="adminView" class="adminwrap"><div class="wrap">
+  <h2 class="section-h">教練管理</h2>
+  <div id="pinGate">
+    <p class="small">輸入管理密碼以查看報名名單。</p>
+    <div class="pinrow"><input class="inp" id="pinInput" type="password" inputmode="numeric" placeholder="管理密碼"><button class="submit" style="width:auto;margin:0;padding:13px 22px" id="pinBtn">進入</button></div>
+  </div>
+  <div id="adminBody" style="display:none"></div>
+</div></div>
+
+<div class="cartbar" id="cartbar"><div class="cartinner">
+  <div class="cartmeta">已選 <span class="n" id="cartN">0</span> 堂<br><span class="tot" id="cartTot">$0</span></div>
+  <button class="cartgo" id="cartGo">去報名 →</button>
+</div></div>
+
+<div class="scrim" id="scrim"><div class="sheet">
+  <div class="sheet-h"><h2 id="sheetTitle">填寫報名</h2><button class="x" id="sheetX">×</button></div>
+  <div class="sheet-b" id="sheetBody"></div>
+</div></div>
+
+<input type="file" id="proofInput" accept="image/*" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TYPES = {
+    bad: {name:"羽毛球班", emoji:"🏸", capacity:6,  waitlist:2, price:150, note:"自備球拍"},
+    pick:{name:"匹克球班", emoji:"🎾", capacity:6,  waitlist:2, price:150, note:"自備球拍"},
+    gen: {name:"綜合運動技能班", emoji:"🏃", capacity:10, waitlist:0, price:130, note:"鍛鍊協調、敏捷、爆發力、速度,兼顧柔韌度訓練。"},
+    gym: {name:"基礎體操及柔韌度訓練班", emoji:"🤸", capacity:6, waitlist:2, price:150, note:"鍛鍊核心、平衡、身體控制及柔韌度。"}
+  };
+  var SCHEDULE = [
+    {date:"18/6 (四)", key:"1806", sessions:[["2:00–3:00 PM","bad"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","pick"]]},
+    {date:"19/6 (五)", key:"1906", holiday:"端午節 · 公眾假期", sessions:[["9:00–10:00 AM","gym"],["10:00–11:00 AM","gen"],["11:00 AM–12:00 PM","pick"],["11:00 AM–12:00 PM","bad"]]},
+    {date:"22/6 (一)", key:"2206", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"24/6 (三)", key:"2406", sessions:[["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"25/6 (四)", key:"2506", sessions:[["2:00–3:00 PM","pick"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"]]},
+    {date:"26/6 (五)", key:"2606", sessions:[["3:00–4:00 PM","bad"],["4:00–5:00 PM","gym"]]},
+    {date:"29/6 (一)", key:"2906", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"2/7 (四)",  key:"0207", sessions:[["2:00–3:00 PM","pick"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"]]},
+    {date:"3/7 (五)",  key:"0307", sessions:[["3:00–4:00 PM","bad"],["4:00–5:00 PM","gym"],["5:00–6:00 PM","gen"]]},
+    {date:"6/7 (一)",  key:"0607", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"8/7 (三)",  key:"0807", sessions:[["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"9/7 (四)",  key:"0907", sessions:[["2:00–3:00 PM","pick"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"]]},
+    {date:"10/7 (五)", key:"1007", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]}
+  ];
+  var HOLIDAYS={}, BASE_CLASSES=[];
+  SCHEDULE.forEach(function(day){ if(day.holiday) HOLIDAYS[day.date]=day.holiday;
+    day.sessions.forEach(function(s){ var t=TYPES[s[1]];
+      BASE_CLASSES.push({id:"c"+day.key+"-"+s[1], type:s[1], date:day.date, time:s[0], name:t.name, emoji:t.emoji, capacity:t.capacity, waitlist:t.waitlist, price:t.price, note:t.note}); }); });
+
+  var ADMIN_PIN="3390";                         /* 教練可自行修改 */
+  var PAY_NUMBER="67093390";
+  var COACH_WA="85263317403";                   /* WhatsApp 6331 7403 */
+  var COACH_EMAIL="initiatesports6331@gmail.com";
+  /* ↓↓↓ 部署 Apps Script 後,把網址貼喺呢度(以 https://script.google.com/.../exec 結尾) ↓↓↓ */
+  var API_URL = "https://script.google.com/macros/s/AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj/exec";
+  var apiReady = /script\.google\.com/.test(API_URL);
+  var mem={};   /* 示範模式用嘅暫存 */
+
+  function apiGet(action, params){
+    var qs="?action="+encodeURIComponent(action);
+    if(params){ Object.keys(params).forEach(function(k){ qs+="&"+k+"="+encodeURIComponent(params[k]); }); }
+    return fetch(API_URL+qs).then(function(r){return r.json();});
+  }
+  function apiPost(action, payload){
+    return fetch(API_URL, {method:"POST", body: JSON.stringify(Object.assign({action:action}, payload||{}))}).then(function(r){return r.json();});
+  }
+
+  var state={regs:[], extra:[], overrides:{}};
+  var cart={}, filterType="";
+  function allClasses(){
+    var base=BASE_CLASSES.map(function(c){ var o=state.overrides[c.id]; return o?Object.assign({},c,o):c; });
+    return base.concat(state.extra);
+  }
+  /* 由後端攞最新狀態(報名、額外課堂、價錢/人數修改) */
+  function fetchState(){
+    if(!apiReady) return Promise.resolve();
+    return apiGet("state").then(function(d){ if(d){ state.regs=d.regs||[]; state.extra=d.extra||[]; state.overrides=d.overrides||{}; } })
+      .catch(function(e){ console.warn("state fetch fail",e); toast("連線後端失敗,請稍後再試"); });
+  }
+  function persistConfig(){
+    if(!apiReady) return Promise.resolve();
+    return apiPost("saveConfig", {extra:state.extra, overrides:state.overrides});
+  }
+  function classMeta(c){ return {id:c.id, name:c.name, date:c.date, time:c.time, price:c.price, capacity:c.capacity, waitlist:c.waitlist||0}; }
+
+  function byId(id){ var a=allClasses(); for(var i=0;i<a.length;i++) if(a[i].id===id) return a[i]; return null; }
+  function confirmedCount(id){ var n=0; state.regs.forEach(function(r){if(r.classId===id&&r.status==="confirmed")n++;}); return n; }
+  function waitCount(id){ var n=0; state.regs.forEach(function(r){if(r.classId===id&&r.status==="waitlist")n++;}); return n; }
+  function statusFor(c){ var conf=confirmedCount(c.id);
+    if(conf<c.capacity) return {kind:"open", left:c.capacity-conf, conf:conf};
+    var wl=waitCount(c.id);
+    if(c.waitlist && wl<c.waitlist) return {kind:"wait", wlleft:c.waitlist-wl, conf:conf, wl:wl};
+    return {kind:"full", conf:conf, wl:wl}; }
+  function money(n){ return "$"+Number(n).toLocaleString("en-US"); }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];}); }
+
+  var FILTER_CHIPS=[["","全部"],["bad","🏸 羽毛球"],["pick","🎾 匹克球"],["gen","🏃 綜合運動"],["gym","🤸 體操"]];
+  function renderFilters(){ var host=document.getElementById("filterRow"), h="";
+    FILTER_CHIPS.forEach(function(c){ h+='<button class="chip'+(filterType===c[0]?" on":"")+'" data-f="'+c[0]+'">'+c[1]+'</button>'; });
+    host.innerHTML=h;
+    host.querySelectorAll(".chip").forEach(function(b){ b.addEventListener("click",function(){ filterType=b.getAttribute("data-f"); renderFilters(); renderCourses(); }); }); }
+
+  function renderCourses(){
+    var host=document.getElementById("courseList");
+    var list=allClasses().filter(function(c){ return !filterType || c.type===filterType; });
+    var order=[], groups={};
+    list.forEach(function(c){ if(order.indexOf(c.date)<0){order.push(c.date);groups[c.date]=[];} groups[c.date].push(c); });
+    if(!order.length){ host.innerHTML='<div class="empty" style="text-align:center;padding:30px 0">此項目暫無課堂</div>'; return; }
+    var html="";
+    order.forEach(function(date){
+      html+='<div class="dategroup"><div class="datehead"><span class="d">'+esc(date)+'</span>'+(HOLIDAYS[date]?'<span class="holiday">'+esc(HOLIDAYS[date])+'</span>':'')+'<span class="line"></span></div>';
+      groups[date].forEach(function(c){
+        var st=statusFor(c), pips="";
+        for(var i=0;i<c.capacity;i++) pips+='<span class="pip'+(i<st.conf?" on":"")+'"></span>';
+        if(c.waitlist){ for(var w=0;w<c.waitlist;w++){ var wOn=(st.conf>=c.capacity)&&(w<(st.wl||0)); pips+='<span class="pip wl'+(wOn?" on":"")+'"></span>'; } }
+        var slotTxt,btnTxt,btnCls="",disabled="";
+        if(st.kind==="open"){ slotTxt='<span class="left">尚餘 '+st.left+' 席</span>'; }
+        else if(st.kind==="wait"){ slotTxt='<span class="wlt">已滿 · 候補尚餘 '+st.wlleft+'</span>'; btnCls="wl"; }
+        else { slotTxt='<span class="wlt">已滿</span>'; disabled="disabled"; }
+        var formed,fcls="";
+        if(st.conf>=4){ formed='已成班 ✓ ('+st.conf+' 人)'; } else { formed='仲差 <b>'+(4-st.conf)+'</b> 人成班(現 '+st.conf+' 人)'; fcls=" warn"; }
+        var inCart=!!cart[c.id];
+        if(inCart){ btnTxt="✓ 已加入報名"; btnCls="added"; } else if(st.kind==="wait"){ btnTxt="加入候補名單"; } else if(st.kind==="full"){ btnTxt="已滿"; } else { btnTxt="加入報名"; }
+        html+='<div class="card'+(inCart?" sel":"")+'" data-id="'+c.id+'"><div class="crow"><div><div class="ctitle"><span class="emo">'+c.emoji+'</span>'+esc(c.name)+'</div><div class="time">'+esc(c.time)+'</div></div><div class="price">'+money(c.price)+'<span>/堂</span></div></div>'
+          +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'')
+          +'<div class="slots"><div class="pips">'+pips+'</div><div class="slotinfo">'+slotTxt+'</div></div>'
+          +'<div class="formed'+fcls+'">'+formed+'</div>'
+          +'<button class="addbtn '+btnCls+'" data-id="'+c.id+'" '+disabled+'>'+btnTxt+'</button></div>';
+      });
+      html+='</div>';
+    });
+    host.innerHTML=html;
+    host.querySelectorAll(".addbtn").forEach(function(b){ b.addEventListener("click",function(){ toggleCart(b.getAttribute("data-id")); }); });
+  }
+
+  function toggleCart(id){ if(cart[id]) delete cart[id]; else cart[id]=true; renderCourses(); renderCart(); }
+  function cartList(){ return Object.keys(cart).map(byId).filter(Boolean); }
+  function cartTotal(){ var t=0; cartList().forEach(function(c){t+=c.price;}); return t; }
+  function renderCart(){ var items=cartList(); document.getElementById("cartN").textContent=items.length; document.getElementById("cartTot").textContent=money(cartTotal()); document.getElementById("cartbar").classList.toggle("show", items.length>0 && !inAdmin); }
+
+  var scrim=document.getElementById("scrim");
+  function openSheet(t,b){ document.getElementById("sheetTitle").textContent=t; document.getElementById("sheetBody").innerHTML=b; scrim.classList.add("open"); }
+  function closeSheet(){ scrim.classList.remove("open"); }
+  document.getElementById("sheetX").addEventListener("click", closeSheet);
+  scrim.addEventListener("click", function(e){ if(e.target===scrim) closeSheet(); });
+
+  /* ===== register ===== */
+  document.getElementById("cartGo").addEventListener("click", openRegForm);
+  function openRegForm(){
+    var items=cartList(); if(!items.length) return;
+    var rows="";
+    items.forEach(function(c){ var willWait=(statusFor(c).kind!=="open");
+      rows+='<div class="sumrow"><div><div class="si">'+c.emoji+' '+esc(c.name)+'</div><div class="st">'+esc(c.date)+' · '+esc(c.time)+'</div></div><div style="text-align:right"><div class="si">'+money(c.price)+'</div><span class="badge '+(willWait?"wl":"ok")+'">'+(willWait?"候補":"有位")+'</span></div></div>'; });
+    var body=rows+'<div class="totline"><span>合計</span><span>'+money(cartTotal())+'</span></div>'
+      +'<label class="fld"><span class="lt">家長姓名 <s>*</s></span><input class="inp" id="fParent" placeholder="例:陳太"></label>'
+      +'<label class="fld"><span class="lt">學生姓名(中文全名) <s>*</s></span><input class="inp" id="fStudent" placeholder="請填中文全名,例:陳大文"><div class="err" id="eStudent">請輸入中文全名(請勿用英文)</div></label>'
+      +'<label class="fld"><span class="lt">聯絡電話 <s>*</s></span><input class="inp" id="fPhone" inputmode="numeric" placeholder="8 位數字手提電話"><div class="err" id="ePhone">請輸入有效的 8 位數字電話</div></label>'
+      +'<button class="submit" id="doReg">確認報名</button>'
+      +'<p class="small" style="text-align:center">報名後會顯示付款方法,並可上傳付款截圖。名額以付款先後及人數上限為準。</p>';
+    openSheet("填寫報名 · "+items.length+" 堂", body);
+    document.getElementById("doReg").addEventListener("click", submitReg);
+  }
+  function submitReg(){
+    var p=document.getElementById("fParent").value.trim();
+    var s=document.getElementById("fStudent").value.trim();
+    var ph=document.getElementById("fPhone").value.replace(/\s|-/g,"");
+    var ok=true;
+    var pEl=document.getElementById("fParent"); if(!p){pEl.style.borderColor="var(--coral)";ok=false;} else pEl.style.borderColor="";
+    var sEl=document.getElementById("fStudent"), sErr=document.getElementById("eStudent");
+    var cjk=(s.match(/[\u4e00-\u9fff]/g)||[]).length, hasLatin=/[A-Za-z]/.test(s);
+    if(cjk<2 || hasLatin){ sEl.style.borderColor="var(--coral)"; sErr.style.display="block"; ok=false; } else { sEl.style.borderColor=""; sErr.style.display="none"; }
+    var phEl=document.getElementById("fPhone"), phErr=document.getElementById("ePhone");
+    if(!/^\d{8}$/.test(ph)){ phEl.style.borderColor="var(--coral)"; phErr.style.display="block"; ok=false; } else { phEl.style.borderColor=""; phErr.style.display="none"; }
+    if(!ok) return;
+    var btn=document.getElementById("doReg"); btn.disabled=true; btn.textContent="處理中…";
+    var items=cartList();
+    function fail(msg){ toast(msg); btn.disabled=false; btn.textContent="確認報名"; }
+    if(apiReady){
+      apiPost("register", {parent:p, student:s, phone:ph, classes: items.map(classMeta)})
+        .then(function(d){
+          if(!d||!d.ok){ fail((d&&d.error)?d.error:"報名失敗,請再試"); return; }
+          return fetchState().then(function(){
+            var results=(d.results||[]).map(function(x){ return {c:byId(x.classId), status:x.status}; }).filter(function(x){return x.c;});
+            showConfirmation(results, p, ph);
+          });
+        })
+        .catch(function(e){ console.warn(e); fail("連線失敗,請檢查網絡後再試"); });
+    } else {
+      var results=[];
+      items.forEach(function(c){ var st=statusFor(c); var status=(st.kind==="open")?"confirmed":"waitlist";
+        state.regs.push({id:"r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), classId:c.id, parent:p, student:s, phone:ph, status:status, paid:false, proof:false, ts:Date.now()});
+        results.push({c:c, status:status}); });
+      showConfirmation(results, p, ph);
+    }
+  }
+  function showConfirmation(results, parent, phone){
+    var total=0, anyWait=false, anyConfirmed=false, rows="";
+    results.forEach(function(r){ total+=r.c.price; var conf=(r.status==="confirmed"); if(conf)anyConfirmed=true; else anyWait=true;
+      rows+='<div class="sumrow"><div><div class="si">'+r.c.emoji+' '+esc(r.c.name)+'</div><div class="st">'+esc(r.c.date)+' · '+esc(r.c.time)+'</div></div><span class="badge '+(conf?"ok":"wl")+'">'+(conf?"已留位":"候補中")+'</span></div>'; });
+    var body='<div class="done-ic">✓</div><div class="done-h">報名已收到!</div>'
+      +'<div class="done-sub">'+esc(parent)+',多謝報名。'+(anyWait?'部分班別已滿,你已列入候補,有位會盡快通知。':'')+'</div>'+rows
+      +'<div class="paybox"><div class="palb">需付金額</div><div class="pamt">'+money(total)+'</div>'
+        +'<div class="paymethods"><div class="pm"><div class="pmname">FPS 轉數快</div><div class="pmnum">'+PAY_NUMBER+'</div></div><div class="pm"><div class="pmname">PayMe</div><div class="pmnum">'+PAY_NUMBER+'</div></div></div>'
+        +'<button class="copybtn" id="copyNum">複製收款電話 '+PAY_NUMBER+'</button></div>'
+      +'<div class="reassure">💚 若最終人數不足 4 人未能成班,已付款項將 <b>全額退款</b>,可安心報名。</div>'
+      +'<p class="paynote">付款時請喺<b>付款備註</b>填上:<b>學生姓名 + 上課日期</b>(方便日後對數)。<br>付款後請撳下面掣<b>上傳付款截圖</b>,並一撳通知教練。<br>提提你:成班後請於活動前 <b>1 星期</b>內付款留位。'+(anyWait?'<br>候補名額暫毋須付款,確認有位後先付。':'')+'</p>'
+      +(anyConfirmed?'<button class="submit" id="goUpload">去上傳付款截圖 →</button>':'')
+      +'<button class="navbtn" id="closeDone" style="width:100%;margin-top:10px;padding:13px">完成</button>';
+    openSheet("報名完成", body);
+    document.getElementById("copyNum").addEventListener("click", function(){ copyText(PAY_NUMBER); this.classList.add("copied"); this.textContent="已複製 ✓"; });
+    var gu=document.getElementById("goUpload"); if(gu) gu.addEventListener("click", function(){ cart={}; renderCourses(); renderCart(); openMyLookup(phone); });
+    document.getElementById("closeDone").addEventListener("click", function(){ cart={}; closeSheet(); renderCourses(); renderCart(); });
+  }
+
+  var toastTimer;
+  function copyText(t){ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){});} toast("已複製"); }
+  function toast(msg){ var el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(function(){el.classList.remove("show");},2000); }
+
+  /* ===== my registrations (parents lookup by phone) ===== */
+  document.getElementById("myToggle").addEventListener("click", function(){ openMyLookup(""); });
+  function openMyLookup(prefill){
+    var body='<label class="fld"><span class="lt">輸入報名時用嘅電話</span><input class="inp" id="lkPhone" inputmode="numeric" placeholder="8 位數字" value="'+esc(prefill||"")+'"></label>'
+      +'<button class="submit" id="lkBtn">查詢</button><div id="lkResult" style="margin-top:18px"></div>';
+    openSheet("查詢我的報名", body);
+    document.getElementById("lkBtn").addEventListener("click", doLookup);
+    document.getElementById("lkPhone").addEventListener("keydown",function(e){ if(e.key==="Enter") doLookup(); });
+    if(prefill && /^\d{8}$/.test(prefill)) doLookup();
+  }
+  function doLookup(){ var ph=document.getElementById("lkPhone").value.replace(/\D/g,"");
+    if(!/^\d{8}$/.test(ph)){ toast("請輸入 8 位數字電話"); return; }
+    fetchState().then(function(){ renderMyRegs(ph); }); }
+
+  function notifyMsg(reg,cls){ return "INITIATE SPORTS 付款通知\n學生:"+reg.student+"\n班別:"+cls.date+" "+cls.name+"("+cls.time+")\n金額:$"+cls.price+"\n聯絡電話:"+reg.phone+"\n已喺報名系統上傳付款截圖,煩請查收 🙏"; }
+  function waLink(reg,cls){ return "https://wa.me/"+COACH_WA+"?text="+encodeURIComponent(notifyMsg(reg,cls)); }
+  function emLink(reg,cls){ return "mailto:"+COACH_EMAIL+"?subject="+encodeURIComponent("INITIATE SPORTS 付款通知 - "+reg.student)+"&body="+encodeURIComponent(notifyMsg(reg,cls)); }
+
+  function renderMyRegs(phone){
+    var host=document.getElementById("lkResult"); if(!host) return;
+    var regs=state.regs.filter(function(r){return r.phone===phone;});
+    if(!regs.length){ host.innerHTML='<div class="empty">搵唔到呢個電話嘅報名記錄。請確認電話號碼,或返回報名。</div>'; return; }
+    regs.sort(function(a,b){return a.ts-b.ts;});
+    var h="";
+    regs.forEach(function(r){ var c=byId(r.classId); if(!c) return; var conf=(r.status==="confirmed");
+      h+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+'</span></div>';
+      h+='<div class="statusline">報名:<b style="color:'+(conf?'var(--green-d)':'var(--coral)')+'">'+(conf?'已留位':'候補中')+'</b></div>';
+      if(!conf){ h+='<div class="statusline">候補中,有位會通知你,暫毋須付款。</div>'; }
+      else if(r.paid){ h+='<div class="statusline">付款:<b style="color:var(--green-d)">已確認 ✓</b></div>'; }
+      else if(r.proof){
+        h+='<div class="statusline">付款:<b style="color:#B7791F">已上傳截圖,待教練確認</b></div>';
+        h+='<div class="notifyrow"><a class="nbtn wa" target="_blank" rel="noopener" href="'+waLink(r,c)+'">WhatsApp 通知教練</a><a class="nbtn em" target="_blank" rel="noopener" href="'+emLink(r,c)+'">Email 通知</a></div>';
+        h+='<div class="contactnote">如掣未能開啟:WhatsApp <b>6331 7403</b> · <b>'+COACH_EMAIL+'</b></div>';
+        h+='<button class="uplbtn" data-up="'+r.id+'" data-ph="'+phone+'">重新上傳截圖</button>';
+      } else {
+        h+='<div class="statusline">需付 <b>'+money(c.price)+'</b> · FPS / PayMe 至 <b>'+PAY_NUMBER+'</b></div>';
+        h+='<div class="statusline">💡 付款備註請寫:<b>'+esc(r.student)+' · '+esc(c.date)+'</b></div>';
+        h+='<div class="statusline" style="color:var(--green-d)">💚 不足 4 人不成班會全額退款</div>';
+        h+='<button class="uplbtn" data-up="'+r.id+'" data-ph="'+phone+'">＋ 上傳付款截圖</button>';
+      }
+      h+='</div>';
+    });
+    host.innerHTML=h;
+    host.querySelectorAll(".uplbtn").forEach(function(b){ b.addEventListener("click",function(){ startUpload(b.getAttribute("data-up"), b.getAttribute("data-ph")); }); });
+  }
+
+  /* ===== payment-proof upload ===== */
+  var pendingUpload=null;
+  document.getElementById("proofInput").addEventListener("change", onProofPicked);
+  function startUpload(regId, phone){ pendingUpload={regId:regId, phone:phone}; var i=document.getElementById("proofInput"); i.value=""; i.click(); }
+  function fileToScaledDataUrl(file){ return new Promise(function(res,rej){
+    var reader=new FileReader();
+    reader.onload=function(){ var img=new Image();
+      img.onload=function(){ var max=1000, w=img.width, h=img.height;
+        if(w>max||h>max){ if(w>=h){h=Math.round(h*max/w);w=max;} else {w=Math.round(w*max/h);h=max;} }
+        var cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        try{ res(cv.toDataURL("image/jpeg",0.72)); }catch(e){ rej(e); } };
+      img.onerror=rej; img.src=reader.result; };
+    reader.onerror=rej; reader.readAsDataURL(file);
+  }); }
+  function onProofPicked(e){
+    var file=e.target.files&&e.target.files[0]; if(!file||!pendingUpload) return;
+    var up=pendingUpload; pendingUpload=null; toast("處理截圖中…");
+    var reg=null; state.regs.forEach(function(r){ if(r.id===up.regId) reg=r; });
+    var cls=reg?byId(reg.classId):null;
+    fileToScaledDataUrl(file)
+      .then(function(durl){
+        if(apiReady){
+          return apiPost("uploadProof", {id:up.regId, dataUrl:durl, student:reg?reg.student:"", date:cls?cls.date:"", className:cls?cls.name:"", phone:reg?reg.phone:""})
+            .then(function(d){ if(!d||!d.ok) throw new Error("upload fail"); return fetchState(); });
+        } else {
+          mem["proof_"+up.regId]=durl;
+          state.regs.forEach(function(r){ if(r.id===up.regId){ r.proof=true; } });
+          return Promise.resolve();
+        }
+      })
+      .then(function(){ renderMyRegs(up.phone); toast("付款截圖已上傳 ✓ 記得通知教練"); })
+      .catch(function(err){ console.warn(err); toast("上傳失敗,請再試"); });
+  }
+
+  /* ===== admin ===== */
+  var inAdmin=false, pinOk=false, adminFilter="";
+  document.getElementById("adminToggle").addEventListener("click", function(){
+    inAdmin=!inAdmin;
+    document.getElementById("parentView").style.display=inAdmin?"none":"block";
+    document.getElementById("adminView").style.display=inAdmin?"block":"none";
+    this.textContent=inAdmin?"返回報名":"教練管理";
+    renderCart();
+    if(inAdmin&&pinOk){ fetchState().then(renderAdmin); }
+  });
+  document.getElementById("pinBtn").addEventListener("click", tryPin);
+  document.getElementById("pinInput").addEventListener("keydown", function(e){ if(e.key==="Enter") tryPin(); });
+  function tryPin(){ var v=document.getElementById("pinInput").value.trim();
+    if(v===ADMIN_PIN){ pinOk=true; document.getElementById("pinGate").style.display="none"; document.getElementById("adminBody").style.display="block"; fetchState().then(renderAdmin); } else toast("密碼錯誤"); }
+
+  function renderAdmin(){
+    var host=document.getElementById("adminBody"), html="", grandPaid=0, grandExpected=0;
+    html+='<div class="afilter">';
+    FILTER_CHIPS.forEach(function(c){ html+='<button class="chip'+(adminFilter===c[0]?" on":"")+'" data-af="'+c[0]+'">'+c[1]+'</button>'; });
+    html+='</div>';
+    html+='<button class="exportbtn" id="exportCsv">⬇ 匯出點名表 CSV'+(adminFilter?'(目前篩選)':'')+'</button>';
+    var classes=allClasses().filter(function(c){ return !adminFilter||c.type===adminFilter; });
+    classes.forEach(function(c){
+      var regs=state.regs.filter(function(r){return r.classId===c.id;});
+      var conf=regs.filter(function(r){return r.status==="confirmed";});
+      var wl=regs.filter(function(r){return r.status==="waitlist";});
+      var rev=0,paidRev=0; conf.forEach(function(r){rev+=c.price; if(r.paid)paidRev+=c.price;});
+      grandExpected+=rev; grandPaid+=paidRev;
+      html+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+' · '+conf.length+'/'+c.capacity+'</span></div>'
+        +'<button class="editbtn" data-edit="'+c.id+'">✎ 改價錢 / 人數</button>';
+      if(!regs.length){ html+='<div class="empty">未有人報名</div>'; }
+      function rowHtml(r,isWl){ return '<div class="areg'+(isWl?" wlrow":"")+'"><div class="ai"><b>'+esc(r.student)+'</b>'+(isWl?'<span class="wlpill">候補</span>':'')+'<br><span>'+esc(r.parent)+' · '+esc(r.phone)+(r.proof?' · 📎已交截圖':'')+'</span></div>'
+        +(r.proof?'<button class="pchip" data-proof="'+r.id+'">睇截圖</button>':'')
+        +(!isWl?'<button class="pchip'+(r.paid?" paid":"")+'" data-rid="'+r.id+'">'+(r.paid?"已付款 ✓":"標記已付款")+'</button>':'')
+        +'<button class="adel" data-del="'+r.id+'" title="刪除">🗑</button></div>'; }
+      conf.forEach(function(r){ html+=rowHtml(r,false); });
+      wl.forEach(function(r){ html+=rowHtml(r,true); });
+      html+='<div class="arev"><span>已收 '+money(paidRev)+' / 應收 '+money(rev)+'</span></div></div>';
+    });
+    html+='<div class="acard" style="background:var(--ink);color:#fff;border:0"><div class="ahead"><span class="at" style="color:#fff">總計'+(adminFilter?'(此項目)':'')+'</span></div>'
+      +'<div class="arev" style="border-color:rgba(255,255,255,.2)"><span>已收款</span><span>'+money(grandPaid)+'</span></div>'
+      +'<div class="arev" style="border:0;padding-top:6px"><span>預計總收入</span><span style="color:var(--yellow)">'+money(grandExpected)+'</span></div></div>';
+    html+='<details class="addcls"><summary>＋ 新增課堂</summary><div style="padding-bottom:18px"><div class="grid2">'
+      +'<label class="fld"><span class="lt">日期</span><input class="inp" id="nDate" placeholder="例:13/7 (一)"></label>'
+      +'<label class="fld"><span class="lt">時間</span><input class="inp" id="nTime" placeholder="2:00–3:00 PM"></label>'
+      +'<label class="fld"><span class="lt">項目名稱</span><input class="inp" id="nName" placeholder="例:籃球班"></label>'
+      +'<label class="fld"><span class="lt">Emoji</span><input class="inp" id="nEmoji" placeholder="🏀"></label>'
+      +'<label class="fld"><span class="lt">人數上限</span><input class="inp" id="nCap" inputmode="numeric" placeholder="6"></label>'
+      +'<label class="fld"><span class="lt">候補名額</span><input class="inp" id="nWl" inputmode="numeric" placeholder="2"></label>'
+      +'<label class="fld"><span class="lt">收費 ($/堂)</span><input class="inp" id="nPrice" inputmode="numeric" placeholder="150"></label>'
+      +'</div><label class="fld"><span class="lt">備註(可選)</span><input class="inp" id="nNote" placeholder="例:自備球拍"></label><button class="submit" id="addCls">新增課堂</button></div></details>';
+    host.innerHTML=html;
+    host.querySelectorAll(".chip").forEach(function(b){ b.addEventListener("click",function(){ adminFilter=b.getAttribute("data-af"); renderAdmin(); }); });
+    host.querySelectorAll("[data-edit]").forEach(function(b){ b.addEventListener("click",function(){ openEditClass(b.getAttribute("data-edit")); }); });
+    host.querySelectorAll("[data-proof]").forEach(function(b){ b.addEventListener("click",function(){ viewProof(b.getAttribute("data-proof")); }); });
+    host.querySelectorAll(".pchip[data-rid]").forEach(function(b){ b.addEventListener("click",function(){ togglePaid(b.getAttribute("data-rid")); }); });
+    host.querySelectorAll(".adel").forEach(function(b){ b.addEventListener("click",function(){ delReg(b.getAttribute("data-del")); }); });
+    var ac=document.getElementById("addCls"); if(ac) ac.addEventListener("click", addClass);
+    var ec=document.getElementById("exportCsv"); if(ec) ec.addEventListener("click", exportCSV);
+  }
+  function togglePaid(rid){ var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; }); if(!reg) return; var np=!reg.paid;
+    if(apiReady){ apiPost("setPaid",{id:rid, paid:np}).then(function(){ return fetchState(); }).then(renderAdmin).catch(function(){toast("更新失敗");}); }
+    else { reg.paid=np; renderAdmin(); } }
+  function delReg(rid){ if(!confirm("確定刪除此報名?")) return;
+    if(apiReady){ apiPost("deleteReg",{id:rid}).then(function(){ return fetchState(); }).then(renderAdmin).catch(function(){toast("刪除失敗");}); }
+    else { state.regs=state.regs.filter(function(r){return r.id!==rid;}); renderAdmin(); } }
+  function addClass(){ var v=function(id){return (document.getElementById(id).value||"").trim();};
+    var name=v("nName"), date=v("nDate"), time=v("nTime"), cap=parseInt(v("nCap"),10), price=parseInt(v("nPrice"),10);
+    if(!name||!date||!time||!cap||isNaN(price)){ toast("請填日期、時間、名稱、人數、收費"); return; }
+    var c={id:"x"+Date.now().toString(36), type:"extra", date:date, time:time, name:name, emoji:v("nEmoji")||"🏅", capacity:cap, waitlist:parseInt(v("nWl"),10)||0, price:price, note:v("nNote")};
+    state.extra.push(c); persistConfig().then(function(){ renderAdmin(); renderCourses(); toast("已新增課堂"); }); }
+
+  /* ===== 一鍵匯出點名表 CSV(跟現時篩選,按日期時間排序) ===== */
+  function exportCSV(){
+    var order=allClasses(), idxOf={}, cmap={};
+    order.forEach(function(c,i){ idxOf[c.id]=i; cmap[c.id]=c; });
+    var rows=state.regs.filter(function(r){ var c=cmap[r.classId]; return c && (!adminFilter||c.type===adminFilter); });
+    if(!rows.length){ toast("未有報名記錄可匯出"); return; }
+    rows.sort(function(a,b){
+      var ia=idxOf[a.classId], ib=idxOf[b.classId]; if(ia!==ib) return ia-ib;
+      var sa=(a.status==="confirmed")?0:1, sb=(b.status==="confirmed")?0:1; if(sa!==sb) return sa-sb;
+      return (a.ts||0)-(b.ts||0);
+    });
+    var lines=[["日期","時間","班別","學生姓名","家長","電話","報名狀態","已付款","出席"]];
+    rows.forEach(function(r){ var c=cmap[r.classId];
+      lines.push([c.date,c.time,c.name,r.student,r.parent,r.phone,(r.status==="confirmed"?"已留位":"候補"),(r.paid?"是":"否"),""]); });
+    var csv=lines.map(function(row){ return row.map(csvCell).join(","); }).join("\r\n");
+    var blob=new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
+    var d=new Date(), ymd=""+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate());
+    var tag=adminFilter?("_"+(({bad:"羽毛球",pick:"匹克球",gen:"綜合運動",gym:"體操"})[adminFilter]||adminFilter)):"";
+    var url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download="INITIATE_點名表"+tag+"_"+ymd+".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },0);
+    toast("已匯出 "+rows.length+" 筆報名");
+  }
+  function csvCell(v){ v=String(v==null?"":v); return /[",\r\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; }
+  function pad2(n){ return (n<10?"0":"")+n; }
+
+  function openEditClass(id){ var c=byId(id); if(!c) return;
+    var body='<div class="statusline" style="margin-bottom:14px;color:var(--ink)"><b>'+c.emoji+' '+esc(c.name)+'</b> · '+esc(c.date)+' '+esc(c.time)+'</div>'
+      +'<div class="grid2"><label class="fld"><span class="lt">收費 ($/堂)</span><input class="inp" id="eP" inputmode="numeric" value="'+c.price+'"></label>'
+      +'<label class="fld"><span class="lt">人數上限</span><input class="inp" id="eC" inputmode="numeric" value="'+c.capacity+'"></label>'
+      +'<label class="fld"><span class="lt">候補名額</span><input class="inp" id="eW" inputmode="numeric" value="'+(c.waitlist||0)+'"></label></div>'
+      +'<button class="submit" id="eSave">儲存</button><button class="navbtn" id="eBack" style="width:100%;margin-top:10px;padding:13px">返回</button>';
+    openSheet("編輯課堂", body);
+    document.getElementById("eSave").addEventListener("click", function(){ saveEditClass(id); });
+    document.getElementById("eBack").addEventListener("click", function(){ closeSheet(); renderAdmin(); }); }
+  function saveEditClass(id){ var price=parseInt(document.getElementById("eP").value,10), cap=parseInt(document.getElementById("eC").value,10), wl=parseInt(document.getElementById("eW").value,10); if(isNaN(wl))wl=0;
+    if(isNaN(price)||isNaN(cap)||cap<1){ toast("請輸入有效數值"); return; }
+    if(id.charAt(0)==="x"){ state.extra.forEach(function(c){ if(c.id===id){ c.price=price; c.capacity=cap; c.waitlist=wl; } }); }
+    else { state.overrides[id]={price:price, capacity:cap, waitlist:wl}; }
+    persistConfig().then(function(){ closeSheet(); renderAdmin(); renderCourses(); toast("已更新"); }); }
+  function showProof(durl){ openSheet("付款截圖", '<img class="proofthumb" style="max-height:70vh" src="'+durl+'" alt="付款截圖"><button class="navbtn" id="pvBack" style="width:100%;margin-top:12px;padding:13px">返回</button>');
+    document.getElementById("pvBack").addEventListener("click", function(){ closeSheet(); renderAdmin(); }); }
+  function viewProof(regId){
+    if(apiReady){ apiGet("getProof",{id:regId}).then(function(d){ if(d&&d.ok&&d.dataUrl) showProof(d.dataUrl); else toast("搵唔到截圖"); }).catch(function(){ toast("載入截圖失敗"); }); }
+    else { var durl=mem["proof_"+regId]; if(durl) showProof(durl); else toast("示範模式:截圖只存咗喺呢個分頁"); } }
+
+  function showDemoBanner(){ var el=document.getElementById("demoBanner"); if(!el) return;
+    el.innerHTML='⚠️ 示範模式 —— 未連接 Google Sheet,報名資料唔會儲存、亦唔會同步。部署 Apps Script 後把網址貼入程式碼即可正式運作。';
+    el.style.display="block"; }
+
+  /* ===== boot ===== */
+  renderFilters();
+  fetchState().then(function(){ renderCourses(); renderCart(); if(!apiReady) showDemoBanner(); });
+})();
+</script>
