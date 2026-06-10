@@ -342,6 +342,10 @@ function demoHandle(action,p){
       leaveType:p.leaveType,eligible:p.eligible,note:p.reason||"",ts:Date.now()});
     saveDemoLog(); return {ok:true};
   }
+  if(action==="cancelLeave"){
+    DEMO.log=DEMO.log.filter(l=>!(l.action==="leave"&&l.name===p.name&&l.key===p.key&&l.date===p.date));
+    saveDemoLog(); return {ok:true};
+  }
   if(action==="bookMakeup"){
     DEMO.log.push({name:p.name,action:"makeup",fromKey:p.fromKey,fromDate:p.fromDate,
       toKey:p.toKey,toDate:p.toDate,ts:Date.now()});
@@ -484,6 +488,7 @@ function classCard(child,ki,c,ci){
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">申請請假</button>
       <button class="btn sm" onclick="openMakeup(${ki},${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
     </div>
+    ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">取消請假（${cancellableLeaves(c).length}）</button>`:''}
     <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
     ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
       <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
@@ -626,6 +631,53 @@ async function submitLeave(){
   closeSheet(); await refresh();
   if(fail) toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`);
   else toast(`已提交 ${LF.dates.length} 堂請假 · 已通知教練`);
+}
+
+/* ---------- 取消請假 ---------- */
+function cancellableLeaves(c){
+  const t=iso(new Date());
+  return (c.sessions||[]).filter(s=> s.date>=t && (s.status==="請假"||s.status==="缺席"));
+}
+let CF={};
+function openCancelLeave(ki,ci){
+  const child=S.family.children[ki], c=child.classes[ci];
+  const opts=cancellableLeaves(c);
+  CF={ki,ci,dates:[]};
+  if(!opts.length){ openSheet(`<h2>取消請假</h2><p class="sd">${SPORT[c.sport].name} 暫時冇可取消嘅請假。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return; }
+  const hasMk=(c.makeups||[]).some(m=>m.status!=="出席"&&m.status!=="缺席");
+  openSheet(`<h2>取消請假 · ${SPORT[c.sport].name}</h2>
+    <p class="sd">揀返你唔使請嘅堂，小朋友會照常出席</p>
+    <div id="cf-opts">${opts.map(s=>{const d=new Date(s.date+"T00:00:00");return `<div class="opt" onclick="toggleCancel('${s.date}',this)">
+      <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div><div class="s">原狀態：${s.status}</div></div>
+      <div class="cap" style="display:none">✓</div></div>`;}).join("")}</div>
+    ${hasMk?`<div class="notice warn" style="font-size:12.5px">你呢班已約咗補堂；取消請假後補堂仍會保留，如唔需要請 WhatsApp 張 Sir 6331 7403 取消。</div>`:''}
+    <div class="confirm-q" id="cf-count">未揀任何堂</div>
+    <input id="cf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
+    <div style="height:12px"></div>
+    <button class="btn" id="cf-go" onclick="submitCancelLeave()" disabled>取消請假</button>`);
+}
+function toggleCancel(di,el){
+  const i=CF.dates.indexOf(di);
+  if(i>=0){CF.dates.splice(i,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
+  else{CF.dates.push(di);el.classList.add("on");el.querySelector(".cap").style.display="";}
+  $("#cf-count").textContent= CF.dates.length? `已揀 ${CF.dates.length} 堂`:"未揀任何堂";
+  $("#cf-go").disabled = CF.dates.length===0;
+}
+async function submitCancelLeave(){
+  const code=$("#cf-code").value.trim();
+  if(code!==S.family.last4) return toast("後 4 位數字唔啱");
+  if(!CF.dates.length) return;
+  const child=S.family.children[CF.ki], c=child.classes[CF.ci];
+  const btn=$("#cf-go"); btn.disabled=true; btn.textContent="處理中…";
+  let fail=0, err="";
+  for(const date of CF.dates){
+    try{ const r=await api("cancelLeave",{name:child.name,key:classKey(c),date});
+      if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
+    catch(e){ fail++; err=(e&&e.message)||String(e); }
+  }
+  closeSheet(); await refresh();
+  if(fail) toast(`有 ${fail} 堂取消失敗${err?'：'+err:'，請重試'}`);
+  else toast(`已取消 ${CF.dates.length} 堂請假 · 已通知教練`);
 }
 
 /* ---------- 補堂 sheet（可多選） ---------- */
