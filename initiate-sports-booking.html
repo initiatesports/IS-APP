@@ -58,6 +58,7 @@
 
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
   .card.sel{border-color:var(--green);box-shadow:0 0 0 2px var(--green-tint),var(--shadow)}
+  .card.expired{opacity:.6}
   .crow{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
   .ctitle{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.01em}
   .ctitle .emo{font-size:21px;font-family:var(--sans)}
@@ -198,7 +199,7 @@
   <h2 class="section-h">教練管理</h2>
   <div id="pinGate">
     <p class="small">輸入管理密碼以查看報名名單。</p>
-    <div class="pinrow"><input class="inp" id="pinInput" type="password" inputmode="numeric" placeholder="管理密碼"><button class="submit" style="width:auto;margin:0;padding:13px 22px" id="pinBtn">進入</button></div>
+    <div class="pinrow"><input class="inp" id="pinInput" type="password" placeholder="管理密碼"><button class="submit" style="width:auto;margin:0;padding:13px 22px" id="pinBtn">進入</button></div>
   </div>
   <div id="adminBody" style="display:none"></div>
 </div></div>
@@ -246,14 +247,16 @@
     day.sessions.forEach(function(s){ var t=TYPES[s[1]];
       BASE_CLASSES.push({id:"c"+day.key+"-"+s[1], type:s[1], date:day.date, time:s[0], name:t.name, emoji:t.emoji, capacity:t.capacity, waitlist:t.waitlist, price:t.price, note:t.note}); }); });
 
-  var ADMIN_PIN="3390";                         /* 教練可自行修改 */
+  var ADMIN_PIN="IS2026";                       /* 示範模式用;正式保護喺後端 Code.gs 嘅 ADMIN_PIN */
   var PAY_NUMBER="67093390";
   var COACH_WA="85263317403";                   /* WhatsApp 6331 7403 */
   var COACH_EMAIL="initiatesports6331@gmail.com";
+  var CLASS_YEAR=2026;                          /* 課程年份(跨年度開班請更新) */
   /* ↓↓↓ 部署 Apps Script 後,把網址貼喺呢度(以 https://script.google.com/.../exec 結尾) ↓↓↓ */
   var API_URL = "https://script.google.com/macros/s/AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj/exec";
   var apiReady = /script\.google\.com/.test(API_URL);
-  var mem={};   /* 示範模式用嘅暫存 */
+  var mem={};        /* 示範模式用嘅暫存 */
+  var adminPin="";   /* 登入後保存,用於後續管理操作 */
 
   function apiGet(action, params){
     var qs="?action="+encodeURIComponent(action)+"&_="+Date.now();
@@ -264,27 +267,31 @@
     return fetch(API_URL, {method:"POST", body: JSON.stringify(Object.assign({action:action}, payload||{}))}).then(function(r){return r.json();});
   }
 
-  var state={regs:[], extra:[], overrides:{}};
+  /* counts: 公開嘅每堂人數(唔含姓名電話);regs: 只喺管理頁或自己查詢時先載入 */
+  var state={counts:{}, regs:[], extra:[], overrides:{}};
   var cart={}, filterType="";
   function allClasses(){
     var base=BASE_CLASSES.map(function(c){ var o=state.overrides[c.id]; return o?Object.assign({},c,o):c; });
     return base.concat(state.extra);
   }
-  /* 由後端攞最新狀態(報名、額外課堂、價錢/人數修改) */
+  /* 由後端攞公開狀態(只有人數 + 課堂設定,冇個人資料) */
   function fetchState(){
     if(!apiReady) return Promise.resolve();
-    return apiGet("state").then(function(d){ if(d){ state.regs=d.regs||[]; state.extra=d.extra||[]; state.overrides=d.overrides||{}; } })
+    return apiGet("state").then(function(d){ if(d){ state.counts=d.counts||{}; state.extra=d.extra||[]; state.overrides=d.overrides||{}; } })
       .catch(function(e){ console.warn("state fetch fail",e); toast("連線後端失敗,請稍後再試"); });
   }
   function persistConfig(){
     if(!apiReady) return Promise.resolve();
-    return apiPost("saveConfig", {extra:state.extra, overrides:state.overrides});
+    return apiPost("saveConfig", {extra:state.extra, overrides:state.overrides, pin:adminPin});
   }
+  /* 過期判斷:課堂日期已過(當日仍可報名,支援即日加人) */
+  function classDateObj(c){ var m=/^(\d+)\/(\d+)/.exec(c.date||""); if(!m) return null; return new Date(CLASS_YEAR, parseInt(m[2],10)-1, parseInt(m[1],10)); }
+  function isExpired(c){ var d=classDateObj(c); if(!d) return false; var t=new Date(); t.setHours(0,0,0,0); return d.getTime()<t.getTime(); }
   function classMeta(c){ return {id:c.id, name:c.name, date:c.date, time:c.time, price:c.price, capacity:c.capacity, waitlist:c.waitlist||0}; }
 
   function byId(id){ var a=allClasses(); for(var i=0;i<a.length;i++) if(a[i].id===id) return a[i]; return null; }
-  function confirmedCount(id){ var n=0; state.regs.forEach(function(r){if(r.classId===id&&r.status==="confirmed")n++;}); return n; }
-  function waitCount(id){ var n=0; state.regs.forEach(function(r){if(r.classId===id&&r.status==="waitlist")n++;}); return n; }
+  function confirmedCount(id){ if(!apiReady){ var n=0; state.regs.forEach(function(r){if(r.classId===id&&r.status==="confirmed")n++;}); return n; } var c=state.counts[id]; return (c&&c.confirmed)||0; }
+  function waitCount(id){ if(!apiReady){ var n=0; state.regs.forEach(function(r){if(r.classId===id&&r.status==="waitlist")n++;}); return n; } var c=state.counts[id]; return (c&&c.waitlist)||0; }
   function statusFor(c){ var conf=confirmedCount(c.id);
     if(conf<c.capacity) return {kind:"open", left:c.capacity-conf, conf:conf};
     var wl=waitCount(c.id);
@@ -309,18 +316,23 @@
     order.forEach(function(date){
       html+='<div class="dategroup"><div class="datehead"><span class="d">'+esc(date)+'</span>'+(HOLIDAYS[date]?'<span class="holiday">'+esc(HOLIDAYS[date])+'</span>':'')+'<span class="line"></span></div>';
       groups[date].forEach(function(c){
-        var st=statusFor(c), pips="";
+        var st=statusFor(c), pips="", exp=isExpired(c);
         for(var i=0;i<c.capacity;i++) pips+='<span class="pip'+(i<st.conf?" on":"")+'"></span>';
         if(c.waitlist){ for(var w=0;w<c.waitlist;w++){ var wOn=(st.conf>=c.capacity)&&(w<(st.wl||0)); pips+='<span class="pip wl'+(wOn?" on":"")+'"></span>'; } }
         var slotTxt,btnTxt,btnCls="",disabled="";
-        if(st.kind==="open"){ slotTxt='<span class="left">尚餘 '+st.left+' 席</span>'; }
+        if(exp){ slotTxt='<span class="wlt">報名已截止</span>'; }
+        else if(st.kind==="open"){ slotTxt='<span class="left">尚餘 '+st.left+' 席</span>'; }
         else if(st.kind==="wait"){ slotTxt='<span class="wlt">已滿 · 候補尚餘 '+st.wlleft+'</span>'; btnCls="wl"; }
-        else { slotTxt='<span class="wlt">已滿</span>'; disabled="disabled"; }
+        else { slotTxt='<span class="wlt">已滿</span>'; }
         var formed,fcls="";
         if(st.conf>=4){ formed='已成班 ✓ ('+st.conf+' 人)'; } else { formed='仲差 <b>'+(4-st.conf)+'</b> 人成班(現 '+st.conf+' 人)'; fcls=" warn"; }
         var inCart=!!cart[c.id];
-        if(inCart){ btnTxt="✓ 已加入報名"; btnCls="added"; } else if(st.kind==="wait"){ btnTxt="加入候補名單"; } else if(st.kind==="full"){ btnTxt="已滿"; } else { btnTxt="加入報名"; }
-        html+='<div class="card'+(inCart?" sel":"")+'" data-id="'+c.id+'"><div class="crow"><div><div class="ctitle"><span class="emo">'+c.emoji+'</span>'+esc(c.name)+'</div><div class="time">'+esc(c.time)+'</div></div><div class="price">'+money(c.price)+'<span>/堂</span></div></div>'
+        if(exp){ btnTxt="報名已截止"; btnCls=""; disabled="disabled"; }
+        else if(inCart){ btnTxt="✓ 已加入報名"; btnCls="added"; }
+        else if(st.kind==="wait"){ btnTxt="加入候補名單"; }
+        else if(st.kind==="full"){ btnTxt="已滿"; disabled="disabled"; }
+        else { btnTxt="加入報名"; }
+        html+='<div class="card'+(inCart?" sel":"")+(exp?" expired":"")+'" data-id="'+c.id+'"><div class="crow"><div><div class="ctitle"><span class="emo">'+c.emoji+'</span>'+esc(c.name)+'</div><div class="time">'+esc(c.time)+'</div></div><div class="price">'+money(c.price)+'<span>/堂</span></div></div>'
           +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'')
           +'<div class="slots"><div class="pips">'+pips+'</div><div class="slotinfo">'+slotTxt+'</div></div>'
           +'<div class="formed'+fcls+'">'+formed+'</div>'
@@ -332,7 +344,7 @@
     host.querySelectorAll(".addbtn").forEach(function(b){ b.addEventListener("click",function(){ toggleCart(b.getAttribute("data-id")); }); });
   }
 
-  function toggleCart(id){ if(cart[id]) delete cart[id]; else cart[id]=true; renderCourses(); renderCart(); }
+  function toggleCart(id){ var c=byId(id); if(c&&isExpired(c)){ toast("呢堂已截止報名"); return; } if(cart[id]) delete cart[id]; else cart[id]=true; renderCourses(); renderCart(); }
   function cartList(){ return Object.keys(cart).map(byId).filter(Boolean); }
   function cartTotal(){ var t=0; cartList().forEach(function(c){t+=c.price;}); return t; }
   function renderCart(){ var items=cartList(); document.getElementById("cartN").textContent=items.length; document.getElementById("cartTot").textContent=money(cartTotal()); document.getElementById("cartbar").classList.toggle("show", items.length>0 && !inAdmin); }
@@ -379,14 +391,17 @@
         .then(function(d){
           if(!d||!d.ok){ fail((d&&d.error)?d.error:"報名失敗,請再試"); return; }
           return fetchState().then(function(){
-            var results=(d.results||[]).map(function(x){ return {c:byId(x.classId), status:x.status}; }).filter(function(x){return x.c;});
+            var results=(d.results||[]).map(function(x){ return {c:byId(x.classId), status:x.status, dup:!!x.dup}; }).filter(function(x){return x.c;});
             showConfirmation(results, p, ph);
           });
         })
         .catch(function(e){ console.warn(e); fail("連線失敗,請檢查網絡後再試"); });
     } else {
       var results=[];
-      items.forEach(function(c){ var st=statusFor(c); var status=(st.kind==="open")?"confirmed":"waitlist";
+      items.forEach(function(c){
+        var dup=state.regs.some(function(r){ return r.classId===c.id && r.phone===ph && r.student===s; });
+        if(dup){ results.push({c:c, status:"confirmed", dup:true}); return; }
+        var st=statusFor(c); var status=(st.kind==="open")?"confirmed":"waitlist";
         state.regs.push({id:"r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), classId:c.id, parent:p, student:s, phone:ph, status:status, paid:false, proof:false, ts:Date.now()});
         results.push({c:c, status:status}); });
       showConfirmation(results, p, ph);
@@ -394,8 +409,9 @@
   }
   function showConfirmation(results, parent, phone){
     var total=0, anyWait=false, anyConfirmed=false, rows="";
-    results.forEach(function(r){ total+=r.c.price; var conf=(r.status==="confirmed"); if(conf)anyConfirmed=true; else anyWait=true;
-      rows+='<div class="sumrow"><div><div class="si">'+r.c.emoji+' '+esc(r.c.name)+'</div><div class="st">'+esc(r.c.date)+' · '+esc(r.c.time)+'</div></div><span class="badge '+(conf?"ok":"wl")+'">'+(conf?"已留位":"候補中")+'</span></div>'; });
+    results.forEach(function(r){ var conf=(r.status==="confirmed"); if(!r.dup){ total+=r.c.price; } if(conf&&!r.dup)anyConfirmed=true; else if(!conf)anyWait=true;
+      var bcls=r.dup?"wl":(conf?"ok":"wl"), btxt=r.dup?"已報名":(conf?"已留位":"候補中");
+      rows+='<div class="sumrow"><div><div class="si">'+r.c.emoji+' '+esc(r.c.name)+'</div><div class="st">'+esc(r.c.date)+' · '+esc(r.c.time)+'</div></div><span class="badge '+bcls+'">'+btxt+'</span></div>'; });
     var body='<div class="done-ic">✓</div><div class="done-h">報名已收到!</div>'
       +'<div class="done-sub">'+esc(parent)+',多謝報名。'+(anyWait?'部分班別已滿,你已列入候補,有位會盡快通知。':'')+'</div>'+rows
       +'<div class="paybox"><div class="palb">需付金額</div><div class="pamt">'+money(total)+'</div>'
@@ -427,15 +443,19 @@
   }
   function doLookup(){ var ph=document.getElementById("lkPhone").value.replace(/\D/g,"");
     if(!/^\d{8}$/.test(ph)){ toast("請輸入 8 位數字電話"); return; }
-    fetchState().then(function(){ renderMyRegs(ph); }); }
+    loadMyRegs(ph); }
+  function loadMyRegs(phone){
+    if(apiReady){ return apiPost("lookup",{phone:phone}).then(function(d){ renderMyRegs((d&&d.regs)||[], phone); }).catch(function(){ toast("連線失敗"); }); }
+    renderMyRegs(state.regs.filter(function(r){return r.phone===phone;}), phone); return Promise.resolve();
+  }
 
   function notifyMsg(reg,cls){ return "INITIATE SPORTS 付款通知\n學生:"+reg.student+"\n班別:"+cls.date+" "+cls.name+"("+cls.time+")\n金額:$"+cls.price+"\n聯絡電話:"+reg.phone+"\n已喺報名系統上傳付款截圖,煩請查收 🙏"; }
   function waLink(reg,cls){ return "https://wa.me/"+COACH_WA+"?text="+encodeURIComponent(notifyMsg(reg,cls)); }
   function emLink(reg,cls){ return "mailto:"+COACH_EMAIL+"?subject="+encodeURIComponent("INITIATE SPORTS 付款通知 - "+reg.student)+"&body="+encodeURIComponent(notifyMsg(reg,cls)); }
 
-  function renderMyRegs(phone){
+  function renderMyRegs(regs, phone){
     var host=document.getElementById("lkResult"); if(!host) return;
-    var regs=state.regs.filter(function(r){return r.phone===phone;});
+    regs=(regs||[]).slice();
     if(!regs.length){ host.innerHTML='<div class="empty">搵唔到呢個電話嘅報名記錄。請確認電話號碼,或返回報名。</div>'; return; }
     regs.sort(function(a,b){return a.ts-b.ts;});
     var h="";
@@ -479,20 +499,19 @@
   function onProofPicked(e){
     var file=e.target.files&&e.target.files[0]; if(!file||!pendingUpload) return;
     var up=pendingUpload; pendingUpload=null; toast("處理截圖中…");
-    var reg=null; state.regs.forEach(function(r){ if(r.id===up.regId) reg=r; });
-    var cls=reg?byId(reg.classId):null;
     fileToScaledDataUrl(file)
       .then(function(durl){
         if(apiReady){
-          return apiPost("uploadProof", {id:up.regId, dataUrl:durl, student:reg?reg.student:"", date:cls?cls.date:"", className:cls?cls.name:"", phone:reg?reg.phone:""})
-            .then(function(d){ if(!d||!d.ok) throw new Error("upload fail"); return fetchState(); });
+          return apiPost("uploadProof", {id:up.regId, dataUrl:durl})
+            .then(function(d){ if(!d||!d.ok) throw new Error("upload fail"); });
         } else {
           mem["proof_"+up.regId]=durl;
           state.regs.forEach(function(r){ if(r.id===up.regId){ r.proof=true; } });
           return Promise.resolve();
         }
       })
-      .then(function(){ renderMyRegs(up.phone); toast("付款截圖已上傳 ✓ 記得通知教練"); })
+      .then(function(){ return loadMyRegs(up.phone); })
+      .then(function(){ toast("付款截圖已上傳 ✓ 記得通知教練"); })
       .catch(function(err){ console.warn(err); toast("上傳失敗,請再試"); });
   }
 
@@ -504,19 +523,38 @@
     document.getElementById("adminView").style.display=inAdmin?"block":"none";
     this.textContent=inAdmin?"返回報名":"教練管理";
     renderCart();
-    if(inAdmin&&pinOk){ fetchState().then(renderAdmin); }
+    if(inAdmin&&pinOk){ refreshAdmin(); }
   });
   document.getElementById("pinBtn").addEventListener("click", tryPin);
   document.getElementById("pinInput").addEventListener("keydown", function(e){ if(e.key==="Enter") tryPin(); });
+  function showAdminBody(){ document.getElementById("pinGate").style.display="none"; document.getElementById("adminBody").style.display="block"; }
   function tryPin(){ var v=document.getElementById("pinInput").value.trim();
-    if(v===ADMIN_PIN){ pinOk=true; document.getElementById("pinGate").style.display="none"; document.getElementById("adminBody").style.display="block"; fetchState().then(renderAdmin); } else toast("密碼錯誤"); }
+    if(apiReady){
+      apiPost("admin",{pin:v}).then(function(d){
+        if(d&&d.ok){ adminPin=v; pinOk=true; state.regs=d.regs||[]; showAdminBody(); fetchState().then(renderAdmin); }
+        else toast("密碼錯誤");
+      }).catch(function(){ toast("連線失敗"); });
+    } else {
+      if(v===ADMIN_PIN){ adminPin=v; pinOk=true; showAdminBody(); renderAdmin(); } else toast("密碼錯誤");
+    }
+  }
+  function refreshAdmin(){
+    if(!apiReady){ renderAdmin(); return; }
+    apiPost("admin",{pin:adminPin}).then(function(d){
+      if(d&&d.ok){ state.regs=d.regs||[]; } else { toast("登入已失效,請重新輸入密碼"); pinOk=false; document.getElementById("pinGate").style.display="block"; document.getElementById("adminBody").style.display="none"; return; }
+      return fetchState().then(renderAdmin);
+    }).catch(function(){ toast("更新失敗"); });
+  }
 
   function renderAdmin(){
     var host=document.getElementById("adminBody"), html="", grandPaid=0, grandExpected=0;
     html+='<div class="afilter">';
     FILTER_CHIPS.forEach(function(c){ html+='<button class="chip'+(adminFilter===c[0]?" on":"")+'" data-af="'+c[0]+'">'+c[1]+'</button>'; });
     html+='</div>';
-    html+='<button class="exportbtn" id="exportCsv">⬇ 匯出點名表 CSV'+(adminFilter?'(目前篩選)':'')+'</button>';
+    html+='<div style="display:flex;gap:10px;margin-bottom:16px">'
+      +'<button class="exportbtn" id="exportCsv" style="margin:0;flex:1">⬇ 匯出點名表 CSV'+(adminFilter?'(篩選)':'')+'</button>'
+      +'<button class="exportbtn" id="refreshAdmin" style="margin:0;flex:0 0 auto">🔄 重新整理</button>'
+      +'</div>';
     var classes=allClasses().filter(function(c){ return !adminFilter||c.type===adminFilter; });
     classes.forEach(function(c){
       var regs=state.regs.filter(function(r){return r.classId===c.id;});
@@ -555,18 +593,21 @@
     host.querySelectorAll(".adel").forEach(function(b){ b.addEventListener("click",function(){ delReg(b.getAttribute("data-del")); }); });
     var ac=document.getElementById("addCls"); if(ac) ac.addEventListener("click", addClass);
     var ec=document.getElementById("exportCsv"); if(ec) ec.addEventListener("click", exportCSV);
+    var rf=document.getElementById("refreshAdmin"); if(rf) rf.addEventListener("click", function(){ toast("更新中…"); refreshAdmin(); });
   }
   function togglePaid(rid){ var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; }); if(!reg) return; var np=!reg.paid;
-    if(apiReady){ apiPost("setPaid",{id:rid, paid:np}).then(function(){ return fetchState(); }).then(renderAdmin).catch(function(){toast("更新失敗");}); }
+    if(apiReady){ apiPost("setPaid",{id:rid, paid:np, pin:adminPin}).then(function(d){ if(d&&d.ok===false){toast("操作未授權");return;} return refreshAdmin(); }).catch(function(){toast("更新失敗");}); }
     else { reg.paid=np; renderAdmin(); } }
-  function delReg(rid){ if(!confirm("確定刪除此報名?")) return;
-    if(apiReady){ apiPost("deleteReg",{id:rid}).then(function(){ return fetchState(); }).then(renderAdmin).catch(function(){toast("刪除失敗");}); }
+  function delReg(rid){ if(!confirm("確定刪除此報名?如刪走正取,系統會自動把第一位候補補上。")) return;
+    var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; });
+    var cls=reg?byId(reg.classId):null, cap=cls?cls.capacity:0;
+    if(apiReady){ apiPost("deleteReg",{id:rid, pin:adminPin, capacity:cap}).then(function(d){ if(d&&d.promoted){ toast("已刪除 · "+d.promoted.student+" 候補補上正取"); } return refreshAdmin(); }).catch(function(){toast("刪除失敗");}); }
     else { state.regs=state.regs.filter(function(r){return r.id!==rid;}); renderAdmin(); } }
   function addClass(){ var v=function(id){return (document.getElementById(id).value||"").trim();};
     var name=v("nName"), date=v("nDate"), time=v("nTime"), cap=parseInt(v("nCap"),10), price=parseInt(v("nPrice"),10);
     if(!name||!date||!time||!cap||isNaN(price)){ toast("請填日期、時間、名稱、人數、收費"); return; }
     var c={id:"x"+Date.now().toString(36), type:"extra", date:date, time:time, name:name, emoji:v("nEmoji")||"🏅", capacity:cap, waitlist:parseInt(v("nWl"),10)||0, price:price, note:v("nNote")};
-    state.extra.push(c); persistConfig().then(function(){ renderAdmin(); renderCourses(); toast("已新增課堂"); }); }
+    state.extra.push(c); persistConfig().then(function(){ renderCourses(); if(apiReady){ refreshAdmin(); } else { renderAdmin(); } toast("已新增課堂"); }); }
 
   /* ===== 一鍵匯出點名表 CSV(跟現時篩選,按日期時間排序) ===== */
   function exportCSV(){
@@ -608,11 +649,11 @@
     if(isNaN(price)||isNaN(cap)||cap<1){ toast("請輸入有效數值"); return; }
     if(id.charAt(0)==="x"){ state.extra.forEach(function(c){ if(c.id===id){ c.price=price; c.capacity=cap; c.waitlist=wl; } }); }
     else { state.overrides[id]={price:price, capacity:cap, waitlist:wl}; }
-    persistConfig().then(function(){ closeSheet(); renderAdmin(); renderCourses(); toast("已更新"); }); }
+    persistConfig().then(function(){ closeSheet(); renderCourses(); if(apiReady){ refreshAdmin(); } else { renderAdmin(); } toast("已更新"); }); }
   function showProof(durl){ openSheet("付款截圖", '<img class="proofthumb" style="max-height:70vh" src="'+durl+'" alt="付款截圖"><button class="navbtn" id="pvBack" style="width:100%;margin-top:12px;padding:13px">返回</button>');
     document.getElementById("pvBack").addEventListener("click", function(){ closeSheet(); renderAdmin(); }); }
   function viewProof(regId){
-    if(apiReady){ apiGet("getProof",{id:regId}).then(function(d){ if(d&&d.ok&&d.dataUrl) showProof(d.dataUrl); else toast("搵唔到截圖"); }).catch(function(){ toast("載入截圖失敗"); }); }
+    if(apiReady){ apiPost("getProof",{id:regId, pin:adminPin}).then(function(d){ if(d&&d.ok&&d.dataUrl) showProof(d.dataUrl); else toast("搵唔到截圖"); }).catch(function(){ toast("載入截圖失敗"); }); }
     else { var durl=mem["proof_"+regId]; if(durl) showProof(durl); else toast("示範模式:截圖只存咗喺呢個分頁"); } }
 
   function showDemoBanner(){ var el=document.getElementById("demoBanner"); if(!el) return;
