@@ -256,9 +256,9 @@
   var mem={};   /* 示範模式用嘅暫存 */
 
   function apiGet(action, params){
-    var qs="?action="+encodeURIComponent(action);
+    var qs="?action="+encodeURIComponent(action)+"&_="+Date.now();
     if(params){ Object.keys(params).forEach(function(k){ qs+="&"+k+"="+encodeURIComponent(params[k]); }); }
-    return fetch(API_URL+qs).then(function(r){return r.json();});
+    return fetch(API_URL+qs, {cache:"no-store"}).then(function(r){return r.json();});
   }
   function apiPost(action, payload){
     return fetch(API_URL, {method:"POST", body: JSON.stringify(Object.assign({action:action}, payload||{}))}).then(function(r){return r.json();});
