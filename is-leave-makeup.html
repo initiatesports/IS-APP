@@ -82,6 +82,11 @@ input:focus,select:focus{border-color:var(--accent)}
 .hist-row:first-of-type{border-top:none}
 .hist-d{color:var(--muted);white-space:nowrap}
 .hist-t{font-weight:600;text-align:right}
+.receipt{background:#F2F8F9;border-radius:12px;padding:12px 14px;margin-top:4px}
+.receipt .rc-row{font-size:14px;line-height:1.7;color:#1d2b2e}
+.btn.wa{background:#25D366;color:#fff;text-decoration:none;text-align:center;line-height:1.2}
+.health{text-align:center;margin-top:14px;font-size:12px;cursor:pointer;user-select:none}
+.health .healthtxt{font-weight:600}
 .card .topline{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .dot{width:10px;height:10px;border-radius:99px;flex:none}
 .card h3{margin:0;font-size:17px;font-weight:700}
@@ -196,6 +201,8 @@ input:focus,select:focus{border-color:var(--accent)}
 const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec",   // Apps Script Web App
   COACH_PASS: "IS2026",     // 教練版密碼（與 Code.gs 一致）
+  WHATSAPP: "85263317403",  // 張 Sir WhatsApp（家長確認連結用）
+  EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 
 /* ============================================================
@@ -325,6 +332,7 @@ function demoApi(action,p){
   return new Promise(r=>setTimeout(()=>r(demoHandle(action,p)),180));
 }
 function demoHandle(action,p){
+  if(action==="ping") return {ok:true, version:"demo"};
   if(action==="login"){
     const key=`${p.name}|${p.last4}`;
     const s=DEMO.students[key]||Object.values(DEMO.students).find(x=>x.name===p.name);
@@ -349,6 +357,10 @@ function demoHandle(action,p){
   if(action==="bookMakeup"){
     DEMO.log.push({name:p.name,action:"makeup",fromKey:p.fromKey,fromDate:p.fromDate,
       toKey:p.toKey,toDate:p.toDate,ts:Date.now()});
+    saveDemoLog(); return {ok:true};
+  }
+  if(action==="cancelMakeup"){
+    DEMO.log=DEMO.log.filter(l=>!(l.action==="makeup"&&l.name===p.name&&l.fromKey===p.fromKey&&l.toKey===p.toKey&&l.toDate===p.toDate));
     saveDemoLog(); return {ok:true};
   }
   if(action==="dailyList"){ return {ok:true, list: demoDaily(p.date)}; }
@@ -384,6 +396,32 @@ let S={ session:null, family:null, mode:"parent", activeChild:0 };
 const $=(s,el=document)=>el.querySelector(s);
 const view=$("#view");
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),2200);}
+
+/* ---------- 提交收據 + WhatsApp 確認連結 ---------- */
+function waLink(text){ return "https://wa.me/"+CONFIG.WHATSAPP+"?text="+encodeURIComponent(text); }
+function showReceipt(title, lines, waText){
+  openSheet(`<h2>${title}</h2>
+    <div class="receipt">${lines.map(l=>`<div class="rc-row">${l}</div>`).join("")}</div>
+    <p class="sd" style="margin-top:10px">已即時通知教練。如想 WhatsApp 留底俾張 Sir，可撳下面：</p>
+    <a class="btn wa" href="${waLink(waText)}" target="_blank" rel="noopener">📲 WhatsApp 通知張 Sir</a>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="closeSheet()">完成</button>`);
+}
+
+/* ---------- 系統健康檢查（用 POST ping，最可靠） ---------- */
+function setHealth(txt,color){ S.health={txt,color};
+  document.querySelectorAll(".healthtxt").forEach(el=>{ el.textContent=txt; el.style.color=color; }); }
+async function checkHealth(){
+  if(isDemo){ setHealth("● 示範模式","#8A94A6"); return; }
+  setHealth("● 檢查連線中…","#8A94A6");
+  try{
+    const r=await api("ping",{});
+    const ver=r&&r.version?r.version:"?";
+    if(r&&r.ok&&ver===CONFIG.EXPECTED_VERSION) setHealth("● 系統正常 · "+ver,"#0F9D6B");
+    else if(r&&r.ok) setHealth("● 後端版本 "+ver+"（期望 "+CONFIG.EXPECTED_VERSION+"，請重新部署）","#B26A00");
+    else setHealth("● 回應異常，請稍後再試","#B26A00");
+  }catch(e){ setHealth("● 連線失敗（檢查網絡／部署）","#D6432F"); }
+}
 function openSheet(html){const sc=$("#scrim");$("#sheet").innerHTML=html;sc.classList.add("show");}
 function closeSheet(){$("#scrim").classList.remove("show");}
 $("#scrim").addEventListener("click",e=>{if(e.target.id==="scrim")closeSheet();});
@@ -422,7 +460,9 @@ function renderLogin(){
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.5V12h2.7l-.4 2.9h-2.3v7A10 10 0 0022 12z"/></svg>
       追蹤我哋 Facebook</a>
     ${isDemo?`<p class="hint">示範帳號：<b>陳大文 / 3456</b>、<b>李曉晴 / 7890</b>、<b>黃浩然 / 1122</b></p>`:""}
+    <div class="health" onclick="checkHealth()"><span class="healthtxt" style="color:#8A94A6">● 檢查連線中…</span></div>
   </div>`;
+  if(S.health) setHealth(S.health.txt,S.health.color);
 }
 async function doLogin(){
   const name=$("#li-name").value.trim(), last4=$("#li-last4").value.trim();
@@ -495,6 +535,7 @@ function classCard(child,ki,c,ci){
       ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
         <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span>
         <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
+      ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">取消補堂（${cancellableMakeups(c).length}）</button>`:''}
     </div>`:''}
   </div>`;
 }
@@ -629,8 +670,14 @@ async function submitLeave(){
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
   closeSheet(); await refresh();
-  if(fail) toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`);
-  else toast(`已提交 ${LF.dates.length} 堂請假 · 已通知教練`);
+  if(fail){ toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
+  const ds=LF.dates.map(d=>fmt(new Date(d+"T00:00:00"))).join("、");
+  showReceipt("✅ 已提交請假", [
+    `小朋友：<b>${child.name}</b>`,
+    `班別：${SPORT[c.sport].name}（星期${c.wd}）`,
+    `日期：${ds}（${LF.dates.length} 堂）`,
+    `假別：${LF.type}`
+  ], `INITIATE 請假申請\n小朋友：${child.name}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`);
 }
 
 /* ---------- 取消請假 ---------- */
@@ -676,8 +723,63 @@ async function submitCancelLeave(){
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
   closeSheet(); await refresh();
-  if(fail) toast(`有 ${fail} 堂取消失敗${err?'：'+err:'，請重試'}`);
-  else toast(`已取消 ${CF.dates.length} 堂請假 · 已通知教練`);
+  if(fail){ toast(`有 ${fail} 堂取消失敗${err?'：'+err:'，請重試'}`); return; }
+  const ds=CF.dates.map(d=>fmt(new Date(d+"T00:00:00"))).join("、");
+  showReceipt("✅ 已取消請假", [
+    `小朋友：<b>${child.name}</b>`,
+    `班別：${SPORT[c.sport].name}（星期${c.wd}）`,
+    `已恢復正常出席：${ds}（${CF.dates.length} 堂）`
+  ], `INITIATE 取消請假\n小朋友：${child.name}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n恢復出席：${ds}`);
+}
+
+/* ---------- 取消補堂 ---------- */
+function cancellableMakeups(c){
+  const t=iso(new Date());
+  return (c.makeups||[]).filter(m=> m.date>=t && m.status!=="出席" && m.status!=="缺席");
+}
+let XF={};
+function openCancelMakeup(ki,ci){
+  const child=S.family.children[ki], c=child.classes[ci];
+  const opts=cancellableMakeups(c);
+  XF={ki,ci,picks:[],opts};
+  if(!opts.length){ openSheet(`<h2>取消補堂</h2><p class="sd">${SPORT[c.sport].name} 暫時冇可取消嘅補堂。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return; }
+  openSheet(`<h2>取消補堂 · ${SPORT[c.sport].name}</h2>
+    <p class="sd">揀返你唔需要嘅補堂，取消後會釋放名額、待補數回復</p>
+    <div id="xf-opts">${opts.map((m,i)=>{const d=new Date(m.date+"T00:00:00");return `<div class="opt" onclick="toggleCancelMk(${i},this)">
+      <div><div class="t">${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</div></div>
+      <div class="cap" style="display:none">✓</div></div>`;}).join("")}</div>
+    <div class="confirm-q" id="xf-count">未揀任何堂</div>
+    <input id="xf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
+    <div style="height:12px"></div>
+    <button class="btn" id="xf-go" onclick="submitCancelMakeup()" disabled>取消補堂</button>`);
+}
+function toggleCancelMk(i,el){
+  const idx=XF.picks.indexOf(i);
+  if(idx>=0){XF.picks.splice(idx,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
+  else{XF.picks.push(i);el.classList.add("on");el.querySelector(".cap").style.display="";}
+  $("#xf-count").textContent= XF.picks.length? `已揀 ${XF.picks.length} 堂`:"未揀任何堂";
+  $("#xf-go").disabled = XF.picks.length===0;
+}
+async function submitCancelMakeup(){
+  const code=$("#xf-code").value.trim();
+  if(code!==S.family.last4) return toast("後 4 位數字唔啱");
+  if(!XF.picks.length) return;
+  const child=S.family.children[XF.ki], c=child.classes[XF.ci], fromKey=classKey(c);
+  const btn=$("#xf-go"); btn.disabled=true; btn.textContent="處理中…";
+  let fail=0, err="", done=[];
+  for(const i of XF.picks){
+    const m=XF.opts[i];
+    try{ const r=await api("cancelMakeup",{name:child.name,fromKey,toKey:m.to,toDate:m.date});
+      if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } else { const d=new Date(m.date+"T00:00:00"); done.push(`${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）`); } }
+    catch(e){ fail++; err=(e&&e.message)||String(e); }
+  }
+  closeSheet(); await refresh();
+  if(fail){ toast(`有 ${fail} 堂取消失敗${err?'：'+err:'，請重試'}`); return; }
+  showReceipt("✅ 已取消補堂", [
+    `小朋友：<b>${child.name}</b>`,
+    `原班：${SPORT[c.sport].name}（星期${c.wd}）`,
+    ...done.map(x=>`已取消：${x}`)
+  ], `INITIATE 取消補堂\n小朋友：${child.name}\n原班：${SPORT[c.sport].name}（星期${c.wd}）\n${done.map(x=>'已取消：'+x).join("\n")}`);
 }
 
 /* ---------- 補堂 sheet（可多選） ---------- */
@@ -737,8 +839,13 @@ async function submitMakeup(){
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
   closeSheet(); await refresh();
-  if(fail) toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`);
-  else toast(`已約 ${MF.picks.length} 堂補堂 · 已通知教練`);
+  if(fail){ toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
+  const picks=MF.picks.map(i=>MF.cands[i]).map(cd=>{const d=new Date(cd.date+"T00:00:00");return `${SPORT[cd.slot.sport].name}・${fmt(d)}（星期${WDN[d.getDay()]}）`;});
+  showReceipt("✅ 已預約補堂", [
+    `小朋友：<b>${child.name}</b>`,
+    `原班：${SPORT[c.sport].name}（星期${c.wd}）`,
+    ...picks.map(p=>`補去：${p}`)
+  ], `INITIATE 補堂預約\n小朋友：${child.name}\n原班：${SPORT[c.sport].name}（星期${c.wd}）\n${picks.map(p=>'補去：'+p).join("\n")}`);
 }
 
 /* ---------- 教練版 ---------- */
@@ -864,6 +971,7 @@ function copyCancel(){
 
 /* 啟動 */
 renderLogin();
+checkHealth();
 </script>
 </body>
 </html>

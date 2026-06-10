@@ -56,6 +56,8 @@ input:focus{border-color:var(--accent)}
 .grp .time{font-size:12.5px;color:var(--muted);margin:-2px 0 8px 20px}
 .allbtn{font-size:12.5px;font-weight:600;color:var(--accent-ink);background:#E9F8F9;border-radius:99px;padding:6px 12px;margin:2px 0 10px}
 .wxbtn{width:100%;border:none;border-radius:12px;background:var(--bad-bg);color:var(--bad);font-weight:700;font-size:14px;padding:13px;margin:0 0 14px}
+.health{text-align:center;margin-top:14px;font-size:12px;cursor:pointer;user-select:none}
+.health .healthtxt{font-weight:600}
 .cancelpanel{background:#fff;border:1.5px solid var(--makeup);border-radius:16px;padding:14px;margin:0 0 16px}
 .cancelpanel .cp-h{font-weight:700;font-size:14px;margin-bottom:10px}
 .cancelpanel textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;margin-bottom:10px;color:var(--ink)}
@@ -91,6 +93,7 @@ input:focus{border-color:var(--accent)}
 const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec",
   COACH_PASS: "IS2026",
+  EXPECTED_VERSION: "v2-grid-mk10",
 };
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
@@ -118,6 +121,7 @@ const DEMO_DAY={ "2026-07-16":[
 function demoLog(){try{return JSON.parse(localStorage.getItem("coach_demo")||"[]")}catch(e){return[]}}
 function demoSave(l){try{localStorage.setItem("coach_demo",JSON.stringify(l))}catch(e){}}
 function demo(action,p){
+  if(action==="ping") return {ok:true,version:"demo"};
   if(action==="dailyList"){
     const base=JSON.parse(JSON.stringify(DEMO_DAY[p.date]||[]));
     const log=demoLog();
@@ -141,8 +145,10 @@ function renderGate(){
     <h2>教練點名</h2><p>請輸入教練密碼</p>
     <input id="cp" type="password" class="codein" placeholder="••••••" autocomplete="off">
     <div style="height:12px"></div><button class="btn" onclick="enter()">進入</button>
+    <div class="health" onclick="checkHealth()"><span class="healthtxt" style="color:#8A94A6">● 檢查連線中…</span></div>
   </div>`;
   $("#cp").addEventListener("keydown",e=>{if(e.key==="Enter")enter();});
+  if(S.health) setHealth(S.health.txt,S.health.color);
 }
 function enter(){ if($("#cp").value!==CONFIG.COACH_PASS) return toast("密碼錯誤");
   S.authed=true; renderMain(); }
@@ -270,7 +276,19 @@ function copyCancel(){
   try{ navigator.clipboard.writeText(t.value).then(done,()=>{document.execCommand("copy");done();}); }
   catch(e){ try{document.execCommand("copy");done();}catch(_){toast("請長按文字手動複製");} }
 }
+function setHealth(txt,color){ S.health={txt,color};
+  document.querySelectorAll(".healthtxt").forEach(el=>{ el.textContent=txt; el.style.color=color; }); }
+async function checkHealth(){
+  if(isDemo){ setHealth("● 示範模式","#8A94A6"); return; }
+  setHealth("● 檢查連線中…","#8A94A6");
+  try{ const r=await api("ping",{}); const ver=r&&r.version?r.version:"?";
+    if(r&&r.ok&&ver===CONFIG.EXPECTED_VERSION) setHealth("● 系統正常 · "+ver,"#0F9D6B");
+    else if(r&&r.ok) setHealth("● 後端版本 "+ver+"（期望 "+CONFIG.EXPECTED_VERSION+"，請重新部署）","#B26A00");
+    else setHealth("● 回應異常","#B26A00");
+  }catch(e){ setHealth("● 連線失敗（檢查網絡／部署）","#D6432F"); }
+}
 renderGate();
+checkHealth();
 </script>
 </body>
 </html>
