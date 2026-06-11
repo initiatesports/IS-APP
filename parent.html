@@ -178,7 +178,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-08-29', MAKEUP_MONTHS: 2,
 };
 const CLASSES={
-  c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩']},
+  c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','陳大文']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
   c3:{dayZh:'星期三',wd:3,time:'5–6pm',students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允']},
   c4:{dayZh:'星期三',wd:3,time:'6–7pm',students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','蘇穎悠']},
@@ -225,6 +225,7 @@ const T={
   booked:{zh:'已約補堂',en:'Booked make-ups'},
   attendedS:{zh:'已出席',en:'Attended'},absentS:{zh:'缺席',en:'Absent'},pendingS:{zh:'待出席',en:'Upcoming'},
   noClass:{zh:p=>`${p}暫無即將上課（已過課堂見「歷史記錄」）`,en:p=>`No upcoming classes in ${p} (see History for past classes)`},
+  noRec:{zh:p=>`${p}暫無課堂記錄`,en:p=>`No class records in ${p}`},
   close:{zh:'關閉',en:'Close'},mkApply:{zh:'申請補堂',en:'Book make-up'},noOwed:{zh:'暫時冇待補堂數。',en:'No make-up classes owed.'},
   histTitle:{zh:n=>`${n} · 歷史記錄`,en:n=>`${n} · History`},
   hAttended:{zh:'已出席',en:'Attended'},hCanMk:{zh:'可補堂',en:'Can make up'},hExpired:{zh:'已過期',en:'Expired'},
@@ -293,6 +294,8 @@ function biMonthOf(isoStr){return Math.floor((Number(isoStr.split('-')[1])-1)/2)
 function periodLabel(idx){return `${idx*2+1}-${idx*2+2}月`;}
 function termPeriods(){const a=biMonthOf(CONFIG.TERM_START),b=biMonthOf(CONFIG.TERM_END);const out=[];for(let i=a;i<=b;i++)out.push(i);return out;}
 function currentPeriodIdx(){const t=todayStr();const cp=biMonthOf(t);const ps=termPeriods();return Math.min(Math.max(cp,ps[0]),ps[ps.length-1]);}
+/* 只顯示半年：當前期段 + 前一段 + 後一段（共 3 段 = 6 個月），夾喺學期範圍內 */
+function visiblePeriods(){const ps=termPeriods();if(ps.length<=3)return ps;const cur=currentPeriodIdx();let start=cur-1;const lo=ps[0],hi=ps[ps.length-1];if(start<lo)start=lo;if(start>hi-2)start=hi-2;return [start,start+1,start+2];}
 /* 小朋友歷史：已出席 / 可補堂(未過期) / 已過期不能補堂 */
 function childHistory(child){
   const t=todayStr(), out={attended:[],makeupable:[],expired:[]};
@@ -390,14 +393,14 @@ function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
   const kids=(S.family&&S.family.children)||[];
   if(S.period==null) S.period=currentPeriodIdx();
-  const periods=termPeriods();
+  const periods=visiblePeriods();
+  if(periods.indexOf(S.period)<0) S.period=currentPeriodIdx();
   const selector=`<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
   let html=`<div class="wrap">`;
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
   html+=selector;
   kids.forEach((child,ki)=>{
-    html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div>
-      <button class="hist-btn" onclick="openHistory(${ki})">${t('history')}</button></div>`;
+    html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
     // #1 補堂限期將到期提醒（14 日內）
     const hsoon=childHistory(child).makeupable.filter(x=>{const dl=daysLeft(x.deadline);return dl>=0&&dl<=14;});
     if(hsoon.length){ const soonest=hsoon.reduce((a,b)=>a.deadline<b.deadline?a:b); const dl=daysLeft(soonest.deadline);
@@ -434,14 +437,12 @@ function classCard(child,ki,c,ci){
     </div>
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}
     ${(function(){
-      const today=todayStr();
-      const list=(c.sessions||[]).filter(s=>s.date>=today && biMonthOf(s.date)===S.period);
-      if(!list.length) return `<div class="period-empty">${t('noClass',periodLabel(S.period))}</div>`;
+      const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
+      if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
       return `<div style="margin-top:10px">${list.map(sessRow).join('')}</div>`;
     })()}
     ${(function(){
-      const today=todayStr();
-      const up=(c.makeups||[]).filter(m=>m.date>=today);
+      const up=(c.makeups||[]).filter(m=>biMonthOf(m.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
         ${up.map(m=>{const d=new Date(m.date+'T00:00:00');const done=m.status==='出席';const lbl=done?t('attendedS'):(m.status==='缺席'?t('absentS'):t('pendingS'));
