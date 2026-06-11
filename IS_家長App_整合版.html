@@ -96,7 +96,16 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .hist-row:last-child{border-bottom:none;}
 .hist-d{color:var(--muted);}
 .fam-head{font-weight:700;font-size:14px;color:var(--muted);margin:2px 2px 14px;}
-.child-head{font-weight:900;font-size:21px;margin:6px 2px 12px;color:var(--ink);}
+.child-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 2px 12px;}
+.child-head{font-weight:900;font-size:21px;color:var(--ink);}
+.hist-btn{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);
+  border-radius:10px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+.period-bar{display:flex;gap:8px;margin:4px 0 16px;overflow-x:auto;scrollbar-width:none;}
+.period-bar::-webkit-scrollbar{display:none;}
+.period-btn{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--muted);
+  border-radius:20px;padding:8px 16px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+.period-btn.on{background:var(--teal);border-color:var(--teal);color:#fff;}
+.period-empty{margin-top:10px;background:var(--surface2);border-radius:10px;padding:12px;font-size:12.5px;color:var(--muted);text-align:center;}
 .no-result{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;}
 
 /* SHEET */
@@ -201,6 +210,52 @@ function sessionsFor(cid){
   return out;
 }
 function makeupSlotsFor(cid){ return CLASS_IDS.filter(k=>k!==cid).map(k=>({key:k,time:CLASSES[k].time})); }
+/* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
+function addMonths(isoStr,n){const[y,m,d]=isoStr.split('-').map(Number);const dt=new Date(y,m-1+n,d);return iso(dt);}
+/* 雙月分期：0=1-2月, 1=3-4月 ... */
+function biMonthOf(isoStr){return Math.floor((Number(isoStr.split('-')[1])-1)/2);}
+function periodLabel(idx){return `${idx*2+1}-${idx*2+2}月`;}
+function termPeriods(){const a=biMonthOf(CONFIG.TERM_START),b=biMonthOf(CONFIG.TERM_END);const out=[];for(let i=a;i<=b;i++)out.push(i);return out;}
+function currentPeriodIdx(){const t=todayStr();const cp=biMonthOf(t);const ps=termPeriods();return Math.min(Math.max(cp,ps[0]),ps[ps.length-1]);}
+/* 小朋友歷史：已出席 / 可補堂(未過期) / 已過期不能補堂 */
+function childHistory(child){
+  const t=todayStr(), out={attended:[],makeupable:[],expired:[]};
+  (child.classes||[]).forEach(c=>{
+    const lbl=classLabel(c.key||c.sport);
+    (c.sessions||[]).forEach(s=>{ if(s.status==='出席') out.attended.push({date:s.date,label:lbl}); });
+    (c.makeups||[]).forEach(m=>{ if(m.status==='出席') out.attended.push({date:m.date,label:classLabel(m.to)+'（補堂）'}); });
+    // 請假（合資格缺席）排序；最舊嘅當已被補堂配對，剩低 owed 節未補
+    const leaves=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
+    const owed=c.owed||0; const uncovered=leaves.slice(Math.max(0,leaves.length-owed));
+    uncovered.forEach(d=>{ const dl=addMonths(d,CONFIG.MAKEUP_MONTHS||2);
+      if(dl<t) out.expired.push({date:d,deadline:dl,label:lbl}); else out.makeupable.push({date:d,deadline:dl,label:lbl}); });
+  });
+  out.attended.sort((a,b)=>a.date<b.date?-1:1);
+  out.makeupable.sort((a,b)=>a.deadline<b.deadline?-1:1);
+  out.expired.sort((a,b)=>a.date<b.date?-1:1);
+  return out;
+}
+function openHistory(ki){
+  const child=S.family.children[ki]; if(!child) return;
+  const h=childHistory(child);
+  const sec=(title,color,rows,empty)=>`<div style="margin-bottom:16px">
+    <div style="font-size:14px;font-weight:800;color:${color};margin-bottom:8px">${title}</div>
+    ${rows.length?rows:`<div style="font-size:13px;color:var(--muted)">${empty}</div>`}</div>`;
+  const row=(left,right,rc)=>`<div class="hist-row"><span class="hist-d">${left}</span><span style="color:${rc||'var(--ink2)'};font-weight:600">${right}</span></div>`;
+  const attRows=h.attended.map(x=>{const d=new Date(x.date+'T00:00:00');return row(`${fmt(d)}（星期${WDN[d.getDay()]}）`,x.label,'var(--green)');}).join('');
+  const mkRows=h.makeupable.map(x=>{const d=new Date(x.date+'T00:00:00');return row(`${x.label}・${fmt(d)} 請假`,`補堂限期 ${fmtDate(x.deadline)}`,'var(--teal-dark)');}).join('');
+  const exRows=h.expired.map(x=>{const d=new Date(x.date+'T00:00:00');return row(`${x.label}・${fmt(d)} 請假`,`限期 ${fmtDate(x.deadline)} 已過`,'var(--red)');}).join('');
+  openSheet(`<h2>${child.name} · 歷史記錄</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 16px">
+      <div class="stat"><div class="n" style="color:var(--green)">${h.attended.length}</div><div class="k">已出席</div></div>
+      <div class="stat"><div class="n" style="color:var(--teal-dark)">${h.makeupable.length}</div><div class="k">可補堂</div></div>
+      <div class="stat"><div class="n" style="color:var(--red)">${h.expired.length}</div><div class="k">已過期</div></div>
+    </div>
+    ${sec('✅ 已出席課堂','var(--green)',attRows,'暫無已出席記錄')}
+    ${sec('🟡 仍可補堂（未過限期）','var(--teal-dark)',mkRows,'冇待補堂，繼續保持！')}
+    ${sec('🔴 已過補堂期限（不能補堂）','var(--red)',exRows,'冇過期堂數 👍')}
+    <button class="btn ghost" onclick="closeSheet()">關閉</button>`);
+}
 
 /* ═══════════ API ═══════════ */
 async function api(action,payload={}){
@@ -228,6 +283,8 @@ function renderLogin(){
     <button class="btn" id="li-go" onclick="doLogin()">登入</button>
     <a class="ig-btn" href="https://www.instagram.com/initiate_sports.2023" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>追蹤我哋 IG · @initiate_sports.2023</a>
+    <a class="ig-btn" style="margin-top:10px" href="https://www.facebook.com/share/1FcXaarDc1/?mibextid=wwXIfr" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.5V12h2.7l-.4 2.9h-2.3v7A10 10 0 0022 12z"/></svg>追蹤我哋 Facebook</a>
     <div class="health" onclick="checkHealth()"><span id="health-txt" style="color:var(--muted)">● 檢查連線中…</span></div>
   </div>`;
   checkHealth();
@@ -252,13 +309,19 @@ async function refresh(){
 }
 
 /* ═══════════ 家長主頁 ═══════════ */
+function setPeriod(idx){ S.period=idx; renderParent(); }
 function renderParent(){
   $('header-title').textContent='我的課堂'; $('header-sub').textContent='請假 · 補堂 · 行事曆';
   const kids=(S.family&&S.family.children)||[];
+  if(S.period==null) S.period=currentPeriodIdx();
+  const periods=termPeriods();
+  const selector=`<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
   let html=`<div class="wrap">`;
   if(kids.length>1) html+=`<div class="fam-head">👨‍👩‍👧‍👦 一個電話 · 睇晒 ${kids.length} 個小朋友</div>`;
+  html+=selector;
   kids.forEach((child,ki)=>{
-    html+=`<div class="child-head">${child.name} 的課堂</div>`;
+    html+=`<div class="child-row"><div class="child-head">${child.name} 的課堂</div>
+      <button class="hist-btn" onclick="openHistory(${ki})">📋 歷史記錄</button></div>`;
     const cx=cancelToday(child);
     if(cx) html+=`<div class="banner cancel">⚠️ 今日（${cx}）天氣停課，所有課堂取消。請留意 WhatsApp 群組通知。</div>`;
     const nx=nextClassInfo(child);
@@ -268,7 +331,6 @@ function renderParent(){
         <button class="nx-btn" onclick="downloadICS(${ki})">＋ 行事曆</button></div>`;
     }
     (child.classes||[]).forEach((c,ci)=> html+=classCard(child,ki,c,ci));
-    const h=historyHTML(child); if(h) html+=h;
   });
   if(!kids.length) html+=`<div class="no-result">未有班別資料</div>`;
   html+=`</div>`; view().innerHTML=html;
@@ -290,12 +352,22 @@ function classCard(child,ki,c,ci){
       <button class="btn sm" onclick="openMakeup(${ki},${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
     </div>
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">取消請假（${cancellableLeaves(c).length}）</button>`:''}
-    <div style="margin-top:10px">${(c.sessions||[]).map(sessRow).join('')}</div>
-    ${(c.makeups&&c.makeups.length)?`<div class="mk-booked"><div class="h">已約補堂</div>
-      ${c.makeups.map(m=>{const d=new Date(m.date+'T00:00:00');const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');
-      return `<div class="row"><span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span><span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700">${lbl}</span></div>`;}).join('')}
-      ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">取消補堂（${cancellableMakeups(c).length}）</button>`:''}
-    </div>`:''}
+    ${(function(){
+      const t=todayStr();
+      const list=(c.sessions||[]).filter(s=>s.date>=t && biMonthOf(s.date)===S.period);
+      if(!list.length) return `<div class="period-empty">${periodLabel(S.period)}暫無即將上課（已過課堂見「歷史記錄」）</div>`;
+      return `<div style="margin-top:10px">${list.map(sessRow).join('')}</div>`;
+    })()}
+    ${(function(){
+      const t=todayStr();
+      const up=(c.makeups||[]).filter(m=>m.date>=t);
+      if(!up.length) return '';
+      return `<div class="mk-booked"><div class="h">已約補堂</div>
+        ${up.map(m=>{const d=new Date(m.date+'T00:00:00');const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');
+        return `<div class="row"><span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span><span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700">${lbl}</span></div>`;}).join('')}
+        ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">取消補堂（${cancellableMakeups(c).length}）</button>`:''}
+      </div>`;
+    })()}
   </div>`;
 }
 function sessRow(s){
@@ -325,17 +397,6 @@ function nextClassInfo(child){
     (c.makeups||[]).forEach(m=>{ if(m.date>=t&&m.status!=='停課'&&m.status!=='缺席'){ if(!best||m.date<best.date) best={date:m.date,cid:m.to}; }});
   });
   return best;
-}
-function historyHTML(child){
-  const items=[];
-  (child.classes||[]).forEach(c=>{
-    (c.sessions||[]).forEach(s=>{ if(s.status==='請假') items.push({date:s.date,text:`${classLabel(c.key||c.sport)} 請假`,color:'var(--amber)'}); });
-    (c.makeups||[]).forEach(m=>{ const lbl=m.status==='出席'?'補堂已出席':(m.status==='缺席'?'補堂缺席':'已約補堂'); items.push({date:m.date,text:`補堂 → ${classLabel(m.to)}（${lbl}）`,color:'var(--teal-dark)'}); });
-  });
-  if(!items.length) return '';
-  items.sort((a,b)=>a.date<b.date?-1:1);
-  return `<div class="hist"><div class="hist-h">📋 申請紀錄</div>${items.map(it=>{const d=new Date(it.date+'T00:00:00');
-    return `<div class="hist-row"><span class="hist-d">${fmt(d)}（星期${WDN[d.getDay()]}）</span><span style="color:${it.color};font-weight:600">${it.text}</span></div>`;}).join('')}</div>`;
 }
 function downloadICS(ki){
   const child=S.family.children[ki]; if(!child) return;
