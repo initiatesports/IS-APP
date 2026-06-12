@@ -66,6 +66,8 @@
   .price{font-family:var(--display);font-weight:900;font-size:22px;text-align:right;white-space:nowrap}
   .price span{font-size:12px;font-weight:600;color:var(--muted);display:block;letter-spacing:.04em}
   .cnote{font-size:13px;color:var(--muted);margin-top:10px}
+  .cvenue{font-size:13px;color:var(--green-d);margin-top:9px;font-weight:600}
+  .cvenue.tba{color:var(--muted);font-weight:400;font-style:italic}
   .slots{margin-top:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .pips{display:flex;gap:5px}
   .pip{width:15px;height:22px;border-radius:5px;border:2px solid var(--green);background:transparent;transition:transform .25s,background .25s}
@@ -176,7 +178,7 @@
     <div class="eyebrow">6–7月 · 平日特別課程</div>
     <h1 class="lead">揀堂、報名、付款,<br><b>一次過喺度搞掂。</b></h1>
     <p class="lead-sub">6 月中至 7 月中合共十多日課堂,單堂任揀。報名前請先睇下面嘅須知,報名後跟付款指示同上傳截圖即可。</p>
-    <div class="venue">📍 全部課堂於 <b>青衣區體育館</b> 上課</div>
+    <div class="venue">📍 上課地點見各班資料(部分場地將於開課前公佈)</div>
   </section>
 
   <h2 class="section-h">報名須知(請先閱讀)</h2>
@@ -287,6 +289,8 @@
   /* 過期判斷:課堂日期已過(當日仍可報名,支援即日加人) */
   function classDateObj(c){ var m=/^(\d+)\/(\d+)/.exec(c.date||""); if(!m) return null; return new Date(CLASS_YEAR, parseInt(m[2],10)-1, parseInt(m[1],10)); }
   function isExpired(c){ var d=classDateObj(c); if(!d) return false; var t=new Date(); t.setHours(0,0,0,0); return d.getTime()<t.getTime(); }
+  var VENUE_TBA="場地於上課前一星期才能預定,稍後會宣佈上課地點。";
+  function classVenue(c){ return (c.venue&&String(c.venue).trim())?String(c.venue).trim():""; }
   function classMeta(c){ return {id:c.id, name:c.name, date:c.date, time:c.time, price:c.price, capacity:c.capacity, waitlist:c.waitlist||0}; }
 
   function byId(id){ var a=allClasses(); for(var i=0;i<a.length;i++) if(a[i].id===id) return a[i]; return null; }
@@ -308,7 +312,7 @@
 
   function renderCourses(){
     var host=document.getElementById("courseList");
-    var list=allClasses().filter(function(c){ return !filterType || c.type===filterType; });
+    var list=allClasses().filter(function(c){ return (!filterType || c.type===filterType) && !isExpired(c); });
     var order=[], groups={};
     list.forEach(function(c){ if(order.indexOf(c.date)<0){order.push(c.date);groups[c.date]=[];} groups[c.date].push(c); });
     if(!order.length){ host.innerHTML='<div class="empty" style="text-align:center;padding:30px 0">此項目暫無課堂</div>'; return; }
@@ -332,8 +336,10 @@
         else if(st.kind==="wait"){ btnTxt="加入候補名單"; }
         else if(st.kind==="full"){ btnTxt="已滿"; disabled="disabled"; }
         else { btnTxt="加入報名"; }
+        var ven=classVenue(c);
         html+='<div class="card'+(inCart?" sel":"")+(exp?" expired":"")+'" data-id="'+c.id+'"><div class="crow"><div><div class="ctitle"><span class="emo">'+c.emoji+'</span>'+esc(c.name)+'</div><div class="time">'+esc(c.time)+'</div></div><div class="price">'+money(c.price)+'<span>/堂</span></div></div>'
           +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'')
+          +'<div class="cvenue'+(ven?"":" tba")+'">📍 '+(ven?esc(ven):VENUE_TBA)+'</div>'
           +'<div class="slots"><div class="pips">'+pips+'</div><div class="slotinfo">'+slotTxt+'</div></div>'
           +'<div class="formed'+fcls+'">'+formed+'</div>'
           +'<button class="addbtn '+btnCls+'" data-id="'+c.id+'" '+disabled+'>'+btnTxt+'</button></div>';
@@ -459,8 +465,9 @@
     if(!regs.length){ host.innerHTML='<div class="empty">搵唔到呢個電話嘅報名記錄。請確認電話號碼,或返回報名。</div>'; return; }
     regs.sort(function(a,b){return a.ts-b.ts;});
     var h="";
-    regs.forEach(function(r){ var c=byId(r.classId); if(!c) return; var conf=(r.status==="confirmed");
+    regs.forEach(function(r){ var c=byId(r.classId); if(!c) return; var conf=(r.status==="confirmed"); var ven=classVenue(c);
       h+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+'</span></div>';
+      h+='<div class="statusline">📍 '+(ven?esc(ven):VENUE_TBA)+'</div>';
       h+='<div class="statusline">報名:<b style="color:'+(conf?'var(--green-d)':'var(--coral)')+'">'+(conf?'已留位':'候補中')+'</b></div>';
       if(!conf){ h+='<div class="statusline">候補中,有位會通知你,暫毋須付款。</div>'; }
       else if(r.paid){ h+='<div class="statusline">付款:<b style="color:var(--green-d)">已確認 ✓</b></div>'; }
@@ -584,7 +591,7 @@
       +'<label class="fld"><span class="lt">人數上限</span><input class="inp" id="nCap" inputmode="numeric" placeholder="6"></label>'
       +'<label class="fld"><span class="lt">候補名額</span><input class="inp" id="nWl" inputmode="numeric" placeholder="2"></label>'
       +'<label class="fld"><span class="lt">收費 ($/堂)</span><input class="inp" id="nPrice" inputmode="numeric" placeholder="150"></label>'
-      +'</div><label class="fld"><span class="lt">備註(可選)</span><input class="inp" id="nNote" placeholder="例:自備球拍"></label><button class="submit" id="addCls">新增課堂</button></div></details>';
+      +'</div><label class="fld"><span class="lt">備註(可選)</span><input class="inp" id="nNote" placeholder="例:自備球拍"></label><label class="fld"><span class="lt">上課地點(可選,留空 = 稍後公佈)</span><input class="inp" id="nVenue" placeholder="例:青衣區體育館"></label><button class="submit" id="addCls">新增課堂</button></div></details>';
     host.innerHTML=html;
     host.querySelectorAll(".chip").forEach(function(b){ b.addEventListener("click",function(){ adminFilter=b.getAttribute("data-af"); renderAdmin(); }); });
     host.querySelectorAll("[data-edit]").forEach(function(b){ b.addEventListener("click",function(){ openEditClass(b.getAttribute("data-edit")); }); });
@@ -606,7 +613,7 @@
   function addClass(){ var v=function(id){return (document.getElementById(id).value||"").trim();};
     var name=v("nName"), date=v("nDate"), time=v("nTime"), cap=parseInt(v("nCap"),10), price=parseInt(v("nPrice"),10);
     if(!name||!date||!time||!cap||isNaN(price)){ toast("請填日期、時間、名稱、人數、收費"); return; }
-    var c={id:"x"+Date.now().toString(36), type:"extra", date:date, time:time, name:name, emoji:v("nEmoji")||"🏅", capacity:cap, waitlist:parseInt(v("nWl"),10)||0, price:price, note:v("nNote")};
+    var c={id:"x"+Date.now().toString(36), type:"extra", date:date, time:time, name:name, emoji:v("nEmoji")||"🏅", capacity:cap, waitlist:parseInt(v("nWl"),10)||0, price:price, note:v("nNote"), venue:v("nVenue")};
     state.extra.push(c); persistConfig().then(function(){ renderCourses(); if(apiReady){ refreshAdmin(); } else { renderAdmin(); } toast("已新增課堂"); }); }
 
   /* ===== 一鍵匯出點名表 CSV(跟現時篩選,按日期時間排序) ===== */
@@ -620,9 +627,9 @@
       var sa=(a.status==="confirmed")?0:1, sb=(b.status==="confirmed")?0:1; if(sa!==sb) return sa-sb;
       return (a.ts||0)-(b.ts||0);
     });
-    var lines=[["日期","時間","班別","學生姓名","家長","電話","報名狀態","已付款","出席"]];
-    rows.forEach(function(r){ var c=cmap[r.classId];
-      lines.push([c.date,c.time,c.name,r.student,r.parent,r.phone,(r.status==="confirmed"?"已留位":"候補"),(r.paid?"是":"否"),""]); });
+    var lines=[["日期","時間","班別","場地","學生姓名","家長","電話","報名狀態","已付款","出席"]];
+    rows.forEach(function(r){ var c=cmap[r.classId]; var ven=classVenue(c);
+      lines.push([c.date,c.time,c.name,(ven||"待公佈"),r.student,r.parent,r.phone,(r.status==="confirmed"?"已留位":"候補"),(r.paid?"是":"否"),""]); });
     var csv=lines.map(function(row){ return row.map(csvCell).join(","); }).join("\r\n");
     var blob=new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
     var d=new Date(), ymd=""+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate());
@@ -641,14 +648,16 @@
       +'<div class="grid2"><label class="fld"><span class="lt">收費 ($/堂)</span><input class="inp" id="eP" inputmode="numeric" value="'+c.price+'"></label>'
       +'<label class="fld"><span class="lt">人數上限</span><input class="inp" id="eC" inputmode="numeric" value="'+c.capacity+'"></label>'
       +'<label class="fld"><span class="lt">候補名額</span><input class="inp" id="eW" inputmode="numeric" value="'+(c.waitlist||0)+'"></label></div>'
+      +'<label class="fld"><span class="lt">上課地點(留空 = 顯示「稍後公佈」)</span><input class="inp" id="eVenue" value="'+esc(c.venue||"")+'" placeholder="例:青衣區體育館 / 青衣綜合大樓"></label>'
       +'<button class="submit" id="eSave">儲存</button><button class="navbtn" id="eBack" style="width:100%;margin-top:10px;padding:13px">返回</button>';
     openSheet("編輯課堂", body);
     document.getElementById("eSave").addEventListener("click", function(){ saveEditClass(id); });
     document.getElementById("eBack").addEventListener("click", function(){ closeSheet(); renderAdmin(); }); }
   function saveEditClass(id){ var price=parseInt(document.getElementById("eP").value,10), cap=parseInt(document.getElementById("eC").value,10), wl=parseInt(document.getElementById("eW").value,10); if(isNaN(wl))wl=0;
+    var venue=(document.getElementById("eVenue").value||"").trim();
     if(isNaN(price)||isNaN(cap)||cap<1){ toast("請輸入有效數值"); return; }
-    if(id.charAt(0)==="x"){ state.extra.forEach(function(c){ if(c.id===id){ c.price=price; c.capacity=cap; c.waitlist=wl; } }); }
-    else { state.overrides[id]={price:price, capacity:cap, waitlist:wl}; }
+    if(id.charAt(0)==="x"){ state.extra.forEach(function(c){ if(c.id===id){ c.price=price; c.capacity=cap; c.waitlist=wl; c.venue=venue; } }); }
+    else { state.overrides[id]={price:price, capacity:cap, waitlist:wl, venue:venue}; }
     persistConfig().then(function(){ closeSheet(); renderCourses(); if(apiReady){ refreshAdmin(); } else { renderAdmin(); } toast("已更新"); }); }
   function showProof(durl){ openSheet("付款截圖", '<img class="proofthumb" style="max-height:70vh" src="'+durl+'" alt="付款截圖"><button class="navbtn" id="pvBack" style="width:100%;margin-top:12px;padding:13px">返回</button>');
     document.getElementById("pvBack").addEventListener("click", function(){ closeSheet(); renderAdmin(); }); }
