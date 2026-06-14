@@ -633,7 +633,8 @@ function dateToStr(d){
   const day = String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
-function todayStr(){ return dateToStr(new Date()); }
+function todayStr(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
+function hkDow(){ const wd=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Hong_Kong',weekday:'short'}).format(new Date()); return {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[wd]; }
 /* 雙月分期工具（與家長頁一致）：0=1-2月,1=3-4月,... */
 function biMonthOf(isoStr){ return Math.floor((Number(isoStr.split('-')[1])-1)/2); }
 function periodLabel(idx){ return `${idx*2+1}-${idx*2+2}月`; }
@@ -760,11 +761,11 @@ function renderHome(){
   document.getElementById('header-title-text').textContent = 'IS 出席系統';
   document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
 
-  const h = new Date().getHours();
+  const h = Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Hong_Kong',hour:'2-digit',hour12:false}).format(new Date()));
   const greet = h < 12 ? '早晨 ☀' : h < 18 ? '午安 👋' : '晚上好 🌙';
   document.getElementById('greeting-text').textContent = greet;
   document.getElementById('greeting-date').textContent =
-    new Date().toLocaleDateString('zh-HK', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    new Date().toLocaleDateString('zh-HK', {timeZone:'Asia/Hong_Kong',weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
   const totalStudents = Object.values(CLASSES).reduce((s,c)=>s+c.students.length, 0);
   const pending  = totalPendingAll();
@@ -777,7 +778,7 @@ function renderHome(){
     <div class="stat-card"><div class="num ${expired>0?'danger':''}">${expired}</div><div class="lbl">已過期未補</div></div>
     <div class="stat-card"><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>`;
 
-  const todayDow = new Date().getDay();
+  const todayDow = hkDow();
   const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);
   const todayWrap = document.getElementById('today-classes');
   todayWrap.innerHTML = todayCls.length

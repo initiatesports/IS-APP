@@ -241,6 +241,15 @@ const T={
   medLbl:{zh:'病假醫生證明（可選 · 影相或 PDF）',en:'Doctor’s note (optional · photo or PDF)'},
   medHint:{zh:'交咗醫生紙，教練端會直接見到，唔使另外 WhatsApp。',en:'Coaches see the note directly — no need to send via WhatsApp.'},
   leaveNotice:{zh:'事假需提前 24 小時，否則該堂計缺席、不設補堂；病假需 48 小時內交醫生證明。',en:'Personal leave needs 24h notice or it counts as absent (no make-up). Sick leave needs a doctor’s note within 48h.'},
+  todayTag:{zh:'今日',en:'Today'},
+  okBtn:{zh:'知道了',en:'OK'},
+  noticeErr:{zh:'事假須最少提前一日。<b>當日不可請事假</b>；當日缺席照扣一節課、不設補堂。',en:'Personal leave needs at least 1 day notice. <b>Same-day personal leave is not allowed</b>; a same-day absence still deducts one session (no make-up).'},
+  noticeSick:{zh:'病假只適用於<b>當日</b>身體不適，須於 <b>48 小時內</b>上傳醫生證明，否則改計缺席、扣一節課、不設補堂。<br>如為將來日期，系統會自動<b>按事假處理</b>（可補堂、不需醫生紙）。',en:'Sick leave is for being unwell <b>today</b>; upload a doctor’s note <b>within 48 hours</b>, otherwise it counts as absent (deducts one session, no make-up).<br>For a future date it is automatically <b>treated as personal leave</b> (make-up allowed, no note needed).'},
+  advSickNote:{zh:d=>`註：${d} 為將來日期，病假已按事假處理（可補堂、不需醫生紙）。`,en:d=>`Note: ${d} is a future date; sick leave was processed as personal leave (make-up allowed, no note needed).`},
+  sameDayErrT:{zh:'當天不可請事假',en:'Same-day personal leave not allowed'},
+  sameDayErrM:{zh:'事假須最少提前一日。當日缺席將照常扣一節課、不設補堂。請改選其他日期；如當日身體不適，可改請<b>病假</b>（須 48 小時內交醫生證明）。',en:'Personal leave needs at least 1 day notice. A same-day absence still deducts one session (no make-up). Please pick another date; if your child is unwell today, choose <b>Sick leave</b> instead (doctor’s note within 48h).'},
+  sickCertReminder:{zh:'⚠️ 當日病假：請於 48 小時內上傳醫生證明，否則此堂改計缺席（扣一節課、不設補堂）。',en:'⚠️ Same-day sick leave: upload a doctor’s note within 48 hours, otherwise this session counts as absent (deducts one session, no make-up).'},
+  blockedNote:{zh:d=>`註：${d} 為當日事假，未獲提交（當日不可請事假）。`,en:d=>`Note: ${d} is same-day personal leave and was not submitted (not allowed).`},
   none:{zh:'未揀任何堂',en:'None selected'},picked:{zh:n=>`已揀 ${n} 堂`,en:n=>`${n} selected`},
   codePh:{zh:'輸入手機後 4 位確認',en:'Enter last 4 digits to confirm'},submitLeave:{zh:'提交請假',en:'Submit leave'},submitting:{zh:'提交中…',en:'Submitting…'},
   codeWrong:{zh:'後 4 位數字唔啱',en:'Wrong last 4 digits'},
@@ -268,7 +277,7 @@ function dow(d){ return LANG==='en'?`(${WD.en[d.getDay()]})`:`（星期${WD.zh[d
 
 /* ═══════════ 工具 ═══════════ */
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-function todayStr(){return iso(new Date());}
+function todayStr(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
 function fmt(d){return LANG==='en'?`${MON_EN[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`:`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
 function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-').map(Number);return fmt(new Date(y,m-1,d));}
 function classLabel(cid){const c=CLASSES[cid];if(!c)return cid;const day=LANG==='en'?({'星期一':'Mon','星期二':'Tue','星期三':'Wed','星期四':'Thu','星期五':'Fri','星期六':'Sat','星期日':'Sun'}[c.dayZh]||c.dayZh):c.dayZh;return day+' '+c.time;}
@@ -520,8 +529,8 @@ function closeReceipt(){ $('receipt-scrim').classList.remove('show'); }
 let LF={};
 function openLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
-  const today=new Date(); today.setHours(0,0,0,0);
-  const opts=(c.sessions||[]).filter(s=>new Date(s.date+'T00:00:00')>today && !s.status).map(s=>s.date);
+  const today0=todayStr();
+  const opts=(c.sessions||[]).filter(s=>s.date>=today0 && !s.status).map(s=>s.date);
   LF={ki,ci,type:'事假',dates:[],fileData:null,fileName:''};
   if(!opts.length){ openSheet(`<h2>${t('applyLeave')}</h2><p class="sd">${classLabel(c.key||c.sport)} ${LANG==='en'?'— no upcoming sessions for leave.':'已經冇可請假嘅未來堂數。'}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
   openSheet(`<h2>${t('applyLeave')} · ${classLabel(c.key||c.sport)}</h2>
@@ -532,14 +541,15 @@ function openLeave(ki,ci){
       <input type="file" id="lf-file" accept="image/*,application/pdf" onchange="onMedFile(this)" style="width:100%;font-size:13px;color:var(--ink2)">
       <div id="lf-med-status" style="font-size:12px;color:var(--muted);margin-top:5px">${t('medHint')}</div>
     </div>
-    <div id="lf-opts">${opts.map(di=>{const d=new Date(di+'T00:00:00');return `<div class="opt" onclick="toggleLeave('${di}',this)"><div><div class="t">${fmt(d)}${dow(d)}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
-    <div class="notice warn">${t('leaveNotice')}</div>
+    <div id="lf-opts">${opts.map(di=>{const d=new Date(di+'T00:00:00');const isT=di===today0;return `<div class="opt" onclick="toggleLeave('${di}',this)"><div><div class="t">${fmt(d)}${dow(d)}${isT?` <span style="color:#e08a00;font-weight:700">· ${t('todayTag')}</span>`:''}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
+    <div class="notice warn" id="lf-notice">${t('noticeErr')}</div>
     <div class="confirm-q" id="lf-count">${t('none')}</div>
     <input id="lf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="lf-go" onclick="submitLeave()" disabled>${t('submitLeave')}</button>`);
 }
-function setLeaveType(t,btn){LF.type=t;[...btn.parentNode.children].forEach(b=>b.classList.remove('on'));btn.classList.add('on');
-  const med=$('lf-med'); if(med) med.style.display = (t==='病假')?'block':'none';}
+function setLeaveType(tp,btn){LF.type=tp;[...btn.parentNode.children].forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  const med=$('lf-med'); if(med) med.style.display = (tp==='病假')?'block':'none';
+  const nt=$('lf-notice'); if(nt) nt.innerHTML = (tp==='病假')?t('noticeSick'):t('noticeErr');}
 function onMedFile(input){
   const f=input.files&&input.files[0]; const st=$('lf-med-status');
   if(!f){ LF.fileData=null; LF.fileName=''; return; }
@@ -550,27 +560,42 @@ function onMedFile(input){
 }
 function toggleLeave(di,el){const i=LF.dates.indexOf(di);if(i>=0){LF.dates.splice(i,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}else{LF.dates.push(di);el.classList.add('on');el.querySelector('.cap').style.display='';}
   $('lf-count').textContent=LF.dates.length?t('picked',LF.dates.length):t('none');$('lf-go').disabled=LF.dates.length===0;}
+function alertSheet(title,msg){ openSheet(`<h2>${title}</h2><div class="notice warn" style="margin-top:8px">${msg}</div><div style="height:12px"></div><button class="btn" onclick="closeSheet()">${t('okBtn')}</button>`); }
 async function submitLeave(){
   const code=$('lf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong'));
   if(!LF.dates.length) return;
-  const child=S.family.children[LF.ki], c=child.classes[LF.ci], hhmm='17:00';
-  const btn=$('lf-go'); btn.disabled=true; btn.textContent=t('submitting');
+  const child=S.family.children[LF.ki], c=child.classes[LF.ci];
+  const today0=todayStr();
+  const sameDay=LF.dates.filter(d=>d===today0);
+  const future=LF.dates.filter(d=>d!==today0);
+  // 當日事假：唔可以，剔走當日；若全部都係當日就只彈窗提醒
+  let blocked=[];
+  if(LF.type==='事假' && sameDay.length){
+    blocked=sameDay.slice();
+    LF.dates=LF.dates.filter(d=>d!==today0);
+    if(!LF.dates.length){ return alertSheet(t('sameDayErrT'), t('sameDayErrM')); }
+  }
+  const btn=$('lf-go'); if(btn){btn.disabled=true; btn.textContent=t('submitting');}
   let fail=0,err='';
   for(const date of LF.dates){
-    const eligible=LF.type==='病假'?true:((new Date(date+'T'+hhmm+':00')-new Date())/36e5)>=24;
-    try{ const r=await api('applyLeave',{name:child.name,key:classKey(c),date,leaveType:LF.type,eligible}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
+    try{ const r=await api('applyLeave',{name:child.name,key:classKey(c),date,leaveType:LF.type});
+      if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
   }
-  closeSheet(); 
-  // #2 病假醫生紙：上載一次，連結到首個請假日
-  let medMsg='';
-  if(LF.type==='病假' && LF.fileData){
-    try{ const u=await api('uploadMedNote',{name:child.name,key:classKey(c),date:LF.dates[0],dataUrl:LF.fileData});
+  closeSheet();
+  // 醫生紙：只在「當日病假」時上傳，連到當日；提前病假已按事假處理，不需醫生紙
+  let medMsg=''; const sickToday = (LF.type==='病假' && sameDay.length>0);
+  if(sickToday && LF.fileData){
+    try{ const u=await api('uploadMedNote',{name:child.name,key:classKey(c),date:sameDay[0],dataUrl:LF.fileData});
       medMsg = (u&&u.ok)?t('attachedMed'):t('medFail'); }catch(e){ medMsg=t('medFail'); }
   }
   await refresh();
   if(fail) return toast(t('failN',fail,err));
   const ds=LF.dates.map(d=>fmtDate(d)).join('、');
-  showReceipt(t('rcLeave'),[`${t('child')}：<b>${child.name}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,`${t('dateK')}：${ds}`,`${t('leaveTypeK')}：${LF.type==='病假'?t('sickLeave'):t('errLeave')}${medMsg}`],
+  const extra=[];
+  if(sickToday){ extra.push(`<span style="color:#c0392b">${t('sickCertReminder')}</span>`); }
+  if(LF.type==='病假' && future.length){ extra.push(`<span style="color:var(--muted)">${t('advSickNote',future.map(fmtDate).join('、'))}</span>`); }
+  if(blocked.length){ extra.push(`<span style="color:#c0392b">${t('blockedNote',blocked.map(fmtDate).join('、'))}</span>`); }
+  showReceipt(t('rcLeave'),[`${t('child')}：<b>${child.name}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,`${t('dateK')}：${ds}`,`${t('leaveTypeK')}：${LF.type==='病假'?t('sickLeave'):t('errLeave')}${medMsg}`,...extra],
     `INITIATE 請假申請\n小朋友：${child.name}\n班別：${classLabel(c.key||c.sport)}\n日期：${ds}\n假別：${LF.type}`);
 }
 
@@ -611,7 +636,7 @@ function openMakeup(ki,ci){
   const oldestUnmade=leaves[madeUp]||leaves[leaves.length-1];
   const deadline=oldestUnmade?addMonths(oldestUnmade,CONFIG.MAKEUP_MONTHS||2):(c.deadline||CONFIG.TERM_END);
   const cands=[];
-  makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>todayStr()&&d<=deadline) cands.push({toKey:s.key,date:d,time:s.time}); }); });
+  makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline) cands.push({toKey:s.key,date:d,time:s.time}); }); });
   cands.sort((a,b)=>a.date.localeCompare(b.date));
   MF={ki,ci,cands,picks:[],owed};
   if(!cands.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
