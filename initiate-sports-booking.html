@@ -148,6 +148,12 @@
   .areg .ai{flex:1 1 130px;min-width:120px} .areg .ai b{font-weight:700} .areg .ai span{color:var(--muted);font-size:13px}
   .pchip{font-family:var(--display);font-weight:700;font-size:11px;padding:5px 9px;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:#fff;white-space:nowrap}
   .pchip.paid{background:var(--green);color:#fff;border-color:var(--green)}
+  .pchip.rel{background:var(--coral);color:#fff;border-color:var(--coral)}
+  .duehint{font-size:11px;color:var(--muted);margin-top:3px}
+  .overdue{font-size:11px;color:var(--coral);font-weight:700;margin-top:3px}
+  .overrow{background:var(--coral-tint);border-radius:8px;padding:8px;margin:0 -8px}
+  .relrow{opacity:.5}
+  .ovbadge{font-family:var(--display);font-weight:700;font-size:11px;background:var(--coral);color:#fff;padding:2px 7px;border-radius:6px;margin-left:4px}
   .wlrow{opacity:.85}
   .wlpill{font-family:var(--display);font-weight:700;font-size:10px;background:var(--coral-tint);color:var(--coral);padding:2px 6px;border-radius:5px;margin-left:6px}
   .adel{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 4px}
@@ -406,28 +412,28 @@
       var results=[];
       items.forEach(function(c){
         var dup=state.regs.some(function(r){ return r.classId===c.id && r.phone===ph && r.student===s; });
-        if(dup){ results.push({c:c, status:"confirmed", dup:true}); return; }
-        var st=statusFor(c); var status=(st.kind==="open")?"confirmed":"waitlist";
-        state.regs.push({id:"r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), classId:c.id, parent:p, student:s, phone:ph, status:status, paid:false, proof:false, ts:Date.now()});
-        results.push({c:c, status:status}); });
+        if(dup){ results.push({c:c, status:"pending", dup:true}); return; }
+        state.regs.push({id:"r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), classId:c.id, parent:p, student:s, phone:ph, status:"pending", paid:false, proof:false, ts:Date.now()});
+        results.push({c:c, status:"pending"}); });
       showConfirmation(results, p, ph);
     }
   }
   function showConfirmation(results, parent, phone){
-    var total=0, anyWait=false, anyConfirmed=false, rows="";
-    results.forEach(function(r){ var conf=(r.status==="confirmed"); if(!r.dup){ total+=r.c.price; } if(conf&&!r.dup)anyConfirmed=true; else if(!conf)anyWait=true;
-      var bcls=r.dup?"wl":(conf?"ok":"wl"), btxt=r.dup?"已報名":(conf?"已留位":"候補中");
+    var total=0, rows="";
+    results.forEach(function(r){ if(!r.dup){ total+=r.c.price; }
+      var bcls=r.dup?"ok":"wl", btxt=r.dup?"已報名":"未留位";
       rows+='<div class="sumrow"><div><div class="si">'+r.c.emoji+' '+esc(r.c.name)+'</div><div class="st">'+esc(r.c.date)+' · '+esc(r.c.time)+'</div></div><span class="badge '+bcls+'">'+btxt+'</span></div>'; });
-    var body='<div class="done-ic">✓</div><div class="done-h">報名已收到!</div>'
-      +'<div class="done-sub">'+esc(parent)+',多謝報名。'+(anyWait?'部分班別已滿,你已列入候補,有位會盡快通知。':'')+'</div>'+rows
+    var body='<div class="done-ic" style="background:var(--yellow);color:var(--ink)">!</div><div class="done-h">仲差一步先完成留位</div>'
+      +'<div class="done-sub">'+esc(parent)+',你嘅報名已記錄,但<b>尚未留位</b>。請付款並上傳截圖,先算留位成功(先到先得)。</div>'+rows
       +'<div class="paybox"><div class="palb">需付金額</div><div class="pamt">'+money(total)+'</div>'
         +'<div class="paymethods"><div class="pm"><div class="pmname">FPS 轉數快</div><div class="pmnum">'+PAY_NUMBER+'</div></div><div class="pm"><div class="pmname">PayMe</div><div class="pmnum">'+PAY_NUMBER+'</div></div></div>'
         +'<button class="copybtn" id="copyNum">複製收款電話 '+PAY_NUMBER+'</button></div>'
+      +'<div class="reassure" style="background:#FFF4D6;border-color:#F0D88A;color:#7A5B00">⚠️ <b>未上傳截圖 = 未留位</b>。名額先到先得,付款後請即上傳截圖鎖定名額。</div>'
       +'<div class="reassure">💚 若最終人數不足 4 人未能成班,已付款項將 <b>全額退款</b>,可安心報名。</div>'
-      +'<p class="paynote">付款時請喺<b>付款備註</b>填上:<b>學生姓名 + 上課日期</b>(方便日後對數)。<br>付款後請撳下面掣<b>上傳付款截圖</b>,並一撳通知教練。<br>提提你:成班後請於活動前 <b>1 星期</b>內付款留位。'+(anyWait?'<br>候補名額暫毋須付款,確認有位後先付。':'')+'</p>'
-      +(anyConfirmed?'<button class="submit" id="goUpload">去上傳付款截圖 →</button>':'')
-      +'<button class="navbtn" id="closeDone" style="width:100%;margin-top:10px;padding:13px">完成</button>';
-    openSheet("報名完成", body);
+      +'<p class="paynote">付款時請喺<b>付款備註</b>填上:<b>學生姓名 + 上課日期</b>(方便日後對數)。</p>'
+      +'<button class="submit" id="goUpload">付款後 · 上傳截圖留位 →</button>'
+      +'<button class="navbtn" id="closeDone" style="width:100%;margin-top:10px;padding:13px">稍後再上傳</button>';
+    openSheet("報名已收到", body);
     document.getElementById("copyNum").addEventListener("click", function(){ copyText(PAY_NUMBER); this.classList.add("copied"); this.textContent="已複製 ✓"; });
     var gu=document.getElementById("goUpload"); if(gu) gu.addEventListener("click", function(){ cart={}; renderCourses(); renderCart(); openMyLookup(phone); });
     document.getElementById("closeDone").addEventListener("click", function(){ cart={}; closeSheet(); renderCourses(); renderCart(); });
@@ -465,33 +471,46 @@
     if(!regs.length){ host.innerHTML='<div class="empty">搵唔到呢個電話嘅報名記錄。請確認電話號碼,或返回報名。</div>'; return; }
     regs.sort(function(a,b){return a.ts-b.ts;});
     var h="";
-    regs.forEach(function(r){ var c=byId(r.classId); if(!c) return; var conf=(r.status==="confirmed"); var ven=classVenue(c);
-      h+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+'</span></div>';
+    regs.forEach(function(r){ var c=byId(r.classId); if(!c) return; var ven=classVenue(c); var cap=c.capacity;
+      var st=r.status, slabel, scol;
+      if(st==="confirmed"){ slabel="已留位 ✓"; scol="var(--green-d)"; }
+      else if(st==="waitlist"){ slabel="候補中"; scol="var(--coral)"; }
+      else if(st==="released"){ slabel="已釋放"; scol="var(--muted)"; }
+      else { slabel="未完成留位"; scol="#B7791F"; }
+      h+='<div class="acard"'+(st==="released"?' style="opacity:.6"':'')+'><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+'</span></div>';
       h+='<div class="statusline">📍 '+(ven?esc(ven):VENUE_TBA)+'</div>';
-      h+='<div class="statusline">報名:<b style="color:'+(conf?'var(--green-d)':'var(--coral)')+'">'+(conf?'已留位':'候補中')+'</b></div>';
-      if(!conf){ h+='<div class="statusline">候補中,有位會通知你,暫毋須付款。</div>'; }
-      else if(r.paid){ h+='<div class="statusline">付款:<b style="color:var(--green-d)">已確認 ✓</b></div>'; }
-      else if(r.proof){
-        h+='<div class="statusline">付款:<b style="color:#B7791F">已上傳截圖,待教練確認</b></div>';
-        h+='<div class="notifyrow"><a class="nbtn wa" target="_blank" rel="noopener" href="'+waLink(r,c)+'">WhatsApp 通知教練</a><a class="nbtn em" target="_blank" rel="noopener" href="'+emLink(r,c)+'">Email 通知</a></div>';
-        h+='<div class="contactnote">如掣未能開啟:WhatsApp <b>6331 7403</b> · <b>'+COACH_EMAIL+'</b></div>';
-        h+='<button class="uplbtn" data-up="'+r.id+'" data-ph="'+phone+'">重新上傳截圖</button>';
-      } else {
+      h+='<div class="statusline">狀態:<b style="color:'+scol+'">'+slabel+'</b></div>';
+      if(st==="released"){ h+='<div class="statusline" style="color:var(--coral)">名額已被釋放。如仍想參加,請返回重新報名。</div>'; }
+      else if(st==="pending"){
+        h+='<div class="statusline" style="color:#B7791F;font-weight:700">⚠ 尚未留位 —— 付款並上傳截圖後先算留位成功(先到先得)。</div>';
         h+='<div class="statusline">需付 <b>'+money(c.price)+'</b> · FPS / PayMe 至 <b>'+PAY_NUMBER+'</b></div>';
         h+='<div class="statusline">💡 付款備註請寫:<b>'+esc(r.student)+' · '+esc(c.date)+'</b></div>';
         h+='<div class="statusline" style="color:var(--green-d)">💚 不足 4 人不成班會全額退款</div>';
-        h+='<button class="uplbtn" data-up="'+r.id+'" data-ph="'+phone+'">＋ 上傳付款截圖</button>';
+        h+='<button class="uplbtn" data-up="'+r.id+'" data-ph="'+phone+'" data-cap="'+cap+'">＋ 上傳付款截圖 · 完成留位</button>';
+      }
+      else if(st==="waitlist"){
+        h+='<div class="statusline">該堂已滿,你已加入候補。如最終有位會通知你;若無位,已付款項會全額退回。</div>';
+        if(r.proof && !r.paid){ h+='<div class="notifyrow"><a class="nbtn wa" target="_blank" rel="noopener" href="'+waLink(r,c)+'">WhatsApp 通知教練</a><a class="nbtn em" target="_blank" rel="noopener" href="'+emLink(r,c)+'">Email 通知</a></div>'; }
+      }
+      else { /* confirmed */
+        if(r.paid){ h+='<div class="statusline">付款:<b style="color:var(--green-d)">已確認 ✓</b></div>'; }
+        else {
+          h+='<div class="statusline">付款:<b style="color:#B7791F">截圖已收到,待教練核對</b></div>';
+          h+='<div class="notifyrow"><a class="nbtn wa" target="_blank" rel="noopener" href="'+waLink(r,c)+'">WhatsApp 通知教練</a><a class="nbtn em" target="_blank" rel="noopener" href="'+emLink(r,c)+'">Email 通知</a></div>';
+          h+='<div class="contactnote">如掣未能開啟:WhatsApp <b>6331 7403</b> · <b>'+COACH_EMAIL+'</b></div>';
+          h+='<button class="uplbtn" data-up="'+r.id+'" data-ph="'+phone+'" data-cap="'+cap+'">重新上傳截圖</button>';
+        }
       }
       h+='</div>';
     });
     host.innerHTML=h;
-    host.querySelectorAll(".uplbtn").forEach(function(b){ b.addEventListener("click",function(){ startUpload(b.getAttribute("data-up"), b.getAttribute("data-ph")); }); });
+    host.querySelectorAll(".uplbtn").forEach(function(b){ b.addEventListener("click",function(){ startUpload(b.getAttribute("data-up"), b.getAttribute("data-ph"), parseInt(b.getAttribute("data-cap"),10)||0); }); });
   }
 
   /* ===== payment-proof upload ===== */
   var pendingUpload=null;
   document.getElementById("proofInput").addEventListener("change", onProofPicked);
-  function startUpload(regId, phone){ pendingUpload={regId:regId, phone:phone}; var i=document.getElementById("proofInput"); i.value=""; i.click(); }
+  function startUpload(regId, phone, cap){ pendingUpload={regId:regId, phone:phone, cap:cap||0}; var i=document.getElementById("proofInput"); i.value=""; i.click(); }
   function fileToScaledDataUrl(file){ return new Promise(function(res,rej){
     var reader=new FileReader();
     reader.onload=function(){ var img=new Image();
@@ -509,16 +528,17 @@
     fileToScaledDataUrl(file)
       .then(function(durl){
         if(apiReady){
-          return apiPost("uploadProof", {id:up.regId, dataUrl:durl})
-            .then(function(d){ if(!d||!d.ok) throw new Error("upload fail"); });
+          return apiPost("uploadProof", {id:up.regId, dataUrl:durl, capacity:up.cap})
+            .then(function(d){ if(!d||!d.ok) throw new Error("upload fail"); return d.status; });
         } else {
           mem["proof_"+up.regId]=durl;
-          state.regs.forEach(function(r){ if(r.id===up.regId){ r.proof=true; } });
-          return Promise.resolve();
+          state.regs.forEach(function(r){ if(r.id===up.regId){ r.proof=true; if(r.status==="pending"){ var cf=confirmedCount(r.classId); r.status=(cf<(up.cap||0))?"confirmed":"waitlist"; } } });
+          var rr=null; state.regs.forEach(function(r){ if(r.id===up.regId) rr=r; });
+          return Promise.resolve(rr?rr.status:"confirmed");
         }
       })
-      .then(function(){ return loadMyRegs(up.phone); })
-      .then(function(){ toast("付款截圖已上傳 ✓ 記得通知教練"); })
+      .then(function(st){ return loadMyRegs(up.phone).then(function(){ return st; }); })
+      .then(function(st){ toast(st==="waitlist" ? "已上傳 · 該堂已滿,你已加入候補" : "✅ 留位成功!截圖已上傳"); renderCourses(); })
       .catch(function(err){ console.warn(err); toast("上傳失敗,請再試"); });
   }
 
@@ -567,17 +587,23 @@
       var regs=state.regs.filter(function(r){return r.classId===c.id;});
       var conf=regs.filter(function(r){return r.status==="confirmed";});
       var wl=regs.filter(function(r){return r.status==="waitlist";});
+      var pend=regs.filter(function(r){return r.status==="pending";});
       var rev=0,paidRev=0; conf.forEach(function(r){rev+=c.price; if(r.paid)paidRev+=c.price;});
       grandExpected+=rev; grandPaid+=paidRev;
-      html+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+' · '+conf.length+'/'+c.capacity+'</span></div>'
-        +'<button class="editbtn" data-edit="'+c.id+'">✎ 改價錢 / 人數</button>';
+      html+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+' · 留位 '+conf.length+'/'+c.capacity+(pend.length?(' · '+pend.length+' 未完成'):'')+'</span></div>'
+        +'<button class="editbtn" data-edit="'+c.id+'">✎ 改價錢 / 人數 / 地點</button>';
       if(!regs.length){ html+='<div class="empty">未有人報名</div>'; }
-      function rowHtml(r,isWl){ return '<div class="areg'+(isWl?" wlrow":"")+'"><div class="ai"><b>'+esc(r.student)+'</b>'+(isWl?'<span class="wlpill">候補</span>':'')+'<br><span>'+esc(r.parent)+' · '+esc(r.phone)+(r.proof?' · 📎已交截圖':'')+'</span></div>'
-        +(r.proof?'<button class="pchip" data-proof="'+r.id+'">睇截圖</button>':'')
-        +(!isWl?'<button class="pchip'+(r.paid?" paid":"")+'" data-rid="'+r.id+'">'+(r.paid?"已付款 ✓":"標記已付款")+'</button>':'')
-        +'<button class="adel" data-del="'+r.id+'" title="刪除">🗑</button></div>'; }
-      conf.forEach(function(r){ html+=rowHtml(r,false); });
-      wl.forEach(function(r){ html+=rowHtml(r,true); });
+      function rowHtml(r, kind){
+        var tag = kind==="wl"?'<span class="wlpill">候補</span>' : (kind==="pend"?'<span class="wlpill" style="background:#FBE9C7;color:#7A5B00">未完成</span>':'');
+        return '<div class="areg'+(kind==="pend"?" relrow":"")+(kind==="wl"?" wlrow":"")+'">'
+          +'<div class="ai"><b>'+esc(r.student)+'</b>'+tag+'<br><span>'+esc(r.parent)+' · '+esc(r.phone)+(r.proof?' · 📎已交截圖':(kind==="pend"?' · 未上傳截圖':''))+'</span></div>'
+          +(r.proof?'<button class="pchip" data-proof="'+r.id+'">睇截圖</button>':'')
+          +(kind==="conf"?'<button class="pchip'+(r.paid?" paid":"")+'" data-rid="'+r.id+'">'+(r.paid?"已付款 ✓":"標記已付款")+'</button>':'')
+          +'<button class="adel" data-del="'+r.id+'" title="永久刪除紀錄">🗑</button></div>';
+      }
+      conf.forEach(function(r){ html+=rowHtml(r,"conf"); });
+      wl.forEach(function(r){ html+=rowHtml(r,"wl"); });
+      pend.forEach(function(r){ html+=rowHtml(r,"pend"); });
       html+='<div class="arev"><span>已收 '+money(paidRev)+' / 應收 '+money(rev)+'</span></div></div>';
     });
     html+='<div class="acard" style="background:var(--ink);color:#fff;border:0"><div class="ahead"><span class="at" style="color:#fff">總計'+(adminFilter?'(此項目)':'')+'</span></div>'
@@ -605,10 +631,10 @@
   function togglePaid(rid){ var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; }); if(!reg) return; var np=!reg.paid;
     if(apiReady){ apiPost("setPaid",{id:rid, paid:np, pin:adminPin}).then(function(d){ if(d&&d.ok===false){toast("操作未授權");return;} return refreshAdmin(); }).catch(function(){toast("更新失敗");}); }
     else { reg.paid=np; renderAdmin(); } }
-  function delReg(rid){ if(!confirm("確定刪除此報名?如刪走正取,系統會自動把第一位候補補上。")) return;
+  function delReg(rid){ if(!confirm("確定永久刪除此報名紀錄?此操作不可復原。")) return;
     var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; });
     var cls=reg?byId(reg.classId):null, cap=cls?cls.capacity:0;
-    if(apiReady){ apiPost("deleteReg",{id:rid, pin:adminPin, capacity:cap}).then(function(d){ if(d&&d.promoted){ toast("已刪除 · "+d.promoted.student+" 候補補上正取"); } return refreshAdmin(); }).catch(function(){toast("刪除失敗");}); }
+    if(apiReady){ apiPost("deleteReg",{id:rid, pin:adminPin, capacity:cap}).then(function(d){ if(d&&d.promoted){ toast("已刪除 · "+d.promoted.student+" 候補補上"); } return refreshAdmin(); }).catch(function(){toast("刪除失敗");}); }
     else { state.regs=state.regs.filter(function(r){return r.id!==rid;}); renderAdmin(); } }
   function addClass(){ var v=function(id){return (document.getElementById(id).value||"").trim();};
     var name=v("nName"), date=v("nDate"), time=v("nTime"), cap=parseInt(v("nCap"),10), price=parseInt(v("nPrice"),10);
@@ -620,7 +646,7 @@
   function exportCSV(){
     var order=allClasses(), idxOf={}, cmap={};
     order.forEach(function(c,i){ idxOf[c.id]=i; cmap[c.id]=c; });
-    var rows=state.regs.filter(function(r){ var c=cmap[r.classId]; return c && (!adminFilter||c.type===adminFilter); });
+    var rows=state.regs.filter(function(r){ var c=cmap[r.classId]; return c && (!adminFilter||c.type===adminFilter) && (r.status==="confirmed"||r.status==="waitlist"); });
     if(!rows.length){ toast("未有報名記錄可匯出"); return; }
     rows.sort(function(a,b){
       var ia=idxOf[a.classId], ib=idxOf[b.classId]; if(ia!==ib) return ia-ib;
