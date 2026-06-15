@@ -240,6 +240,7 @@ const T={
   errLeave:{zh:'事假',en:'Personal'},sickLeave:{zh:'病假',en:'Sick'},
   medLbl:{zh:'病假醫生證明（可選 · 影相或 PDF）',en:'Doctor’s note (optional · photo or PDF)'},
   medHint:{zh:'交咗醫生紙，教練端會直接見到，唔使另外 WhatsApp。',en:'Coaches see the note directly — no need to send via WhatsApp.'},
+  payHint:{zh:'上傳付款截圖後，教練端會直接見到，唔使另外 WhatsApp。',en:'Once uploaded, coaches see the screenshot directly — no need to send via WhatsApp.'},
   leaveNotice:{zh:'事假需提前 24 小時，否則該堂計缺席、不設補堂；病假需 48 小時內交醫生證明。',en:'Personal leave needs 24h notice or it counts as absent (no make-up). Sick leave needs a doctor’s note within 48h.'},
   todayTag:{zh:'今日',en:'Today'},
   okBtn:{zh:'知道了',en:'OK'},
@@ -522,32 +523,6 @@ function sessRow(s){
   else if(d<today)pill=`<span class="pill p-up">${L('已過','Past')}</span>`;
   return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span></span>${pill}</div>`;
 }
-function feeCard(child,ki){
-  const fees=child.fees||[]; const lbl=periodLabel(S.period);
-  const f=fees.find(x=>String(x.period).endsWith(lbl));
-  const stMap={'未繳':t('stUnpaid'),'待核實':t('stPending'),'已繳':t('stPaid'),'部分':t('stPartial'),'豁免':t('stExempt')};
-  const stK=LANG==='en'?'Status':'狀態';
-  let inner;
-  if(f){
-    const stTxt=stMap[f.status]||f.status;
-    const stCol=f.status==='已繳'?'var(--green)':(f.status==='待核實'?'var(--teal-dark)':'var(--amber)');
-    let actions='';
-    if(f.status!=='已繳' && f.status!=='豁免'){
-      actions=`<div style="font-size:12px;color:var(--muted);margin-top:8px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
-        <button class="btn sm" style="margin-top:8px;width:100%" onclick="openPay(${ki},'${f.period}')">${f.hasScreenshot?('🔁 '+t('feeUpload')):t('feeUpload')}</button>
-        ${f.hasScreenshot?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('feeUploaded')}</div>`:''}`;
-    }
-    inner=`<div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
-      <div class="stats">
-        <div class="stat"><div class="n">$${f.net}</div><div class="k">${t('feeDue')}</div></div>
-        <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
-        <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
-      </div>${actions}`;
-  } else {
-    inner=`<div class="period-empty">${t('feeNoRec')}</div>`;
-  }
-  return `<div class="card"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${inner}</div>`;
-}
 function socialCard(){
   const ig='https://www.instagram.com/initiate_sports.2023';
   const fb='https://www.facebook.com/share/1FcXaarDc1/?mibextid=wwXIfr';
@@ -563,7 +538,7 @@ function socialCard(){
   </div>`;
 }
 function feeForPeriod(child,idx){ const lbl=periodLabel(idx); return (child.fees||[]).find(x=>String(x.period).endsWith(lbl)); }
-function isPeriodActive(child,idx){ const f=feeForPeriod(child,idx); return !!(f&&f.active); }
+function isPeriodActive(child,idx){ if(idx<=currentPeriodIdx()) return true; const f=feeForPeriod(child,idx); return !!(f&&f.active); }
 function feeCard(child,ki){
   const lbl=periodLabel(S.period);
   const f=feeForPeriod(child,S.period);
@@ -578,9 +553,12 @@ function feeCard(child,ki){
     const balLine=(child.referralBalance&&child.referralBalance>0)?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('referralBal',child.referralBalance)}</div>`:'';
     let actions='';
     if(f.status!=='已繳' && f.status!=='豁免'){
-      actions=`<div style="font-size:12px;color:var(--muted);margin-top:8px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
-        <button class="btn sm" style="margin-top:8px;width:100%" onclick="openPay(${ki},'${f.period}')">${f.hasScreenshot?('🔁 '+t('feeUpload')):t('feeUpload')}</button>
-        ${f.hasScreenshot?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('feeUploaded')}</div>`:''}`;
+      actions=`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+        <button onclick="openPay(${ki},'${f.period}')" style="margin-top:10px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-3l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
+        </button>
+        ${f.hasScreenshot?`<div style="font-size:12.5px;color:var(--teal-dark);margin-top:7px;text-align:center">${t('feeUploaded')}</div>`:`<div style="font-size:12px;color:#c0392b;margin-top:7px;text-align:center;font-weight:600">⬆ ${LANG==='en'?'Tap above to upload your payment screenshot':'撳上面個掣即可上傳付款截圖'}</div>`}`;
     }
     inner=`<div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
       <div class="stats">
@@ -652,7 +630,7 @@ function openPay(ki,period){
     <p class="sd">${child.name}　·　${period}</p>
     <div class="notice warn">${t('feePayTo',S.payNumber||'6709 3390')}</div>
     <input type="file" id="pay-file" accept="image/*,application/pdf" onchange="onPayFile(this)" style="width:100%;font-size:13px;color:var(--ink2);margin:10px 0">
-    <div id="pay-status" style="font-size:12px;color:var(--muted)">${t('medHint')}</div>
+    <div id="pay-status" style="font-size:12px;color:var(--muted)">${t('payHint')}</div>
     <input id="pay-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="pay-go" onclick="submitPay()">${t('paySubmit')}</button>`);
 }
