@@ -361,9 +361,13 @@ html,body{
       <div id="settings-content" style="padding:0 12px 100px"></div>
     </div>
 
+    <div class="screen" id="screen-fees">
+      <div id="fees-content" style="padding:0 12px 100px"></div>
+    </div>
+
   </div><!-- scroll-area -->
 
-  <!-- BOTTOM NAV (5功能：首頁/補堂/歷史/設定，點名由首頁卡片進入) -->
+  <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showScreen('home')" id="nav-home">
       <span class="nav-icon">🏠</span><span class="nav-label">首頁</span>
@@ -373,6 +377,9 @@ html,body{
     </button>
     <button class="nav-item" onclick="showScreen('makeup')" id="nav-makeup">
       <span class="nav-icon">📋</span><span class="nav-label">補堂</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('fees')" id="nav-fees">
+      <span class="nav-icon">💳</span><span class="nav-label">繳費</span>
     </button>
     <button class="nav-item" onclick="showScreen('history')" id="nav-history">
       <span class="nav-icon">📅</span><span class="nav-label">歷史</span>
@@ -735,6 +742,7 @@ function showScreen(id, pushStack=true){
   if (id === 'makeup')   renderMakeup();
   if (id === 'history')  renderHistory();
   if (id === 'settings') renderSettings();
+  if (id === 'fees')     renderFees();
 }
 function goBack(){
   const prev = screenStack.pop() || 'home';
@@ -1159,6 +1167,71 @@ function searchStudentHistory(){
     </div>`;
   }).join('');
 }
+/* ═══════════ 繳費管理 ═══════════ */
+let FEES_DATA=[]; let FEES_PERIOD='';
+function curFeePeriodLabel(){
+  const t=todayStr(); const y=t.slice(0,4); const mo=Number(t.slice(5,7)); const idx=Math.floor((mo-1)/2);
+  return y+' '+(idx*2+1)+'-'+(idx*2+2)+'月';
+}
+async function renderFees(){
+  document.getElementById('header-title-text').textContent='繳費管理';
+  document.getElementById('header-subtitle-text').textContent='Tuition';
+  const wrap=document.getElementById('fees-content');
+  if(!FEES_PERIOD) FEES_PERIOD=curFeePeriodLabel();
+  wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
+  let r; try{ r=await apiPost({action:'feesAll', coachPass:CONFIG.COACH_PASS}); }catch(e){ r=null; }
+  if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
+  FEES_DATA=r.fees||[];
+  const periods=[...new Set(FEES_DATA.map(f=>f.period))].sort();
+  if(periods.length && periods.indexOf(FEES_PERIOD)<0) FEES_PERIOD=periods[periods.length-1];
+  const rows=FEES_DATA.filter(f=>f.period===FEES_PERIOD);
+  const paid=rows.filter(f=>f.status==='已繳').length;
+  const pending=rows.filter(f=>f.status==='待核實').length;
+  const overdue=rows.filter(f=>f.overdue && f.status!=='已繳').length;
+  let html='';
+  html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 12px">
+    <select id="fee-period" onchange="onFeePeriod(this.value)" style="flex:1;min-width:130px;padding:10px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
+      ${periods.length?periods.map(p=>`<option ${p===FEES_PERIOD?'selected':''}>${p}</option>`).join(''):`<option>${FEES_PERIOD}</option>`}
+    </select>
+    <button class="btn-makeup-done" onclick="genFeePeriod()">產生本期繳費列</button>
+  </div>`;
+  html+=`<div class="stats-grid">
+    <div class="stat-card"><div class="num">${rows.length}</div><div class="lbl">學生</div></div>
+    <div class="stat-card"><div class="num ok">${paid}</div><div class="lbl">已繳</div></div>
+    <div class="stat-card"><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待核實</div></div>
+    <div class="stat-card"><div class="num ${overdue>0?'danger':''}">${overdue}</div><div class="lbl">逾期未繳</div></div>
+  </div>`;
+  if(!rows.length){ html+='<div class="empty-state"><div class="icon">💳</div><p>本期暫無繳費列<br><span style="font-size:12px">按上面「產生本期繳費列」</span></p></div>'; wrap.innerHTML=html; return; }
+  const order={'待核實':1,'未繳':2,'部分':3,'已繳':4,'豁免':5};
+  rows.sort((a,b)=>{ const oa=(a.overdue&&a.status!=='已繳')?0:(order[a.status]||9); const ob=(b.overdue&&b.status!=='已繳')?0:(order[b.status]||9); return oa-ob || a.name.localeCompare(b.name); });
+  html+='<div class="class-list">';
+  rows.forEach(f=>{
+    const isPaid=f.status==='已繳';
+    const col=isPaid?'var(--green,#34d399)':((f.overdue)?'var(--danger,#e66)':(f.status==='待核實'?'var(--cyan)':'var(--amber)'));
+    const stTxt=(f.overdue&&!isPaid)?('逾期·'+f.status):f.status;
+    const scr=f.hasScreenshot?`<a href="${f.link}" target="_blank" style="color:var(--cyan);font-size:12px">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
+    const btn=isPaid?'':`<button class="btn-makeup-done" onclick="verifyFee('${String(f.name).replace(/'/g,"\\'")}')">核實已繳</button>`;
+    html+=`<div class="class-row" style="align-items:center">
+      <span class="class-day-pill" style="background:${col};color:#111">$${f.net}</span>
+      <div class="class-row-info"><h3>${f.name}</h3><p>${stTxt} · 已繳 $${f.paid||0} · ${scr}</p></div>
+      ${btn}
+    </div>`;
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+function onFeePeriod(v){ FEES_PERIOD=v; renderFees(); }
+async function genFeePeriod(){
+  if(!confirm('為所有在學學生產生「'+FEES_PERIOD+'」應繳列？已有嘅會自動跳過。')) return;
+  let r; try{ r=await apiPost({action:'genPeriod', coachPass:CONFIG.COACH_PASS, period:FEES_PERIOD}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast('已新增 '+r.added+' 位','✓'); renderFees(); } else toast('產生失敗','⚠');
+}
+async function verifyFee(name){
+  if(!confirm('確認 '+name+'（'+FEES_PERIOD+'）已全數繳費？')) return;
+  let r; try{ r=await apiPost({action:'verifyPay', coachPass:CONFIG.COACH_PASS, name:name, period:FEES_PERIOD, coach:'教練'}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast('已標記已繳','✓'); renderFees(); } else toast('核實失敗','⚠');
+}
+
 function renderHistory(){
   document.getElementById('header-title-text').textContent = '出席歷史';
   document.getElementById('header-subtitle-text').textContent = '所有已儲存記錄';

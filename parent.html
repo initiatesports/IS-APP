@@ -255,6 +255,22 @@ const T={
   codeWrong:{zh:'後 4 位數字唔啱',en:'Wrong last 4 digits'},
   rcLeave:{zh:'✅ 已提交請假',en:'✅ Leave submitted'},child:{zh:'小朋友',en:'Child'},klass:{zh:'班別',en:'Class'},dateK:{zh:'日期',en:'Date'},leaveTypeK:{zh:'假別',en:'Type'},
   waConfirm:{zh:'📲 WhatsApp 通知張 Sir 確認',en:'📲 Confirm via WhatsApp'},done:{zh:'完成',en:'Done'},
+  feeTitle:{zh:'學費',en:'Tuition'},feeDue:{zh:'應繳',en:'Due'},feePaid:{zh:'已繳',en:'Paid'},
+  feeNoRec:{zh:'本期暫無繳費紀錄',en:'No fee record for this period'},
+  feeUpload:{zh:'上傳付款截圖',en:'Upload payment screenshot'},
+  feeUploaded:{zh:'已上傳截圖，待教練核實',en:'Screenshot uploaded · pending review'},
+  feePayTo:{zh:p=>`FPS／PayMe 過數至：${p}`,en:p=>`Pay via FPS／PayMe: ${p}`},
+  feeWeekly:{zh:n=>`每週 ${n} 節`,en:n=>`${n}/week`},
+  stUnpaid:{zh:'未繳',en:'Unpaid'},stPending:{zh:'待核實',en:'Pending'},stPaid:{zh:'已繳',en:'Paid'},stPartial:{zh:'部分',en:'Partial'},stExempt:{zh:'豁免',en:'Exempt'},
+  payTitle:{zh:'上傳付款截圖',en:'Upload payment screenshot'},
+  payChoose:{zh:'揀截圖（影相或 PDF）',en:'Choose file (photo or PDF)'},
+  paySubmit:{zh:'提交截圖',en:'Submit'},payOk:{zh:'✅ 已上傳付款截圖',en:'✅ Screenshot uploaded'},payNoFile:{zh:'請先揀截圖',en:'Please choose a file first'},payFail:{zh:'上傳失敗，請再試',en:'Upload failed, please retry'},
+  pinBtn:{zh:'🔒 修改登入密碼',en:'🔒 Change password'},
+  pinTitle:{zh:'修改登入密碼',en:'Change login password'},
+  pinSd:{zh:'設定後，下次登入請用新密碼（取代手機後 4 位）。',en:'After this, log in with the new password instead of your phone’s last 4 digits.'},
+  pinCur:{zh:'目前密碼',en:'Current password'},pinNew:{zh:'新密碼（4 位數字）',en:'New password (4 digits)'},pinNew2:{zh:'再次輸入新密碼',en:'Confirm new password'},
+  pinSubmit:{zh:'更新密碼',en:'Update password'},pinOk:{zh:'✅ 已更新登入密碼',en:'✅ Password updated'},
+  pinMismatch:{zh:'兩次新密碼不一致',en:'Passwords do not match'},pinBad:{zh:'新密碼必須為 4 位數字',en:'Password must be 4 digits'},pinCurBad:{zh:'目前密碼不正確',en:'Current password incorrect'},
   noFuture:{zh:'暫時冇未來課堂可加入',en:'No upcoming classes to add'},icsDone:{zh:'已產生行事曆檔',en:'Calendar file created'},
   noCancelL:{zh:'暫時冇可取消嘅請假。',en:'No leave to cancel.'},cancelLeaveT:{zh:'取消請假',en:'Cancel leave'},
   cancelLeaveSd:{zh:'揀返你唔使請嘅堂，小朋友會照常出席',en:'Select sessions to un-cancel — your child will attend as usual'},
@@ -385,7 +401,7 @@ async function doLogin(){
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.session={name,last4};
+  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390';
   $('logout-btn').style.display='block';
   renderParent();
 }
@@ -393,7 +409,7 @@ function logout(){ S.family=null; S.session=null; renderLogin(); }
 async function refresh(){
   if(!S.family) return;
   const r=await api('login',{name:S.family.authName,last4:S.family.last4});
-  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; renderParent(); }
+  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; if(r.payNumber)S.payNumber=r.payNumber; renderParent(); }
 }
 
 /* ═══════════ 家長主頁 ═══════════ */
@@ -407,6 +423,7 @@ function renderParent(){
   const selector=`<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
   let html=`<div class="wrap">`;
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
+  html+=`<div style="display:flex;justify-content:flex-end;margin:2px 0 6px"><button class="btn ghost" style="width:auto;padding:7px 14px;font-size:13px" onclick="openPin()">${t('pinBtn')}</button></div>`;
   html+=selector;
   kids.forEach((child,ki)=>{
     html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
@@ -424,6 +441,7 @@ function renderParent(){
         <button class="nx-btn" onclick="downloadICS(${ki})">${t('addCal')}</button></div>`;
     }
     (child.classes||[]).forEach((c,ci)=> html+=classCard(child,ki,c,ci));
+    html+=feeCard(child,ki);
   });
   if(!kids.length) html+=`<div class="no-result">—</div>`;
   html+=`</div>`; view().innerHTML=html;
@@ -473,6 +491,76 @@ function sessRow(s){
   else if(s.status==='豁免')pill=`<span class="pill p-cancel">${L('豁免','Exempt')}</span>`;
   else if(d<today)pill=`<span class="pill p-up">${L('已過','Past')}</span>`;
   return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span></span>${pill}</div>`;
+}
+function feeCard(child,ki){
+  const fees=child.fees||[]; const lbl=periodLabel(S.period);
+  const f=fees.find(x=>String(x.period).endsWith(lbl));
+  const stMap={'未繳':t('stUnpaid'),'待核實':t('stPending'),'已繳':t('stPaid'),'部分':t('stPartial'),'豁免':t('stExempt')};
+  const stK=LANG==='en'?'Status':'狀態';
+  let inner;
+  if(f){
+    const stTxt=stMap[f.status]||f.status;
+    const stCol=f.status==='已繳'?'var(--green)':(f.status==='待核實'?'var(--teal-dark)':'var(--amber)');
+    let actions='';
+    if(f.status!=='已繳' && f.status!=='豁免'){
+      actions=`<div style="font-size:12px;color:var(--muted);margin-top:8px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+        <button class="btn sm" style="margin-top:8px;width:100%" onclick="openPay(${ki},'${f.period}')">${f.hasScreenshot?('🔁 '+t('feeUpload')):t('feeUpload')}</button>
+        ${f.hasScreenshot?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('feeUploaded')}</div>`:''}`;
+    }
+    inner=`<div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
+      <div class="stats">
+        <div class="stat"><div class="n">$${f.net}</div><div class="k">${t('feeDue')}</div></div>
+        <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
+        <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
+      </div>${actions}`;
+  } else {
+    inner=`<div class="period-empty">${t('feeNoRec')}</div>`;
+  }
+  return `<div class="card"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${inner}</div>`;
+}
+let PAY={};
+function openPay(ki,period){
+  const child=S.family.children[ki]; PAY={name:child.name,period,fileData:null};
+  openSheet(`<h2>${t('payTitle')}</h2>
+    <p class="sd">${child.name}　·　${period}</p>
+    <div class="notice warn">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+    <input type="file" id="pay-file" accept="image/*,application/pdf" onchange="onPayFile(this)" style="width:100%;font-size:13px;color:var(--ink2);margin:10px 0">
+    <div id="pay-status" style="font-size:12px;color:var(--muted)">${t('medHint')}</div>
+    <input id="pay-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
+    <div style="height:12px"></div><button class="btn" id="pay-go" onclick="submitPay()">${t('paySubmit')}</button>`);
+}
+function onPayFile(input){ const f=input.files&&input.files[0]; const st=$('pay-status');
+  if(!f){PAY.fileData=null;return;} if(f.size>6*1024*1024){toast(t('medTooBig'));input.value='';return;}
+  const rd=new FileReader(); rd.onload=()=>{PAY.fileData=rd.result; if(st){st.textContent=t('medChosen',f.name);st.style.color='var(--green)';}}; rd.readAsDataURL(f); }
+async function submitPay(){
+  const code=$('pay-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong'));
+  if(!PAY.fileData) return toast(t('payNoFile'));
+  const btn=$('pay-go'); btn.disabled=true; btn.textContent=t('submitting');
+  let r; try{ r=await api('payUpload',{name:PAY.name,period:PAY.period,dataUrl:PAY.fileData}); }catch(e){ r=null; }
+  closeSheet(); await refresh();
+  if(!r||!r.ok) return toast((r&&r.err)||t('payFail'));
+  showReceipt(t('payOk'),[`${t('child')}：<b>${PAY.name}</b>`,`${t('feeTitle')}：${PAY.period}`,t('feeUploaded')],
+    `INITIATE 付款截圖\n小朋友：${PAY.name}\n期：${PAY.period}`);
+}
+function openPin(){
+  openSheet(`<h2>${t('pinTitle')}</h2>
+    <p class="sd">${t('pinSd')}</p>
+    <input id="pin-cur" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('pinCur')}">
+    <input id="pin-n1" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('pinNew')}" style="margin-top:10px">
+    <input id="pin-n2" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('pinNew2')}" style="margin-top:10px">
+    <div style="height:12px"></div><button class="btn" id="pin-go" onclick="submitPin()">${t('pinSubmit')}</button>`);
+}
+async function submitPin(){
+  const cur=$('pin-cur').value.trim(), n1=$('pin-n1').value.trim(), n2=$('pin-n2').value.trim();
+  if(!/^\d{4}$/.test(n1)) return toast(t('pinBad'));
+  if(n1!==n2) return toast(t('pinMismatch'));
+  const name=S.family.authName||(S.family.children[0]&&S.family.children[0].name);
+  const btn=$('pin-go'); btn.disabled=true; btn.textContent=t('submitting');
+  let r; try{ r=await api('setPin',{name,code:cur,newPin:n1}); }catch(e){ r=null; }
+  if(!r||!r.ok){ btn.disabled=false; btn.textContent=t('pinSubmit'); return toast((r&&r.err)||t('pinCurBad')); }
+  S.family.last4=n1; if(S.session) S.session.last4=n1;
+  closeSheet();
+  showReceipt(t('pinOk'),[t('pinSd')],'');
 }
 function cancelToday(child){
   const t=todayStr();
