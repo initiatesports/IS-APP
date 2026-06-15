@@ -344,6 +344,15 @@ html,body{
 
     <!-- MAKEUP -->
     <div class="screen" id="screen-makeup">
+      <div class="makeup-section" style="padding-bottom:6px">
+        <div style="font-size:14px;font-weight:800;margin:2px 4px 8px">📅 當日補堂點名</div>
+        <div style="display:flex;gap:8px;margin:0 4px 8px">
+          <input type="date" id="mkroll-date" onchange="loadMakeupRoll()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-family:inherit;font-size:15px;padding:11px 12px;outline:none">
+        </div>
+        <input id="mkroll-q" placeholder="🔍 搜尋學生姓名" oninput="filterMakeupRoll()"
+          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-family:inherit;font-size:15px;padding:11px 14px;outline:none;margin:0 0 8px">
+        <div id="mkroll-list"></div>
+      </div>
       <div class="makeup-filter-bar" id="makeup-filters"></div>
       <div class="makeup-section">
         <div id="makeup-class-filter-wrap" style="display:none"></div>
@@ -379,9 +388,6 @@ html,body{
   <nav class="bottom-nav">
     <button class="nav-item active" onclick="showScreen('home')" id="nav-home">
       <span class="nav-icon">🏠</span><span class="nav-label">首頁</span>
-    </button>
-    <button class="nav-item" onclick="showScreen('today')" id="nav-today">
-      <span class="nav-icon">📍</span><span class="nav-label">今日點名</span>
     </button>
     <button class="nav-item" onclick="showScreen('makeup')" id="nav-makeup">
       <span class="nav-icon">📋</span><span class="nav-label">補堂</span>
@@ -1088,9 +1094,55 @@ function saveRoll(){
 
 /* ═══════════ 九、補堂 ═══════════ */
 function setMakeupFilter(k){ makeupFilter = k; renderMakeup(); }
+let MKROLL=[];
+async function loadMakeupRoll(){
+  const date=(document.getElementById('mkroll-date')||{}).value||todayStr();
+  const box=document.getElementById('mkroll-list'); if(!box) return;
+  box.innerHTML=`<div style="padding:10px 4px;color:var(--muted);font-size:13px">載入中…</div>`;
+  let r; try{ r=await apiPost({action:'dailyList', date, coachPass:cpass()}); }catch(e){ r=null; }
+  if(!r||!r.ok){ box.innerHTML=`<div style="padding:10px 4px;color:var(--muted);font-size:13px">載入失敗</div>`; return; }
+  MKROLL=[];
+  (r.list||[]).forEach(g=>{
+    const key=g.c.key||g.c.sport, label=(g.c.dayZh||'')+' '+(g.c.time||'');
+    (g.rows||[]).forEach(row=>{
+      if(row.makeup || ['補堂','加操','轉堂'].includes(row.status))
+        MKROLL.push({name:row.name, key, label, date, status:row.status, kind:(row.status==='加操'?'加操':row.status==='轉堂'?'轉堂':'補堂')});
+    });
+  });
+  MKROLL.sort((a,b)=>a.name.localeCompare(b.name));
+  filterMakeupRoll();
+}
+function filterMakeupRoll(){
+  const box=document.getElementById('mkroll-list'); if(!box) return;
+  const q=((document.getElementById('mkroll-q')||{}).value||'').trim();
+  const list=q?MKROLL.filter(x=>x.name.indexOf(q)>=0):MKROLL;
+  if(!MKROLL.length){ box.innerHTML=`<div style="padding:10px 4px;color:var(--muted);font-size:13px">當日冇補堂／加操／轉堂學生</div>`; return; }
+  if(!list.length){ box.innerHTML=`<div style="padding:10px 4px;color:var(--muted);font-size:13px">搵唔到「${q}」</div>`; return; }
+  const kc={'補堂':'var(--cyan)','加操':'#b89cf0','轉堂':'#6db5e8'};
+  box.innerHTML=`<div class="class-list">`+list.map((x,i)=>`
+    <div class="class-row" style="align-items:center">
+      <span class="class-day-pill" style="background:${kc[x.kind]||'var(--cyan)'};color:#111">${x.kind}</span>
+      <div class="class-row-info"><h3>${x.name}</h3><p>${x.label}</p></div>
+      <div style="display:flex;gap:6px">
+        <button class="mk go ${x.status==='出席'?'on':''}" onclick="markMakeupRoll('${x.name.replace(/'/g,"\\'")}','${x.key}','${x.date}','出席',this)" style="padding:8px 12px;border-radius:9px;font-weight:800;border:1px solid #2f6;background:${x.status==='出席'?'#1c7':'transparent'};color:${x.status==='出席'?'#012':'#3d9'}">出席</button>
+        <button class="mk no ${x.status==='缺席'?'on':''}" onclick="markMakeupRoll('${x.name.replace(/'/g,"\\'")}','${x.key}','${x.date}','缺席',this)" style="padding:8px 12px;border-radius:9px;font-weight:800;border:1px solid #944;background:${x.status==='缺席'?'#c44':'transparent'};color:${x.status==='缺席'?'#fff':'#e88'}">缺席</button>
+      </div>
+    </div>`).join('')+`</div>`;
+}
+async function markMakeupRoll(name,key,date,status,btn){
+  let r; try{ r=await apiPost({action:'markAttendance', name, key, date, status, makeup:true}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('儲存失敗'+((r&&r.err)?'：'+r.err:''),'⚠'); return; }
+  const row=btn.closest('.class-row');
+  if(row){ row.querySelectorAll('.mk').forEach(m=>{ m.classList.remove('on'); m.style.background='transparent'; m.style.color=m.classList.contains('go')?'#3d9':'#e88'; });
+    btn.classList.add('on'); btn.style.background=status==='出席'?'#1c7':'#c44'; btn.style.color=status==='出席'?'#012':'#fff'; }
+  const it=MKROLL.find(x=>x.name===name&&x.key===key&&x.date===date); if(it) it.status=status;
+  toast(`${name}：${status}`,'✓');
+}
 function renderMakeup(){
   document.getElementById('header-title-text').textContent = '補堂記錄';
   document.getElementById('header-subtitle-text').textContent = '所有班別';
+  const mkd=document.getElementById('mkroll-date');
+  if(mkd){ if(!mkd.value) mkd.value=todayStr(); loadMakeupRoll(); }
 
   const filters = [
     { key:'pending', label:'待補堂' },
