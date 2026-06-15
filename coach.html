@@ -271,6 +271,14 @@ html,body{
 </style>
 </head>
 <body>
+<div id="coach-gate" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg,#111);align-items:center;justify-content:center;flex-direction:column;padding:24px">
+  <div style="font-size:30px;margin-bottom:6px">🔒</div>
+  <h2 style="font-size:20px;margin:0 0 4px">教練登入</h2>
+  <p style="color:var(--muted);font-size:13px;margin:0 0 18px;text-align:center">請輸入教練密碼以進入管理系統</p>
+  <input id="cg-pass" type="password" inputmode="text" placeholder="教練密碼" style="width:100%;max-width:280px;padding:13px;border-radius:12px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:16px;text-align:center" onkeydown="if(event.key==='Enter')coachGateSubmit()">
+  <div id="cg-err" style="color:var(--red,#e66);font-size:13px;height:18px;margin:8px 0"></div>
+  <button id="cg-go" onclick="coachGateSubmit()" style="width:100%;max-width:280px;padding:13px;border-radius:12px;background:var(--cyan,#3ECFCF);color:#063;border:none;font-weight:800;font-size:15px;cursor:pointer">登入</button>
+</div>
 <div id="app">
 
   <!-- HEADER -->
@@ -397,7 +405,7 @@ html,body{
 /* ⚠️ 部署統一後端 Code.gs 後，把下面 API_URL 改成新嘅 /exec 網址（三個前端都用同一條）。 */
 const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec',
-  COACH_PASS: 'IS2026',                 // 教練密碼（與 Code.gs CONFIG 一致）
+  // 教練密碼唔再硬編喺前端；改為登入時輸入並交後端 Code.gs 驗證（見 coachGateSubmit）
   EXPECTED_VERSION: 'is-unified-v2',    // 期望後端版本（健康檢查）
   WHATSAPP: '85263317403',              // 停課文案查詢電話
   TERM_START: '2026-02-23', TERM_END: '2026-08-29',  // 學期範圍（雙月分頁用，與 Code.gs 一致）
@@ -797,6 +805,45 @@ function renderHome(){
     Object.entries(CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');
 
   renderDashboard();
+  renderNoticesAdmin();
+}
+let NOTICES_CACHE=[];
+async function renderNoticesAdmin(){
+  let host=document.getElementById('home-notices');
+  if(!host){ // 動態插入容器到 dashboard 之上
+    const dash=document.getElementById('home-dashboard');
+    if(dash){ host=document.createElement('div'); host.id='home-notices'; dash.parentNode.insertBefore(host, dash); }
+  }
+  if(!host) return;
+  let r; try{ r=await apiPost({action:'notices', n:10}); }catch(e){ r=null; }
+  NOTICES_CACHE=(r&&r.ok&&r.notices)?r.notices:[];
+  let html=`<div class="section-header">📣 每週通知（場地／時間／天氣）</div>
+    <div style="display:flex;gap:8px;margin:0 4px 10px">
+      <input id="nt-input" placeholder="例：本週六改青衣西南體育館 / 黑雨暫停" style="flex:1;padding:11px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
+      <button class="btn-makeup-done" onclick="postNotice()">發佈</button>
+    </div>`;
+  if(NOTICES_CACHE.length){
+    html+=`<div class="class-list">`+NOTICES_CACHE.map(n=>`
+      <div class="class-row" style="align-items:flex-start">
+        <div class="class-row-info"><h3 style="font-size:14px;font-weight:600;white-space:normal">${(n.text||'').replace(/</g,'&lt;')}</h3>
+          <p>${n.at||''}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}</p></div>
+        <button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="delNotice(${n.row})">刪除</button>
+      </div>`).join('')+`</div>`;
+  } else {
+    html+=`<div style="padding:4px 4px 10px;font-size:13px;color:var(--muted)">暫無通知</div>`;
+  }
+  host.innerHTML=html;
+}
+async function postNotice(){
+  const inp=document.getElementById('nt-input'); const text=(inp.value||'').trim();
+  if(!text){ toast('請輸入內容','⚠'); return; }
+  let r; try{ r=await apiPost({action:'addNotice', coachPass:cpass(), text}); }catch(e){ r=null; }
+  if(r&&r.ok){ inp.value=''; toast('已發佈','✓'); renderNoticesAdmin(); } else toast('發佈失敗','⚠');
+}
+async function delNotice(row){
+  if(!confirm('刪除呢條通知？')) return;
+  let r; try{ r=await apiPost({action:'deleteNotice', coachPass:cpass(), row}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast('已刪除','✓'); renderNoticesAdmin(); } else toast('刪除失敗','⚠');
 }
 function daysUntil(d){ if(!d) return 999; const t=new Date(); t.setHours(0,0,0,0); const[y,m,dd]=d.split('-').map(Number); return Math.ceil((new Date(y,m-1,dd)-t)/86400000); }
 function renderDashboard(){
@@ -1179,7 +1226,7 @@ async function renderFees(){
   const wrap=document.getElementById('fees-content');
   if(!FEES_PERIOD) FEES_PERIOD=curFeePeriodLabel();
   wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
-  let r; try{ r=await apiPost({action:'feesAll', coachPass:CONFIG.COACH_PASS}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
   if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
   FEES_DATA=r.fees||[];
   const periods=[...new Set(FEES_DATA.map(f=>f.period))].sort();
@@ -1210,26 +1257,109 @@ async function renderFees(){
     const col=isPaid?'var(--green,#34d399)':((f.overdue)?'var(--danger,#e66)':(f.status==='待核實'?'var(--cyan)':'var(--amber)'));
     const stTxt=(f.overdue&&!isPaid)?('逾期·'+f.status):f.status;
     const scr=f.hasScreenshot?`<a href="${f.link}" target="_blank" style="color:var(--cyan);font-size:12px">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
-    const btn=isPaid?'':`<button class="btn-makeup-done" onclick="verifyFee('${String(f.name).replace(/'/g,"\\'")}')">核實已繳</button>`;
+    const adj=(f.adj&&f.adj!==0)?` · <span style="color:${f.adj<0?'var(--green)':'var(--amber)'}">調整 ${f.adj>0?'+':''}$${f.adj}${f.adjNote?'('+f.adjNote+')':''}</span>`:'';
+    const nm=String(f.name).replace(/'/g,"\\'");
+    const btns=`<div style="display:flex;flex-direction:column;gap:6px">
+      ${isPaid?'':`<button class="btn-makeup-done" onclick="verifyFee('${nm}')">核實已繳</button>`}
+      <button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="editFeeAdj('${nm}',${f.adj||0})">✎ 調整</button>
+    </div>`;
     html+=`<div class="class-row" style="align-items:center">
       <span class="class-day-pill" style="background:${col};color:#111">$${f.net}</span>
-      <div class="class-row-info"><h3>${f.name}</h3><p>${stTxt} · 已繳 $${f.paid||0} · ${scr}</p></div>
-      ${btn}
+      <div class="class-row-info"><h3>${f.name}</h3><p>${stTxt} · 已繳 $${f.paid||0} · ${scr}${adj}</p></div>
+      ${btns}
     </div>`;
   });
   html+='</div>';
+  // 加操待收款
+  let ar; try{ ar=await apiPost({action:'addonsAll', coachPass:cpass()}); }catch(e){ ar=null; }
+  const addons=(ar&&ar.ok&&ar.addons)?ar.addons:[];
+  html+=`<h3 style="margin:18px 4px 8px;font-size:15px">➕ 加操收款</h3>
+    <div style="margin:0 4px 10px"><button class="btn-makeup-done" onclick="coachAddAddon()">＋ 代客加操（可標已付）</button></div>`;
+  if(addons.length){
+    addons.sort((a,b)=>a.date<b.date?1:-1);
+    html+=`<div class="class-list">`;
+    addons.forEach(a=>{
+      const ap=a.status==='已繳';
+      const scr=a.hasScreenshot?`<a href="${a.link}" target="_blank" style="color:var(--cyan);font-size:12px">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
+      const nm=String(a.name).replace(/'/g,"\\'");
+      const btn=ap?'':`<button class="btn-makeup-done" onclick="verifyAddon('${nm}','${a.to}','${a.date}')">核實已繳</button>`;
+      html+=`<div class="class-row" style="align-items:center">
+        <span class="class-day-pill" style="background:${ap?'var(--green,#34d399)':'var(--amber)'};color:#111">$${a.price}</span>
+        <div class="class-row-info"><h3>${a.name}</h3><p>${classLabel(a.to)} · ${a.date} · 本月第${a.seq}堂 · ${a.status} · ${scr}</p></div>
+        ${btn}
+      </div>`;
+    });
+    html+='</div>';
+  }
+  // 🎁 推薦優惠
+  let rr; try{ rr=await apiPost({action:'referralsAll', coachPass:cpass()}); }catch(e){ rr=null; }
+  const bals=(rr&&rr.ok&&rr.balances)?rr.balances:[];
+  html+=`<h3 style="margin:18px 4px 8px;font-size:15px">🎁 推薦優惠</h3>
+    <div style="margin:0 4px 10px"><button class="btn-makeup-done" onclick="addReferral()">＋ 登記推薦（+$100）</button>
+      <span style="font-size:12px;color:var(--muted);margin-left:8px">每位新生 $100，每期上限 50%，餘額自動結轉</span></div>`;
+  if(bals.length){
+    html+=`<div class="class-list">`+bals.map(b=>`
+      <div class="class-row" style="align-items:center">
+        <span class="class-day-pill" style="background:${b.balance>0?'var(--cyan)':'var(--green,#34d399)'};color:#111">$${b.balance}</span>
+        <div class="class-row-info"><h3>${b.name}</h3><p>累積 $${b.earned} · 已用 $${b.applied} · 餘額 $${b.balance}</p></div>
+      </div>`).join('')+`</div>`;
+  }
   wrap.innerHTML=html;
 }
-function onFeePeriod(v){ FEES_PERIOD=v; renderFees(); }
+async function addReferral(){
+  const ref=prompt('推薦人（現有學生中文全名）：','');
+  if(!ref) return;
+  const nb=prompt('新生姓名（選填）：','')||'';
+  let r; try{ r=await apiPost({action:'addReferral', coachPass:cpass(), ref:ref.trim(), newbie:nb.trim()}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast('已登記（餘額 $'+r.balance+'）','✓'); renderFees(); } else toast((r&&r.err)||'登記失敗','⚠');
+}
 async function genFeePeriod(){
   if(!confirm('為所有在學學生產生「'+FEES_PERIOD+'」應繳列？已有嘅會自動跳過。')) return;
-  let r; try{ r=await apiPost({action:'genPeriod', coachPass:CONFIG.COACH_PASS, period:FEES_PERIOD}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'genPeriod', coachPass:cpass(), period:FEES_PERIOD}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已新增 '+r.added+' 位','✓'); renderFees(); } else toast('產生失敗','⚠');
 }
 async function verifyFee(name){
   if(!confirm('確認 '+name+'（'+FEES_PERIOD+'）已全數繳費？')) return;
-  let r; try{ r=await apiPost({action:'verifyPay', coachPass:CONFIG.COACH_PASS, name:name, period:FEES_PERIOD, coach:'教練'}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'verifyPay', coachPass:cpass(), name:name, period:FEES_PERIOD, coach:'教練'}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已標記已繳','✓'); renderFees(); } else toast('核實失敗','⚠');
+}
+async function editFeeAdj(name, cur){
+  const v=prompt('輸入 '+name+'（'+FEES_PERIOD+'）調整金額：\n負數＝豁免/扣減（例 -1040），正數＝補收（例 260），0＝清除。', cur||0);
+  if(v===null) return;
+  const adj=Number(v); if(isNaN(adj)){ toast('請輸入數字','⚠'); return; }
+  const note=prompt('調整說明（例：上期豁免 / 上期多上 2 堂）：','')||'';
+  let r; try{ r=await apiPost({action:'setFeeAdj', coachPass:cpass(), name:name, period:FEES_PERIOD, adj:adj, adjNote:note}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast('已更新（淨額 $'+r.net+'）','✓'); renderFees(); } else toast('更新失敗','⚠');
+}
+async function verifyAddon(name,toKey,date){
+  if(!confirm('確認 '+name+' 的加操（'+date+'）已繳費？')) return;
+  let r; try{ r=await apiPost({action:'addonVerify', coachPass:cpass(), name:name, toKey:toKey, toDate:date}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast('已標記已繳','✓'); renderFees(); } else toast('核實失敗','⚠');
+}
+async function coachAddAddon(){
+  const name=prompt('學生中文全名：',''); if(!name) return;
+  const toKey=prompt('加去邊班？輸入班別代碼：\nc1=一5-6pm  c2=一6-7pm  c3=三5-6pm  c4=三6-7pm\nc5=五6-7pm  c6=六11am  c7=六3pm','c1'); if(!toKey) return;
+  const dates=prompt('加堂日期（YYYY-MM-DD，多堂用逗號分隔）：',''); if(!dates) return;
+  const paid=confirm('呢啲加操係咪「已付款」？\n撳「確定」＝已繳　／　撳「取消」＝待繳');
+  const list=dates.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean);
+  let okN=0; const msg=[];
+  for(const d of list){
+    let r; try{ r=await apiPost({action:'coachAddSession', coachPass:cpass(), name:name.trim(), toKey:toKey.trim(), toDate:d, paid:paid}); }catch(e){ r=null; }
+    if(r&&r.ok){ okN++; msg.push('✓ '+d+'　$'+r.price+'（'+r.status+'）'); } else msg.push('✗ '+d+'　'+((r&&r.err)||'失敗')); }
+  alert(name.trim()+' 代客加操結果：\n'+msg.join('\n'));
+  toast('已處理 '+okN+'/'+list.length,'✓');
+  renderFees();
+}
+async function exportCsv(type){
+  toast('匯出中…','⏳');
+  let r; try{ r=await apiPost({action:'export', coachPass:cpass(), type}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('匯出失敗','⚠'); return; }
+  const names={roster:'名冊',fees:'收費',attendance:'點名',addons:'加操'};
+  const blob=new Blob([r.csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='IS_'+(names[type]||type)+'_'+todayStr()+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('已匯出','✓');
 }
 
 function renderHistory(){
@@ -1351,6 +1481,13 @@ function renderSettings(){
       <button onclick="showScreen('history')" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:14px;font-weight:700;cursor:pointer;text-align:left">📋 查看出席歷史記錄</button>
       <button onclick="loadFromSheets()" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--cyan);font-size:14px;font-weight:700;cursor:pointer;text-align:left">☁️ 立即同步所有數據</button>
       <button onclick="validateAndFixData()" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;text-align:left">🔍 驗證並修正數據</button>
+      <button onclick="coachLogout()" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--red,#e66);font-size:14px;font-weight:700;cursor:pointer;text-align:left">🔒 登出教練系統</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="exportCsv('roster')" style="flex:1;min-width:120px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:13px;font-weight:700;cursor:pointer">⬇ 名冊 CSV</button>
+        <button onclick="exportCsv('fees')" style="flex:1;min-width:120px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:13px;font-weight:700;cursor:pointer">⬇ 收費 CSV</button>
+        <button onclick="exportCsv('attendance')" style="flex:1;min-width:120px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:13px;font-weight:700;cursor:pointer">⬇ 點名 CSV</button>
+        <button onclick="exportCsv('addons')" style="flex:1;min-width:120px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:13px;font-weight:700;cursor:pointer">⬇ 加操 CSV</button>
+      </div>
     </div>
     <div class="settings-section-title">⚙️ 班別管理</div>
     <p style="padding:0 4px 12px;font-size:13px;color:var(--muted);line-height:1.6">修改後即時生效並同步至雲端。學生名單、上課星期、時間都可以直接在這裡調整。</p>
@@ -1487,7 +1624,7 @@ async function loadDaily(){
   const box = document.getElementById('daily-list');
   box.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>載入中…</p></div>`;
   let r;
-  try { r = await apiPost({ action:'dailyList', date:coachDate, coachPass:CONFIG.COACH_PASS }); }
+  try { r = await apiPost({ action:'dailyList', date:coachDate, coachPass:cpass() }); }
   catch(e){ box.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>連線錯誤，請再試<br><span style="font-size:12px">（確認已部署統一後端並填好 API_URL）</span></p></div>`; return; }
   if (!r || !r.ok) { box.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>${(r&&r.err)||'載入失敗'}</p></div>`; return; }
   if (!r.list || !r.list.length) {
@@ -1589,7 +1726,7 @@ function weatherCancel(){
 async function doWeatherCancel(date){
   toast('處理中…', '🌧');
   let r;
-  try { r = await apiPost({ action:'cancelDay', date, coachPass:CONFIG.COACH_PASS }); }
+  try { r = await apiPost({ action:'cancelDay', date, coachPass:cpass() }); }
   catch(e){ toast('連線錯誤，請再試', '⚠'); return; }
   if (!r || !r.ok) { toast('失敗' + (r&&r.err?'：'+r.err:''), '⚠'); return; }
   await loadDaily();
@@ -1652,11 +1789,33 @@ function installManifest(){
     document.head.appendChild(l);
   }catch(e){}
 }
+let COACH_PASS_RT = (function(){ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
+function cpass(){ return COACH_PASS_RT; }
+async function coachGateSubmit(){
+  const v=document.getElementById('cg-pass').value.trim();
+  if(!v){ document.getElementById('cg-err').textContent='請輸入密碼'; return; }
+  const btn=document.getElementById('cg-go'); btn.disabled=true; btn.textContent='登入中…';
+  let r; try{ r=await apiPost({action:'coachLogin', coachPass:v}); }catch(e){ r=null; }
+  btn.disabled=false; btn.textContent='登入';
+  if(!r||!r.ok){ document.getElementById('cg-err').textContent='密碼錯誤'; return; }
+  COACH_PASS_RT=v; try{ sessionStorage.setItem('is_cpass',v); }catch(e){}
+  document.getElementById('cg-err').textContent='';
+  document.getElementById('coach-gate').style.display='none';
+  showScreen('home', false); await loadFromSheets(); checkHealth();
+}
+function coachLogout(){
+  COACH_PASS_RT=''; try{ sessionStorage.removeItem('is_cpass'); }catch(e){}
+  const g=document.getElementById('coach-gate'); g.style.display='flex';
+  document.getElementById('cg-pass').value='';
+}
 document.addEventListener('DOMContentLoaded', async function(){
   installManifest();
-  showScreen('home', false);
-  await loadFromSheets();
-  checkHealth();
+  if(COACH_PASS_RT){
+    document.getElementById('coach-gate').style.display='none';
+    showScreen('home', false); await loadFromSheets(); checkHealth();
+  } else {
+    document.getElementById('coach-gate').style.display='flex';
+  }
 });
 </script>
 </body>

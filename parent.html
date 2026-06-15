@@ -204,10 +204,10 @@ const T={
   mySub:{zh:'請假 · 補堂 · 行事曆',en:'Leave · Make-up · Calendar'},
   logout:{zh:'登出',en:'Log out'},
   loginTitle1:{zh:'家長',en:'Parent '},loginTitleEm:{zh:'請假補堂',en:'Leave & Make-up'},
-  lede:{zh:'輸入小朋友中文全名同你嘅手機後 4 位登入。<br>兄弟姊妹用同一電話，一次睇晒。',en:"Enter your child's full Chinese name and the last 4 digits of your phone.<br>Siblings share one phone — view them all at once."},
+  lede:{zh:'輸入小朋友中文全名，以及手機後 4 位（或你已修改的 4 位數字密碼）登入。<br>兄弟姊妹用同一電話，一次睇晒。',en:"Enter your child's full Chinese name and your phone's last 4 digits (or your custom 4-digit password).<br>Siblings share one phone — view them all at once."},
   nameLbl:{zh:'小朋友中文全名',en:"Child's full name (Chinese)"},
   namePh:{zh:'例如：陳大文',en:'e.g. 陳大文'},
-  last4Lbl:{zh:'家長手機號碼後 4 位',en:'Last 4 digits of phone'},
+  last4Lbl:{zh:'手機後 4 位 / 4 位數字密碼',en:'Last 4 digits / 4-digit password'},
   login:{zh:'登入',en:'Log in'},loggingIn:{zh:'登入中…',en:'Logging in…'},
   igFollow:{zh:'追蹤我哋 IG · @initiate_sports.2023',en:'Follow us on IG · @initiate_sports.2023'},
   fbFollow:{zh:'追蹤我哋 Facebook',en:'Follow us on Facebook'},
@@ -271,6 +271,23 @@ const T={
   pinCur:{zh:'目前密碼',en:'Current password'},pinNew:{zh:'新密碼（4 位數字）',en:'New password (4 digits)'},pinNew2:{zh:'再次輸入新密碼',en:'Confirm new password'},
   pinSubmit:{zh:'更新密碼',en:'Update password'},pinOk:{zh:'✅ 已更新登入密碼',en:'✅ Password updated'},
   pinMismatch:{zh:'兩次新密碼不一致',en:'Passwords do not match'},pinBad:{zh:'新密碼必須為 4 位數字',en:'Password must be 4 digits'},pinCurBad:{zh:'目前密碼不正確',en:'Current password incorrect'},
+  applyAddon:{zh:'➕ 申請加操',en:'➕ Add extra session'},
+  feeLock:{zh:l=>`🔒 ${l} 未繳費；繳費後方可申請請假／補堂／加操`,en:l=>`🔒 ${l} unpaid — pay first to apply for leave / make-up / extra sessions`},
+  addonTitle:{zh:'申請加操（額外加堂）',en:'Add extra session'},
+  addonSd:{zh:'揀一個你想加堂嘅時段：',en:'Pick a session to add:'},
+  addonPriceNote:{zh:'收費：每堂 $130；同月加滿 4 堂起每堂計 $110（即第 4 堂只需補 $50，第 5 堂起每堂 $110）。',en:'Fee: $130 each; from the 4th in a month it’s $110 each (the 4th only costs $50 more; $110 from the 5th).'},
+  addonThisPrice:{zh:p=>`此堂應付：<b>$${p}</b>`,en:p=>`This session: <b>$${p}</b>`},
+  addonSubmit:{zh:'提交加操',en:'Submit'},
+  rcAddon:{zh:'✅ 已申請加操',en:'✅ Extra session requested'},
+  addonPayLine:{zh:p=>`請以 FPS／PayMe 過數至 ${p}，並上傳截圖（可喺學費卡再上傳）`,en:p=>`Pay via FPS／PayMe to ${p} and upload the screenshot`},
+  addonNoSlot:{zh:'暫時冇可加堂嘅未來時段。',en:'No upcoming sessions to add.'},
+  addonBookedH:{zh:'已申請加操',en:'Booked extra sessions'},
+  feeAdjK:{zh:'調整',en:'Adjust'},addonSeqL:{zh:n=>`本月第 ${n} 堂`,en:n=>`#${n} this month`},
+  noticeHdr:{zh:'📣 最新通知',en:'📣 Notices'},
+  socialHdr:{zh:'📸 follow 我哋，緊貼最新消息！',en:'📸 Follow us for the latest!'},
+  socialSub:{zh:'小朋友上堂花絮相片、場地及天氣通知、最新優惠，全部會喺 IG／FB 率先公佈 🎉 一撳即 follow！',en:'Class photos, venue & weather updates and special offers are posted first on our IG／FB 🎉 Tap to follow!'},
+  feeDiscK:{zh:'推薦折扣',en:'Referral'},
+  referralBal:{zh:b=>`🎁 推薦優惠餘額：$${b}（下期自動扣減）`,en:b=>`🎁 Referral credit: $${b} (auto-applied next period)`},
   noFuture:{zh:'暫時冇未來課堂可加入',en:'No upcoming classes to add'},icsDone:{zh:'已產生行事曆檔',en:'Calendar file created'},
   noCancelL:{zh:'暫時冇可取消嘅請假。',en:'No leave to cancel.'},cancelLeaveT:{zh:'取消請假',en:'Cancel leave'},
   cancelLeaveSd:{zh:'揀返你唔使請嘅堂，小朋友會照常出席',en:'Select sessions to un-cancel — your child will attend as usual'},
@@ -363,7 +380,9 @@ function openHistory(ki){
 
 /* ═══════════ API ═══════════ */
 async function api(action,payload={}){
-  const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,...payload})});
+  const body={action,...payload};
+  if(body.code===undefined && S.family && S.family.last4) body.code=S.family.last4;  // 後端驗證家庭身分
+  const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
   return r.json();
 }
 async function apiGet(p){const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p));return r.json();}
@@ -401,7 +420,7 @@ async function doLogin(){
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390';
+  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[];
   $('logout-btn').style.display='block';
   renderParent();
 }
@@ -409,7 +428,7 @@ function logout(){ S.family=null; S.session=null; renderLogin(); }
 async function refresh(){
   if(!S.family) return;
   const r=await api('login',{name:S.family.authName,last4:S.family.last4});
-  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; if(r.payNumber)S.payNumber=r.payNumber; renderParent(); }
+  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; if(r.payNumber)S.payNumber=r.payNumber; S.notices=r.notices||[]; renderParent(); }
 }
 
 /* ═══════════ 家長主頁 ═══════════ */
@@ -424,7 +443,15 @@ function renderParent(){
   let html=`<div class="wrap">`;
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
   html+=`<div style="display:flex;justify-content:flex-end;margin:2px 0 6px"><button class="btn ghost" style="width:auto;padding:7px 14px;font-size:13px" onclick="openPin()">${t('pinBtn')}</button></div>`;
+  // 📣 通知
+  const nts=(S.notices||[]);
+  if(nts.length){
+    html+=`<div class="card" style="border-color:rgba(217,138,31,.35)"><div class="topline"><span class="dot" style="background:var(--amber)"></span><h3>${t('noticeHdr')}</h3></div>
+      ${nts.map(n=>`<div style="padding:8px 0;border-top:1px solid var(--line,#eee)"><div style="font-size:14px;line-height:1.5">${(n.text||'').replace(/</g,'&lt;')}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${n.at||''}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}</div></div>`).join('')}
+    </div>`;
+  }
   html+=selector;
+  html+=socialCard();
   kids.forEach((child,ki)=>{
     html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
     // #1 補堂限期將到期提醒（14 日內）
@@ -458,11 +485,14 @@ function classCard(child,ki,c,ci){
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
     ${owed>0&&c.deadline?`<div class="dlnote">${t('dlNote',owed,fmtDate(c.deadline))}</div>`:''}
+    ${ isPeriodActive(child,S.period) ? `
     <div class="rowbtns">
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">${t('applyLeave')}</button>
       <button class="btn sm" onclick="openMakeup(${ki},${ci})" ${owed<=0?'disabled':''}>${t('applyMk')}${owed>0?` (${owed})`:''}</button>
     </div>
+    <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}
+    ` : `<div class="banner cancel" style="margin-top:8px">${t('feeLock',periodLabel(S.period))}</div>` }
     ${(function(){
       const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
@@ -517,6 +547,103 @@ function feeCard(child,ki){
     inner=`<div class="period-empty">${t('feeNoRec')}</div>`;
   }
   return `<div class="card"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${inner}</div>`;
+}
+function socialCard(){
+  const ig='https://www.instagram.com/initiate_sports.2023';
+  const fb='https://www.facebook.com/share/1FcXaarDc1/?mibextid=wwXIfr';
+  return `<div class="card" style="background:linear-gradient(135deg,#28B8C8 0%,#1b8d9b 100%);border:none;color:#fff">
+    <div style="font-size:17px;font-weight:900;margin-bottom:4px">${t('socialHdr')}</div>
+    <div style="font-size:13px;line-height:1.55;opacity:.95;margin-bottom:12px">${t('socialSub')}</div>
+    <div style="display:flex;gap:10px">
+      <a href="${ig}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#C13584;border-radius:12px;padding:11px;font-weight:800;font-size:14px;text-decoration:none">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram</a>
+      <a href="${fb}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:#1877F2;border-radius:12px;padding:11px;font-weight:800;font-size:14px;text-decoration:none">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.5V12h2.7l-.4 2.9h-2.3v7A10 10 0 0022 12z"/></svg>Facebook</a>
+    </div>
+  </div>`;
+}
+function feeForPeriod(child,idx){ const lbl=periodLabel(idx); return (child.fees||[]).find(x=>String(x.period).endsWith(lbl)); }
+function isPeriodActive(child,idx){ const f=feeForPeriod(child,idx); return !!(f&&f.active); }
+function feeCard(child,ki){
+  const lbl=periodLabel(S.period);
+  const f=feeForPeriod(child,S.period);
+  const stMap={'未繳':t('stUnpaid'),'待核實':t('stPending'),'已繳':t('stPaid'),'部分':t('stPartial'),'豁免':t('stExempt')};
+  const stK=LANG==='en'?'Status':'狀態';
+  let inner;
+  if(f){
+    const stTxt=stMap[f.status]||f.status;
+    const stCol=f.status==='已繳'?'var(--green)':(f.status==='待核實'?'var(--teal-dark)':'var(--amber)');
+    const adjLine=(f.adj&&f.adj!==0)?`<div style="font-size:13px;color:${f.adj<0?'var(--green)':'var(--amber)'};margin-top:6px">${t('feeAdjK')}：${f.adj>0?'+':''}$${f.adj}${f.adjNote?'（'+f.adjNote+'）':''}</div>`:'';
+    const discLine=(f.discount&&f.discount>0)?`<div style="font-size:13px;color:var(--green);margin-top:4px">${t('feeDiscK')}：−$${f.discount}</div>`:'';
+    const balLine=(child.referralBalance&&child.referralBalance>0)?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('referralBal',child.referralBalance)}</div>`:'';
+    let actions='';
+    if(f.status!=='已繳' && f.status!=='豁免'){
+      actions=`<div style="font-size:12px;color:var(--muted);margin-top:8px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+        <button class="btn sm" style="margin-top:8px;width:100%" onclick="openPay(${ki},'${f.period}')">${f.hasScreenshot?('🔁 '+t('feeUpload')):t('feeUpload')}</button>
+        ${f.hasScreenshot?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('feeUploaded')}</div>`:''}`;
+    }
+    inner=`<div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
+      <div class="stats">
+        <div class="stat"><div class="n">$${f.net}</div><div class="k">${t('feeDue')}</div></div>
+        <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
+        <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
+      </div>${discLine}${adjLine}${balLine}${actions}`;
+  } else {
+    inner=`<div class="period-empty">${t('feeNoRec')}</div>`;
+  }
+  // 已申請加操列表（本期兩個月內）
+  const months=[S.period*2+1,S.period*2+2].map(m=>String(m).padStart(2,'0'));
+  const ads=(child.addons||[]).filter(a=>months.indexOf(String(a.month).slice(5,7))>=0).sort((a,b)=>a.date<b.date?-1:1);
+  let adBlock='';
+  if(ads.length){
+    adBlock=`<div class="mk-booked"><div class="h">${t('addonBookedH')}</div>
+      ${ads.map(a=>{const d=new Date(a.date+'T00:00:00');const paid=a.status==='已繳';
+        return `<div class="row"><span>${classLabel(a.to)}・${fmt(d)}${dow(d)}　$${a.price}</span><span style="color:${paid?'var(--green)':'var(--amber)'};font-weight:700">${paid?t('stPaid'):a.status}</span></div>`;}).join('')}
+    </div>`;
+  }
+  return `<div class="card"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${inner}${adBlock}</div>`;
+}
+/* ─── 加操 ─── */
+function addonCumCost(n){ return n>=4?n*110:n*130; }
+let AD={};
+function openAddon(ki,ci){
+  const child=S.family.children[ki], c=child.classes[ci];
+  // 候選：所有班別未來上課日（同一課程）
+  const cands=[]; const seen={};
+  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time});} } }); });
+  cands.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
+  AD={ki,ci,name:child.name,pick:null};
+  if(!cands.length){ openSheet(`<h2>${t('addonTitle')}</h2><p class="sd">${t('addonNoSlot')}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
+  openSheet(`<h2>${t('addonTitle')}</h2>
+    <p class="sd">${t('addonSd')}</p>
+    <div class="notice warn">${t('addonPriceNote')}</div>
+    <div id="ad-opts">${cands.map((x,i)=>{const d=new Date(x.date+'T00:00:00');return `<div class="opt" onclick="pickAddon(${i},this)"><div><div class="t">${classLabel(x.toKey)}</div><div style="font-size:12px;color:var(--muted)">${fmt(d)}${dow(d)}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
+    <div id="ad-price" style="margin:10px 0;font-size:15px"></div>
+    <input id="ad-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
+    <div style="height:12px"></div><button class="btn" id="ad-go" onclick="submitAddon()" disabled>${t('addonSubmit')}</button>`);
+  AD.cands=cands;
+}
+function pickAddon(i,el){
+  [...el.parentNode.children].forEach(c=>{c.classList.remove('on');const cap=c.querySelector('.cap');if(cap)cap.style.display='none';});
+  el.classList.add('on'); const cap=el.querySelector('.cap'); if(cap)cap.style.display='block';
+  AD.pick=AD.cands[i];
+  const month=AD.pick.date.slice(0,7);
+  const child=S.family.children[AD.ki];
+  const n=(child.addons||[]).filter(a=>a.month===month).length;
+  const price=addonCumCost(n+1)-addonCumCost(n);
+  AD.price=price; $('ad-price').innerHTML=t('addonThisPrice',price);
+  $('ad-go').disabled=false;
+}
+async function submitAddon(){
+  const code=$('ad-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong'));
+  if(!AD.pick) return;
+  const btn=$('ad-go'); btn.disabled=true; btn.textContent=t('submitting');
+  let r; try{ r=await api('addSession',{name:AD.name,toKey:AD.pick.toKey,toDate:AD.pick.date}); }catch(e){ r=null; }
+  if(!r||!r.ok){ btn.disabled=false; btn.textContent=t('addonSubmit'); return toast((r&&r.err)||t('netFail')); }
+  closeSheet(); await refresh();
+  const d=new Date(AD.pick.date+'T00:00:00');
+  showReceipt(t('rcAddon'),[`${t('child')}：<b>${AD.name}</b>`,`${t('klass')}：${classLabel(AD.pick.toKey)}・${fmt(d)}${dow(d)}`,`${t('addonSeqL',r.seq)}　·　$${r.price}`,`<span style="color:#c0392b">${t('addonPayLine',S.payNumber||'6709 3390')}</span>`],
+    `INITIATE 加操\n小朋友：${AD.name}\n班別：${classLabel(AD.pick.toKey)}\n日期：${AD.pick.date}\n應付：$${r.price}`);
 }
 let PAY={};
 function openPay(ki,period){
@@ -607,7 +734,7 @@ function closeSheet(){ $('scrim').classList.remove('show'); }
 function waLink(text){ return 'https://wa.me/'+CONFIG.WHATSAPP+'?text='+encodeURIComponent(text); }
 function showReceipt(title,lines,waText){
   $('receipt-box').innerHTML=`<h3>${title}</h3>${lines.map(l=>`<div class="line">${l}</div>`).join('')}
-    <a class="wa" href="${waLink(waText)}" target="_blank" rel="noopener">${t('waConfirm')}</a>
+    ${waText?`<a class="wa" href="${waLink(waText)}" target="_blank" rel="noopener">${t('waConfirm')}</a>`:''}
     <button class="close" onclick="closeReceipt()">${t('done')}</button>`;
   $('receipt-scrim').classList.add('show');
 }
