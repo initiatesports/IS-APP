@@ -1215,7 +1215,7 @@ function searchStudentHistory(){
   }).join('');
 }
 /* ═══════════ 繳費管理 ═══════════ */
-let FEES_DATA=[]; let FEES_PERIOD='';
+let FEES_DATA=[]; let FEES_PERIOD=''; let FEES_CLASS='全部';
 function curFeePeriodLabel(){
   const t=todayStr(); const y=t.slice(0,4); const mo=Number(t.slice(5,7)); const idx=Math.floor((mo-1)/2);
   return y+' '+(idx*2+1)+'-'+(idx*2+2)+'月';
@@ -1231,14 +1231,19 @@ async function renderFees(){
   FEES_DATA=r.fees||[];
   const periods=[...new Set(FEES_DATA.map(f=>f.period))].sort();
   if(periods.length && periods.indexOf(FEES_PERIOD)<0) FEES_PERIOD=periods[periods.length-1];
-  const rows=FEES_DATA.filter(f=>f.period===FEES_PERIOD);
+  let rows=FEES_DATA.filter(f=>f.period===FEES_PERIOD);
+  if(FEES_CLASS!=='全部') rows=rows.filter(f=>CLASSES[FEES_CLASS]&&CLASSES[FEES_CLASS].students.indexOf(f.name)>=0);
   const paid=rows.filter(f=>f.status==='已繳').length;
   const pending=rows.filter(f=>f.status==='待核實').length;
   const overdue=rows.filter(f=>f.overdue && f.status!=='已繳').length;
   let html='';
-  html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 12px">
-    <select id="fee-period" onchange="onFeePeriod(this.value)" style="flex:1;min-width:130px;padding:10px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
+  html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 10px">
+    <select id="fee-period" onchange="onFeePeriod(this.value)" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
       ${periods.length?periods.map(p=>`<option ${p===FEES_PERIOD?'selected':''}>${p}</option>`).join(''):`<option>${FEES_PERIOD}</option>`}
+    </select>
+    <select id="fee-class" onchange="onFeeClass(this.value)" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
+      <option value="全部" ${FEES_CLASS==='全部'?'selected':''}>全部班別</option>
+      ${Object.keys(CLASSES).map(id=>`<option value="${id}" ${FEES_CLASS===id?'selected':''}>${id.toUpperCase()}・${CLASSES[id].dayZh} ${CLASSES[id].time}</option>`).join('')}
     </select>
     <button class="btn-makeup-done" onclick="genFeePeriod()">產生本期繳費列</button>
   </div>`;
@@ -1248,7 +1253,7 @@ async function renderFees(){
     <div class="stat-card"><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待核實</div></div>
     <div class="stat-card"><div class="num ${overdue>0?'danger':''}">${overdue}</div><div class="lbl">逾期未繳</div></div>
   </div>`;
-  if(!rows.length){ html+='<div class="empty-state"><div class="icon">💳</div><p>本期暫無繳費列<br><span style="font-size:12px">按上面「產生本期繳費列」</span></p></div>'; wrap.innerHTML=html; return; }
+  if(!rows.length){ html+=`<div class="empty-state"><div class="icon">💳</div><p>${FEES_CLASS==='全部'?'本期暫無繳費列<br><span style="font-size:12px">按上面「產生本期繳費列」</span>':'此班別本期暫無繳費紀錄'}</p></div>`; wrap.innerHTML=html; return; }
   const order={'待核實':1,'未繳':2,'部分':3,'已繳':4,'豁免':5};
   rows.sort((a,b)=>{ const oa=(a.overdue&&a.status!=='已繳')?0:(order[a.status]||9); const ob=(b.overdue&&b.status!=='已繳')?0:(order[b.status]||9); return oa-ob || a.name.localeCompare(b.name); });
   html+='<div class="class-list">';
@@ -1274,7 +1279,7 @@ async function renderFees(){
   let ar; try{ ar=await apiPost({action:'addonsAll', coachPass:cpass()}); }catch(e){ ar=null; }
   const addons=(ar&&ar.ok&&ar.addons)?ar.addons:[];
   html+=`<h3 style="margin:18px 4px 8px;font-size:15px">➕ 加操收款</h3>
-    <div style="margin:0 4px 10px"><button class="btn-makeup-done" onclick="coachAddAddon()">＋ 代客加操（可標已付）</button></div>`;
+    <div style="margin:0 4px 10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn-makeup-done" onclick="coachAddAddon()">＋ 代客加操（可標已付）</button><button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="coachTransfer()">🔁 調堂／轉班（免費）</button></div>`;
   if(addons.length){
     addons.sort((a,b)=>a.date<b.date?1:-1);
     html+=`<div class="class-list">`;
@@ -1313,6 +1318,8 @@ async function addReferral(){
   let r; try{ r=await apiPost({action:'addReferral', coachPass:cpass(), ref:ref.trim(), newbie:nb.trim()}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已登記（餘額 $'+r.balance+'）','✓'); renderFees(); } else toast((r&&r.err)||'登記失敗','⚠');
 }
+function onFeePeriod(v){ FEES_PERIOD=v; renderFees(); }
+function onFeeClass(v){ FEES_CLASS=v; renderFees(); }
 async function genFeePeriod(){
   if(!confirm('為所有在學學生產生「'+FEES_PERIOD+'」應繳列？已有嘅會自動跳過。')) return;
   let r; try{ r=await apiPost({action:'genPeriod', coachPass:cpass(), period:FEES_PERIOD}); }catch(e){ r=null; }
@@ -1335,6 +1342,16 @@ async function verifyAddon(name,toKey,date){
   if(!confirm('確認 '+name+' 的加操（'+date+'）已繳費？')) return;
   let r; try{ r=await apiPost({action:'addonVerify', coachPass:cpass(), name:name, toKey:toKey, toDate:date}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已標記已繳','✓'); renderFees(); } else toast('核實失敗','⚠');
+}
+async function coachTransfer(){
+  const name=prompt('學生中文全名：',''); if(!name) return;
+  const toKey=prompt('轉去邊班？輸入班別代碼：\nc1=一5-6pm  c2=一6-7pm  c3=三5-6pm  c4=三6-7pm\nc5=五6-7pm  c6=六11am  c7=六3pm','c3'); if(!toKey) return;
+  const dates=prompt('上課日期（YYYY-MM-DD，多堂用逗號分隔）：\n例：2026-07-15, 2026-07-22, 2026-07-29',''); if(!dates) return;
+  let r; try{ r=await apiPost({action:'coachTransfer', coachPass:cpass(), name:name.trim(), toKey:toKey.trim(), dates}); }catch(e){ r=null; }
+  if(r&&r.ok){
+    alert(name.trim()+' 已加入 '+toKey.trim()+'：\n成功 '+r.added+' 堂'+(r.skipped&&r.skipped.length?'\n略過：'+r.skipped.join('、'):''));
+    toast('已調堂 '+r.added+' 堂','✓'); renderFees();
+  } else toast((r&&r.err)||'調堂失敗','⚠');
 }
 async function coachAddAddon(){
   const name=prompt('學生中文全名：',''); if(!name) return;

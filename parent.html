@@ -283,6 +283,7 @@ const T={
   addonPayLine:{zh:p=>`請以 FPS／PayMe 過數至 ${p}，並上傳截圖（可喺學費卡再上傳）`,en:p=>`Pay via FPS／PayMe to ${p} and upload the screenshot`},
   addonNoSlot:{zh:'暫時冇可加堂嘅未來時段。',en:'No upcoming sessions to add.'},
   addonBookedH:{zh:'已申請加操',en:'Booked extra sessions'},
+  transferH:{zh:'本期調堂安排',en:'Transferred sessions'},transferTag:{zh:'轉堂',en:'Transfer'},
   feeAdjK:{zh:'調整',en:'Adjust'},addonSeqL:{zh:n=>`本月第 ${n} 堂`,en:n=>`#${n} this month`},
   noticeHdr:{zh:'📣 最新通知',en:'📣 Notices'},
   socialHdr:{zh:'📸 follow 我哋，緊貼最新消息！',en:'📸 Follow us for the latest!'},
@@ -434,6 +435,7 @@ async function refresh(){
 
 /* ═══════════ 家長主頁 ═══════════ */
 function setPeriod(idx){ S.period=idx; renderParent(); }
+function setKid(i){ S.kid=i; renderParent(); }
 function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
   const kids=(S.family&&S.family.children)||[];
@@ -442,6 +444,7 @@ function renderParent(){
   if(periods.indexOf(S.period)<0) S.period=currentPeriodIdx();
   const selector=`<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
   let html=`<div class="wrap">`;
+  html+=socialCard();
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
   html+=`<div style="display:flex;justify-content:flex-end;margin:2px 0 6px"><button class="btn ghost" style="width:auto;padding:7px 14px;font-size:13px" onclick="openPin()">${t('pinBtn')}</button></div>`;
   // 📣 通知
@@ -452,8 +455,16 @@ function renderParent(){
     </div>`;
   }
   html+=selector;
-  html+=socialCard();
-  kids.forEach((child,ki)=>{
+  // 多孩：頂部可揀邊個小朋友（唔使碌落去）
+  const multi=kids.length>1;
+  if(multi && (S.kid==null || S.kid>=kids.length)) S.kid=0;
+  if(!multi) S.kid=0;
+  if(multi){
+    html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px">${kids.map((c,i)=>`<button onclick="setKid(${i})" style="flex:1;min-width:88px;padding:12px 8px;border-radius:12px;border:2px solid ${i===S.kid?'var(--teal,#28B8C8)':'var(--line,#e3e3e3)'};background:${i===S.kid?'var(--teal,#28B8C8)':'#fff'};color:${i===S.kid?'#fff':'var(--ink,#202020)'};font-weight:800;font-size:14.5px;cursor:pointer">${c.name}</button>`).join('')}</div>`;
+  }
+  const showIdx = multi ? [S.kid] : kids.map((_,i)=>i);
+  showIdx.forEach(ki=>{
+    const child=kids[ki]; if(!child) return;
     html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
     // #1 補堂限期將到期提醒（14 日內）
     const hsoon=childHistory(child).makeupable.filter(x=>{const dl=daysLeft(x.deadline);return dl>=0&&dl<=14;});
@@ -544,31 +555,34 @@ function feeCard(child,ki){
   const f=feeForPeriod(child,S.period);
   const stMap={'未繳':t('stUnpaid'),'待核實':t('stPending'),'已繳':t('stPaid'),'部分':t('stPartial'),'豁免':t('stExempt')};
   const stK=LANG==='en'?'Status':'狀態';
-  let inner;
-  if(f){
-    const stTxt=stMap[f.status]||f.status;
-    const stCol=f.status==='已繳'?'var(--green)':(f.status==='待核實'?'var(--teal-dark)':'var(--amber)');
-    const adjLine=(f.adj&&f.adj!==0)?`<div style="font-size:13px;color:${f.adj<0?'var(--green)':'var(--amber)'};margin-top:6px">${t('feeAdjK')}：${f.adj>0?'+':''}$${f.adj}${f.adjNote?'（'+f.adjNote+'）':''}</div>`:'';
-    const discLine=(f.discount&&f.discount>0)?`<div style="font-size:13px;color:var(--green);margin-top:4px">${t('feeDiscK')}：−$${f.discount}</div>`:'';
-    const balLine=(child.referralBalance&&child.referralBalance>0)?`<div style="font-size:12px;color:var(--teal-dark);margin-top:6px">${t('referralBal',child.referralBalance)}</div>`:'';
-    let actions='';
-    if(f.status!=='已繳' && f.status!=='豁免'){
-      actions=`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
-        <button onclick="openPay(${ki},'${f.period}')" style="margin-top:10px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-3l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
-          ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
-        </button>
-        ${f.hasScreenshot?`<div style="font-size:12.5px;color:var(--teal-dark);margin-top:7px;text-align:center">${t('feeUploaded')}</div>`:`<div style="font-size:12px;color:#c0392b;margin-top:7px;text-align:center;font-weight:600">⬆ ${LANG==='en'?'Tap above to upload your payment screenshot':'撳上面個掣即可上傳付款截圖'}</div>`}`;
+  const needPay = S.period > currentPeriodIdx();   // 只有未來期（7-8月起）先顯示付款功能區
+  let payInner='';
+  if(needPay){
+    if(f){
+      const stTxt=stMap[f.status]||f.status;
+      const stCol=f.status==='已繳'?'var(--green)':(f.status==='待核實'?'var(--teal-dark)':'var(--amber)');
+      const adjLine=(f.adj&&f.adj!==0)?`<div style="font-size:13px;color:${f.adj<0?'var(--green)':'var(--amber)'};margin-top:6px">${t('feeAdjK')}：${f.adj>0?'+':''}$${f.adj}${f.adjNote?'（'+f.adjNote+'）':''}</div>`:'';
+      const discLine=(f.discount&&f.discount>0)?`<div style="font-size:13px;color:var(--green);margin-top:4px">${t('feeDiscK')}：−$${f.discount}</div>`:'';
+      let actions='';
+      if(f.status!=='已繳' && f.status!=='豁免'){
+        actions=`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+          <button onclick="openPay(${ki},'${f.period}')" style="margin-top:10px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-3l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
+            ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
+          </button>
+          ${f.hasScreenshot?`<div style="font-size:12.5px;color:var(--teal-dark);margin-top:7px;text-align:center">${t('feeUploaded')}</div>`:`<div style="font-size:12px;color:#c0392b;margin-top:7px;text-align:center;font-weight:600">⬆ ${LANG==='en'?'Tap above to upload your payment screenshot':'撳上面個掣即可上傳付款截圖'}</div>`}`;
+      }
+      payInner=`<div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
+        <div class="stats">
+          <div class="stat"><div class="n">$${f.net}</div><div class="k">${t('feeDue')}</div></div>
+          <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
+          <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
+        </div>${discLine}${adjLine}${actions}`;
+    } else {
+      payInner=`<div class="period-empty">${t('feeNoRec')}</div>`;
     }
-    inner=`<div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
-      <div class="stats">
-        <div class="stat"><div class="n">$${f.net}</div><div class="k">${t('feeDue')}</div></div>
-        <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
-        <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
-      </div>${discLine}${adjLine}${balLine}${actions}`;
-  } else {
-    inner=`<div class="period-empty">${t('feeNoRec')}</div>`;
   }
+  const balLine=(child.referralBalance&&child.referralBalance>0)?`<div style="font-size:13px;color:var(--teal-dark);margin-top:${payInner?'8':'2'}px">${t('referralBal',child.referralBalance)}</div>`:'';
   // 已申請加操列表（本期兩個月內）
   const months=[S.period*2+1,S.period*2+2].map(m=>String(m).padStart(2,'0'));
   const ads=(child.addons||[]).filter(a=>months.indexOf(String(a.month).slice(5,7))>=0).sort((a,b)=>a.date<b.date?-1:1);
@@ -579,7 +593,16 @@ function feeCard(child,ki){
         return `<div class="row"><span>${classLabel(a.to)}・${fmt(d)}${dow(d)}　$${a.price}</span><span style="color:${paid?'var(--green)':'var(--amber)'};font-weight:700">${paid?t('stPaid'):a.status}</span></div>`;}).join('')}
     </div>`;
   }
-  return `<div class="card"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${inner}${adBlock}</div>`;
+  // 本期調堂（轉堂）課堂
+  const trs=(child.transfers||[]).filter(a=>months.indexOf(String(a.date).slice(5,7))>=0).sort((a,b)=>a.date<b.date?-1:1);
+  let trBlock='';
+  if(trs.length){
+    trBlock=`<div class="mk-booked"><div class="h">${t('transferH')}</div>
+      ${trs.map(a=>{const d=new Date(a.date+'T00:00:00');return `<div class="row"><span>${classLabel(a.to)}・${fmt(d)}${dow(d)}</span><span style="color:var(--teal-dark);font-weight:700">${t('transferTag')}</span></div>`;}).join('')}
+    </div>`;
+  }
+  if(!payInner && !balLine && !adBlock && !trBlock) return '';   // 已繳期又冇加操／餘額／調堂 → 唔出卡
+  return `<div class="card"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${payInner}${balLine}${trBlock}${adBlock}</div>`;
 }
 /* ─── 加操 ─── */
 function addonCumCost(n){ return n>=4?n*110:n*130; }
