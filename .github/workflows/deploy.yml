@@ -44,3 +44,17 @@ jobs:
         run: |
           clasp push -f
           clasp deploy -i AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj -d "CI ${GITHUB_SHA::7}"
+
+      # #9 出席系統 v2-grid (is-coach.html / is-leave-makeup.html) → 網址不變
+      - name: Deploy attendance-grid (#9)
+        working-directory: apps-script/attendance-grid
+        run: |
+          clasp push -f
+          clasp deploy -i AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8 -d "CI ${GITHUB_SHA::7}"
+
+      # #11 家長/出席頁 (is-attendance-app.html / is-parent.html) → 網址不變
+      - name: Deploy parent-portal (#11)
+        working-directory: apps-script/parent-portal
+        run: |
+          clasp push -f
+          clasp deploy -i AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU -d "CI ${GITHUB_SHA::7}"
