@@ -233,19 +233,23 @@
     bad: {name:"羽毛球班", emoji:"🏸", capacity:6,  waitlist:2, price:150, note:"自備球拍"},
     pick:{name:"匹克球班", emoji:"🎾", capacity:6,  waitlist:2, price:150, note:"自備球拍"},
     gen: {name:"綜合運動技能班", emoji:"🏃", capacity:10, waitlist:0, price:130, note:"鍛鍊協調、敏捷、爆發力、速度,兼顧柔韌度訓練。"},
-    gym: {name:"基礎體操及柔韌度訓練班", emoji:"🤸", capacity:6, waitlist:2, price:150, note:"鍛鍊核心、平衡、身體控制及柔韌度。"}
+    gym: {name:"基礎體操及柔韌度訓練班", emoji:"🤸", capacity:6, waitlist:2, price:150, note:"鍛鍊核心、平衡、身體控制及柔韌度。"},
+    kid: {name:"幼兒綜合運動技能班", emoji:"🧒", capacity:8, waitlist:2, price:150, note:"幼稚園學員適用。"}
   };
   var SCHEDULE = [
     {date:"18/6 (四)", key:"1806", sessions:[["2:00–3:00 PM","bad"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","pick"]]},
     {date:"19/6 (五)", key:"1906", holiday:"端午節 · 公眾假期", sessions:[["9:00–10:00 AM","gym"],["10:00–11:00 AM","gen"],["11:00 AM–12:00 PM","pick"],["11:00 AM–12:00 PM","bad"]]},
     {date:"22/6 (一)", key:"2206", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"23/6 (二)", key:"2306", sessions:[["5:00–6:00 PM","kid"]]},
     {date:"24/6 (三)", key:"2406", sessions:[["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
     {date:"25/6 (四)", key:"2506", sessions:[["2:00–3:00 PM","pick"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"]]},
     {date:"26/6 (五)", key:"2606", sessions:[["3:00–4:00 PM","bad"],["4:00–5:00 PM","gym"]]},
     {date:"29/6 (一)", key:"2906", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"30/6 (二)", key:"3006", sessions:[["5:00–6:00 PM","kid"]]},
     {date:"2/7 (四)",  key:"0207", sessions:[["2:00–3:00 PM","pick"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"]]},
     {date:"3/7 (五)",  key:"0307", sessions:[["3:00–4:00 PM","bad"],["4:00–5:00 PM","gym"],["5:00–6:00 PM","gen"]]},
     {date:"6/7 (一)",  key:"0607", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
+    {date:"7/7 (二)",  key:"0707", sessions:[["5:00–6:00 PM","kid"]]},
     {date:"8/7 (三)",  key:"0807", sessions:[["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]},
     {date:"9/7 (四)",  key:"0907", sessions:[["2:00–3:00 PM","pick"],["3:00–4:00 PM","gen"],["4:00–5:00 PM","bad"]]},
     {date:"10/7 (五)", key:"1007", sessions:[["3:00–4:00 PM","gym"],["4:00–5:00 PM","bad"],["4:00–5:00 PM","pick"]]}
@@ -310,7 +314,7 @@
   function money(n){ return "$"+Number(n).toLocaleString("en-US"); }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];}); }
 
-  var FILTER_CHIPS=[["","全部"],["bad","🏸 羽毛球"],["pick","🎾 匹克球"],["gen","🏃 綜合運動"],["gym","🤸 體操"]];
+  var FILTER_CHIPS=[["","全部"],["bad","🏸 羽毛球"],["pick","🎾 匹克球"],["gen","🏃 綜合運動"],["gym","🤸 體操"],["kid","🧒 幼兒"]];
   function renderFilters(){ var host=document.getElementById("filterRow"), h="";
     FILTER_CHIPS.forEach(function(c){ h+='<button class="chip'+(filterType===c[0]?" on":"")+'" data-f="'+c[0]+'">'+c[1]+'</button>'; });
     host.innerHTML=h;
@@ -590,13 +594,17 @@
       var pend=regs.filter(function(r){return r.status==="pending";});
       var rev=0,paidRev=0; conf.forEach(function(r){rev+=c.price; if(r.paid)paidRev+=c.price;});
       grandExpected+=rev; grandPaid+=paidRev;
-      html+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+' · 留位 '+conf.length+'/'+c.capacity+(pend.length?(' · '+pend.length+' 未完成'):'')+'</span></div>'
-        +'<button class="editbtn" data-edit="'+c.id+'">✎ 改價錢 / 人數 / 地點</button>';
+      var notFormed=(conf.length>0 && conf.length<4);
+      html+='<div class="acard"><div class="ahead"><span class="at">'+c.emoji+' '+esc(c.name)+(notFormed?' <span class="ovbadge" style="background:#B7791F">未成班</span>':'')+'</span><span class="ac">'+esc(c.date)+' · '+esc(c.time)+' · 留位 '+conf.length+'/'+c.capacity+(pend.length?(' · '+pend.length+' 未完成'):'')+'</span></div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px">'
+        +'<button class="editbtn" data-edit="'+c.id+'">✎ 改價錢 / 人數 / 地點</button>'
+        +((conf.length+wl.length)>0?'<button class="editbtn" data-cancel="'+c.id+'" style="border-color:var(--coral);color:var(--coral)">📋 取消 / 退款通知</button>':'')
+        +'</div>';
       if(!regs.length){ html+='<div class="empty">未有人報名</div>'; }
       function rowHtml(r, kind){
         var tag = kind==="wl"?'<span class="wlpill">候補</span>' : (kind==="pend"?'<span class="wlpill" style="background:#FBE9C7;color:#7A5B00">未完成</span>':'');
         return '<div class="areg'+(kind==="pend"?" relrow":"")+(kind==="wl"?" wlrow":"")+'">'
-          +'<div class="ai"><b>'+esc(r.student)+'</b>'+tag+'<br><span>'+esc(r.parent)+' · '+esc(r.phone)+(r.proof?' · 📎已交截圖':(kind==="pend"?' · 未上傳截圖':''))+'</span></div>'
+          +'<div class="ai"><b>'+esc(r.student)+'</b>'+tag+'<br><span>'+esc(r.parent)+' · '+esc(r.phone)+(r.proof?' · 📎已交截圖':(kind==="pend"?' · 未上傳截圖':''))+(r.refunded?' · <b style="color:var(--green-d)">已退款</b>':'')+'</span></div>'
           +(r.proof?'<button class="pchip" data-proof="'+r.id+'">睇截圖</button>':'')
           +(kind==="conf"?'<button class="pchip'+(r.paid?" paid":"")+'" data-rid="'+r.id+'">'+(r.paid?"已付款 ✓":"標記已付款")+'</button>':'')
           +'<button class="adel" data-del="'+r.id+'" title="永久刪除紀錄">🗑</button></div>';
@@ -621,6 +629,7 @@
     host.innerHTML=html;
     host.querySelectorAll(".chip").forEach(function(b){ b.addEventListener("click",function(){ adminFilter=b.getAttribute("data-af"); renderAdmin(); }); });
     host.querySelectorAll("[data-edit]").forEach(function(b){ b.addEventListener("click",function(){ openEditClass(b.getAttribute("data-edit")); }); });
+    host.querySelectorAll("[data-cancel]").forEach(function(b){ b.addEventListener("click",function(){ genCancelNotice(b.getAttribute("data-cancel")); }); });
     host.querySelectorAll("[data-proof]").forEach(function(b){ b.addEventListener("click",function(){ viewProof(b.getAttribute("data-proof")); }); });
     host.querySelectorAll(".pchip[data-rid]").forEach(function(b){ b.addEventListener("click",function(){ togglePaid(b.getAttribute("data-rid")); }); });
     host.querySelectorAll(".adel").forEach(function(b){ b.addEventListener("click",function(){ delReg(b.getAttribute("data-del")); }); });
@@ -659,7 +668,7 @@
     var csv=lines.map(function(row){ return row.map(csvCell).join(","); }).join("\r\n");
     var blob=new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
     var d=new Date(), ymd=""+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate());
-    var tag=adminFilter?("_"+(({bad:"羽毛球",pick:"匹克球",gen:"綜合運動",gym:"體操"})[adminFilter]||adminFilter)):"";
+    var tag=adminFilter?("_"+(({bad:"羽毛球",pick:"匹克球",gen:"綜合運動",gym:"體操",kid:"幼兒"})[adminFilter]||adminFilter)):"";
     var url=URL.createObjectURL(blob), a=document.createElement("a");
     a.href=url; a.download="INITIATE_點名表"+tag+"_"+ymd+".csv";
     document.body.appendChild(a); a.click();
@@ -690,6 +699,38 @@
   function viewProof(regId){
     if(apiReady){ apiPost("getProof",{id:regId, pin:adminPin}).then(function(d){ if(d&&d.ok&&d.dataUrl) showProof(d.dataUrl); else toast("搵唔到截圖"); }).catch(function(){ toast("載入截圖失敗"); }); }
     else { var durl=mem["proof_"+regId]; if(durl) showProof(durl); else toast("示範模式:截圖只存咗喺呢個分頁"); } }
+
+  /* ===== 未成班 / 取消 · 退款通知 ===== */
+  function genCancelNotice(classId){
+    var c=byId(classId); if(!c) return;
+    var regs=state.regs.filter(function(r){ return r.classId===classId && (r.status==="confirmed"||r.status==="waitlist"); });
+    var paidRegs=regs.filter(function(r){ return r.proof; });
+    var confN=regs.filter(function(r){ return r.status==="confirmed"; }).length;
+    var notFormed=confN<4, ven=classVenue(c);
+    var reason=notFormed?"因報名人數不足 4 人,未能成班,此堂將會取消。":"因故未能如期進行,此堂將會取消。";
+    var notice="📢 INITIATE SPORTS 課堂取消通知\n\n各位家長:\n\n"+c.emoji+c.name+"\n📅 "+c.date+" "+c.time+"\n📍 "+(ven||"青衣區體育館")+"\n\n"+reason+"已繳之學費將會全額退回,我哋會盡快為你安排退款。\n\n不便之處,敬請見諒,期待下次再見!🙏\n\nINITIATE SPORTS";
+    var listHtml=paidRegs.length ? paidRegs.map(function(r){
+      return '<div class="areg"><div class="ai"><b>'+esc(r.student)+'</b><br><span>'+esc(r.parent)+' · '+esc(r.phone)+'</span></div>'
+        +'<button class="pchip'+(r.refunded?" paid":"")+'" data-refund="'+r.id+'">'+(r.refunded?"已退款 ✓":"標記已退款")+'</button></div>';
+    }).join("") : '<div class="empty">此班暫無已付款學生</div>';
+    var body='<div class="statusline" style="color:var(--ink);margin-bottom:10px"><b>'+esc(c.emoji+" "+c.name)+'</b> · '+esc(c.date)+' '+esc(c.time)+' · 已留位 '+confN+' 人'+(notFormed?' (未成班)':'')+'</div>'
+      +'<div class="small" style="margin-bottom:6px">通知文案(可自行修改後複製):</div>'
+      +'<textarea class="inp" id="noticeText" rows="11" style="resize:vertical;font-size:14px;line-height:1.55">'+esc(notice)+'</textarea>'
+      +'<button class="copybtn" id="copyNotice" style="margin-top:10px">複製通知文案</button>'
+      +'<div style="font-family:var(--display);font-weight:800;font-size:16px;margin:20px 0 6px">退款確認</div>'
+      +'<div class="small" style="margin-bottom:10px">退款畀家長後,喺下面標記,方便對數。</div>'
+      +listHtml
+      +'<button class="navbtn" id="noticeBack" style="width:100%;margin-top:14px;padding:13px">返回</button>';
+    openSheet("取消 / 退款通知", body);
+    document.getElementById("copyNotice").addEventListener("click", function(){ copyText(document.getElementById("noticeText").value); this.classList.add("copied"); this.textContent="已複製文案 ✓"; });
+    document.getElementById("noticeBack").addEventListener("click", function(){ closeSheet(); renderAdmin(); });
+    document.getElementById("sheetBody").querySelectorAll(".pchip[data-refund]").forEach(function(b){ b.addEventListener("click",function(){ toggleRefund(b.getAttribute("data-refund"), classId); }); });
+  }
+  function toggleRefund(rid, classId){
+    var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; }); if(!reg) return;
+    var nv=!reg.refunded; reg.refunded=nv; genCancelNotice(classId);   /* 即時更新畫面 */
+    if(apiReady){ apiPost("setRefunded",{id:rid, refunded:nv, pin:adminPin}).then(function(d){ if(d&&d.ok===false){ toast("操作未授權"); reg.refunded=!nv; genCancelNotice(classId); } }).catch(function(){ toast("更新失敗"); reg.refunded=!nv; genCancelNotice(classId); }); }
+  }
 
   function showDemoBanner(){ var el=document.getElementById("demoBanner"); if(!el) return;
     el.innerHTML='⚠️ 示範模式 —— 未連接 Google Sheet,報名資料唔會儲存、亦唔會同步。部署 Apps Script 後把網址貼入程式碼即可正式運作。';
