@@ -21,11 +21,14 @@
 
   .bar{position:sticky;top:0;z-index:40;background:rgba(238,241,239,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   .bar .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:8px}
-  .brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;letter-spacing:.03em;font-size:14px;flex-shrink:1;min-width:0}
+  .brand{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;letter-spacing:.03em;font-size:14px;flex-shrink:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .brand .dot{width:11px;height:11px;border-radius:3px;background:var(--green);box-shadow:3px 0 0 var(--yellow);flex-shrink:0}
   .acts{display:flex;gap:7px;flex-shrink:0}
   .navbtn{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.01em;background:none;border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--ink);cursor:pointer;white-space:nowrap}
+  a.navbtn{display:inline-flex;align-items:center;text-decoration:none}
   .navbtn:hover{border-color:var(--green);color:var(--green)}
+  .navbtn.summer{background:var(--yellow);border-color:var(--yellow);color:var(--ink);box-shadow:0 2px 8px rgba(255,196,0,.45)}
+  .navbtn.summer:hover{background:#EAB200;border-color:#EAB200;color:var(--ink)}
 
   .hero{padding:32px 0 4px}
   .eyebrow{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);display:flex;gap:8px;align-items:center}
@@ -175,7 +178,7 @@
 
 <div class="bar"><div class="wrap">
   <div class="brand"><span class="dot"></span>INITIATE SPORTS</div>
-  <div class="acts"><button class="navbtn" id="myToggle">查詢報名</button><button class="navbtn" id="adminToggle">教練管理</button></div>
+  <div class="acts"><a class="navbtn summer" href="https://initiatesports.github.io/SUMMER-COURSE-2026/" target="_blank" rel="noopener">☀️ 2026 暑期班</a><button class="navbtn" id="myToggle">查詢報名</button><button class="navbtn" id="adminToggle">教練管理</button></div>
 </div></div>
 
 <div id="parentView"><div class="wrap">
