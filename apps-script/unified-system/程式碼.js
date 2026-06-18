@@ -38,13 +38,13 @@ const VERSION = "is-unified-v2";
  * 已併入：顧舒然(c5)、潘洛詩(c7)（出席記錄已有，補回名單）。
  */
 const CLASSES = {
-  c1:{ dayZh:"星期一", wd:1, time:"5–6pm",  students:["余悅","孔善盈","何芯蕾","蔡芷彤","羅梓晉","羅君信","羅君浩","陳大文"] },
-  c2:{ dayZh:"星期一", wd:1, time:"6–7pm",  students:["翟悅廷","郭栩澄","陳柏睎","葉宇浩","梁德瑜","梁德澤","許思溢"] },
-  c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","梁正軒","陳思允"] },
-  c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁心朗","陳信澄","陳澔泓","梁正宇","蘇穎悠"] },
-  c5:{ dayZh:"星期五", wd:5, time:"6–7pm",  students:["吳瑋軒","黎柏言","陳曉瑩","梁正宇","郭可昕","黃玥晴","黃朗程","姚心穎","羅靖誼","黎柏希","陳焯棋","顧舒然"] },
+  c1:{ dayZh:"星期一", wd:1, time:"5–6pm",  students:["余悅","孔善盈","蔡芷彤","羅梓晉","羅君信","羅君浩","陳大文","蘇穎悠"] },
+  c2:{ dayZh:"星期一", wd:1, time:"6–7pm",  students:["翟悅廷","郭栩澄","葉宇浩","梁德澤","許思溢","梁正軒","梁正宇"] },
+  c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","陳思允"] },
+  c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁心朗","陳信澄","陳澔泓","梁德瑜","陳柏睎"] },
+  c5:{ dayZh:"星期五", wd:5, time:"6–7pm",  students:["吳瑋軒","黎柏言","陳曉瑩","梁正宇","郭可昕","黃玥晴","黃朗程","姚心穎","羅靖誼","黎柏希","陳焯棋","顧舒然","梁正軒"] },
   c6:{ dayZh:"星期六", wd:6, time:"11am–12", students:["張爾淳","張雅堯","黃梓昕","王尉鏇","王斯顏","呂洛希","馬仲然","鄧朗森","陳書雅"] },
-  c7:{ dayZh:"星期六", wd:6, time:"3–4pm",  students:["劉家頤","鄭宇喬","鍾皓惟","周莉晶","李灝宏","潘洛詩"] },
+  c7:{ dayZh:"星期六", wd:6, time:"3–4pm",  students:["劉家頤","鄭宇喬","鍾皓惟","周莉晶","李灝宏","潘洛詩","何芯蕾"] },
 };
 const CLASS_IDS = Object.keys(CLASSES);
 
@@ -1428,6 +1428,11 @@ function onOpen(){
     .addItem("備份清單","listBackups")
     .addItem("還原至最近備份（最完整）","restoreLatest")
     .addItem("還原（自選時間）","restoreChoose")
+    .addSeparator()
+    .addItem("⬇️ 匯入家長資料（IS App Data）","importParentDataMenu")
+    .addItem("⬇️ 匯入繳費標記（IS App Data）","importFeesMenu")
+    .addItem("🔄 重建學生名冊（只顯示現時班別）","rebuildRosterMenu")
+    .addItem("✅ 標記 5-6月 全部已繳","markFiveSixPaidMenu")
     .addToUi();
 }
 
@@ -1559,4 +1564,280 @@ function restoreChoose(){
   if(!map[t]){ ui.alert("搵唔到「"+t+"」嘅備份。請用「備份清單」對返完整時間（連秒）。"); return; }
   applySnapshot_(map[t].rows);
   ui.alert("已還原至 "+t+"\n共 "+map[t].total+" 筆（補堂 "+map[t].mk+" 筆）");
+}
+
+/* ═══════════ 一次性匯入：由「IS App Data」搬出席/成績/體測（冪等）═══════════
+ * 由 parent-portal 後端嘅 container sheet 直接讀，逐筆原班原日寫入本系統。
+ * 動作前自動 backup()；可隨時用「還原」復原。繳費結構不同，只記 Log 人手處理。 */
+const PORTAL_SHEET_ID = "1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo";
+const IMPORT_NAME_FIX = { "陳柏晞":"陳柏睎" };   // 打錯字 → 正名
+
+function importParentDataMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var c=ui.alert("匯入家長資料",
+    "會由「IS App Data」匯入出席／成績／體測，並套用最新班別名單。\n動作前自動備份，可用「還原」復原。\n\n確定執行？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  var r;
+  try{ r=importParentData(); }
+  catch(e){ ui.alert("匯入失敗：\n"+(e&&e.message||e)+"\n\n資料可用「還原至最近備份」復原。"); return; }
+  ui.alert("匯入完成 ✅",
+    "出席寫入："+r.attWrote+" / "+r.attTotal+"\n"+
+    (r.attSkip.length?("⚠️ 未能寫入 "+r.attSkip.length+" 筆（詳見「查看」→ Apps Script 記錄）\n"):"")+
+    "補堂紀錄："+r.mkWrote+"\n成績："+r.perfWrote+"\n體測："+r.bodyWrote+"\n\n"+
+    "繳費 "+r.feeCount+" 筆結構不同，需人手處理（已記 Log）。\n已自動備份。",
+    ui.ButtonSet.OK);
+}
+
+function rebuildRosterMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var c=ui.alert("重建學生名冊",
+    "會依最新班別名單（CLASSES）重建名冊，保留各家長手機。\n家長頁將只顯示現時班別；舊班別歷史出席紀錄不受影響、仍保留在各班格仔內。\n\n確定執行？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  try{ ensureRoster_(SS()); }
+  catch(e){ ui.alert("重建失敗：\n"+(e&&e.message||e)); return; }
+  ui.alert("名冊已重建 ✅","家長頁現只顯示現時班別。",ui.ButtonSet.OK);
+}
+
+/* ✅ 一鍵：標記某期（預設 5-6月）全部已繳 → 已繳=實際應繳、狀態=已繳；家長頁付款區自動消失 */
+function markPeriodFeesPaid_(monthLabel){
+  var sh=feeSheet();
+  var rows=feeRows_().filter(function(x){ return x.period.indexOf(monthLabel)>=0; });
+  var done=0;
+  rows.forEach(function(x){
+    if(x.status==="已繳") return;                  // 已係已繳就跳過
+    sh.getRange(x.row,7).setValue(x.net);          // 已繳 = 實際應繳
+    recalcFeeRow_(x.row);                            // 重算狀態 → 已繳
+    done++;
+  });
+  return {total:rows.length, marked:done};
+}
+function markFiveSixPaidMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var rows=feeRows_().filter(function(x){ return x.period.indexOf("5-6月")>=0; });
+  var pending=rows.filter(function(x){ return x.status!=="已繳"; }).length;
+  var c=ui.alert("標記 5-6月 全部已繳",
+    "共 "+rows.length+" 個 5-6月 繳費紀錄，其中 "+pending+" 個未繳/部分。\n會將佢哋全部標記為「已繳」（已繳金額 = 實際應繳）。\n家長頁該期付款區會自動消失。\n\n會先自動備份。確定執行？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  var r;
+  try{ backup(); r=markPeriodFeesPaid_("5-6月"); }
+  catch(e){ ui.alert("執行失敗：\n"+(e&&e.message||e)); return; }
+  ui.alert("完成 ✅","5-6月 共 "+r.total+" 個紀錄，新標記 "+r.marked+" 個為已繳。",ui.ButtonSet.OK);
+}
+
+function importParentData(){
+  var ss=SS();
+  backup();
+  ensureRoster_(ss);   // 名冊套用最新 CLASSES 班別（保留家長手機）→ 家長頁只顯示現時班別
+  // 捕捉各班現有格仔（舊上課日）→ 之後改名單/加堂強制重建仍可還原（保留陳大文 demo 等）
+  var beforeMap={};
+  CLASS_IDS.forEach(function(cid){ beforeMap[cid]=readFull(cid); });
+  // c5 加返勞動節 2026-05-01 做特別上課日
+  upsertSetting_("extra_c5", JSON.stringify(["2026-05-01"]));
+
+  // 組裝每班 marks：{ cid: { name: { dateIso: zh } } }（記憶體合併，最後一次過寫）
+  var marks={}; CLASS_IDS.forEach(function(cid){ marks[cid]={}; });
+  function put(cid,name,iso,zh){
+    if(!cid||!name||!iso||!zh||!marks[cid]) return;
+    (marks[cid][name]=marks[cid][name]||{})[iso]=zh;
+  }
+  // (a) 保留 #4 既有格（demo／任何已有資料），用日期字串對位（對亂序安全）
+  CLASS_IDS.forEach(function(cid){
+    var before=beforeMap[cid];
+    Object.keys(before.reg).forEach(function(nm){ if(!nm) return;
+      before.reg[nm].forEach(function(zh,i){ if(zh && before.dates[i]) put(cid,nm,before.dates[i],zh); }); });
+    before.mk.forEach(function(x){ if(!x.name) return;
+      x.statuses.forEach(function(zh,i){ if(zh && before.dates[i]) put(cid,x.name,before.dates[i],zh); }); });
+  });
+
+  var SRC=SpreadsheetApp.openById(PORTAL_SHEET_ID);
+
+  // (b)「IS App Data」出席：原班原日，官網為準覆蓋
+  var av=SRC.getSheetByName("attendance").getDataRange().getValues();
+  var attSkip=[];
+  for(var i=1;i<av.length;i++){
+    var cid=String(av[i][1]||"").trim();
+    var date=toIso_(av[i][2]);
+    var name=String(av[i][3]||"").trim(); name=IMPORT_NAME_FIX[name]||name;
+    var st=String(av[i][4]||"").trim();
+    if(!cid||!name||!st) continue;
+    var zh=EN2ZH[st]; if(!zh){ attSkip.push(cid+"|"+date+"|"+name+"|"+st+"(未知狀態)"); continue; }
+    if(!marks[cid]){ attSkip.push(cid+"|"+date+"|"+name+"|"+st+"(未知班別)"); continue; }
+    put(cid,name,date,zh);
+  }
+
+  // 計算「應寫入」總數（合併後）
+  var attTotal=0;
+  CLASS_IDS.forEach(function(cid){ Object.keys(marks[cid]).forEach(function(nm){
+    attTotal+=Object.keys(marks[cid][nm]).length; }); });
+
+  // 逐班強制重建（套用最新 CLASSES 名單）→ 一次過 setValues 寫入（快，唔會逾時）
+  var attWrote=0;
+  CLASS_IDS.forEach(function(cid){
+    buildGrid(ss, cid, true);
+    var r=applyMarksBulk_(cid, marks[cid]);
+    attWrote+=r.wrote;
+    r.skip.forEach(function(s){ attSkip.push(s); });
+  });
+  SpreadsheetApp.flush();
+
+  // ② 補堂 ledger：由 absences.madeUpDate；冪等先清 IMP 標記行（第6欄）
+  var MK=makeupSheet(); clearTagged_(MK, 6);
+  var abv=SRC.getSheetByName("absences").getDataRange().getValues();
+  var mkRows=[], mkWrote=0;
+  for(var j=1;j<abv.length;j++){
+    var nm=String(abv[j][1]||"").trim(); nm=IMPORT_NAME_FIX[nm]||nm;
+    var mud=abv[j][5];
+    if(!nm || mud===""||mud===null||mud===undefined) continue;
+    mkRows.push([nm, String(abv[j][2]||"").trim(), "", toIso_(mud), "出席", "IMP"]); mkWrote++;
+  }
+  if(mkRows.length){ MK.getRange(MK.getLastRow()+1,1,mkRows.length,6).setValues(mkRows); MK.getRange("D:D").setNumberFormat("@"); }
+
+  // ③ 成績 Perf（冪等：清 IMP 第8欄 → 重寫）
+  var P=ss.getSheetByName("Perf"); clearTagged_(P, 8);
+  var pv=SRC.getSheetByName("performance").getDataRange().getValues();
+  var perfRows=[], perfWrote=0;
+  for(var k=1;k<pv.length;k++){ var pn=String(pv[k][0]||"").trim(); if(!pn) continue;
+    perfRows.push([pn, String(pv[k][1]||""), toIso_(pv[k][2]), pv[k][3], "", "", "", "IMP"]); perfWrote++; }
+  if(perfRows.length) P.getRange(P.getLastRow()+1,1,perfRows.length,8).setValues(perfRows);
+
+  // ④ 體測 Body（冪等：清 IMP 第5欄 → 重寫）
+  var B=ss.getSheetByName("Body"); clearTagged_(B, 5);
+  var bv=SRC.getSheetByName("body").getDataRange().getValues();
+  var bodyRows=[], bodyWrote=0;
+  for(var b=1;b<bv.length;b++){ var bn=String(bv[b][0]||"").trim(); if(!bn) continue;
+    bodyRows.push([bn, toIso_(bv[b][1]), bv[b][2], bv[b][3], "IMP"]); bodyWrote++; }
+  if(bodyRows.length) B.getRange(B.getLastRow()+1,1,bodyRows.length,5).setValues(bodyRows);
+
+  // ⑤ 繳費：結構不同，只記 Log 畀老闆人手處理
+  var fv=SRC.getSheetByName("fee_paid").getDataRange().getValues(), feeCount=0;
+  for(var f=1;f<fv.length;f++){ if(String(fv[f][3]||"").trim()){ feeCount++;
+    Logger.log("繳費(人手)："+fv[f][3]+" / "+fv[f][1]+" / "+fv[f][2]+" / paid="+fv[f][4]); } }
+
+  attSkip.forEach(function(s){ Logger.log("出席未寫："+s); });
+  SpreadsheetApp.flush();
+  return {attWrote:attWrote, attTotal:attTotal, attSkip:attSkip,
+          mkWrote:mkWrote, perfWrote:perfWrote, bodyWrote:bodyWrote, feeCount:feeCount};
+}
+
+/* ⬇️ 匯入繳費「已繳」標記：由「IS App Data」fee_paid 搬入本系統繳費表（冪等）
+ * 來源 paid=true → 對應 (學生,期) 那列：已繳=實際應繳、狀態自動計成「已繳」。 */
+const FEE_MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function portalPeriodToLabel_(pid){
+  var m=String(pid).match(/(\d{4})-([a-z]{3})-([a-z]{3})/i);
+  if(!m) return "";
+  var a=FEE_MONTHS[m[2].toLowerCase()], b=FEE_MONTHS[m[3].toLowerCase()];
+  if(!a||!b) return "";
+  return m[1]+" "+a+"-"+b+"月";
+}
+function importFeesMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var c=ui.alert("匯入繳費標記",
+    "會由「IS App Data」將已繳費學生喺本系統繳費表標記為「已繳」。\n動作前自動備份，可用「還原」復原。\n\n確定執行？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  var r;
+  try{ backup(); r=importFeesFromPortal_(); }
+  catch(e){ ui.alert("匯入失敗：\n"+(e&&e.message||e)+"\n\n可用「還原至最近備份」復原。"); return; }
+  ui.alert("繳費標記匯入完成 ✅",
+    "標記為已繳："+r.done+" 筆\n"+
+    (r.miss.length?("⚠️ 未能對應 "+r.miss.length+" 筆（詳見 Apps Script 記錄）"):"全部成功對應")+
+    "\n已自動備份。", ui.ButtonSet.OK);
+}
+function importFeesFromPortal_(){
+  var SRC=SpreadsheetApp.openById(PORTAL_SHEET_ID);
+  var fv=SRC.getSheetByName("fee_paid").getDataRange().getValues();   // 欄：key,periodId,classId,name,paid
+  var sh=feeSheet(), done=0, miss=[];
+  for(var i=1;i<fv.length;i++){
+    var paid=String(fv[i][4]||"").trim().toLowerCase();
+    if(paid!=="true"&&paid!=="1"&&paid!=="已繳") continue;
+    var nm=String(fv[i][3]||"").trim(); nm=IMPORT_NAME_FIX[nm]||nm;
+    var label=portalPeriodToLabel_(fv[i][1]);
+    if(!nm||!label){ miss.push("paid列無法解析："+JSON.stringify(fv[i])); continue; }
+    var hit=null; feeRows_().forEach(function(x){ if(x.name===nm && x.period===label) hit=x; });
+    if(!hit){ miss.push(nm+" / "+label+"（繳費表搵唔到此列）"); continue; }
+    if(hit.status==="已繳"){ continue; }   // 冪等：已標記就跳過
+    var net=Number(sh.getRange(hit.row,6).getValue())||hit.net||hit.due||0;
+    sh.getRange(hit.row,7).setValue(net>0?net:hit.due);   // 已繳 = 實際應繳
+    recalcFeeRow_(hit.row);                                // 狀態自動計成「已繳」
+    done++;
+  }
+  miss.forEach(function(s){ Logger.log("繳費標記未對應："+s); });
+  SpreadsheetApp.flush();
+  return {done:done, miss:miss};
+}
+
+/* 寫入/更新 Settings 一個 key */
+function upsertSetting_(key, value){
+  var ST=settingsSheet(); if(!ST){ ST=SS().insertSheet("Settings"); ST.appendRow(["key","value"]); }
+  var last=ST.getLastRow();
+  if(last>=2){ var keys=ST.getRange(2,1,last-1,1).getValues();
+    for(var i=0;i<keys.length;i++){ if(String(keys[i][0]).trim()===key){ ST.getRange(i+2,2).setValue(value); return; } } }
+  ST.appendRow([key, value]);
+}
+
+/* 一次過將整班 marks 寫入 grid（取代逐格 markCell，避免逾時）
+ * marksByName = { name: { dateIso: zh } }；正規學生用矩陣，名單以外排補堂訪客列。
+ * 回傳 {wrote, skip[]}；非上課日／補堂區滿 → 入 skip 不漏報。 */
+function applyMarksBulk_(cid, marksByName){
+  var ss=SS(), sh=ss.getSheetByName(gridName(cid));
+  var dates=sessionsFor(cid), n=dates.length, students=CLASSES[cid].students;
+  var wrote=0, skip=[]; marksByName=marksByName||{};
+  if(!sh){ Object.keys(marksByName).forEach(function(nm){ skip.push(cid+"|"+nm+"|(無班表)"); }); return {wrote:0,skip:skip}; }
+  var dcol={}; for(var i=0;i<n;i++) dcol[dates[i]]=i;
+
+  // ① 正規學生：R×n 矩陣，一次過 setValues
+  var R=students.length;
+  if(R && n){
+    var mat=[]; for(var r=0;r<R;r++){ var row=[]; for(var c=0;c<n;c++) row.push(""); mat.push(row); }
+    for(var s=0;s<R;s++){
+      var snm=students[s], sm=marksByName[snm]; if(!sm) continue;
+      Object.keys(sm).forEach(function(iso){
+        var ci=dcol[iso];
+        if(ci===undefined){ skip.push(cid+"|"+snm+"|"+iso+"|"+sm[iso]+"(非上課日)"); return; }
+        mat[s][ci]=sm[iso]; wrote++;
+      });
+    }
+    sh.getRange(DATA_START,DATE_COL0,R,n).setValues(mat);
+  }
+
+  // ② 名單以外（訪客／補堂）：排名單下方，最多 MK_MAX 行，整塊一次過寫
+  var guests=Object.keys(marksByName).filter(function(nm){ return students.indexOf(nm)<0; });
+  if(guests.length){
+    var mkStart=DATA_START+R, lastCol=2+n+3;
+    var c0=colLetter(DATE_COL0), cN=colLetter(DATE_COL0+Math.max(n-1,0));
+    var block=[];
+    for(var g=0; g<guests.length && g<MK_MAX; g++){
+      var gn=guests[g], gm=marksByName[gn], rn=mkStart+g, line=["補", gn];
+      var cells=[]; for(var c2=0;c2<n;c2++) cells.push("");
+      Object.keys(gm).forEach(function(iso){
+        var ci=dcol[iso];
+        if(ci===undefined){ skip.push(cid+"|"+gn+"|"+iso+"|"+gm[iso]+"(非上課日)"); return; }
+        cells[ci]=gm[iso]; wrote++;
+      });
+      line=line.concat(cells);
+      line.push('=COUNTIF('+c0+rn+':'+cN+rn+',"出席")+COUNTIF('+c0+rn+':'+cN+rn+',"補堂")');
+      line.push('=COUNTIF('+c0+rn+':'+cN+rn+',"請假")');
+      line.push('=COUNTIF('+c0+rn+':'+cN+rn+',"缺席")');
+      block.push(line);
+    }
+    if(block.length) sh.getRange(mkStart,1,block.length,lastCol).setValues(block);
+    for(var g2=MK_MAX; g2<guests.length; g2++){
+      var on=guests[g2], om=marksByName[on];
+      Object.keys(om).forEach(function(iso){ skip.push(cid+"|"+on+"|"+iso+"|"+om[iso]+"(補堂區滿"+MK_MAX+")"); });
+    }
+  }
+  return {wrote:wrote, skip:skip};
+}
+
+/* 刪走某欄被標記 "IMP" 嘅行（整塊讀→過濾→重寫），用於冪等重匯 */
+function clearTagged_(sh, markCol){
+  if(!sh) return; var last=sh.getLastRow(); if(last<2) return;
+  var lastCol=sh.getLastColumn();
+  var all=sh.getRange(2,1,last-1,lastCol).getValues();
+  var keep=all.filter(function(row){ return String(row[markCol-1]||"").trim()!=="IMP"; });
+  sh.getRange(2,1,last-1,lastCol).clearContent();
+  if(keep.length) sh.getRange(2,1,keep.length,lastCol).setValues(keep);
 }
