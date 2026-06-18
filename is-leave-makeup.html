@@ -213,7 +213,11 @@ const WD = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6};
 const WDN = ["日","一","二","三","四","五","六"];
 const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+// 個別班別專屬學期（覆蓋 START_MON / n）：花式跳繩(六) 2026-07-04 起、共 9 堂（與後端 SCHED_OVR 一致）
+const SCHED_OVR = { "六":{start:new Date(2026,6,4), n:9} };
 function sessionsFor(wdChar, n=7){
+  const o=SCHED_OVR[wdChar];
+  if(o){ const out0=[]; for(let k=0;k<o.n;k++){const d=new Date(o.start); d.setDate(d.getDate()+k*7); out0.push(d);} return out0; }
   const out=[], base=new Date(START_MON); base.setDate(base.getDate()+(WD[wdChar]-1));
   for(let i=0;i<n;i++){const d=new Date(base); d.setDate(d.getDate()+i*7); out.push(d);}
   return out;
@@ -233,7 +237,8 @@ const SPORT = {
 const ROPE_SLOTS = [
   {wd:"一",time:"17:00–18:00"},{wd:"一",time:"18:00–19:00"},
   {wd:"三",time:"17:00–18:00"},
-  {wd:"六",time:"11:00–12:00"},{wd:"六",time:"15:00–16:00"},
+  {wd:"四",time:"15:00–16:00"},
+  {wd:"六",time:"11:00–12:00"},
 ];
 
 /* ============================================================

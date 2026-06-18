@@ -25,29 +25,34 @@ const TIMES = {
   "badminton|二":"13:00–15:00","badminton|三":"11:00–13:00","badminton|四":"10:00–12:00",
   "basketball|三":"09:00–10:00","gym|一":"14:00–15:00","gym|四":"15:00–16:00",
   "athletics|二":"17:15–18:15","athletics|四":"17:15–18:15",
-  "rope|四":"14:00–15:00","pickleball|二":"10:00–11:00","pickleball|五":"13:00–15:00",
+  "rope|四":"14:00–15:00","rope|六":"15:00–16:00","pickleball|二":"10:00–11:00","pickleball|五":"13:00–15:00",
 };
+// 個別班別專屬學期（覆蓋全域 START_MON / N_SESS）。key=星期；只影響該星期嘅班。
+// 花式跳繩(六)：2026-07-04 起，逢星期六，共 9 堂（最後一堂 2026-08-29）。
+const SCHED_OVR = { "六":{start:"2026-07-04", n:9} };
 
 const ROSTER = {
   badminton:{ "二":["蔡思言","梁心朗","吳瑋軒","黎柏希","黎柏言","葉天麒"],
-              "三":["王韻喬","易晞渝","蔡芷彤","羅芷晴","潘洛詩","蔣佩琪"],
+              "三":["王韻喬","易晞渝","蔡芷彤","羅芷晴","潘洛詩","蔣佩琪","何諾軒"],
               "四":["張爾淳","張雅堯","劉鎮碩","劉家頤","方鎮浩","鄧可澄"] },
   basketball:{"三":["張爾淳","張雅堯","甘卓熹","羅天佑","方鎮浩","曾衍霖","黃梓昕","方鎂恩"]},
-  gym:{ "一":["曾愛斯","陳卓楠","王尉鏇","王斯顏","古詩詠","周莉晶"],
-        "四":["黃樂悠","方鎂恩","劉家頤","張雅堯","盧文懿","呂洛希"] },
-  athletics:{ "二":["張爾淳","胡汐森","胡苡晨","古詩詠","古卓謙"],
-              "四":["曾愛斯","曾喬烽","葉芯怡","葉芯淇","方鎮浩","盧文懿","許思溢"] },
-  rope:{ "四":["黃信晴","甘卓熹","陳卓琛","劉初靜","羅天佑"] },
+  gym:{ "一":["曾愛斯","陳卓楠","王尉鏇","王斯顏","古詩詠"],
+        "四":["黃樂悠","方鎂恩","劉家頤","張雅堯","盧文懿","呂洛希","周莉晶"] },
+  athletics:{ "二":["張爾淳","胡汐森","胡苡晨","古詩詠","古卓謙","陳柏謙"],
+              "四":["曾愛斯","曾喬烽","葉芯怡","葉芯淇","方鎮浩","盧文懿","許思溢","徐翊之"] },
+  rope:{ "四":["黃信晴","甘卓熹","陳卓琛","劉初靜","羅天佑","張煦翹"],
+         "六":["陳皓軒","汪柏叡"] },
   pickleball:{ "二":["呂洛希","鍾皓惟","古卓謙"], "五":["姚心穎","黃朗程","鄧可澄","盧文懿","黃翊雅"] },
 };
 
-const PHONE = {"黃梓昕":"0397","曾衍霖":"0035","曾愛斯":"7058","曾喬烽":"7058","葉芯怡":"6759","葉芯淇":"6759","張爾淳":"1272","方鎮浩":"0162","胡汐森":"9126","胡苡晨":"9126","盧文懿":"5122","許思溢":"9159","古詩詠":"9158","古卓謙":"9158","張雅堯":"1272","蔡思言":"7716","梁心朗":"8883","劉鎮碩":"5352","劉家頤":"5352","鄧可澄":"0386","吳瑋軒":"6735","黎柏希":"2698","黎柏言":"2698","葉天麒":"5078","王韻喬":"9062","易晞渝":"0570","蔡芷彤":"8852","羅芷晴":"1331","潘洛詩":"6171","蔣佩琪":"2581","黃信晴":"1750","羅天佑":"9275","甘卓熹":"6736","陳卓琛":"9870","劉初靜":"1040","呂洛希":"4917","姚心穎":"6606","黃朗程":"9749","鍾皓惟":"9704","黃翊雅":"5791","陳卓楠":"9870","黃樂悠":"8345","方鎂恩":"0162","王尉鏇":"6801","王斯顏":"6801","周莉晶":"5181"};
+const PHONE = {"黃梓昕":"0397","曾衍霖":"0035","曾愛斯":"7058","曾喬烽":"7058","葉芯怡":"6759","葉芯淇":"6759","張爾淳":"1272","方鎮浩":"0162","胡汐森":"9126","胡苡晨":"9126","盧文懿":"5122","許思溢":"9159","古詩詠":"9158","古卓謙":"9158","張雅堯":"1272","蔡思言":"7716","梁心朗":"8883","劉鎮碩":"5352","劉家頤":"5352","鄧可澄":"0386","吳瑋軒":"6735","黎柏希":"2698","黎柏言":"2698","葉天麒":"5078","王韻喬":"9062","易晞渝":"0570","蔡芷彤":"8852","羅芷晴":"1331","潘洛詩":"6171","蔣佩琪":"2581","黃信晴":"1750","羅天佑":"9275","甘卓熹":"6736","陳卓琛":"9870","劉初靜":"1040","呂洛希":"4917","姚心穎":"6606","黃朗程":"9749","鍾皓惟":"9704","黃翊雅":"5791","陳卓楠":"9870","黃樂悠":"8345","方鎂恩":"0162","王尉鏇":"6801","王斯顏":"6801","周莉晶":"5181","何諾軒":"9613","陳柏謙":"3488","徐翊之":"3705","張煦翹":"9011","陳皓軒":"2359","汪柏叡":"8643"};
 
 /* 版面常數 */
-const ROPE_SLOTS = [   // 花式跳繩補堂可選時段（一/三/六）
+const ROPE_SLOTS = [   // 花式跳繩補堂可選時段（一/三/四/六）；六15:00–16:00 已改為正規班，不再作補堂時段
   {wd:"一",time:"17:00–18:00"},{wd:"一",time:"18:00–19:00"},
   {wd:"三",time:"17:00–18:00"},
-  {wd:"六",time:"11:00–12:00"},{wd:"六",time:"15:00–16:00"},
+  {wd:"四",time:"15:00–16:00"},
+  {wd:"六",time:"11:00–12:00"},
 ];
 const HEAD_ROW=4, DATA_START=5, SEQ_COL=1, NAME_COL=2, DATE_COL0=3;
 const STATUSES=["出席","缺席","請假","補堂","停課"];
@@ -58,7 +63,11 @@ const VERSION="v2-grid-mk10"; // 補堂寫入格仔版
 function SS(){ return SpreadsheetApp.getActiveSpreadsheet(); }
 function startMon(){ var a=CONFIG.START_MON.split("-"); return new Date(+a[0],+a[1]-1,+a[2]); }
 function iso(d){ return Utilities.formatDate(d, SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
-function sessionsFor(wd){ var out=[],b=startMon(); b.setDate(b.getDate()+(WD[wd]-1));
+function sessionsFor(wd){
+  var o=SCHED_OVR[wd];
+  if(o){ var a=o.start.split("-"), b0=new Date(+a[0],+a[1]-1,+a[2]), out0=[];
+    for(var k=0;k<o.n;k++){ var y=new Date(b0); y.setDate(y.getDate()+k*7); out0.push(iso(y)); } return out0; }
+  var out=[],b=startMon(); b.setDate(b.getDate()+(WD[wd]-1));
   for(var i=0;i<CONFIG.N_SESS;i++){ var x=new Date(b); x.setDate(x.getDate()+i*7); out.push(iso(x)); } return out; }
 function pad4(x){ var s=String(x).replace(/\D/g,""); return ("0000"+s).slice(-4); }
 function gridName(sport,wd){ return SPORT[sport].name+"("+wd+")"; }
@@ -113,6 +122,23 @@ function rebuildAll(){
   });});
   setup();
   Logger.log("rebuildAll 完成（已全部重置）。");
+}
+
+/* ⚙️ 一次性：2026-06-18 名單更新（非破壞性）
+ * 套用：羽毛球三+何諾軒、田徑二+陳柏謙、田徑四+徐翊之、花式跳繩四+張煦翹、
+ *       花式跳繩(六)新班[陳皓軒,汪柏叡]、體操 周莉晶 一→四。
+ * 做法：先 setup()（安全：建新班格、重建 Roster、保留 Log/補堂），
+ *       再 force 重建「有加/減學生」嘅現有班格（未變動嘅 basketball三/badminton四 等請假補堂資料不受影響），
+ *       最後由補堂索引還原補堂格。跑完即可，重複跑亦安全。 */
+function applyRosterUpdate_20260618(){
+  setup();                                  // 建 花式跳繩(六)、重建 Roster、保留 Log/補堂
+  var ss=SS();
+  [["gym","一"],["gym","四"],["badminton","三"],
+   ["athletics","二"],["athletics","四"],["rope","四"]].forEach(function(c){
+    buildGrid(ss,c[0],c[1],true);           // force：clear 後按新名單重建（呢幾班本身無請假/補堂資料）
+  });
+  syncMakeupsToGrid();                       // 由保留嘅補堂索引，還原各目標班補堂格
+  Logger.log("applyRosterUpdate_20260618 完成（非破壞性）。");
 }
 
 function buildGrid(ss, sport, wd, force){
@@ -340,7 +366,7 @@ function classesFor_(nm){
     var mkAtt=mkInfo.filter(function(x){return x.status==="出席";}).length;
     var sessions=blk.dates.map(function(d,i){return {date:d,status:st[i]||""};});
     var deadline=blk.dates.length? blk.dates[blk.dates.length-1] : "";  // 補堂限期＝本班最後一堂
-    return {sport:r.sport,wd:r.wd,time:r.time,total:CONFIG.N_SESS,
+    return {sport:r.sport,wd:r.wd,time:r.time,total:blk.dates.length,
       attended:att+mkAtt, leave:lv, absent:ab,
       owed:Math.max(0, lv-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline};
   });
