@@ -331,18 +331,7 @@ function makeupSlotsFor(sport,wd){
 }
 
 /* ---------- Web App ---------- */
-function doGet(e){
-  // 一次性遷移觸發（非破壞性、自鎖；跑完即失效）。完成後會於下個 commit 移除此分支。
-  if(e && e.parameter && e.parameter.mig==="20260618"){
-    var sp=PropertiesService.getScriptProperties();
-    if(sp.getProperty("MIG_20260618")==="done")
-      return ContentService.createTextOutput(JSON.stringify({ok:true,already:true})).setMimeType(ContentService.MimeType.JSON);
-    applyRosterUpdate_20260618();
-    sp.setProperty("MIG_20260618","done");
-    return ContentService.createTextOutput(JSON.stringify({ok:true,ran:true,version:VERSION})).setMimeType(ContentService.MimeType.JSON);
-  }
-  return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK");
-}
+function doGet(){ return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK"); }
 function doPost(e){
   var p={}; try{ p=JSON.parse(e.postData.contents); }catch(err){}
   var out; try{ out=route(p); }catch(err){ out={ok:false,err:String(err)}; }
