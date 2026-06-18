@@ -1433,6 +1433,7 @@ function onOpen(){
     .addItem("⬇️ 匯入繳費標記（IS App Data）","importFeesMenu")
     .addItem("🔄 重建學生名冊（只顯示現時班別）","rebuildRosterMenu")
     .addItem("✅ 標記 5-6月 全部已繳","markFiveSixPaidMenu")
+    .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
     .addToUi();
 }
 
@@ -1612,6 +1613,36 @@ function markPeriodFeesPaid_(monthLabel){
     done++;
   });
   return {total:rows.length, marked:done};
+}
+/* ✅ 校正繳費「每週堂數/應繳」：以 Roster 名冊為準重新同步；若某期原本已繳、因應繳上升而變未付清，補回已繳=淨額（該期已收足） */
+function syncFeesFromRoster_(){
+  var sh=feeSheet(), changed=[];
+  feeRows_().forEach(function(x){
+    var wk=weeklySessions_(x.name)||1, due=feeAmount_(wk);
+    if(x.weekly===wk && x.due===due) return;       // 已正確 → 跳過
+    sh.getRange(x.row,3).setValue(wk);              // 每週堂數
+    sh.getRange(x.row,4).setValue(due);             // 應繳
+    var wasPaid=(x.status==="已繳");
+    var r=recalcFeeRow_(x.row);
+    if(wasPaid && r.status!=="已繳"){               // 該期原已收足 → 補回已繳=淨額
+      sh.getRange(x.row,7).setValue(r.net);
+      r=recalcFeeRow_(x.row);
+    }
+    changed.push({name:x.name, period:x.period, weekly:x.weekly+"→"+wk,
+      due:x.due+"→"+due, paid:Number(sh.getRange(x.row,7).getValue())||0, status:r.status});
+  });
+  return {ok:true, changedCount:changed.length, changed:changed};
+}
+function syncFeesFromRosterMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var c=ui.alert("校正繳費每週堂數",
+    "會以 Roster 名冊為準，重新同步所有繳費紀錄嘅「每週堂數 / 應繳」。\n若某期原本已繳、因應繳上升而變未付清，會自動補回已繳=淨額。\n\n會先自動備份。確定執行？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  var r;
+  try{ backup(); r=syncFeesFromRoster_(); }
+  catch(e){ ui.alert("執行失敗：\n"+(e&&e.message||e)); return; }
+  ui.alert("完成 ✅","更新 "+r.changedCount+" 個繳費紀錄（以 Roster 為準）。",ui.ButtonSet.OK);
 }
 function markFiveSixPaidMenu(){
   var ui=SpreadsheetApp.getUi();
