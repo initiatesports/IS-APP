@@ -21,7 +21,7 @@
 /* ═══════════ 設定 ═══════════ */
 const CONFIG = {
   COACH_EMAIL: "initiatesports6331@gmail.com",  // 收通知 Gmail
-  COACH_PASS:  "IS2026",                        // 教練版密碼
+  COACH_PASS:  PropertiesService.getScriptProperties().getProperty('COACH_PASS') || Utilities.getUuid(),  // 教練密碼:存 Script Properties(key=COACH_PASS),未設定則退回隨機值(fail-closed)
   WHATSAPP:    "85263317403",                   // 家長確認 WhatsApp
   TERM_START:  "2026-02-23",   // 學期窗（週一）；涵蓋現有 3 月資料
   TERM_END:    "2026-08-29",   // 學期窗結束（含暑期）

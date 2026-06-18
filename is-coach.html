@@ -92,7 +92,6 @@ input:focus{border-color:var(--accent)}
 <script>
 const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec",
-  COACH_PASS: "IS2026",
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 const WDN=["日","一","二","三","四","五","六"];
@@ -107,10 +106,12 @@ const todayIso=()=>new Date().toLocaleDateString("en-CA");
 let S={authed:false,date:isDemo?"2026-07-16":todayIso()};
 
 /* ---- API ---- */
+// 教練密碼:即場輸入,經後端 verifyCoach 驗證後存 sessionStorage(關掉分頁即清),唔再寫死喺檔案。
+let COACH_PASS_RT=(function(){try{return sessionStorage.getItem("is_cpass")||"";}catch(e){return"";}})();
 async function api(action,p={}){
   if(isDemo) return new Promise(r=>setTimeout(()=>r(demo(action,p)),150));
   const res=await fetch(CONFIG.API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body:JSON.stringify({action,...p})});
+    body:JSON.stringify({action,coachPass:COACH_PASS_RT,...p})});
   return res.json();
 }
 /* ---- demo ---- */
@@ -150,9 +151,15 @@ function renderGate(){
   $("#cp").addEventListener("keydown",e=>{if(e.key==="Enter")enter();});
   if(S.health) setHealth(S.health.txt,S.health.color);
 }
-function enter(){ if($("#cp").value!==CONFIG.COACH_PASS) return toast("密碼錯誤");
-  S.authed=true; renderMain(); }
-function logout(){ S.authed=false; renderGate(); }
+async function enter(){
+  const v=$("#cp").value;
+  if(!v) return toast("請輸入密碼");
+  let r; try{ r=await api("verifyCoach",{coachPass:v}); }catch(e){ r=null; }
+  if(!r||!r.ok) return toast("密碼錯誤");
+  COACH_PASS_RT=v; try{sessionStorage.setItem("is_cpass",v);}catch(e){}
+  S.authed=true; renderMain();
+}
+function logout(){ S.authed=false; COACH_PASS_RT=""; try{sessionStorage.removeItem("is_cpass");}catch(e){} renderGate(); }
 
 /* ---- main roll call ---- */
 function renderMain(){
@@ -176,7 +183,7 @@ async function load(){
   $("#sum").textContent=`${date}（星期${WDN[d.getDay()]}）`;
   const box=$("#list"); box.innerHTML=`<div class="empty">載入中…</div>`;
   try{
-    const r=await api("dailyList",{date,coachPass:CONFIG.COACH_PASS});
+    const r=await api("dailyList",{date});
     if(!r||!r.ok){box.innerHTML=`<div class="empty">載入失敗${r&&r.err?'：'+r.err:''}</div>`;return;}
     if(!r.list.length){box.innerHTML=`<div class="empty">呢日冇堂（暑期班 7 月 13 日先開始）。<br>請揀返星期一～五嘅上課日，例如 7/16。</div>`;return;}
     box.innerHTML=r.list.map((g,gi)=>grp(g,gi,date)).join("");
@@ -254,7 +261,7 @@ function weatherCancel(){
 }
 async function doWeatherCancel(date){
   toast("處理中…");
-  let r; try{ r=await api("cancelDay",{date,coachPass:CONFIG.COACH_PASS}); }
+  let r; try{ r=await api("cancelDay",{date}); }
   catch(e){ toast("連線錯誤，請再試"); return; }
   if(!r||!r.ok){ toast("失敗"+(r&&r.err?"："+r.err:"")); return; }
   await load();

@@ -8,7 +8,7 @@
 
 const CONFIG = {
   COACH_EMAIL: "initiatesports6331@gmail.com",   // 收通知嘅 Gmail
-  COACH_PASS:  "IS2026",                 // ← 教練版密碼
+  COACH_PASS:  PropertiesService.getScriptProperties().getProperty('COACH_PASS') || Utilities.getUuid(),  // 教練密碼:存 Script Properties(key=COACH_PASS),未設定則退回隨機值(fail-closed)
   START_MON:   "2026-07-13",
   N_SESS: 7,
   REMIND_HOUR: 20,                        // 每晚幾點檢查「未完成點名」（24 小時制）
@@ -316,6 +316,7 @@ function route(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
+    case "verifyCoach": return {ok: String(p.coachPass)===String(CONFIG.COACH_PASS)};  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
     case "dailyList": return apiDaily(p);
     case "markAttendance": return apiMark(p);
     case "cancelDay": return apiCancelDay(p);
@@ -445,6 +446,7 @@ function apiDaily(p){
 }
 
 function apiMark(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};  // 點名屬寫入動作,必須教練密碼
   var pr=classKeyParts(p.key);
   if(markCell(pr.sport,pr.wd,p.name,p.date,p.status,false)) return {ok:true};  // 格仔（正式或補堂行）
   // 特殊日補堂 → 更新索引狀態

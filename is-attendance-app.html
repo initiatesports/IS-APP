@@ -3378,16 +3378,24 @@ function copyNotice() {
 // ═══════════════════════════════════════════
 //  LOCK SCREEN
 // ═══════════════════════════════════════════
-const COACH_PASSWORD = 'IS2026';
+// 教練密碼不再寫死在前端(repo 是 public)。改為交後端 parent-portal 的 verify 驗證,
+// 通過後記在 sessionStorage,之後所有寫入(save_*)都會由 apiPost 自動附上此密碼。
+let COACH_PASS_RT = (function(){ try { return sessionStorage.getItem('is_cpass') || ''; } catch(e){ return ''; } })();
 
-function doUnlock() {
+async function doUnlock() {
   const input = document.getElementById('lock-input');
   const errEl = document.getElementById('lock-error');
-  if (input.value === COACH_PASSWORD) {
+  const pw = input.value;
+  errEl.textContent = '驗證中…';
+  try {
+    const r = await apiPost({ action: 'verify', coachPass: pw });
+    if (!r || !r.ok) throw new Error('bad');
+    COACH_PASS_RT = pw;
+    try { sessionStorage.setItem('is_cpass', pw); } catch(e){}
     document.getElementById('lock-screen').style.display = 'none';
     input.value = '';
     errEl.textContent = '';
-  } else {
+  } catch (e) {
     errEl.textContent = '密碼錯誤，請重試';
     input.classList.add('error');
     input.value = '';
@@ -6905,9 +6913,11 @@ async function apiGet(params) {
 }
 
 async function apiPost(body) {
+  // 自動附上教練密碼(後端 save_* 會驗證);verify 動作自己帶 coachPass,會覆蓋預設值。
+  const payload = Object.assign({ coachPass: COACH_PASS_RT }, body);
   const res = await fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
   return res.json();
 }

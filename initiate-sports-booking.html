@@ -262,7 +262,7 @@
     day.sessions.forEach(function(s){ var t=TYPES[s[1]];
       BASE_CLASSES.push({id:"c"+day.key+"-"+s[1], type:s[1], date:day.date, time:s[0], name:t.name, emoji:t.emoji, capacity:t.capacity, waitlist:t.waitlist, price:t.price, note:t.note}); }); });
 
-  var ADMIN_PIN="IS2026";                       /* 示範模式用;正式保護喺後端 Code.gs 嘅 ADMIN_PIN */
+  var ADMIN_PIN="demo-only";                     /* 僅示範模式(無後端時)用,非真實密碼;正式保護喺後端 Code.gs 嘅 ADMIN_PIN(Script Properties) */
   var PAY_NUMBER="67093390";
   var COACH_WA="85263317403";                   /* WhatsApp 6331 7403 */
   var COACH_EMAIL="initiatesports6331@gmail.com";

@@ -200,7 +200,7 @@ input:focus,select:focus{border-color:var(--accent)}
    ============================================================ */
 const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec",   // Apps Script Web App
-  COACH_PASS: "IS2026",     // 教練版密碼（與 Code.gs 一致）
+  // 教練密碼不再寫死:即場輸入,經後端 verifyCoach 驗證,啱先入教練模式。
   WHATSAPP: "85263317403",  // 張 Sir WhatsApp（家長確認連結用）
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
@@ -323,9 +323,10 @@ function demoClass(name, c){
 const isDemo = !CONFIG.API_URL;
 async function api(action, payload={}){
   if(isDemo) return demoApi(action,payload);
+  const base = S.coachPass ? {coachPass:S.coachPass} : {};  // 教練模式時自動帶上即場輸入嘅密碼
   const res = await fetch(CONFIG.API_URL, {method:"POST",
     headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body: JSON.stringify({action,...payload})});
+    body: JSON.stringify({action,...base,...payload})});
   return res.json();
 }
 function demoApi(action,p){
@@ -392,7 +393,7 @@ function demoDaily(dateIso){
 /* ============================================================
    狀態 + 畫面
    ============================================================ */
-let S={ session:null, family:null, mode:"parent", activeChild:0 };
+let S={ session:null, family:null, mode:"parent", activeChild:0, coachPass:null };
 const $=(s,el=document)=>el.querySelector(s);
 const view=$("#view");
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),2200);}
@@ -439,7 +440,7 @@ function renderNav(){
   } else { n.innerHTML=""; }
 }
 function setMode(m){ if(m==="coach"&&!S.coachOk){ return askCoach(); } S.mode=m; renderNav(); routeMain(); }
-function logout(){ S.session=null; S.coachOk=false; S.mode="parent"; renderNav(); renderLogin(); }
+function logout(){ S.session=null; S.coachOk=false; S.coachPass=null; S.mode="parent"; renderNav(); renderLogin(); }
 
 /* ---------- 登入 ---------- */
 function renderLogin(){
@@ -466,7 +467,11 @@ function renderLogin(){
 }
 async function doLogin(){
   const name=$("#li-name").value.trim(), last4=$("#li-last4").value.trim();
-  if(last4===CONFIG.COACH_PASS){ S.coachOk=true; S.mode="coach"; renderNav(); renderCoach(); return; }
+  // 先試教練密碼:交後端 verifyCoach 驗證,啱即入教練模式(唔需要中文名)
+  if(last4){
+    try{ const cr=await api("verifyCoach",{coachPass:last4});
+      if(cr&&cr.ok){ S.coachPass=last4; S.coachOk=true; S.mode="coach"; renderNav(); renderCoach(); return; } }catch(e){}
+  }
   if(!name||last4.length!==4) return toast("請填中文全名同 4 位數字");
   $("#li-go").disabled=true; $("#li-go").textContent="登入中…";
   const r=await api("login",{name,last4});
@@ -854,8 +859,11 @@ function askCoach(){
     <input id="cp" type="password" inputmode="numeric" class="codein" placeholder="••••">
     <div style="height:12px"></div><button class="btn" onclick="checkCoach()">進入</button>`);
 }
-function checkCoach(){ if($("#cp").value!==CONFIG.COACH_PASS) return toast("密碼錯誤");
-  S.coachOk=true; closeSheet(); S.mode="coach"; renderNav(); renderCoach(); }
+async function checkCoach(){
+  const v=$("#cp").value;
+  let r; try{ r=await api("verifyCoach",{coachPass:v}); }catch(e){ r=null; }
+  if(!r||!r.ok) return toast("密碼錯誤");
+  S.coachPass=v; S.coachOk=true; closeSheet(); S.mode="coach"; renderNav(); renderCoach(); }
 async function renderCoach(){
   const today=iso(new Date());
   view.innerHTML=`<div class="wrap">
@@ -871,7 +879,7 @@ function coachToday(){ S.coachDate=iso(new Date()); const i=$("#cdate"); if(i)i.
 async function loadDaily(){
   const date=$("#cdate").value; S.coachDate=date;
   const box=$("#daily"); box.innerHTML=`<div class="empty">載入中…</div>`;
-  let r; try{ r=await api("dailyList",{date,coachPass:CONFIG.COACH_PASS}); }
+  let r; try{ r=await api("dailyList",{date}); }
   catch(e){ box.innerHTML=`<div class="empty">連線錯誤，請再試</div>`; return; }
   if(!r||!r.ok||!r.list.length){ box.innerHTML=`<div class="empty">呢日冇堂 / 冇學生。<br>（揀返星期一～五嘅暑期班日期）</div>`; return; }
   box.innerHTML=r.list.map((g,gi)=>{
@@ -946,7 +954,7 @@ function weatherCancel(){
 }
 async function doWeatherCancel(date){
   toast("處理中…");
-  let r; try{ r=await api("cancelDay",{date,coachPass:CONFIG.COACH_PASS}); }
+  let r; try{ r=await api("cancelDay",{date}); }
   catch(e){ toast("連線錯誤，請再試"); return; }
   if(!r||!r.ok){ toast("失敗"+(r&&r.err?"："+r.err:"")); return; }
   await loadDaily();

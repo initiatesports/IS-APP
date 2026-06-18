@@ -16,7 +16,9 @@
  *      (用返同一個網址,前端唔使改)
  *************************************************************/
 
-var ADMIN_PIN    = "IS2026";          // 管理密碼
+// 管理密碼:存喺 Script Properties(專案設定 → 指令碼屬性,key = ADMIN_PIN),不再寫死喺 repo。
+// 萬一未設定,退回每次隨機 UUID(fail-closed),確保空密碼唔會意外通過驗證。
+var ADMIN_PIN    = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN') || Utilities.getUuid();
 var SHEET_REG    = "Registrations";
 var SHEET_CONFIG = "Config";
 var DRIVE_FOLDER = "INITIATE SPORTS 付款截圖";

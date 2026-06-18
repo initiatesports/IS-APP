@@ -6,6 +6,15 @@
 
 const SHEET_ID = '1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo';
 
+// 教練密碼存喺 Script Properties(專案設定 → 指令碼屬性,key = COACH_PASS),不寫死喺 repo。
+// 未設定就退回每次隨機 UUID(fail-closed),確保空密碼唔會意外通過。
+function getCoachPass_() {
+  return PropertiesService.getScriptProperties().getProperty('COACH_PASS') || Utilities.getUuid();
+}
+function checkCoach_(body) {
+  return String((body && body.coachPass) || '') === String(getCoachPass_());
+}
+
 function getSheet(name) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sheet = ss.getSheetByName(name);
@@ -36,6 +45,16 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
+
+    // 用教練密碼解鎖(畀前端鎖畫面用):只回傳是否正確,不洩漏密碼本身。
+    if (action === 'verify') return makeResponse({ ok: checkCoach_(body) });
+
+    // 所有寫入動作都必須帶正確教練密碼,否則拒絕 —— 防止任何人匿名清空/竄改資料。
+    const WRITE_ACTIONS = ['save_attendance','save_absences','save_performance','save_body','save_fee','save_settings'];
+    if (WRITE_ACTIONS.indexOf(action) >= 0 && !checkCoach_(body)) {
+      return makeResponse({ ok: false, error: '未授權:教練密碼錯誤' });
+    }
+
     if (action === 'save_attendance')  return makeResponse(saveAttendance(body.data));
     if (action === 'save_absences')    return makeResponse(saveAbsences(body.data));
     if (action === 'save_performance') return makeResponse(savePerformance(body.data));
