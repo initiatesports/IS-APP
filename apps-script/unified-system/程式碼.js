@@ -41,10 +41,12 @@ const CLASSES = {
   c1:{ dayZh:"星期一", wd:1, time:"5–6pm",  students:["余悅","孔善盈","蔡芷彤","羅梓晉","羅君信","羅君浩","陳大文","蘇穎悠"] },
   c2:{ dayZh:"星期一", wd:1, time:"6–7pm",  students:["翟悅廷","郭栩澄","葉宇浩","梁德澤","許思溢","梁正軒","梁正宇"] },
   c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","陳思允"] },
-  c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁心朗","陳信澄","陳澔泓","梁德瑜","陳柏睎"] },
+  c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁德瑜","陳柏睎"] },
   c5:{ dayZh:"星期五", wd:5, time:"6–7pm",  students:["吳瑋軒","黎柏言","陳曉瑩","梁正宇","郭可昕","黃玥晴","黃朗程","姚心穎","羅靖誼","黎柏希","陳焯棋","顧舒然","梁正軒"] },
   c6:{ dayZh:"星期六", wd:6, time:"11am–12", students:["張爾淳","張雅堯","黃梓昕","王尉鏇","王斯顏","呂洛希","馬仲然","鄧朗森","陳書雅"] },
-  c7:{ dayZh:"星期六", wd:6, time:"3–4pm",  students:["劉家頤","鄭宇喬","鍾皓惟","周莉晶","李灝宏","潘洛詩","何芯蕾"] },
+  c7:{ dayZh:"星期六", wd:6, time:"3–4pm",  students:["劉家頤","鄭宇喬","鍾皓惟","周莉晶","李灝宏","何芯蕾"] },
+  // 已退出（移出名冊，2026-06）：c4 梁心朗（可能回來，留底易加返）、c4 陳信澄、c4 陳澔泓、c7 潘洛詩。
+  // 如要加返：把名字放回對應 class 的 students 陣列即可。5-6月已繳記錄保留在繳費表。
 };
 const CLASS_IDS = Object.keys(CLASSES);
 
@@ -1632,6 +1634,24 @@ function syncFeesFromRoster_(){
       due:x.due+"→"+due, paid:Number(sh.getRange(x.row,7).getValue())||0, status:r.status});
   });
   return {ok:true, changedCount:changed.length, changed:changed};
+}
+/* 退出學生離場：刪除指定學生「7-8月」未繳的繳費列（5-6月已繳保留），並以最新 CLASSES 重建 Roster。
+   名冊重建為非破壞性（importParentData/ensureRoster_ 會保留現有出席）。 */
+function offboardStudents_(names){
+  var set={}; (names||[]).forEach(function(n){ set[String(n).trim()]=1; });
+  var sh=feeSheet(), deleted=[], kept=[];
+  // 由下而上刪，避免行號位移
+  feeRows_().slice().reverse().forEach(function(x){
+    if(!set[x.name]) return;
+    if(x.period.indexOf("7-8月")>=0 && x.status!=="已繳"){
+      deleted.push({name:x.name, period:x.period, status:x.status, paid:x.paid});
+      sh.deleteRow(x.row);
+    }else{
+      kept.push({name:x.name, period:x.period, status:x.status, paid:x.paid});
+    }
+  });
+  ensureRoster_(SS());   // 以新 CLASSES 重建名冊
+  return {ok:true, deletedCount:deleted.length, deleted:deleted, kept:kept};
 }
 function syncFeesFromRosterMenu(){
   var ui=SpreadsheetApp.getUi();
