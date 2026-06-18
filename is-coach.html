@@ -19,7 +19,7 @@
   --ok:#0F9D6B; --ok-bg:#E4F6EE; --bad:#D6432F; --bad-bg:#FCE6E2;
   --makeup:#1F6FEB; --makeup-bg:#E3EEFD; --r:14px;
   --badminton:#B45309; --basketball:#1E40AF; --gym:#6D28D9;
-  --athletics:#B91C1C; --rope:#15803D; --pickleball:#BE185D;
+  --athletics:#B91C1C; --rope:#15803D; --pickleball:#BE185D; --fitness:#0E7490;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;font-family:"Noto Sans HK",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.6}
@@ -97,7 +97,8 @@ const CONFIG = {
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
-  rope:{name:"花式跳繩",color:"var(--rope)"},pickleball:{name:"匹克球",color:"var(--pickleball)"}};
+  rope:{name:"花式跳繩",color:"var(--rope)"},pickleball:{name:"匹克球",color:"var(--pickleball)"},
+  fitness:{name:"運動體能",color:"var(--fitness)"}};
 const isDemo=!CONFIG.API_URL;
 const $=s=>document.querySelector(s);
 const view=$("#view");
