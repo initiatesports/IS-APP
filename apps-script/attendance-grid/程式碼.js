@@ -345,7 +345,7 @@ function route(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
-    case "verifyCoach": return {ok: String(p.coachPass)===String(CONFIG.COACH_PASS)};  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
+    case "verifyCoach": return apiVerifyCoach(p);  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
     case "dailyList": return apiDaily(p);
     case "markAttendance": return apiMark(p);
     case "cancelDay": return apiCancelDay(p);
@@ -375,12 +375,26 @@ function classesFor_(nm){
   });
 }
 
+// 登入防爆破節流（CacheService，按帳號計失敗次數，5 分鐘窗口）
+function rlBlocked_(bucket, max){ return Number(CacheService.getScriptCache().get("rl_"+bucket)||0) >= max; }
+function rlBump_(bucket, ttlSec){ var c=CacheService.getScriptCache(), k="rl_"+bucket; c.put(k, String(Number(c.get(k)||0)+1), ttlSec); }
+function rlClear_(bucket){ CacheService.getScriptCache().remove("rl_"+bucket); }
+
+function apiVerifyCoach(p){
+  if(rlBlocked_("coachlogin", 10)) return {ok:false, err:"嘗試太多次，請約 5 分鐘後再試"};
+  var ok = String(p.coachPass)===String(CONFIG.COACH_PASS);
+  if(ok) rlClear_("coachlogin"); else rlBump_("coachlogin", 300);
+  return {ok: ok};
+}
+
 function apiLogin(p){
   var want=pad4(p.last4), nm=String(p.name).trim();
+  if(rlBlocked_("login_"+nm, 12)) return {ok:false,err:"嘗試太多次，請約 5 分鐘後再試"};
   var all=rosterRows();
   // 必須中文全名＋後4位配對先得（防止淨係靠後4位掃出全部學生）
   var ok=all.some(function(r){return r.name===nm && pad4(r.last4)===want;});
-  if(!ok) return {ok:false,err:"搵唔到，請檢查中文全名同手機後4位"};
+  if(!ok){ rlBump_("login_"+nm, 300); return {ok:false,err:"搵唔到，請檢查中文全名同手機後4位"}; }
+  rlClear_("login_"+nm);
   // 同一電話後4位 = 一家人，列出所有小朋友（去重）
   var names=[]; all.forEach(function(r){ if(pad4(r.last4)===want && names.indexOf(r.name)<0) names.push(r.name); });
   var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn)}; });
@@ -389,7 +403,17 @@ function apiLogin(p){
     student:{name:nm,last4:want}, classes:children.length?children[0].classes:[]};
 }
 
+// 家長操作權限：須附家庭登入碼（手機後4位），且該學生屬於該家庭，方可操作（防冒名）
+function authParent_(name, code){
+  var nm=String(name).trim(), want=pad4(code);
+  if(rlBlocked_("login_"+nm, 12)) return false;
+  var ok=rosterRows().some(function(r){ return r.name===nm && pad4(r.last4)===want; });
+  if(ok) rlClear_("login_"+nm); else rlBump_("login_"+nm, 300);
+  return ok;
+}
+
 function apiLeave(p){
+  if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
   var pr=classKeyParts(p.key);
   var t=(p.date||"")+"T"+((TIMES[p.key]||"00:00").slice(0,5))+":00";
   var hrs=(new Date(t)-new Date())/36e5;
@@ -404,6 +428,7 @@ function apiLeave(p){
 
 // 取消請假：把該堂格仔還原做空白（未上）。只限本班正規上課日、未過、現狀態為請假/缺席。
 function apiCancelLeave(p){
+  if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
   var pr=classKeyParts(p.key);
   if(!ROSTER[pr.sport]||!ROSTER[pr.sport][pr.wd]) return {ok:false,err:"班別不存在"};
   if(sessionsFor(pr.wd).indexOf(p.date)<0) return {ok:false,err:"並非此班上課日"};
@@ -419,6 +444,7 @@ function apiCancelLeave(p){
 }
 
 function apiMakeup(p){
+  if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
   var to=classKeyParts(p.toKey), date=toIso_(p.toDate);
   var dup=makeupAll().some(function(m){ return m.name===p.name && m.from===p.fromKey && m.to===p.toKey && m.date===date; });
   if(dup) return {ok:true, dup:true};                            // 已約過同一堂 → 唔重複寫
@@ -435,6 +461,7 @@ function apiMakeup(p){
 
 // 取消補堂：刪 ledger 紀錄 + 清返目標班格仔。只限未出席/缺席、未過日。
 function apiCancelMakeup(p){
+  if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
   var to=classKeyParts(p.toKey), date=toIso_(p.toDate);
   var today=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd");
   var all=makeupAll(), hit=null;

@@ -329,7 +329,8 @@ function demoClass(name, c){
 const isDemo = !CONFIG.API_URL;
 async function api(action, payload={}){
   if(isDemo) return demoApi(action,payload);
-  const base = S.coachPass ? {coachPass:S.coachPass} : {};  // 教練模式時自動帶上即場輸入嘅密碼
+  // 教練模式自動帶教練密碼；家長模式自動帶家庭登入碼（後端驗證身分，防冒名請假/補堂）
+  const base = S.coachPass ? {coachPass:S.coachPass} : (S.family ? {code:S.family.last4} : {});
   const res = await fetch(CONFIG.API_URL, {method:"POST",
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body: JSON.stringify({action,...base,...payload})});
