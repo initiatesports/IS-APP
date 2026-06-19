@@ -60,6 +60,11 @@ function pruneBackups(folder, keep){
 }
 
 /* ---------- HTTP 入口 ---------- */
+// 登入防爆破節流（CacheService，按 bucket 計失敗次數）
+function rlBlocked_(bucket, max){ return Number(CacheService.getScriptCache().get("rl_"+bucket)||0) >= max; }
+function rlBump_(bucket, ttlSec){ var c=CacheService.getScriptCache(), k="rl_"+bucket; c.put(k, String(Number(c.get(k)||0)+1), ttlSec); }
+function rlClear_(bucket){ CacheService.getScriptCache().remove("rl_"+bucket); }
+
 function doGet(e){
   return json(getState());                 // 公開:只有人數 + 課堂設定
 }
@@ -69,6 +74,13 @@ function doPost(e){
   var lock = LockService.getScriptLock();
   try { lock.waitLock(20000); } catch(err){ return json({ok:false, error:"系統繁忙,請再試"}); }
   try {
+    // 管理動作集中防爆破節流：連續試錯 ADMIN_PIN 達上限即擋一陣，保護付款/刪除/截圖等敏感操作
+    var ADMIN_ACTIONS = ["admin","setPaid","setRefunded","deleteReg","releaseReg","saveConfig","getProof"];
+    if (ADMIN_ACTIONS.indexOf(body.action) >= 0) {
+      if (rlBlocked_("adminpin", 10)) return json({ok:false, error:"嘗試太多次，請約 5 分鐘後再試"});
+      if (String(body.pin || "") !== ADMIN_PIN) { rlBump_("adminpin", 300); return json({ok:false, error:"密碼錯誤"}); }
+      rlClear_("adminpin");
+    }
     switch(body.action){
       case "register":    return json(register(body));     // 公開
       case "lookup":      return json(lookup(body));        // 公開(只回傳該電話)
