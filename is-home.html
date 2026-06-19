@@ -296,7 +296,21 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 }
 .nav-sync:hover { color: var(--cyan); }
 
-
+/* ── 手機版頂部導覽：收起 logo，按鈕自動換行全部顯示（唔再要左右捲）── */
+@media (max-width: 768px){
+  .top-nav { padding: 6px 10px; }
+  .nav-inner { height: auto; flex-wrap: wrap; gap: 6px; }
+  .nav-logo { display: none; }            /* 手機隱藏頂部 logo，騰空間畀按鈕 */
+  .nav-sync { display: none; }            /* 數據會自動載入，手機收起手動重載圖示 */
+  .nav-links {
+    flex: 1 1 100%;
+    flex-wrap: wrap;                      /* 換行排列，所有頁面按鈕一眼睇晒 */
+    overflow-x: visible;
+    justify-content: center;
+    gap: 6px;
+  }
+  .nav-link { font-size: 12.5px; padding: 6px 11px; }
+}
 
 /* ── LEADERBOARD (Coach-format) ── */
 .lb-wrap{padding:16px 14px 24px}
@@ -439,6 +453,26 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
   .hero-stats{width:100%;gap:0;justify-content:space-between}
   .hero-stat{flex:1;min-width:0}
   .home-cards{grid-template-columns:1fr}
+}
+
+/* ══ 電腦版：內容置中＋卡片多欄，唔再橫向拉爆成一條 ══ */
+@media (min-width:769px){
+  /* 各內容頁統一置中收窄，留白對稱 */
+  .content-wrap,.lb-wrap,.star-wrap,.makeup-wrap{
+    max-width:980px;margin-left:auto;margin-right:auto;
+    padding-left:24px;padding-right:24px;width:100%;box-sizing:border-box;
+  }
+  /* 巢狀 content-wrap 唔好再加 padding，避免雙重縮排 */
+  .content-wrap .content-wrap{max-width:none;padding-left:0;padding-right:0}
+  /* 課程／知識／器材：自動多欄卡片格 */
+  #courses-list,#knowledge-list,#equipment-list,#badge-levels-list{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:16px;align-items:start;
+  }
+  #courses-list .card,#knowledge-list .card,#equipment-list .card,
+  #badge-levels-list>div{margin-bottom:0 !important}
+  /* 優秀學員：電腦版三欄 */
+  .star-cards{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>

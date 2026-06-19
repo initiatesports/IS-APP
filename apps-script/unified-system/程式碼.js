@@ -338,6 +338,8 @@ function setup(){
   try{ genPeriod_(curPeriodLabel_()); genPeriod_(nextPeriodLabel_()); }catch(e){}   // 自動產生本期與下期繳費列
   try{ seedDemo_(); }catch(e){}
   try{ seedPtData(); }catch(e){}
+  // 觸發對 #11 IS App Data 的授權（家長端即時讀真實出席用）；首次會彈出重新授權
+  try{ var _d=is11_(); Logger.log("已連接 #11：attendance "+Object.keys(_d.att).length+" 格、absences "+_d.abs.length+" 筆"); }catch(e){ Logger.log("連接 #11 失敗："+e); }
   try{ backup(); }catch(e){}
   Logger.log("setup 完成（非破壞性；已啟用每日自動備份 + Drive 整份備份）。");
 }
@@ -469,6 +471,64 @@ function readBlock(cid){
   }
   return {dates:dates,n:n,students:students,status:map};
 }
+
+/* ═══════════ #11 IS App Data 即時讀取（恆常班真實出席來源）═══════════
+ * 背景：教練一直用 is-attendance-app 喺 #11(parent-portal) 點名，#4 嘅 grid 從未
+ * 真正接收過資料 → is-parent 家長頁全部顯示「已過」。今後家長顯示一律以 #11 為
+ * 真相來源；#4 grid 只作後備（保留家長喺 is-parent 自助申請嘅未來請假/補堂）。
+ *   present→出席, exempt→豁免, cancelled→停課,
+ *   absent + 有 absences 紀錄 → 請假(可補堂)，absent + 冇 → 缺席。
+ * ⚠️ 只影響「家長顯示」(classesFor_)，唔碰任何寫入/點名/驗證邏輯，零寫入風險。
+ */
+var DATA_SS_ID = "1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo";  // IS App Data (#11)
+var _is11Cache = null;   // 每次執行只讀一次（Apps Script 全域於每次 doGet/doPost 重置）
+function is11_(){
+  if(_is11Cache) return _is11Cache;
+  var out={att:{}, abs:[]};
+  try{
+    var ss=SpreadsheetApp.openById(DATA_SS_ID);
+    var aSh=ss.getSheetByName("attendance");   // key,classId,date,name,status
+    if(aSh && aSh.getLastRow()>1){
+      aSh.getRange(2,1,aSh.getLastRow()-1,5).getValues().forEach(function(r){
+        var cid=String(r[1]||"").trim(), d=toIso_(r[2]), nm=String(r[3]||"").trim(), s=String(r[4]||"").trim();
+        if(cid&&d&&nm&&s) out.att[cid+"|"+d+"|"+nm]=s;
+      });
+    }
+    var bSh=ss.getSheetByName("absences");      // id,name,classId,absDate,deadline,madeUpDate
+    if(bSh && bSh.getLastRow()>1){
+      bSh.getRange(2,1,bSh.getLastRow()-1,6).getValues().forEach(function(r){
+        var nm=String(r[1]||"").trim(), cid=String(r[2]||"").trim(), ad=toIso_(r[3]);
+        if(nm&&cid&&ad) out.abs.push({name:nm, cid:cid, absDate:ad,
+          deadline:(r[4]?toIso_(r[4]):""), madeUpDate:(r[5]?toIso_(r[5]):"")});
+      });
+    }
+  }catch(e){ Logger.log("is11_ 讀取 #11 失敗（家長端會退回 #4 grid）: "+e); }
+  _is11Cache=out; return out;
+}
+// #11 英文狀態 → 中文（absent 視乎係咪有 absences 紀錄分「請假 / 缺席」）
+function zhStatus11_(nm, d, raw, leaveSet){
+  if(!raw) return "";
+  if(raw==="present")   return "出席";
+  if(raw==="exempt")    return "豁免";
+  if(raw==="cancelled") return "停課";
+  if(raw==="absent")    return leaveSet[nm+"|"+d] ? "請假" : "缺席";
+  return raw;   // 已經係中文(教練直接打) → 原樣
+}
+// 家長顯示用：#11 為主、#4 grid 為後備（保留 is-parent 自助寫入的未來請假/補堂）
+function readBlockMerged_(cid){
+  var base=readBlock(cid), c=CLASSES[cid], d=is11_();
+  var leaveSet={}; d.abs.forEach(function(a){ if(a.cid===cid) leaveSet[a.name+"|"+a.absDate]=true; });
+  var map={};
+  c.students.forEach(function(nm){
+    var grid=base.status[nm]||[];
+    map[nm]=base.dates.map(function(dt,i){
+      var z=zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet);
+      return z || (grid[i]||"");   // #11 有紀錄→用 #11；冇→後備 #4 grid
+    });
+  });
+  return {dates:base.dates, n:base.n, students:base.students, status:map};
+}
+
 function gridMeta(cid){
   var students=CLASSES[cid].students, dates=sessionsFor(cid);
   return {sh:SS().getSheetByName(gridName(cid)), dates:dates, n:dates.length,
@@ -628,25 +688,31 @@ function classesFor_(nm){
   var rows=rosterRows().filter(function(r){ return r.name===nm; });
   var mk=makeupAll().filter(function(m){ return m.name===nm; });
   var dlMap=dlExtMap_();
+  var abs11all=is11_().abs;
   return rows.map(function(r){
-    var cid=r.cid, blk=readBlock(cid), st=blk.status[nm]||[];
+    var cid=r.cid, blk=readBlockMerged_(cid), st=blk.status[nm]||[];
     var att=0,lv=0,ab=0;
     st.forEach(function(s){ if(s==="出席"||s==="補堂")att++; else if(s==="請假")lv++; else if(s==="缺席")ab++; });
-    var myMk=mk.filter(function(m){ return m.from===cid; });
-    var mkInfo=myMk.map(function(m){
-      var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
-      var stt = onGrid ? (makeupStatus(m.to,nm,m.date)||"補堂") : (m.status||"補堂");
-      return {to:m.to, date:m.date, status:stt};
-    });
+    // 補堂來源：#11 absences 已補（madeUpDate）+ 家長經 is-parent 預約嘅 #4 補堂
+    var abs11=abs11all.filter(function(a){ return a.name===nm && a.cid===cid; });
+    var done11=abs11.filter(function(a){ return a.madeUpDate; });
+    var mk4=mk.filter(function(m){ return m.from===cid; });
+    var mkInfo=done11.map(function(a){ return {to:cid, date:a.madeUpDate, status:"出席"}; })
+      .concat(mk4.map(function(m){
+        var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
+        var stt = onGrid ? (makeupStatus(m.to,nm,m.date)||"補堂") : (m.status||"補堂");
+        return {to:m.to, date:m.date, status:stt};
+      }));
     var mkAtt=mkInfo.filter(function(x){ return x.status==="出席"; }).length;
     var sessions=blk.dates.map(function(d,i){ return {date:d, status:st[i]||""}; });
     var deadline=blk.dates.length? blk.dates[blk.dates.length-1] : "";
-    // 補堂限期逐筆覆寫（僅「請假」）：缺席日 → 新限期，前端優先採用
+    // 每筆請假補堂限期：以 #11 absences.deadline 為準，#4 自訂延長覆寫優先
     var mkExt={};
+    abs11.forEach(function(a){ if(!a.madeUpDate && a.deadline) mkExt[a.absDate]=a.deadline; });
     st.forEach(function(s,i){ if(s!=="請假") return; var d=blk.dates[i], ov=dlMap[nm+"|"+cid+"|"+d]; if(ov) mkExt[d]=ov; });
     return {key:cid, sport:cid, wd:r.dayZh, dayZh:r.dayZh, time:r.time,
       total:blk.dates.length, attended:att+mkAtt, leave:lv, absent:ab,
-      owed:Math.max(0, lv-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline, mkExt:mkExt};
+      owed:Math.max(0, lv-mkInfo.length), sessions:sessions, makeups:mkInfo, deadline:deadline, mkExt:mkExt};
   });
 }
 /* ═══════════ 登入防爆破節流（CacheService，按帳號計失敗次數）═══════════ */
