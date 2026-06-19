@@ -533,7 +533,10 @@ async function apiGet(params){
   return res.json();
 }
 async function apiPost(body){
-  const res = await fetch(API_URL, { method:'POST', body:JSON.stringify(body) });
+  // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
+  const payload = Object.assign({}, body);
+  if (payload.coachPass === undefined) payload.coachPass = cpass();
+  const res = await fetch(API_URL, { method:'POST', body:JSON.stringify(payload) });
   return res.json();
 }
 

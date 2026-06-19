@@ -530,13 +530,20 @@ function classesFor_(nm){
       owed:Math.max(0, lv-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline};
   });
 }
+/* ═══════════ 登入防爆破節流（CacheService，按帳號計失敗次數）═══════════ */
+function rlBlocked_(bucket, max){ return Number(CacheService.getScriptCache().get("rl_"+bucket)||0) >= max; }
+function rlBump_(bucket, ttlSec){ var c=CacheService.getScriptCache(), k="rl_"+bucket; c.put(k, String(Number(c.get(k)||0)+1), ttlSec); }
+function rlClear_(bucket){ CacheService.getScriptCache().remove("rl_"+bucket); }
+
 function apiLogin(p){
   var want=pad4(p.last4), nm=String(p.name).trim();
+  if(rlBlocked_("login_"+nm, 12)) return {ok:false, err:"嘗試太多次，請約 5 分鐘後再試"};
   var all=rosterRows();
   // 配對：輸入碼須等於該家庭「有效憑證」（有自訂密碼用密碼，否則用電話後4位）
   var hit=all.filter(function(r){ return r.name===nm && r.last4!==""; })
             .filter(function(r){ return effectiveCred_(pad4(r.last4))===want; });
-  if(!hit.length) return {ok:false, err:"搵唔到，請檢查中文全名同登入密碼（首次登入用手機後4位；如已設定自訂密碼請用自訂密碼）"};
+  if(!hit.length){ rlBump_("login_"+nm, 300); return {ok:false, err:"搵唔到，請檢查中文全名同登入密碼（首次登入用手機後4位；如已設定自訂密碼請用自訂密碼）"}; }
+  rlClear_("login_"+nm);
   var fam=pad4(hit[0].last4);   // 內部家庭鍵＝名冊電話後4位（不變）
   var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
   var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn), fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn)}; });
@@ -1023,9 +1030,13 @@ function genCurrentPeriodFees(){ var r=apiGenPeriod({coachPass:CONFIG.COACH_PASS
 
 /* ═══════════ 家長操作權限：須附家庭登入碼（後端驗證，防冒用）═══════════ */
 function authParent_(name, code){
+  var nm=String(name).trim();
+  if(rlBlocked_("login_"+nm, 12)) return false;
   var all=rosterRows();
-  return all.filter(function(r){ return r.name===String(name).trim() && r.last4!==""; })
-            .some(function(r){ return effectiveCred_(pad4(r.last4))===pad4(code); });
+  var ok = all.filter(function(r){ return r.name===nm && r.last4!==""; })
+              .some(function(r){ return effectiveCred_(pad4(r.last4))===pad4(code); });
+  if(ok) rlClear_("login_"+nm); else rlBump_("login_"+nm, 300);
+  return ok;
 }
 function familyOf_(name){
   var hit=rosterRows().filter(function(r){ return r.name===String(name).trim() && r.last4!==""; });
@@ -1138,7 +1149,12 @@ function apiCoachAddAddon(p){
 }
 
 /* ═══════════ 教練登入（後端驗證密碼，前端唔再硬編）═══════════ */
-function apiCoachLogin(p){ return {ok: String(p.coachPass)===String(CONFIG.COACH_PASS), version:VERSION}; }
+function apiCoachLogin(p){
+  if(rlBlocked_("coachlogin", 10)) return {ok:false, version:VERSION, err:"嘗試太多次，請約 5 分鐘後再試"};
+  var ok = String(p.coachPass)===String(CONFIG.COACH_PASS);
+  if(ok) rlClear_("coachlogin"); else rlBump_("coachlogin", 300);
+  return {ok: ok, version:VERSION};
+}
 
 /* ═══════════ 調堂／轉班（把學生加入目標班指定日期，免費）═══════════ */
 function transferSheet(){
@@ -1242,6 +1258,7 @@ function apiDaily(p){
   return {ok:true, list:CLASS_IDS.filter(function(k){return groups[k];}).map(function(k){return groups[k];})};
 }
 function apiMark(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var cid=p.key;
   if(CLASSES[cid] && markCell(cid,p.name,p.date,p.status,false)) return {ok:true};
   var sh=makeupSheet(), all=makeupAll();
@@ -1323,6 +1340,7 @@ function tableRows_(sheetName, cols){
   });
 }
 function apiSaveAttendance(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var d=p.data||{}, key=d.key||"", session=d.session||{};
   var parts=key.split("|"), cid=parts[0], date=parts[1];
   if(!CLASSES[cid]) return {ok:false,err:"班別不存在"};
@@ -1334,6 +1352,7 @@ function apiSaveAttendance(p){
   return {ok:true};
 }
 function apiSaveAbsences(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   // B 推送 ABSENCES：確保缺席格已標、已補嘅寫入 ledger（非破壞，去重）
   var arr=p.data||[]; var existing=makeupAll();
   arr.forEach(function(a){
@@ -1352,6 +1371,7 @@ function apiSaveAbsences(p){
   return {ok:true};
 }
 function apiSaveSettings(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var data=p.data||{}, sh=settingsSheet();
   if(!sh){ sh=SS().insertSheet("Settings"); sh.appendRow(["key","value"]); }
   var existing={}, last=sh.getLastRow();
