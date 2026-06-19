@@ -411,6 +411,101 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 .hero-stat+.hero-stat{border-left:1px solid var(--border)}
 .hs-n{font-size:26px;font-weight:900;color:var(--cyan);line-height:1.1;letter-spacing:-.02em}
 .hs-k{font-size:12px;color:var(--muted);margin-top:5px;font-weight:600}
+/* Hero 信任標籤 */
+.hero-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 22px;max-width:520px}
+.hero-pill{font-size:12.5px;font-weight:700;color:var(--cyan-deep);background:var(--cyan-dim);border:1px solid rgba(27,141,155,.22);border-radius:999px;padding:6px 13px;white-space:nowrap}
+.hero-login-hint{margin-top:18px;font-size:13px;color:var(--muted)}
+.hero-login-hint a{color:var(--cyan);font-weight:700;text-decoration:none}
+.hero-login-hint a:hover{color:var(--cyan-deep)}
+/* 為什麼選擇我們 */
+.why-grid{max-width:980px;margin:6px auto 4px;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.why-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 4px 16px rgba(20,33,48,.05);transition:transform .2s,box-shadow .2s}
+.why-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(20,33,48,.10)}
+.why-ico{font-size:30px;line-height:1;margin-bottom:12px}
+.why-h{font-size:16px;font-weight:800;margin-bottom:6px;letter-spacing:-.01em}
+.why-d{font-size:13px;color:var(--muted);line-height:1.65}
+/* 課程階梯 */
+.ladder-intro{max-width:880px;margin:2px auto 20px;padding:15px 22px;background:linear-gradient(135deg,rgba(27,141,155,.08),rgba(140,108,255,.07));border:1px solid var(--border);border-radius:16px;font-size:13.5px;line-height:1.85;color:var(--fg);text-align:center}
+.ladder{max-width:1080px;margin:6px auto 4px;padding:6px 20px 4px;display:flex;align-items:stretch;justify-content:center;gap:12px;flex-wrap:wrap}
+.ladder-step{position:relative;flex:1;min-width:210px;max-width:252px;text-align:left;background:linear-gradient(165deg,#fff,#F2F9FA);border:1px solid var(--border);border-radius:18px;padding:20px 18px 18px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;gap:8px;overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s}
+.ladder-step::before{content:'';position:absolute;left:0;top:0;width:100%;height:4px;background:linear-gradient(90deg,var(--cyan),rgba(140,108,255,.65))}
+.ladder-step:hover{transform:translateY(-4px);border-color:rgba(27,141,155,.45);box-shadow:0 14px 30px rgba(20,33,48,.12)}
+.ls-num{position:absolute;top:9px;right:15px;font-size:42px;font-weight:900;line-height:1;color:rgba(27,141,155,.10);letter-spacing:-.04em;pointer-events:none}
+.ls-age{font-size:11.5px;font-weight:800;color:#fff;background:var(--cyan);border-radius:999px;padding:3px 11px;align-self:flex-start;position:relative;z-index:1}
+.ls-name{font-size:17px;font-weight:900;letter-spacing:-.01em;color:var(--fg);position:relative;z-index:1}
+.ls-desc{font-size:12.5px;color:var(--muted);line-height:1.65;position:relative;z-index:1}
+.ls-focus{display:flex;flex-wrap:wrap;gap:5px;margin-top:1px;position:relative;z-index:1}
+.ls-focus span{font-size:10.5px;font-weight:700;color:var(--cyan-deep);background:var(--cyan-dim);border:1px solid rgba(27,141,155,.18);border-radius:6px;padding:2px 7px}
+.ls-cta{margin-top:auto;padding-top:4px;font-size:12px;font-weight:800;color:var(--cyan);position:relative;z-index:1}
+.ladder-arrow{display:flex;align-items:center;color:rgba(27,141,155,.55);font-size:22px;font-weight:900;flex:0 0 auto}
+@media(max-width:900px){.ladder-step{max-width:none}}
+@media(max-width:640px){.ladder-arrow{display:none}.ladder-step{min-width:100%}}
+/* ── 如何開始 journey ── */
+.journey{max-width:1000px;margin:6px auto 4px;padding:6px 20px 4px;display:flex;align-items:flex-start;justify-content:center;gap:6px;flex-wrap:wrap}
+.jrny-step{flex:1;min-width:160px;max-width:215px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:7px;padding:6px 8px}
+.jrny-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(155deg,var(--cyan),var(--cyan-deep));color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(27,141,155,.28)}
+.jrny-h{font-size:14.5px;font-weight:900;color:var(--fg);letter-spacing:-.01em}
+.jrny-d{font-size:12px;color:var(--muted);line-height:1.55}
+.jrny-line{flex:0 0 auto;align-self:center;margin-top:22px;color:rgba(27,141,155,.45);font-size:20px;font-weight:900}
+@media(max-width:640px){.jrny-line{display:none}.jrny-step{min-width:44%;max-width:none}}
+/* ── FAQ ── */
+.faq{max-width:760px;margin:4px auto 6px}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .2s}
+.faq-item[open]{border-color:rgba(27,141,155,.35)}
+.faq-q{list-style:none;cursor:pointer;padding:15px 18px;font-size:14.5px;font-weight:800;color:var(--fg);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.faq-q::-webkit-details-marker{display:none}
+.faq-q::after{content:'＋';color:var(--cyan);font-size:18px;font-weight:900;flex:0 0 auto;transition:transform .2s}
+.faq-item[open] .faq-q::after{content:'－'}
+.faq-a{padding:0 18px 16px;font-size:13px;color:var(--muted);line-height:1.7}
+.faq-q{align-items:flex-start}
+.faq-qt{flex:1;min-width:0}
+.faq-qt .l-zh{display:block;font-size:14.5px;font-weight:800;color:var(--fg)}
+.faq-qt .l-en{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:3px;line-height:1.4}
+.faq-q::after{margin-top:2px}
+.faq-a .l-zh{display:block}
+.faq-a .l-en{display:block;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border);color:rgba(26,34,48,0.5);font-size:12.5px}
+/* ── 知識分享卡（雜誌式） ── */
+#knowledge-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:1000px;margin:0 auto}
+.kn-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 6px 20px rgba(20,33,48,.05);transition:transform .2s,box-shadow .2s,border-color .2s}
+.kn-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(20,33,48,.12);border-color:rgba(27,141,155,.3)}
+.kn-cover{position:relative;display:block;width:100%;height:230px;padding:0;border:0;cursor:zoom-in;overflow:hidden;background:#eef3f4}
+.kn-cover img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;transition:transform .35s}
+.kn-card:hover .kn-cover img{transform:scale(1.04)}
+.kn-cover::after{content:'';position:absolute;left:0;right:0;bottom:0;height:64px;background:linear-gradient(transparent,rgba(255,255,255,.92));pointer-events:none}
+.kn-zoom{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(20,33,48,.78);color:#fff;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;opacity:0;transition:opacity .2s;white-space:nowrap;z-index:1}
+.kn-card:hover .kn-zoom{opacity:1}
+.kn-body{padding:16px 18px 18px;display:flex;flex-direction:column;flex:1}
+.kn-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.kn-tag{font-size:11px;font-weight:800;color:var(--cyan);background:var(--cyan-dim);border:1px solid var(--cyan);border-radius:999px;padding:2px 9px}
+.kn-date{font-size:11px;color:var(--muted)}
+.kn-title{font-size:16px;font-weight:900;color:var(--fg);margin:0 0 8px;line-height:1.35;letter-spacing:-.01em}
+.kn-summary{font-size:13px;color:var(--muted);line-height:1.7;white-space:pre-line;flex:1}
+.kn-more{margin-top:12px;align-self:flex-start;background:none;border:0;padding:0;cursor:pointer;color:var(--cyan);font-size:13px;font-weight:800}
+.kn-more:hover{color:var(--cyan-deep)}
+@media(max-width:720px){#knowledge-list{grid-template-columns:1fr}.kn-cover{height:200px}}
+/* ── 知識閱讀視窗（圖＋文） ── */
+.kn-reader{position:fixed;inset:0;z-index:9999;background:rgba(12,20,30,.78);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;-webkit-overflow-scrolling:touch}
+.kn-reader.open{display:flex}
+.kn-reader-card{position:relative;width:100%;max-width:600px;background:var(--surface);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden;margin:auto}
+.kn-reader-x{position:absolute;top:12px;right:12px;z-index:2;width:38px;height:38px;border-radius:50%;border:0;background:rgba(12,20,30,.55);color:#fff;font-size:17px;cursor:pointer;line-height:1}
+.kn-reader-x:hover{background:rgba(12,20,30,.78)}
+.kn-reader-scroll{max-height:calc(100vh - 56px);overflow:auto;-webkit-overflow-scrolling:touch}
+.kn-reader-img{width:100%;height:auto;display:block;background:#eef3f4}
+.kn-reader-text{padding:20px 24px 28px}
+.kn-reader-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.kn-reader-title{font-size:20px;font-weight:900;color:var(--fg);margin:0 0 14px;line-height:1.35;letter-spacing:-.01em}
+.kn-reader-body{font-size:14px;color:var(--fg);line-height:1.85;white-space:pre-line}
+@media(max-width:560px){.kn-reader{padding:14px 8px}.kn-reader-title{font-size:18px}.kn-reader-text{padding:18px 18px 24px}}
+/* ── 聯絡 CTA band ── */
+.cta-band{max-width:1000px;margin:10px auto 8px;padding:32px 26px;border-radius:22px;text-align:center;background:linear-gradient(135deg,var(--cyan-deep),var(--cyan) 70%,#2BA9B6);box-shadow:0 16px 40px rgba(20,33,48,.16);position:relative;overflow:hidden}
+.cta-band::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 25%,rgba(255,255,255,.18),transparent 55%);pointer-events:none}
+.cta-band h2{color:#fff;font-size:23px;font-weight:900;margin:0 0 8px;letter-spacing:-.01em}
+.cta-band p{color:rgba(255,255,255,.9);font-size:14px;margin:0 0 20px;line-height:1.6}
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+.cta-wa{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--cyan-deep);font-size:15px;font-weight:900;text-decoration:none;padding:13px 26px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.12);transition:transform .15s}
+.cta-wa:hover{transform:translateY(-2px)}
+.cta-soc{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:#fff;font-size:15px;font-weight:800;text-decoration:none;padding:13px 22px;border-radius:999px;transition:background .15s}
+.cta-soc:hover{background:rgba(255,255,255,.26)}
 /* 區段標題 */
 .home-section-head{max-width:980px;margin:38px auto 4px;padding:0 20px}
 .home-section-head h2{font-size:24px;font-weight:900;letter-spacing:-.01em;margin-bottom:6px}
@@ -533,7 +628,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
     </a>
     <div class="nav-links">
       <button class="nav-link active" id="nav-home"      onclick="switchPanel('home')">首頁</button>
-      <button class="nav-link news-flash"  id="nav-news"     onclick="switchPanel('news')">🔔 最新消息</button>
+      <button class="nav-link"        id="nav-news"     onclick="switchPanel('news')">✨ 訓練特色</button>
       <button class="nav-link"        id="nav-pt"        onclick="switchPanel('pt')">⭐ 私人訓練</button>
       <button class="nav-link"        id="nav-ach"       onclick="switchPanel('ach')">🏆 學生成就</button>
       <button class="nav-link"        id="nav-courses"   onclick="switchPanel('courses')">課程</button>
@@ -561,14 +656,21 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
         <p class="hero-sub">AIM HIGH · JUMP HIGH</p>
         <p class="hero-desc">INITIATE SPORTS 專注兒童及青少年運動培訓，項目涵蓋花式跳繩、羽毛球、匹克球及多項目體適能。<br>我們以系統化課程、階段性章別考核及小班教學，協助每位學員建立穩固運動根基，培養紀律、自信與團隊精神，邁向更高水平。</p>
         <div class="hero-btns">
-          <a class="btn-hero-p primary" href="is-parent.html" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px">🔑 請假補堂登入</a>
-          <button class="btn-hero-p secondary" onclick="switchPanel('courses')">了解課程</button>
+          <button class="btn-hero-p primary" onclick="switchPanel('courses')">🔍 探索課程</button>
+          <a class="btn-hero-p secondary" href="https://wa.me/85263317403" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px">💬 WhatsApp 查詢</a>
+        </div>
+        <div class="hero-pills">
+          <span class="hero-pill">🏅 章別考核制度</span>
+          <span class="hero-pill">📊 數據化評估</span>
+          <span class="hero-pill">🏆 比賽屢獲佳績</span>
+          <span class="hero-pill">👥 4人小班教學</span>
         </div>
         <div class="hero-stats">
           <div class="hero-stat"><div class="hs-n">6+</div><div class="hs-k">運動項目</div></div>
           <div class="hero-stat"><div class="hs-n">1:10</div><div class="hs-k">小班師生比</div></div>
           <div class="hero-stat"><div class="hs-n">4人</div><div class="hs-k">即可開班</div></div>
         </div>
+        <div class="hero-login-hint">已報名學員家長？<a href="is-parent.html">🔑 請假補堂登入 ›</a></div>
       </div>
       <!-- ══ 品牌故事 ══ -->
       <div class="brand-story">
@@ -600,15 +702,120 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
         </div>
       </div>
 
+      <!-- ══ 為什麼選擇我們 ══ -->
+      <div class="home-section-head">
+        <h2>為什麼選擇 INITIATE SPORTS</h2>
+        <p>我們不只教一項運動，而是為孩子打造一生受用的運動基礎。</p>
+      </div>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-ico">🤸</div>
+          <div class="why-h">多元全面發展</div>
+          <div class="why-d">跳繩、田徑、體能、球類⋯⋯不被單一項目定義，全面打好孩子的運動根基。</div>
+        </div>
+        <div class="why-card">
+          <div class="why-ico">🏅</div>
+          <div class="why-h">章別考核制度</div>
+          <div class="why-d">清晰分級目標，孩子看得見自己的進步，學得更有方向與動力。</div>
+        </div>
+        <div class="why-card">
+          <div class="why-ico">📊</div>
+          <div class="why-h">數據化成長報告</div>
+          <div class="why-d">PRE &amp; POST 能力測試，用數據讓家長掌握孩子的成長軌跡。</div>
+        </div>
+        <div class="why-card">
+          <div class="why-ico">👥</div>
+          <div class="why-h">小班教學・4人成班</div>
+          <div class="why-d">師生比例低至 1:10，教練因材施教，照顧每一位學員。</div>
+        </div>
+      </div>
+
+      <!-- ══ 課程階梯 ══ -->
+      <div class="home-section-head">
+        <h2>課程階梯</h2>
+        <p>一條清晰的成長路線，陪孩子由零開始穩步前進。</p>
+      </div>
+      <div class="ladder-intro">
+        🪜 我們相信運動發展應該<b>循序漸進</b>。由幼兒的<b>動作啟蒙</b>，到專項<b>恆常班</b>，再到<b>體能強化</b>與<b>個人化訓練</b> —— 每個階段都為下一步打好基礎，孩子在最適合的起點開始，逐級遞進，穩健成長。
+      </div>
+      <div class="ladder">
+        <button class="ladder-step" onclick="switchPanel('courses')">
+          <span class="ls-num">01</span>
+          <span class="ls-age">3–6歲</span>
+          <span class="ls-name">幼兒動作啟蒙</span>
+          <span class="ls-desc">把握「動作大腦」黃金期，從移動、穩定、操控三大基礎動作技能入手，為孩子一生運動打好根基。</span>
+          <span class="ls-focus"><span>FMS 基礎</span><span>協調平衡</span><span>1:10 小班</span></span>
+          <span class="ls-cta">了解課程 →</span>
+        </button>
+        <span class="ladder-arrow">→</span>
+        <button class="ladder-step" onclick="switchPanel('courses')">
+          <span class="ls-num">02</span>
+          <span class="ls-age">小一 +</span>
+          <span class="ls-name">專項恆常班</span>
+          <span class="ls-desc">花式跳繩、田徑等專項訓練，配合章別考核制度，讓孩子在有系統的課程中持續進步、考級與參賽。</span>
+          <span class="ls-focus"><span>花式跳繩</span><span>田徑</span><span>章別考核</span></span>
+          <span class="ls-cta">了解課程 →</span>
+        </button>
+        <span class="ladder-arrow">→</span>
+        <button class="ladder-step" onclick="switchPanel('courses')">
+          <span class="ls-num">03</span>
+          <span class="ls-age">6歲 +</span>
+          <span class="ls-name">綜合運動技能</span>
+          <span class="ls-desc">以運動科學 S&amp;C 為核心，全面強化力量、爆發力與動作控制，同時為小學呈分試做好體能準備。</span>
+          <span class="ls-focus"><span>S&amp;C 體能</span><span>力量爆發</span><span>呈分試備戰</span></span>
+          <span class="ls-cta">了解課程 →</span>
+        </button>
+        <span class="ladder-arrow">→</span>
+        <button class="ladder-step" onclick="switchPanel('pt')">
+          <span class="ls-num">04</span>
+          <span class="ls-age">不限年齡</span>
+          <span class="ls-name">私人訓練</span>
+          <span class="ls-desc">一對一度身訂造，由兒童青少年到成人樂齡，按個人目標與身體狀況設計專屬訓練計劃，數據追蹤進度。</span>
+          <span class="ls-focus"><span>1 對 1</span><span>度身訂造</span><span>數據追蹤</span></span>
+          <span class="ls-cta">了解詳情 →</span>
+        </button>
+      </div>
+
+      <!-- ══ 如何開始 ══ -->
+      <div class="home-section-head">
+        <h2>如何開始</h2>
+        <p>由查詢到正式上課，只需簡單四步。</p>
+      </div>
+      <div class="journey">
+        <div class="jrny-step">
+          <div class="jrny-num">1</div>
+          <div class="jrny-h">💬 WhatsApp 查詢</div>
+          <div class="jrny-d">告訴我們孩子的年齡與興趣，了解合適課程與最新上課時間。</div>
+        </div>
+        <span class="jrny-line">→</span>
+        <div class="jrny-step">
+          <div class="jrny-num">2</div>
+          <div class="jrny-h">🤸 安排試堂</div>
+          <div class="jrny-d">親身體驗課堂氣氛與教學方式，零壓力先試後決定。</div>
+        </div>
+        <span class="jrny-line">→</span>
+        <div class="jrny-step">
+          <div class="jrny-num">3</div>
+          <div class="jrny-h">📊 能力評估</div>
+          <div class="jrny-d">教練了解孩子的起點與需要，建議最適合的班別與階段。</div>
+        </div>
+        <span class="jrny-line">→</span>
+        <div class="jrny-step">
+          <div class="jrny-num">4</div>
+          <div class="jrny-h">🚀 開始訓練</div>
+          <div class="jrny-d">編入合適班別，配合定期考核與成長報告，穩步進步。</div>
+        </div>
+      </div>
+
       <div class="home-section-head">
         <h2>探索 INITIATE SPORTS</h2>
-        <p>課程資訊、學生成就與最新消息，一站式了解我們的訓練理念與成果。</p>
+        <p>課程資訊、訓練特色與學生成就，一站式了解我們的訓練理念與成果。</p>
       </div>
       <div class="home-cards">
-        <div class="home-card hc-flash" onclick="switchPanel('news')">
-          <div class="hc-icon">🔔</div>
-          <div class="hc-title">最新消息</div>
-          <div class="hc-desc">課程更新與重要通知</div>
+        <div class="home-card" onclick="switchPanel('news')">
+          <div class="hc-icon">✨</div>
+          <div class="hc-title">訓練特色</div>
+          <div class="hc-desc">S&amp;C 體能與數據化評估</div>
         </div>
         <div class="home-card" onclick="switchPanel('ach')">
           <div class="hc-icon">🏆</div>
@@ -628,9 +835,54 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
         <div class="home-card" onclick="switchPanel('courses')">
           <div class="hc-icon">📚</div>
           <div class="hc-title">課程介紹</div>
-          <div class="hc-desc">班別及收費詳情</div>
+          <div class="hc-desc">幼兒啟蒙至專項培訓</div>
         </div>
       </div>
+      <!-- ══ 常見問題 ══ -->
+      <div class="home-section-head">
+        <h2>常見問題 · FAQ</h2>
+        <p>家長最常問的幾個問題，這裡先為你解答。</p>
+      </div>
+      <div class="faq" id="faq">
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">如何報名或開始上課？</span><span class="l-en">How do I sign up or get started?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">最簡單的方法是 WhatsApp 我們（6331 7403），告訴我們孩子的年齡與興趣，我們會介紹合適課程，並可為你安排試堂。</span><span class="l-en">The easiest way is to WhatsApp us at 6331 7403. Let us know your child's age and interests, and we'll recommend suitable courses and arrange a trial class for you.</span></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">幾多人才開班？是小班教學嗎？</span><span class="l-en">What is the minimum class size? Is it small-group teaching?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">所有課程均為小班教學，4 人即可成班，師生比例低至 1:10，確保每位學員都得到足夠的關注與指導。</span><span class="l-en">All our courses are taught in small groups. A class starts with just 4 students, with a coach-to-student ratio as low as 1:10, so every learner receives enough attention and guidance.</span></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">課程適合甚麼年齡？</span><span class="l-en">What ages are the courses suitable for?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">由 3 歲幼兒的動作啟蒙，到小學生的專項恆常班與體能訓練，以至成人及樂齡人士的私人訓練，各個年齡與階段都有合適的課程。</span><span class="l-en">From movement foundations for children as young as 3, to specialised regular classes and conditioning for primary students, and private training for adults and seniors — we have suitable courses for every age and stage.</span></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">在哪裡上課？</span><span class="l-en">Where are classes held?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">課程主要於青衣及荃灣一帶的場地進行；私人訓練亦可因應需要安排其他地區或上門服務，詳情歡迎 WhatsApp 查詢。</span><span class="l-en">Classes are mainly held at venues around Tsing Yi and Tsuen Wan. Private training can also be arranged in other districts or at your home upon request — feel free to WhatsApp us for details.</span></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">請假可以補堂嗎？</span><span class="l-en">Can we make up for missed classes?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">可以。我們設有完整的網上請假補堂系統，家長可自行於家長專區申請請假及預約補堂，安排靈活方便。</span><span class="l-en">Yes. We have a complete online leave and make-up system. Parents can apply for leave and book make-up classes themselves through the Parent Portal — flexible and convenient.</span></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">有沒有考核或證書？</span><span class="l-en">Are there assessments or certificates?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">現時花式跳繩設有 14 級章別考核制度，讓孩子有清晰的進階目標；我們亦正陸續為其他課程引入相應的評核機制。此外，教練會定期推薦合適的學員參加各區及公開比賽，讓他們在實戰中累積經驗、建立自信，同時定期進行能力評估並提供成長報告，全方位見證孩子的成長。</span><span class="l-en">Our rope skipping programme currently features a 14-level badge assessment system that gives children clear progression goals, and we are progressively introducing assessment frameworks for our other courses too. Our coaches also regularly recommend suitable students for district and open competitions, helping them gain real experience and build confidence, while we conduct periodic ability assessments and provide growth reports — supporting every aspect of your child's development.</span></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q"><span class="faq-qt"><span class="l-zh">收費如何計算？</span><span class="l-en">How is pricing calculated?</span></span></summary>
+          <div class="faq-a"><span class="l-zh">課程以按堂收費為主，不同課程與班別收費略有不同。為確保你收到最新、最準確的資料，歡迎 WhatsApp 6331 7403 查詢詳情。</span><span class="l-en">Courses are charged on a per-session basis, and fees vary slightly between different courses and classes. To make sure you receive the most up-to-date and accurate information, please WhatsApp us at 6331 7403.</span></div>
+        </details>
+      </div>
+
+      <!-- ══ 聯絡 CTA ══ -->
+      <div class="cta-band">
+        <h2>準備好讓孩子開始了嗎？</h2>
+        <p>WhatsApp 我們，了解課程詳情與試堂安排 · AIM HIGH JUMP HIGH</p>
+        <div class="cta-row">
+          <a class="cta-wa" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 6331 7403</a>
+        </div>
+      </div>
+
       <div class="panel-footer">
         © 2023 Initiate Sports · All rights reserved.
         <div class="footer-social">
@@ -688,31 +940,32 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
     <div class="panel" id="panel-news">
       <div class="content-wrap">
         <div class="section-header">
-          <h2>🔔 最新消息</h2>
+          <h2>✨ 訓練特色</h2>
+          <p>科學化、系統化的訓練升級 —— 讓每位學員得到更全面的成長。</p>
         </div>
         <div style="padding:0 0 80px">
 
     <!-- ══ 頂部橫幅 ══ -->
     <div style="background:linear-gradient(135deg,#FFFFFF 0%,#EAF4F5 60%,#F4FAFB 100%);border-bottom:1px solid var(--border);padding:28px 20px 22px;position:relative;overflow:hidden">
       <div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(62,207,207,0.12),transparent 60%);pointer-events:none"></div>
-      <div style="font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">2026年5月題</div>
-      <h1 style="font-size:26px;font-weight:900;color:var(--white);margin:0 0 10px;line-height:1.2">課程升級通知</h1>
-      <p style="font-size:13px;color:rgba(26,34,48,0.65);margin:0;line-height:1.7">為了令每位學員得到更科學化、更全面的訓練，我們將於 2026 年 5 月起正式升級花式跳繩課程。</p>
+      <div style="font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">OUR APPROACH · 訓練理念</div>
+      <h1 style="font-size:26px;font-weight:900;color:var(--white);margin:0 0 10px;line-height:1.2">更科學・更全面的訓練</h1>
+      <p style="font-size:13px;color:rgba(26,34,48,0.65);margin:0;line-height:1.7">為了令每位學員得到更科學化、更全面的訓練，我們將 S&amp;C 體能訓練與數據化評估融入<b>每一個課程</b> —— 無論是花式跳繩、田徑、綜合運動技能，還是幼兒啟蒙與私人訓練，都從根本提升學員的運動表現。</p>
     </div>
 
-    <!-- ══ 課程升級：花式跳繩 × S&C ══ -->
+    <!-- ══ 訓練核心：S&C 體能強化 ══ -->
     <div style="margin:20px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px">
-      <div style="font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">課程升級</div>
-      <h2 style="font-size:20px;font-weight:900;color:var(--white);margin:0 0 14px">花式跳繩 × S&C 體能強化訓練</h2>
+      <div style="font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">訓練核心 · 適用於所有課程</div>
+      <h2 style="font-size:20px;font-weight:900;color:var(--white);margin:0 0 14px">S&C 體能強化訓練</h2>
       <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 10px;line-height:1.7">S&C（Strength &amp; Conditioning）即「體能強化訓練」。很多家長可能對這個訓練比較陌生，其實它就是運動員在日常專項訓練必不可少的基礎。</p>
-      <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 14px;line-height:1.7">S&C 的核心理念，是透過科學化的方法，有系統地提升運動員的核心體能——包括力量、爆發力、耐力、協調性及靈活度。當身體素質提升，學員在學習花式技巧時可以做得更準確、控制更好，同時大大減少受傷的風險。</p>
-      
-      <!-- 升級標語 -->
+      <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 14px;line-height:1.7">S&C 的核心理念，是透過科學化的方法，有系統地提升學員的核心體能——包括力量、爆發力、耐力、協調性及靈活度。當身體素質提升，學員無論在跳繩、田徑、球類定是任何運動項目中，都可以做得更準確、控制更好，同時大大減少受傷的風險。</p>
+
+      <!-- 訓練標語 -->
       <div style="background:rgba(62,207,207,0.08);border-left:3px solid var(--cyan);border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:16px">
-        <div style="font-size:13px;font-weight:700;color:var(--cyan)">從學花式，變成訓練花式</div>
+        <div style="font-size:13px;font-weight:700;color:var(--cyan)">不只學一項運動，而是訓練一個全面的運動員</div>
       </div>
 
-      <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 14px;line-height:1.7">升級後，我們會將 S&C 體能訓練的環節融入所有課堂。課堂中將有面對學員身體發展需要而設計的體能訓練，幫助學員在科學化的環境中發掘潛能、突破自我——不只是訓練跳繩技巧，更是訓練一個全面發展的運動員。</p>
+      <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 14px;line-height:1.7">我們將 S&C 體能訓練的環節融入<b>每一個課程</b>——無論是花式跳繩、田徑、綜合運動技能，還是幼兒動作啟蒙與私人訓練。課堂中均設有針對學員身體發展需要而設計的體能訓練，幫助學員在科學化的環境中發掘潛能、突破自我，建立一生受用的運動根基。</p>
 
       <!-- 五大體能指標 -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
@@ -726,9 +979,9 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 
     <!-- ══ 新增服務：定期體能評估 + 個人進度報告 ══ -->
     <div style="margin:14px 16px 0;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px">
-      <div style="font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">新增服務</div>
+      <div style="font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">數據化評估 · 全課程適用</div>
       <h2 style="font-size:19px;font-weight:900;color:var(--white);margin:0 0 14px">定期體能評估 + 個人進度報告</h2>
-      <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 12px;line-height:1.7">升級後，我們將定期安排體能評估，針對每位學員進行一系列測試，測量學員在爆發力、協調性、耐力等方面的表現。</p>
+      <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 12px;line-height:1.7">我們會定期安排體能評估，針對每位學員進行一系列測試，測量學員在爆發力、協調性、耐力等方面的表現。</p>
       <p style="font-size:13px;color:rgba(26,34,48,0.7);margin:0 0 14px;line-height:1.7">每次評估後，我們將為每位學員整理一份<span style="color:var(--white);font-weight:700">個人進度報告</span>，歸納實際數據，讓家長清楚了解學員的學習進度。</p>
       
       <!-- 報告內容列表 -->
@@ -790,11 +1043,13 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
       <div class="content-wrap">
         <div class="section-header">
           <h2>📚 課程介紹</h2>
-          <p>花式跳繩 × S&C 體能強化訓練</p>
+          <p>幼兒啟蒙 · 花式跳繩 · 田徑 · S&C 體能 · 私人訓練</p>
         </div>
         <div class="content-wrap">
-    <div class="section-title">📋 課程介紹</div>
-    <div class="section-sub">選擇最適合你的課程，開始蛻變之旅</div>
+    <div style="background:linear-gradient(135deg,rgba(62,207,207,.10),rgba(140,108,255,.10));border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;line-height:1.75">
+      🎯 由幼兒動作啟蒙到專項提升的完整訓練階梯。全部課程 <b>4 人成班・小班教學</b>，配合 <b>定期數據評估</b> 與 <b>章別考核計劃</b>，讓孩子穩步進步。<br>
+      📱 最新上課時間及試堂安排，歡迎 WhatsApp <b>6331 7403</b> 查詢。
+    </div>
     <div id="courses-list"></div>
   </div>
 </div>
@@ -808,7 +1063,10 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
       <div class="content-wrap">
         <div class="content-wrap">
     <div class="section-title">📚 知識分享 101</div>
-    <div class="section-sub">專業跳繩知識與訓練技巧</div>
+    <div class="section-sub">運動科學・營養飲食・訓練心法 — 由教練團隊整理，助孩子與家長一齊成長</div>
+    <div style="background:linear-gradient(135deg,rgba(62,207,207,.10),rgba(140,108,255,.10));border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;line-height:1.75">
+      💡 我們相信運動教育不止於課堂。以下文章涵蓋兒童發展、健康飲食、訓練科學等主題，陪伴家長一同了解孩子的成長需要。
+    </div>
     <div id="knowledge-list"></div>
   </div>
 </div>
@@ -822,7 +1080,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
       <div class="content-wrap">
         <div class="content-wrap">
     <div class="section-title">🛍 器材銷售</div>
-    <div class="section-sub">IS 專業跳繩及訓練器材</div>
+    <div class="section-sub">IS 專業跳繩及訓練器材 — 學員專用，品質保證</div>
     <div id="equipment-list"></div>
   </div>
 </div>
@@ -1071,10 +1329,22 @@ let BADGE_DATA={
   ]
 };
 let KNOWLEDGE_POSTS=[
-  {id:'k1',title:'健康新觀念：不只「沒生病」而已！',date:'2025-01-01',content:'世界衛生組織重新定義健康：不僅是「沒有疾病」！而是身體＋心理＋社會適應的「完全安適狀態」。\n\n【兒童青少年（5-17歲）運動建議】每天至少60分鐘中高強度運動；每週3天加入肌肉＆骨骼強化活動\n\n【給孩子的成長紅利】\n✓ 大腦開發：提升20%學習專注力\n✓ 社交技能：從團隊運動學溝通與挫折容忍度\n✓ 超前部署：從小建立習慣，降低成年後肥胖機率67%\n\n【給大人的抗老投資】\n✓ 降低35%心血管疾病風險 ✓ 增肌減脂，對抗每年1%肌肉流失 ✓ 運動後工作效率提升40%',image:''},
-  {id:'k2',title:'健身飲食懶人包 — 掌握TDEE，打造理想體態',date:'2025-02-01',content:'【巨量營養素基礎】碳水=燃料🔥｜蛋白質=修復🔧｜脂肪=守護🛡｜膳食纖維=清道夫\n1克碳水=4卡｜1克蛋白=4卡｜1克脂肪=9卡\n\n【3步驟算TDEE】\n1. BMR：男=10×體重+6.25×身高-5×年齡+5；女=-161\n2. ×活動係數（久坐1.2 / 每週3-5次運動1.55）\n3. TDEE = BMR × 活動係數\n\n減脂：TDEE-500大卡 → 每週減0.5kg\n增肌：TDEE+500大卡 → 每週增0.5kg\n\n推薦工具：MyFitnessPal（可掃條碼記錄），設置香港地區使用',image:''},
-  {id:'k3',title:'從影片出發，讓孩子大腦也在練跳繩',date:'2025-03-01',content:'運用4大理論＋意象訓練，全面提升跳繩學習效率！\n\n① 視覺回饋：影片讓孩子看到自己動作的偏差，提升自我察覺能力\n② 觀察學習：看其他同學的節奏、協調，內化「什麼是做得好」\n③ 錯誤導向學習：讓孩子自己看懂錯在哪裡，比老師直接講更有效！\n④ 意象訓練：觀看影片後閉眼模擬，就算沒實際動作，大腦也在練習\n\n【課後學習策略】\n✅ 看自己影片找出錯誤\n✅ 看同學影片比較節奏\n✅ 閉眼意象訓練2-3分鐘\n✅ 家長問：「今天跳繩哪裡最順？為什麼？」',image:''},
-  {id:'k4',title:'兒童飲食與健康增重指南',date:'2025-04-01',content:'幫助孩子「吃得下、吸收好、長得高」\n\n【三大原則】\n1. 質量勝於數量：吃對比吃多更重要\n2. 均衡飲食是基礎：蛋白質＋碳水＋健康脂肪缺一不可\n3. 規律進餐：三餐定時＋2-3次健康小食\n\n【跳繩運動員特別建議】\n運動前1-2小時：輕便小食（香蕉、小份三明治）\n運動後30分鐘內（黃金補充期）：蛋白質＋碳水\n→ 巧克力牛奶 / 酸奶+水果 / 雞蛋三明治\n\n【每日家長檢視】「孩子今天吃夠了嗎？」\n✓ 牛奶2份 ✓ 蔬菜3份 ✓ 水果2份 ✓ 蛋白質3份',image:''}
+  {id:'k1',title:'健康新觀念：不只「沒生病」而已！',date:'運動知識分享 101',tag:'運動・健康',
+   image:'img/knowledge/k1.jpg',
+   summary:'世界衛生組織重新定義健康 —— 不只是「沒有疾病」，而是身體＋心理＋社會適應的「完全安適狀態」。運動，正是孩子大腦開發、習慣養成，與大人抗老投資的黃金鑰匙。',
+   body:'世界衛生組織（WHO）重新定義健康：不只是「沒有疾病」，而是身體＋心理＋社會適應的「完全安適狀態」。運動，正是串聯三大層面的黃金習慣。\n\n【各年齡運動處方・WHO 建議】\n• 兒童青少年（5–17歲）：每天至少 60 分鐘中高強度運動；每週 3 天加入肌肉與骨骼強化活動。\n• 成年人（18–64歲）：每週 150–300 分鐘中等強度，或 75–150 分鐘高強度有氧 ＋ 每週 2 天肌力訓練。\n\n【香港運動現況】\n• 超過 90% 學童達不到 WHO 建議運動量。\n• 成年人中等強度運動達標率僅 19.2%，肌力訓練達標率僅 8.5%。\n• 辦公室職員日均久坐 9.3 小時。\n\n【運動的雙世代禮物】\n給孩子：大腦開發提升 20% 學習專注力、從團隊運動學溝通與抗挫力、降低成年後肥胖機率 67%。\n給大人：降低 35% 心血管疾病風險、增肌減脂對抗每年 1% 肌肉流失、運動後工作效率提升 40%。\n\n【運動強度・說話測試】\n• 中等強度：能說話但無法唱歌（50–70% 最大心率），如親子騎車、羽球雙打。\n• 高強度：喘到無法說完整句子（70–85% 最大心率），如跳繩挑戰、HIIT。\n• 最大心率 ≈ 220 − 年齡。\n\n⚠ 高強度運動前熱身 10 分鐘；長輩／慢性病患者建議先諮詢醫師。'},
+  {id:'k2',title:'健身飲食懶人包 — 掌握 TDEE，打造理想體態',date:'運動知識分享 101',tag:'營養・飲食',
+   image:'img/knowledge/k2.jpg',
+   summary:'碳水、蛋白、脂肪、膳食纖維點樣配？教你 3 步算出自己嘅 TDEE，搞清楚增肌定減脂應該食幾多，附手掌份量法與飲食實戰技巧。',
+   body:'上次分享了運動的重要性，今次講健康生活 Part 2 —— 飲食。\n\n【四大引擎・巨量營養素與膳食纖維】\n• 碳水化合物（每克 4 卡）：主要能量來源；優選低 GI 原型食物（糙米、燕麥、蕃薯、藜麥）。\n• 蛋白質（每克 4 卡）：修復肌肉、合成激素；雞胸肉、牛肉、雞蛋、黃豆製品；每日每公斤體重 1.2–1.7 克。\n• 脂肪（每克 9 卡）：保護器官、吸收脂溶性維生素；三文魚、堅果、牛油果、冷壓橄欖油；避開反式脂肪。\n• 膳食纖維：促進腸道健康＋延緩飢餓；每日 25–35g。\n\n【3 步算 TDEE】\n1. BMR：男＝10×體重＋6.25×身高−5×年齡＋5；女＝−161。\n2. ×活動係數（久坐 1.2／每週 3–5 次運動 1.55）。\n3. 設定目標：減脂 TDEE−500 大卡（每週減 0.5kg）；增肌 TDEE＋500 大卡（每週增 0.5kg）。\n\n【飲食實戰技巧】\n• 熱量追蹤：MyFitnessPal（可掃條碼，設香港地區）。\n• 手掌份量法：一掌蛋白、一拳蔬菜、一拇指脂肪、一捧碳水。\n• 減脂期提高蛋白質至 35%、減少精緻糖；增肌期訓練後 30 分鐘補「碳水＋蛋白質」。'},
+  {id:'k3',title:'從影片出發，讓孩子大腦也在練跳繩',date:'運動知識分享 101',tag:'訓練心法',
+   image:'img/knowledge/k3.jpg',
+   summary:'點解我哋會幫學生影跳繩片？背後係 4 大學習理論 × 意象訓練 —— 等孩子落堂之後，大腦都繼續「練緊」。',
+   body:'運用 4 大學習理論 ＋ 意象訓練，讓孩子落堂後大腦也在練跳繩。\n\n① 視覺回饋（Visual Feedback）\n看到自己跳的樣子，大腦先知道點改進。影片讓孩子知道動作偏差（手擺太高、起跳角度不足），提升自我察覺。（Sigrist et al., 2013）\n\n② 觀察學習（Observational Learning）\n學動作唔一定要自己做，睇人做都學得到。觀察同學的節奏、手腳協調、身體姿勢，內化「什麼是做得好」。（Bandura, 1977）\n\n③ 錯誤導向學習（Error-Based Learning）\n錯誤唔係失敗，而係學習動作最強的燃料。讓孩子自己睇懂錯喺邊，比老師直接講更有效。（Shadmehr & Krakauer, 2008）\n\n④ 意象訓練（Motor Imagery）\n動作仲未做，大腦已經喺度練。閉眼喺腦中模擬跳繩 2–3 分鐘，活化與實際運動相同的腦區；舞者、體操、滑雪選手都用緊。\n\n【課後學習策略】\n✅ 看自己影片：找出哪裡跳得不順 → 建立動作意識\n✅ 看同學影片：比較節奏流暢度 → 找改進方向\n✅ 意象訓練：閉眼模擬 2–3 分鐘 → 強化記憶與動作一致性\n✅ 親子提問：「今天跳繩哪裡最順？為什麼？」→ 提升覺察與動機'},
+  {id:'k4',title:'兒童飲食與健康增重指南',date:'運動知識分享 101',tag:'營養・成長',
+   image:'img/knowledge/k4.jpg',
+   summary:'孩子「食極都唔肥」可能係問題。健康增重唔係吃多，而係吃對 —— 附每日份量、運動前後補充與家長檢視工具。',
+   body:'幫助孩子「吃得下、吸收好、長得高」。健康體重對成長發育至關重要。\n\n【為什麼瘦弱可能是問題】\n體力不足影響運動表現、免疫力下降易生病、生長發育遲緩、學習注意力不集中。\n\n【健康增重三大原則】\n1. 質量勝於數量：唔係「吃多」，而係「吃對」—— 營養密度比純熱量更重要。\n2. 均衡飲食：蛋白質＋碳水＋健康脂肪＋維生素＋礦物質，缺一不可。\n3. 規律進餐：三餐定時＋2–3 次健康小食，避免長時間空腹。\n\n【每日建議份量（6–12歲・中等活動量）】\n主食 4–6 份｜蔬菜 3–5 份｜水果 2–3 份｜蛋白質 3–5 份｜奶類 2 份｜健康脂肪 2–3 茶匙。\n\n【跳繩運動員特別建議】\n運動前 1–2 小時：輕便小食（香蕉、小份三明治）。\n運動後 30 分鐘內（黃金補充期）：蛋白質＋碳水 —— 巧克力牛奶／酸奶＋水果／雞蛋三明治。\n\n【成長能量需求】\n兒童基礎代謝高，平均每公斤體重需 70–90 kcal；30kg 的 8 歲兒童約需 2100–2400 kcal —— 解釋了點解孩子「吃不少卻還是瘦」。\n\n【常見家長誤區】\n✗ 靠垃圾食品增重　✗ 強迫餵食反降食慾　✗ 忽略運動只長脂肪　✗ 過度依賴補品。\n\n📌 與其追求快速「長肉」，更重要是打造強壯體魄＋良好免疫力，這才是成長與運動表現的基石。\n\n若孩子體重持續下降、食慾極差、長期疲勞腹痛，建議找醫生或營養師。'}
 ];
 let EQUIPMENT_ITEMS=[
   {id:'e1',name:'拍子繩',price:100,unit:'條',desc:'適合初學者及一般練習使用，耐用易控制',image:'',inStock:true},
@@ -1082,25 +1352,23 @@ let EQUIPMENT_ITEMS=[
   {id:'e3',name:'膠繩',price:80,unit:'條',desc:'適合初學及花式練習，彈性好易掌握',image:'',inStock:true},
   {id:'e4',name:'跳繩袋',price:20,unit:'個',desc:'IS品牌專用跳繩收納袋，方便攜帶',image:'',inStock:true},
 ],COURSE_ITEMS=[
-  {id:'c1',name:'花式跳繩恆常班',age:'3歲或以上',schedule:'每週一次',duration:'每節60分鐘',price:120,hidePrice:true,
-   priceNote:'按月收費｜試堂$100',
-   desc:'課堂結合跳繩基礎技巧與多樣花式動作，配合趣味遊戲和團隊合作。提供定期評估，配合章別考核計劃。師生比例1:12，4人成班。\n\n課程特色：系統化訓練花式跳繩技巧、強化身體協調性與專注力、培養團隊精神、推薦參與比賽增強自信',
+  {id:'cf',name:'幼兒全方位運動啟蒙課程',age:'3–6歲幼兒',tag:'FMS 動作啟蒙',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   desc:'從基礎動作技能（FMS, Fundamental Movement Skills）開始，把握 3–6 歲「動作大腦」黃金期，為孩子打好一生的運動基礎。\n\n科學化教學系統，細拆 24 項核心元素：\n• 移動性技能 Locomotor — 空間位移、下肢爆發力、神經肌肉連動\n• 穩定性技能 Stability — 核心肌群、本體感受、防受傷能力\n• 操控性技能 Manipulative — 手眼／手腳協調、視覺追蹤、精準力量控制\n\n室內外交替訓練，適應不同環境；師生比例 1:10，每班限 10 人，並附專屬 PRE & POST 數據成長報告。',
    contact:'WhatsApp: 6331 7403',image:''},
-  {id:'c2',name:'田徑恆常班',age:'小學一年級或以上',schedule:'每週一次',duration:'每節60分鐘',price:120,hidePrice:true,
-   priceNote:'按期收費｜試堂$100',
-   desc:'涵蓋跑步、跳遠與投擲等技術訓練，融合遊戲與競賽元素。設有定期學習進度評估，鼓勵參與田徑比賽。師生比例1:10，4人成班。',
+  {id:'c1',name:'花式跳繩恆常班',age:'3歲或以上',tag:'恆常班',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   desc:'結合跳繩基礎技巧與多樣花式動作，配合趣味遊戲及團隊合作，激發孩子的運動熱情與學習動力。\n\n課程特色：\n• 系統化訓練花式跳繩技巧與節奏感\n• 強化身體協調性、平衡感與專注力\n• 培養團隊精神與堅毅態度\n• 配合章別考核計劃，定期評估學習進度\n• 推薦參與比賽，增強自信\n\n師生比例 1:12，4 人成班。',
+   contact:'WhatsApp: 6331 7403',image:'img/courses/c1.jpg'},
+  {id:'c2',name:'田徑恆常班',age:'小學一年級或以上',tag:'恆常班',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   desc:'涵蓋跑步、跳遠與投擲等徑賽與田賽技術訓練，融合遊戲與競賽元素，激發學員的運動興趣與競技精神。\n\n課程特色：\n• 教授短跑、跳遠、投擲等基本技能\n• 強調速度、爆發力及動作協調性\n• 促進身體控制與敏捷度\n• 設定期學習進度評估，鼓勵參與比賽實踐所學\n\n師生比例 1:10，4 人成班。',
+   contact:'WhatsApp: 6331 7403',image:'img/courses/c2.jpg'},
+  {id:'c3',name:'綜合運動技能訓練班',age:'6歲或以上',tag:'S&C 體能',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   desc:'以運動科學及 S&C（Strength & Conditioning）訓練理念為核心，系統化、循序漸進地全面提升運動表現與身體素質。\n\n重點訓練能力：\n• 基礎力量與核心穩定性\n• 動作控制與神經肌肉協調\n• 爆發力與速度發展\n• 靈敏度與平衡力\n• 跑、跳、投等基本動作技能強化\n\n預備體育呈分試；小班教學，每班最多 8 人，新學員須通過簡單評估，定期進行能力測試與成效分析。',
    contact:'WhatsApp: 6331 7403',image:''},
-  {id:'c3',name:'綜合運動技能訓練班',age:'6歲或以上',schedule:'每週一次',duration:'每節60分鐘',price:140,hidePrice:true,
-   priceNote:'按月預繳｜首堂試課$100｜每班最多8人',
-   desc:'以S&C（Strength and Conditioning）訓練理念為核心，全面提升運動表現。\n重點訓練：基礎力量與核心穩定性、爆發力與速度、靈敏度與平衡力、基本動作技能強化\n\n預備體育呈分試｜名額限定，須通過簡單評估',
+  {id:'c4',name:'私人訓練 — 兒童及青少年',age:'兒童及青少年',tag:'1對1',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   desc:'一對一個別化指導，按學員能力與目標度身設計訓練計劃。\n\n訓練方向：跳繩、體能、田徑、體操、球類運動敏捷反應、肌力與協調性。\n\n可選 1 對 2 小組訓練；如需 3 人或以上小組，歡迎查詢。',
    contact:'WhatsApp: 6331 7403',image:''},
-  {id:'c4',name:'私人訓練 — 兒童及青少年',age:'兒童及青少年',schedule:'靈活時間',duration:'每節60分鐘',price:600,hidePrice:true,
-   priceNote:'試堂$450｜5堂$2500｜10堂$4500｜20堂$8000（只限青衣及荃灣）',
-   desc:'個別化指導，訓練方向涵蓋：跳繩、體能、田徑、體操、球類運動敏捷反應、肌力與協調性。1:2訓練加收50%費用。',
-   contact:'WhatsApp: 6331 7403',image:''},
-  {id:'c5',name:'私人訓練 — 成人及樂齡人士',age:'成人及樂齡人士',schedule:'靈活時間',duration:'每節60分鐘',price:600,hidePrice:true,
-   priceNote:'試堂$600｜10堂$6500｜20堂$12000｜30堂$16500｜50堂$25000｜*可分期付款',
-   desc:'訓練方向：✔ 肌力訓練 ✔ 增肌減脂 ✔ 運動表現提升 ✔ 舒緩壓力 ✔ 處理痛症 ✔ 低衝擊體能訓練 ✔ 附設飲食指導\n1:2訓練加收50%費用。',
+  {id:'c5',name:'私人訓練 — 成人及樂齡人士',age:'成人及樂齡人士',tag:'1對1',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   desc:'一對一專業指導，因應個人身體狀況與目標設計訓練。\n\n訓練方向：✔ 肌力訓練 ✔ 增肌減脂 ✔ 運動表現提升 ✔ 舒緩壓力 ✔ 處理痛症 ✔ 低衝擊體能訓練 ✔ 附設飲食指導\n\n可選 1 對 2 小組訓練。',
    contact:'WhatsApp: 6331 7403',image:''},
 ];
 /* ═══════════ 學生成就（比賽獎項）═══════════ */
@@ -1250,10 +1518,13 @@ function renderCoursesPanel(){
     return `
     <div class="card" style="margin-bottom:14px;display:flex;flex-direction:column">
       ${imgHtml}
-      <div class="card-title">${co.name}</div>
-      <div class="card-tags">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="card-title" style="margin:0">${co.name}</div>
+        ${co.tag ? `<span style="font-size:11px;font-weight:800;color:var(--cyan);background:var(--cyan-dim);border:1px solid var(--cyan);border-radius:999px;padding:2px 9px">${co.tag}</span>` : ''}
+      </div>
+      <div class="card-tags" style="margin-top:8px">
         ${co.age      ? `<span class="tag">👶 ${co.age}</span>` : ''}
-        ${co.schedule ? `<span class="tag purple">📅 ${co.schedule}</span>` : ''}
+        ${co.schedule ? `<span class="tag purple">🕒 ${co.schedule}</span>` : ''}
         ${co.duration ? `<span class="tag amber">⏱ ${co.duration}</span>` : ''}
       </div>
       ${priceHtml}
@@ -1374,14 +1645,49 @@ function renderKnowledgeScreen() {
     return;
   }
   el.innerHTML = KNOWLEDGE_POSTS.map((p, i) => `
-    <div class="card" style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${p.date || ''}</div>
-      <div class="card-title" style="font-size:15px;margin-bottom:8px">${p.title}</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">${p.content || p.summary || ''}</div>
-      ${p.url ? `<a href="${p.url}" target="_blank" style="display:inline-block;margin-top:10px;color:var(--cyan);font-size:13px;font-weight:700;text-decoration:none">▶ 觀看影片</a>` : ''}
-    </div>
+    <article class="kn-card">
+      ${p.image ? `<button type="button" class="kn-cover" onclick="openKnowledgePost('${p.id}')">
+        <img src="${p.image}" alt="${p.title||''}" loading="lazy">
+        <span class="kn-zoom">📖 閱讀全文</span>
+      </button>` : ''}
+      <div class="kn-body">
+        <div class="kn-meta">${p.tag ? `<span class="kn-tag">${p.tag}</span>` : ''}<span class="kn-date">${p.date || ''}</span></div>
+        <h3 class="kn-title">${p.title}</h3>
+        <div class="kn-summary">${p.summary || p.content || ''}</div>
+        <button type="button" class="kn-more" onclick="openKnowledgePost('${p.id}')">📖 閱讀全文 →</button>
+        ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener" class="kn-more" style="text-decoration:none;margin-left:10px">▶ 觀看影片</a>` : ''}
+      </div>
+    </article>
   `).join('');
 }
+
+function openKnowledgePost(id){
+  const p=(KNOWLEDGE_POSTS||[]).find(x=>x.id===id);
+  if(!p) return;
+  let lb=document.getElementById('kn-reader');
+  if(!lb){
+    lb=document.createElement('div');
+    lb.id='kn-reader';
+    lb.className='kn-reader';
+    lb.innerHTML='<div class="kn-reader-card"><button type="button" class="kn-reader-x" aria-label="關閉">✕</button><div class="kn-reader-scroll"><img class="kn-reader-img" alt=""><div class="kn-reader-text"><div class="kn-reader-meta"></div><h2 class="kn-reader-title"></h2><div class="kn-reader-body"></div></div></div></div>';
+    document.body.appendChild(lb);
+    lb.addEventListener('click',e=>{ if(e.target===lb || e.target.classList.contains('kn-reader-x')) closeKnowledgePost(); });
+  }
+  lb.querySelector('.kn-reader-img').src=p.image||'';
+  lb.querySelector('.kn-reader-img').style.display=p.image?'':'none';
+  lb.querySelector('.kn-reader-meta').innerHTML=(p.tag?`<span class="kn-tag">${p.tag}</span>`:'')+(p.date?`<span class="kn-date">${p.date}</span>`:'');
+  lb.querySelector('.kn-reader-title').textContent=p.title||'';
+  lb.querySelector('.kn-reader-body').textContent=p.body||p.content||p.summary||'';
+  lb.querySelector('.kn-reader-scroll').scrollTop=0;
+  lb.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeKnowledgePost(){
+  const lb=document.getElementById('kn-reader');
+  if(lb) lb.classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeKnowledgePost(); });
 
 function renderEquipmentScreen() {
   const el = document.getElementById('equipment-list');
