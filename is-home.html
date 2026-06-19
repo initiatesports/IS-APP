@@ -473,6 +473,56 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
   #badge-levels-list>div{margin-bottom:0 !important}
   /* 優秀學員：電腦版三欄 */
   .star-cards{grid-template-columns:repeat(3,1fr)}
+  /* 學生成就：電腦版兩欄 */
+  .ach-grid{grid-template-columns:1fr 1fr !important}
+}
+@media (min-width:1280px){ .ach-grid{grid-template-columns:1fr 1fr 1fr !important} }
+/* ── 學生成就 ── */
+.ach-tally{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 20px}
+.ach-tally .tw{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 18px;text-align:center;min-width:82px}
+.ach-tally .tw b{display:block;font-size:26px;font-weight:900;line-height:1.1}
+.ach-tally .tw span{font-size:12px;color:var(--muted);font-weight:600}
+.ach-block{margin:0 0 24px}
+.ach-block-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding-bottom:9px;border-bottom:2px solid var(--border)}
+.ach-block-head h3{font-size:17px;font-weight:900;margin:0;color:var(--white)}
+.ach-block-head .sub{font-size:12.5px;color:var(--muted);font-weight:700}
+.ach-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.ach-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:14px;padding:12px 14px}
+.ach-card.m1{border-left-color:#f6c544}
+.ach-card.m2{border-left-color:#b8c0cc}
+.ach-card.m3{border-left-color:#cd8a52}
+.ach-card.m4{border-left-color:#8c98aa}
+.ach-medal{font-size:25px;line-height:1;flex-shrink:0;width:30px;text-align:center}
+.ach-info{flex:1;min-width:0}
+.ach-names{font-size:14.5px;font-weight:800;color:var(--white);line-height:1.35}
+.ach-meta{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.ach-prize{font-size:12.5px;font-weight:800;flex-shrink:0;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.ach-prize.m1{background:rgba(246,197,68,.16);color:#b8860b}
+.ach-prize.m2{background:rgba(150,160,175,.2);color:#6c7686}
+.ach-prize.m3{background:rgba(205,138,82,.16);color:#a9682f}
+.ach-prize.m4{background:rgba(124,138,160,.16);color:#5f6b7e}
+/* ── 品牌故事 ── */
+.brand-story{margin:8px 16px 28px;border-radius:20px;background:linear-gradient(160deg,#FFFFFF 0%,#EAF4F5 55%,#F4FAFB 100%);border:1px solid var(--border);overflow:hidden;position:relative}
+.brand-story::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 12%,rgba(62,207,207,.16),transparent 55%);pointer-events:none}
+.bs-inner{position:relative;padding:30px 22px 28px;max-width:760px;margin:0 auto}
+.bs-eyebrow{font-size:11px;font-weight:800;color:var(--cyan);letter-spacing:.14em;margin-bottom:10px}
+.bs-title{font-size:24px;font-weight:900;color:var(--white);margin:0 0 14px;line-height:1.25}
+.bs-lead{font-size:14.5px;line-height:1.8;color:var(--white);margin:0 0 14px;font-weight:600}
+.bs-body{font-size:13.5px;line-height:1.85;color:var(--muted);margin:0 0 14px}
+.bs-body b{color:var(--white)}
+.bs-beliefs{display:grid;grid-template-columns:1fr;gap:12px;margin:20px 0}
+.bs-belief{background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:16px;padding:16px 18px}
+.bs-belief-ico{font-size:26px;line-height:1;margin-bottom:8px}
+.bs-belief-h{font-size:15px;font-weight:900;color:var(--white);margin-bottom:5px}
+.bs-belief-d{font-size:12.5px;line-height:1.65;color:var(--muted)}
+.bs-mottos{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 14px}
+.bs-motto{font-size:12.5px;font-weight:800;color:var(--cyan);background:rgba(62,207,207,.12);border:1px solid rgba(62,207,207,.3);border-radius:999px;padding:7px 14px}
+.bs-sign{font-size:13px;font-weight:800;color:var(--white);margin:6px 0 0;letter-spacing:.01em}
+@media (min-width:769px){
+  .brand-story{margin-left:auto;margin-right:auto;max-width:980px}
+  .bs-inner{padding:42px 40px 38px}
+  .bs-title{font-size:30px}
+  .bs-beliefs{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
@@ -493,6 +543,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
       <button class="nav-link"        id="nav-lb"        onclick="switchPanel('lb')">排行榜</button>
       <button class="nav-link"        id="nav-badge"     onclick="switchPanel('badge')">章別考核計劃</button>
       <button class="nav-link"        id="nav-star"      onclick="switchPanel('star')">優秀學員</button>
+      <button class="nav-link"        id="nav-ach"       onclick="switchPanel('ach')">🏆 學生成就</button>
       <button class="nav-link"        id="nav-courses"   onclick="switchPanel('courses')">課程</button>
       <button class="nav-link"        id="nav-knowledge" onclick="switchPanel('knowledge')">知識分享</button>
       <button class="nav-link"        id="nav-equipment" onclick="switchPanel('equipment')">器材銷售</button>
@@ -527,6 +578,36 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
           <div class="hero-stat"><div class="hs-n">4人</div><div class="hs-k">即可開班</div></div>
         </div>
       </div>
+      <!-- ══ 品牌故事 ══ -->
+      <div class="brand-story">
+        <div class="bs-inner">
+          <div class="bs-eyebrow">OUR STORY · 品牌故事</div>
+          <h2 class="bs-title">從初心開始，啟動運動人生</h2>
+          <p class="bs-lead">INITIATE，意思是「啟動」，亦代表「初心」。<br>我們相信，每一個人踏入運動的時候，都是一個全新的開始——不論年齡、不論能力，都可以由今日起動身體，同時不忘最初為何開始。</p>
+          <p class="bs-body">我們叫 <b>INITIATE SPORTS</b>，而不是 INITIATE ROPE SKIPPING，因為我們相信「人需要全面發展，運動不應被單一項目定義」。跳繩、田徑、體能訓練、球類運動⋯⋯每一種運動都有它的價值，都能令身體更強、更靈活、更有信心。這正是我們開設多元課程的原因。</p>
+          <p class="bs-body">我們同時為<b>小朋友</b>與<b>大人</b>設計課程，因為運動無分年齡，成長亦無界線。</p>
+
+          <div class="bs-beliefs">
+            <div class="bs-belief">
+              <div class="bs-belief-ico">❤️‍🔥</div>
+              <div class="bs-belief-h">Sport is Medicine</div>
+              <div class="bs-belief-d">運動是照顧身體最直接、最長遠的方法。</div>
+            </div>
+            <div class="bs-belief">
+              <div class="bs-belief-ico">🏋🏻</div>
+              <div class="bs-belief-h">Physical Literacy is for Life</div>
+              <div class="bs-belief-d">良好的身體素養，讓孩子健康成長，也讓大人保持狀態，陪孩子走得更遠。</div>
+            </div>
+          </div>
+
+          <div class="bs-mottos">
+            <span class="bs-motto">🎯 AIM HIGH JUMP HIGH</span>
+            <span class="bs-motto">📈 1% better each time</span>
+          </div>
+          <p class="bs-sign">INITIATE SPORTS — Start with Purpose. Move with Meaning.</p>
+        </div>
+      </div>
+
       <div class="home-section-head">
         <h2>探索 INITIATE SPORTS</h2>
         <p>課程資訊、成績排行、章別考核與最新消息，一站式掌握學員的學習進度。</p>
@@ -537,8 +618,13 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
           <div class="hc-title">最新消息</div>
           <div class="hc-desc">課程更新與重要通知</div>
         </div>
-        <div class="home-card" onclick="switchPanel('lb')">
+        <div class="home-card" onclick="switchPanel('ach')">
           <div class="hc-icon">🏆</div>
+          <div class="hc-title">學生成就</div>
+          <div class="hc-desc">學員比賽獎項一覽</div>
+        </div>
+        <div class="home-card" onclick="switchPanel('lb')">
+          <div class="hc-icon">📊</div>
           <div class="hc-title">成績排行</div>
           <div class="hc-desc">各項目最佳成績</div>
         </div>
@@ -597,6 +683,18 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
         <div id="star-panel-list">
           <div class="lb-empty">⏳ 載入中…</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ STUDENT ACHIEVEMENTS ══ -->
+    <div class="panel" id="panel-ach">
+      <div class="star-wrap">
+        <div class="section-header">
+          <h2>🏆 學生成就</h2>
+          <p>恭喜各位學員在比賽中屢創佳績・AIM HIGH JUMP HIGH</p>
+        </div>
+        <div id="ach-tally" class="ach-tally"></div>
+        <div id="ach-list"></div>
       </div>
     </div>
 
@@ -808,6 +906,7 @@ function switchPanel(id) {
   if (id === 'lb')        renderLB();
   if (id === 'badge')     renderBadgePanel();
   if (id === 'star')      renderStarPanel();
+  if (id === 'ach')       renderAchPanel();
   if (id === 'courses')   renderCoursesPanel();
   if (id === 'knowledge') renderKnowledgeScreen();
   if (id === 'equipment') renderEquipmentScreen();
@@ -895,15 +994,15 @@ let EQUIPMENT_ITEMS=[
   {id:'e3',name:'膠繩',price:80,unit:'條',desc:'適合初學及花式練習，彈性好易掌握',image:'',inStock:true},
   {id:'e4',name:'跳繩袋',price:20,unit:'個',desc:'IS品牌專用跳繩收納袋，方便攜帶',image:'',inStock:true},
 ],COURSE_ITEMS=[
-  {id:'c1',name:'花式跳繩恆常班',age:'3歲或以上',schedule:'每週一次',duration:'每節60分鐘',price:120,
+  {id:'c1',name:'花式跳繩恆常班',age:'3歲或以上',schedule:'每週一次',duration:'每節60分鐘',price:120,hidePrice:true,
    priceNote:'按月收費｜試堂$100',
    desc:'課堂結合跳繩基礎技巧與多樣花式動作，配合趣味遊戲和團隊合作。提供定期評估，配合章別考核計劃。師生比例1:12，4人成班。\n\n課程特色：系統化訓練花式跳繩技巧、強化身體協調性與專注力、培養團隊精神、推薦參與比賽增強自信',
    contact:'WhatsApp: 6331 7403',image:''},
-  {id:'c2',name:'田徑恆常班',age:'小學一年級或以上',schedule:'每週一次',duration:'每節60分鐘',price:120,
+  {id:'c2',name:'田徑恆常班',age:'小學一年級或以上',schedule:'每週一次',duration:'每節60分鐘',price:120,hidePrice:true,
    priceNote:'按期收費｜試堂$100',
    desc:'涵蓋跑步、跳遠與投擲等技術訓練，融合遊戲與競賽元素。設有定期學習進度評估，鼓勵參與田徑比賽。師生比例1:10，4人成班。',
    contact:'WhatsApp: 6331 7403',image:''},
-  {id:'c3',name:'綜合運動技能訓練班',age:'6歲或以上',schedule:'每週一次',duration:'每節60分鐘',price:140,
+  {id:'c3',name:'綜合運動技能訓練班',age:'6歲或以上',schedule:'每週一次',duration:'每節60分鐘',price:140,hidePrice:true,
    priceNote:'按月預繳｜首堂試課$100｜每班最多8人',
    desc:'以S&C（Strength and Conditioning）訓練理念為核心，全面提升運動表現。\n重點訓練：基礎力量與核心穩定性、爆發力與速度、靈敏度與平衡力、基本動作技能強化\n\n預備體育呈分試｜名額限定，須通過簡單評估',
    contact:'WhatsApp: 6331 7403',image:''},
@@ -916,6 +1015,84 @@ let EQUIPMENT_ITEMS=[
    desc:'訓練方向：✔ 肌力訓練 ✔ 增肌減脂 ✔ 運動表現提升 ✔ 舒緩壓力 ✔ 處理痛症 ✔ 低衝擊體能訓練 ✔ 附設飲食指導\n1:2訓練加收50%費用。',
    contact:'WhatsApp: 6331 7403',image:''},
 ];
+/* ═══════════ 學生成就（比賽獎項）═══════════ */
+const ACHIEVEMENTS=[
+  {comp:'獅子會盃全港跳繩挑戰賽 2026',sub:'新界區初賽',items:[
+    {names:['陳曉瑩'],group:'11歲女子組',event:'30秒前繩速度賽',medal:1},
+    {names:['陳曉瑩'],group:'11歲女子組',event:'30秒二重跳速度賽',medal:3},
+  ]},
+  {comp:'葵青區跳繩錦標賽 2026',sub:'個人・30秒前繩速度挑戰賽',items:[
+    {names:['陳曉瑩'],group:'11歲女子組',event:'',medal:1},
+    {names:['鄧可澄'],group:'07歲女子組',event:'',medal:1},
+    {names:['文柏升'],group:'06歲或以下男子組',event:'',medal:1},
+    {names:['梁正宇'],group:'8歲男子組',event:'電子速度賽',medal:1},
+    {names:['古卓謙'],group:'06歲或以下男子組',event:'',medal:2},
+    {names:['吳瑋軒'],group:'11歲男子組',event:'',medal:2},
+    {names:['郭可昕'],group:'10歲女子組',event:'',medal:2},
+    {names:['黃玥晴'],group:'07歲女子組',event:'',medal:2},
+    {names:['張雅堯'],group:'06歲或以下女子組',event:'',medal:2},
+    {names:['黎柏言'],group:'07歲男子組',event:'',medal:3},
+    {names:['黎柏希'],group:'10歲男子組',event:'',medal:3},
+    {names:['許思溢'],group:'11歲男子組',event:'',medal:3},
+    {names:['陳柏睎'],group:'06歲或以下男子組',event:'',medal:3},
+    {names:['孔善盈'],group:'09歲女子組',event:'',medal:3},
+    {names:['梁德瑜'],group:'06歲或以下女子組',event:'',medal:3},
+  ]},
+  {comp:'葵青區跳繩錦標賽 2026',sub:'雙人・30秒單側迴旋速度賽',items:[
+    {names:['黎柏希','吳瑋軒'],group:'09-11歲男子組',event:'',medal:1},
+    {names:['梁正宇','黎柏言'],group:'08歲或以下男子組',event:'',medal:1},
+    {names:['許思溢','郭栩澄'],group:'09-11歲混合組',event:'',medal:1},
+    {names:['梁心朗','鄭宇喬'],group:'09-11歲混合組',event:'',medal:3},
+    {names:['黃朗程','黃玥晴'],group:'08歲或以下混合組',event:'',medal:3},
+    {names:['古卓謙','文柏升'],group:'08歲或以下男子組',event:'',medal:3},
+    {names:['羅靖誼','顧舒然'],group:'08歲或以下女子組',event:'',medal:3},
+  ]},
+  {comp:'葵青區跳繩錦標賽 2026',sub:'團體・4×30 單車接力速度賽',items:[
+    {names:['陳曉瑩','郭可昕','黎柏希','吳瑋軒'],group:'09-11歲混合組',event:'',medal:1},
+    {names:['羅靖誼','顧舒然','梁正宇','黎柏言'],group:'08歲或以下混合組',event:'',medal:1},
+    {names:['鄧可澄','鄧幗恩','周莉晶','黃玥晴'],group:'8歲或以下女子組',event:'',medal:1},
+    {names:['孔善盈','蔡芷彤','許思溢','古詩詠'],group:'09-11歲混合組',event:'',medal:2},
+    {names:['張爾淳','黃梓昕','陳焯棋','張雅堯'],group:'8歲或以下女子組',event:'',medal:2},
+  ]},
+  {comp:'南區跳繩比賽 2025/26',sub:'',items:[
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒前繩跳',medal:1},
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒二重跳',medal:2},
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒單車步',medal:4},
+    {names:['梁正宇'],group:'8歲男子兒童組',event:'30秒二重跳',medal:2},
+  ]},
+];
+const MEDAL_EMOJI={1:'🥇',2:'🥈',3:'🥉',4:'🎖'};
+const MEDAL_NAME ={1:'冠軍',2:'亞軍',3:'季軍',4:'殿軍'};
+function renderAchPanel(){
+  const tally={1:0,2:0,3:0,4:0};
+  ACHIEVEMENTS.forEach(b=>b.items.forEach(it=>{tally[it.medal]=(tally[it.medal]||0)+1;}));
+  const tw=document.getElementById('ach-tally');
+  if(tw) tw.innerHTML=
+    `<div class="tw"><b style="color:#b8860b">${tally[1]}</b><span>🥇 冠軍</span></div>`+
+    `<div class="tw"><b style="color:#6c7686">${tally[2]}</b><span>🥈 亞軍</span></div>`+
+    `<div class="tw"><b style="color:#a9682f">${tally[3]}</b><span>🥉 季軍</span></div>`+
+    (tally[4]?`<div class="tw"><b style="color:#5f6b7e">${tally[4]}</b><span>🎖 殿軍</span></div>`:'');
+  const el=document.getElementById('ach-list');
+  if(!el) return;
+  el.innerHTML=ACHIEVEMENTS.map(b=>{
+    const cards=b.items.map(it=>{
+      const m=it.medal, names=it.names.join('・'), solo=it.names.length===1;
+      const meta=[it.group, it.event].filter(Boolean).join(' · ');
+      return `<div class="ach-card m${m}">
+        <div class="ach-medal">${MEDAL_EMOJI[m]}</div>
+        <div class="ach-info">
+          <div class="ach-names">${solo?'':'👥 '}${names}</div>
+          ${meta?`<div class="ach-meta">${meta}</div>`:''}
+        </div>
+        <div class="ach-prize m${m}">${MEDAL_NAME[m]}</div>
+      </div>`;
+    }).join('');
+    return `<div class="ach-block">
+      <div class="ach-block-head"><h3>${b.comp}</h3>${b.sub?`<span class="sub">${b.sub}</span>`:''}</div>
+      <div class="ach-grid">${cards}</div>
+    </div>`;
+  }).join('');
+}
 let lbActive='rope30',dataLoaded=false;
 
 function getStarPeriodLabel(n){
@@ -971,11 +1148,19 @@ function renderNewsPanel(){
 function renderCoursesPanel(){
   const el=document.getElementById('courses-list');
   if(!COURSE_ITEMS.length){el.innerHTML='<div class="lb-empty">暫無課程資料</div>';return;}
+  const WA='https://wa.me/85263317403';
   el.innerHTML=COURSE_ITEMS.map(co=>{
     const unit = co.priceUnit || '月';
     const imgHtml = co.image ? `<img src="${co.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px">` : '';
+    const showPrice = co.price && !co.hidePrice;
+    const priceHtml = showPrice
+      ? `<div class="card-price" style="margin-top:10px">HK$${co.price}<span style="font-size:12px;font-weight:400;color:var(--muted)">/${unit}</span>${co.priceNote ? ` <span style="font-size:12px;font-weight:400;color:var(--amber)">${co.priceNote}</span>` : ''}</div>`
+      : '';
+    const ctaHtml = co.hidePrice
+      ? `<a href="${WA}" target="_blank" rel="noopener" class="btn-hero-p primary" style="margin-top:14px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;box-sizing:border-box">💬 查詢報名詳情</a>`
+      : '';
     return `
-    <div class="card" style="margin-bottom:14px">
+    <div class="card" style="margin-bottom:14px;display:flex;flex-direction:column">
       ${imgHtml}
       <div class="card-title">${co.name}</div>
       <div class="card-tags">
@@ -983,9 +1168,10 @@ function renderCoursesPanel(){
         ${co.schedule ? `<span class="tag purple">📅 ${co.schedule}</span>` : ''}
         ${co.duration ? `<span class="tag amber">⏱ ${co.duration}</span>` : ''}
       </div>
-      ${co.price ? `<div class="card-price" style="margin-top:10px">HK$${co.price}<span style="font-size:12px;font-weight:400;color:var(--muted)">/${unit}</span>${co.priceNote ? ` <span style="font-size:12px;font-weight:400;color:var(--amber)">${co.priceNote}</span>` : ''}</div>` : ''}
+      ${priceHtml}
       ${co.desc    ? `<div class="card-desc" style="margin-top:8px;white-space:pre-line">${co.desc}</div>` : ''}
       ${co.contact ? `<div style="margin-top:10px;font-size:13px;color:var(--cyan);font-weight:600">📱 ${co.contact}</div>` : ''}
+      ${ctaHtml}
     </div>`;
   }).join('');
 }
