@@ -186,6 +186,18 @@ input:focus,select:focus{border-color:var(--accent)}
     </div>
     <div class="right" id="navRight"></div>
   </div>
+  <a id="bookingPromo" href="https://initiatesports.github.io/IS-APP/initiate-sports-booking.html" target="_blank" rel="noopener" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:13px 16px;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;text-decoration:none;font-weight:800;font-size:14.5px;box-shadow:0 4px 14px rgba(27,141,155,.28)">
+    <span>📣 6–7月平日特別課程・接受報名中</span><span style="font-size:18px">→</span>
+  </a>
+  <script>
+    /* 6–7月特別課程報名按鈕:7月11號 00:00(香港時間)之後自動隱藏 */
+    (function(){
+      try{
+        var hideFrom = new Date('2026-07-11T00:00:00+08:00');
+        if(new Date() < hideFrom){ document.getElementById('bookingPromo').style.display='flex'; }
+      }catch(e){}
+    })();
+  </script>
   <div id="view"></div>
   <div class="foot">INITIATE SPORTS · 查詢 WhatsApp 6331 7403 張 Sir<br>
     <a href="https://www.instagram.com/initiate_sports.2023?igsh=aW5ud3FmNWpnZ2J2&utm_source=qr" target="_blank" rel="noopener">Instagram</a>　·　<a href="https://www.facebook.com/share/1FcXaarDc1/?mibextid=wwXIfr" target="_blank" rel="noopener">Facebook</a></div>

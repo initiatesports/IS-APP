@@ -26,6 +26,23 @@ var COACH_EMAIL  = "initiatesports6331@gmail.com";
 var BACKUP_FOLDER = "INITIATE SPORTS 報名備份";
 var BACKUP_KEEP   = 0;                // 0 = 全部保留,永不自動刪除備份
 
+// 報名自動關閉:到咗呢個日子(香港時間 00:00)就自動截止,除非老闆喺「教練管理」撳「重新開放」。
+// 老闆可喺報名 Sheet 嘅 Config A1 JSON 加 "closeDate":"YYYY-MM-DD" 改日子;
+// "forceOpen":true 即無視日子強制開放(由教練管理面板控制)。
+var DEFAULT_CLOSE_DATE = "2026-07-11";
+
+// 報名係咪已關閉:到期 且 老闆未強制重開 → 關閉。
+// (專案時區已設 Asia/Hong_Kong,所以 new Date() 本身就係香港時間)
+function isRegClosed_(cfg){
+  cfg = cfg || readConfig();
+  if (cfg.forceOpen === true) return false;            // 老闆強制重開
+  var cd = cfg.closeDate || DEFAULT_CLOSE_DATE;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(cd));
+  if (!m) return false;                                 // 日子格式唔啱就當開放,唔好誤封
+  var close = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0);  // 當日 00:00 HKT
+  return new Date().getTime() >= close.getTime();
+}
+
 /* ---------- 一次性初始化(手動跑一次以授權) ---------- */
 function setup(){
   regSheet(); configSheet(); getOrCreateFolder(DRIVE_FOLDER);
@@ -75,7 +92,7 @@ function doPost(e){
   try { lock.waitLock(20000); } catch(err){ return json({ok:false, error:"系統繁忙,請再試"}); }
   try {
     // 管理動作集中防爆破節流：連續試錯 ADMIN_PIN 達上限即擋一陣，保護付款/刪除/截圖等敏感操作
-    var ADMIN_ACTIONS = ["admin","setPaid","setRefunded","deleteReg","releaseReg","saveConfig","getProof"];
+    var ADMIN_ACTIONS = ["admin","setPaid","setRefunded","deleteReg","releaseReg","saveConfig","getProof","setRegOpen"];
     if (ADMIN_ACTIONS.indexOf(body.action) >= 0) {
       if (rlBlocked_("adminpin", 10)) return json({ok:false, error:"嘗試太多次，請約 5 分鐘後再試"});
       if (String(body.pin || "") !== ADMIN_PIN) { rlBump_("adminpin", 300); return json({ok:false, error:"密碼錯誤"}); }
@@ -91,6 +108,7 @@ function doPost(e){
       case "deleteReg":   return json(deleteReg(body));      // 需密碼
       case "releaseReg":  return json(releaseReg(body));     // 需密碼(釋放名額,保留紀錄)
       case "saveConfig":  return json(saveConfig(body));     // 需密碼
+      case "setRegOpen":  return json(setRegOpen(body));     // 需密碼(重新開放/關閉報名)
       case "getProof":    return json(getProof(body));       // 需密碼
       default:            return json({ok:false, error:"unknown action"});
     }
@@ -111,7 +129,8 @@ function getState(){
     else if (stt === "waitlist") counts[cid].waitlist++;
   }
   var cfg = readConfig();
-  return {ok: true, counts: counts, extra: cfg.extra, overrides: cfg.overrides};
+  return {ok: true, counts: counts, extra: cfg.extra, overrides: cfg.overrides,
+          closed: isRegClosed_(cfg), closeDate: cfg.closeDate, forceOpen: cfg.forceOpen};
 }
 
 /* ---------- 家長查自己報名(只回傳該電話) ---------- */
@@ -135,6 +154,7 @@ function adminList(body){
 
 /* ---------- 報名:建立「未完成(pending)」紀錄,未占位;上傳截圖先正式留位 ---------- */
 function register(body){
+  if (isRegClosed_()) return {ok: false, closed: true, error: "報名已截止"};   // 自動關閉:伺服器端把關,前端改唔到都報唔到
   var sh = regSheet(), data = sh.getDataRange().getValues();
   var classes = body.classes || [], now = new Date(), results = [];
 
@@ -245,8 +265,24 @@ function releaseReg(body){
 /* ---------- 儲存額外課堂 / 改價錢人數(需密碼) ---------- */
 function saveConfig(body){
   if (String(body.pin || "") !== ADMIN_PIN) return {ok: false, error: "未授權"};
-  configSheet().getRange("A1").setValue(JSON.stringify({extra: body.extra || [], overrides: body.overrides || {}}));
+  var cur = readConfig();   // 保留 forceOpen / closeDate,唔好被覆蓋
+  configSheet().getRange("A1").setValue(JSON.stringify({
+    extra: body.extra || [], overrides: body.overrides || {},
+    forceOpen: cur.forceOpen === true, closeDate: cur.closeDate || DEFAULT_CLOSE_DATE
+  }));
   return {ok: true};
+}
+
+/* ---------- 重新開放 / 再次關閉報名(需密碼,由「教練管理」面板控制) ---------- */
+function setRegOpen(body){
+  if (String(body.pin || "") !== ADMIN_PIN) return {ok: false, error: "未授權"};
+  var cur = readConfig();
+  var obj = {
+    extra: cur.extra || [], overrides: cur.overrides || {},
+    forceOpen: (body.open === true), closeDate: cur.closeDate || DEFAULT_CLOSE_DATE
+  };
+  configSheet().getRange("A1").setValue(JSON.stringify(obj));
+  return {ok: true, closed: isRegClosed_(obj), forceOpen: obj.forceOpen};
 }
 
 /* ---------- 上傳付款截圖:正式留位(pending → confirmed/waitlist) ---------- */
@@ -342,8 +378,12 @@ function rowToReg(r){
   };
 }
 function readConfig(){
-  var cfg = {extra: [], overrides: {}};
-  try { var raw = configSheet().getRange("A1").getValue(); if (raw){ var p = JSON.parse(raw); cfg.extra = p.extra || []; cfg.overrides = p.overrides || {}; } } catch(e){}
+  var cfg = {extra: [], overrides: {}, forceOpen: false, closeDate: DEFAULT_CLOSE_DATE};
+  try { var raw = configSheet().getRange("A1").getValue(); if (raw){ var p = JSON.parse(raw);
+    cfg.extra = p.extra || []; cfg.overrides = p.overrides || {};
+    cfg.forceOpen = (p.forceOpen === true);
+    if (p.closeDate) cfg.closeDate = p.closeDate;
+  } } catch(e){}
   return cfg;
 }
 function regSheet(){

@@ -183,6 +183,7 @@
 
 <div id="parentView"><div class="wrap">
   <div id="demoBanner" class="demobanner" style="display:none"></div>
+  <div id="closedBanner" style="display:none;background:#FCE6E2;border:1.5px solid #D6432F;color:#9C0006;font-weight:700;border-radius:14px;padding:14px 16px;margin:0 0 4px;line-height:1.5">🚫 6–7月特別課程報名已截止,暫停接受新報名。如有查詢請聯絡教練 WhatsApp 6331 7403。</div>
   <section class="hero">
     <div class="eyebrow">6–7月 · 平日特別課程</div>
     <h1 class="lead">揀堂、報名、付款,<br><b>一次過喺度搞掂。</b></h1>
@@ -283,7 +284,7 @@
   }
 
   /* counts: 公開嘅每堂人數(唔含姓名電話);regs: 只喺管理頁或自己查詢時先載入 */
-  var state={counts:{}, regs:[], extra:[], overrides:{}};
+  var state={counts:{}, regs:[], extra:[], overrides:{}, closed:false, closeDate:"", forceOpen:false};
   var cart={}, filterType="";
   function allClasses(){
     var base=BASE_CLASSES.map(function(c){ var o=state.overrides[c.id]; return o?Object.assign({},c,o):c; });
@@ -292,7 +293,7 @@
   /* 由後端攞公開狀態(只有人數 + 課堂設定,冇個人資料) */
   function fetchState(){
     if(!apiReady) return Promise.resolve();
-    return apiGet("state").then(function(d){ if(d){ state.counts=d.counts||{}; state.extra=d.extra||[]; state.overrides=d.overrides||{}; } })
+    return apiGet("state").then(function(d){ if(d){ state.counts=d.counts||{}; state.extra=d.extra||[]; state.overrides=d.overrides||{}; state.closed=(d.closed===true); state.closeDate=d.closeDate||""; state.forceOpen=(d.forceOpen===true); } })
       .catch(function(e){ console.warn("state fetch fail",e); toast("連線後端失敗,請稍後再試"); });
   }
   function persistConfig(){
@@ -325,6 +326,8 @@
 
   function renderCourses(){
     var host=document.getElementById("courseList");
+    var closedAll=(state.closed===true);
+    var cb=document.getElementById("closedBanner"); if(cb) cb.style.display=closedAll?"block":"none";
     var list=allClasses().filter(function(c){ return (!filterType || c.type===filterType) && !isExpired(c); });
     var order=[], groups={};
     list.forEach(function(c){ if(order.indexOf(c.date)<0){order.push(c.date);groups[c.date]=[];} groups[c.date].push(c); });
@@ -333,7 +336,7 @@
     order.forEach(function(date){
       html+='<div class="dategroup"><div class="datehead"><span class="d">'+esc(date)+'</span>'+(HOLIDAYS[date]?'<span class="holiday">'+esc(HOLIDAYS[date])+'</span>':'')+'<span class="line"></span></div>';
       groups[date].forEach(function(c){
-        var st=statusFor(c), pips="", exp=isExpired(c);
+        var st=statusFor(c), pips="", exp=isExpired(c)||closedAll;
         for(var i=0;i<c.capacity;i++) pips+='<span class="pip'+(i<st.conf?" on":"")+'"></span>';
         if(c.waitlist){ for(var w=0;w<c.waitlist;w++){ var wOn=(st.conf>=c.capacity)&&(w<(st.wl||0)); pips+='<span class="pip wl'+(wOn?" on":"")+'"></span>'; } }
         var slotTxt,btnTxt,btnCls="",disabled="";
@@ -363,10 +366,10 @@
     host.querySelectorAll(".addbtn").forEach(function(b){ b.addEventListener("click",function(){ toggleCart(b.getAttribute("data-id")); }); });
   }
 
-  function toggleCart(id){ var c=byId(id); if(c&&isExpired(c)){ toast("呢堂已截止報名"); return; } if(cart[id]) delete cart[id]; else cart[id]=true; renderCourses(); renderCart(); }
+  function toggleCart(id){ if(state.closed){ toast("報名已截止"); return; } var c=byId(id); if(c&&isExpired(c)){ toast("呢堂已截止報名"); return; } if(cart[id]) delete cart[id]; else cart[id]=true; renderCourses(); renderCart(); }
   function cartList(){ return Object.keys(cart).map(byId).filter(Boolean); }
   function cartTotal(){ var t=0; cartList().forEach(function(c){t+=c.price;}); return t; }
-  function renderCart(){ var items=cartList(); document.getElementById("cartN").textContent=items.length; document.getElementById("cartTot").textContent=money(cartTotal()); document.getElementById("cartbar").classList.toggle("show", items.length>0 && !inAdmin); }
+  function renderCart(){ var items=cartList(); document.getElementById("cartN").textContent=items.length; document.getElementById("cartTot").textContent=money(cartTotal()); document.getElementById("cartbar").classList.toggle("show", items.length>0 && !inAdmin && !state.closed); }
 
   var scrim=document.getElementById("scrim");
   function openSheet(t,b){ document.getElementById("sheetTitle").textContent=t; document.getElementById("sheetBody").innerHTML=b; scrim.classList.add("open"); }
@@ -377,6 +380,7 @@
   /* ===== register ===== */
   document.getElementById("cartGo").addEventListener("click", openRegForm);
   function openRegForm(){
+    if(state.closed){ toast("報名已截止"); return; }
     var items=cartList(); if(!items.length) return;
     var rows="";
     items.forEach(function(c){ var willWait=(statusFor(c).kind!=="open");
@@ -589,6 +593,21 @@
       +'<button class="exportbtn" id="exportCsv" style="margin:0;flex:1">⬇ 匯出點名表 CSV'+(adminFilter?'(篩選)':'')+'</button>'
       +'<button class="exportbtn" id="refreshAdmin" style="margin:0;flex:0 0 auto">🔄 重新整理</button>'
       +'</div>';
+    // ── 報名開關(自動於截止日關閉,只有教練可重新開放)──
+    var regOpen=!state.closed;
+    html+='<div class="acard" style="margin-bottom:16px;'+(regOpen?'':'border-color:var(--coral)')+'">'
+      +'<div class="ahead"><span class="at">📋 6–7月特別課程報名</span><span class="ac" style="font-weight:800;color:'+(regOpen?'var(--green-d,#1a7f4b)':'var(--coral,#D6432F)')+'">'+(regOpen?'開放中':'已截止')+'</span></div>'
+      +'<div style="font-size:13px;color:#555;line-height:1.5;margin:6px 0 10px">'
+        +(regOpen
+            ? (state.forceOpen?'已手動重新開放,正接受報名。':('正接受報名,將於 <b>'+esc(state.closeDate||"截止日")+'</b> 香港時間 00:00 自動截止。'))
+            : ('報名已於 <b>'+esc(state.closeDate||"")+'</b> 自動截止,家長暫時無法報名。撳下面掣即可重新開放。'))
+      +'</div>'
+      +(state.closed
+          ? '<button class="exportbtn" id="regOpenBtn" style="margin:0">▶ 重新開放報名</button>'
+          : (state.forceOpen
+              ? '<button class="exportbtn" id="regCloseBtn" style="margin:0;border-color:var(--coral);color:var(--coral)">⏸ 再次關閉報名</button>'
+              : ''))
+      +'</div>';
     var classes=allClasses().filter(function(c){ return !adminFilter||c.type===adminFilter; });
     classes.forEach(function(c){
       var regs=state.regs.filter(function(r){return r.classId===c.id;});
@@ -639,6 +658,17 @@
     var ac=document.getElementById("addCls"); if(ac) ac.addEventListener("click", addClass);
     var ec=document.getElementById("exportCsv"); if(ec) ec.addEventListener("click", exportCSV);
     var rf=document.getElementById("refreshAdmin"); if(rf) rf.addEventListener("click", function(){ toast("更新中…"); refreshAdmin(); });
+    var ro=document.getElementById("regOpenBtn"); if(ro) ro.addEventListener("click", function(){ setReg(true); });
+    var rcl=document.getElementById("regCloseBtn"); if(rcl) rcl.addEventListener("click", function(){ setReg(false); });
+  }
+  function setReg(open){
+    if(open===false && !confirm("確定再次關閉報名?家長將無法報名,直至你再次重新開放。")) return;
+    if(!apiReady){ state.closed=!open; state.forceOpen=open; renderAdmin(); return; }
+    toast(open?"開放中…":"關閉中…");
+    apiPost("setRegOpen",{open:open, pin:adminPin}).then(function(d){
+      if(d&&d.ok){ state.closed=(d.closed===true); state.forceOpen=(d.forceOpen===true); renderAdmin(); renderCourses(); toast(open?"已重新開放報名 ✓":"已關閉報名"); }
+      else { toast((d&&d.error)||"操作失敗,請重新輸入密碼"); }
+    }).catch(function(){ toast("操作失敗"); });
   }
   function togglePaid(rid){ var reg=null; state.regs.forEach(function(r){ if(r.id===rid) reg=r; }); if(!reg) return; var np=!reg.paid;
     if(apiReady){ apiPost("setPaid",{id:rid, paid:np, pin:adminPin}).then(function(d){ if(d&&d.ok===false){toast("操作未授權");return;} return refreshAdmin(); }).catch(function(){toast("更新失敗");}); }
