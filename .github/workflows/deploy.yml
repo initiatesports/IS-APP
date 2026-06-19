@@ -57,7 +57,8 @@ jobs:
             echo "手動觸發或無上一版可比較 → 部署全部後端"
             changed="$ALL"
           else
-            files=$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+            # -c core.quotePath=false：避免中文檔名(程式碼.js)被加引號+八進制轉義,否則 ^apps-script/ 前綴比對會失敗
+            files=$(git -c core.quotePath=false diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" 2>/dev/null || git -c core.quotePath=false diff --name-only HEAD~1 HEAD)
             echo "本次改動檔案:"; echo "$files" | sed 's/^/  /'
             # workflow 檔本身改動 → 安全起見部署全部
             if echo "$files" | grep -q "^\.github/workflows/deploy\.yml$"; then
