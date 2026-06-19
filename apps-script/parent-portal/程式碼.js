@@ -15,6 +15,18 @@ function checkCoach_(body) {
   return String((body && body.coachPass) || '') === String(getCoachPass_());
 }
 
+// 登入防爆破節流（CacheService，按 bucket 計失敗次數）
+function rlBlocked_(bucket, max){ return Number(CacheService.getScriptCache().get('rl_'+bucket)||0) >= max; }
+function rlBump_(bucket, ttlSec){ var c=CacheService.getScriptCache(), k='rl_'+bucket; c.put(k, String(Number(c.get(k)||0)+1), ttlSec); }
+function rlClear_(bucket){ CacheService.getScriptCache().remove('rl_'+bucket); }
+// 驗證教練密碼（含節流）：連續錯太多次先擋一陣
+function verifyCoachThrottled_(body) {
+  if (rlBlocked_('coachlogin', 10)) return { ok: false, error: '嘗試太多次，請約 5 分鐘後再試' };
+  var ok = checkCoach_(body);
+  if (ok) rlClear_('coachlogin'); else rlBump_('coachlogin', 300);
+  return { ok: ok };
+}
+
 function getSheet(name) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sheet = ss.getSheetByName(name);
@@ -47,7 +59,7 @@ function doPost(e) {
     const action = body.action;
 
     // 用教練密碼解鎖(畀前端鎖畫面用):只回傳是否正確,不洩漏密碼本身。
-    if (action === 'verify') return makeResponse({ ok: checkCoach_(body) });
+    if (action === 'verify') return makeResponse(verifyCoachThrottled_(body));
 
     // 所有寫入動作都必須帶正確教練密碼,否則拒絕 —— 防止任何人匿名清空/竄改資料。
     const WRITE_ACTIONS = ['save_attendance','save_absences','save_performance','save_body','save_fee','save_settings'];
