@@ -50,6 +50,28 @@ const CLASSES = {
 };
 const CLASS_IDS = Object.keys(CLASSES);
 
+/* ═══════════ 私人訓練（PT）═══════════
+ * 與恆常班完全分開：各自 1對1、獨立 10 堂一個週期，無請假/補堂，只記「邊日上咗堂」。
+ * 加／減私訓學員：在 PT_STUDENTS 陣列加減項目即可，毋須改其他地方。
+ *   name   = 私訓記錄／顯示用名（出席表內的學員名，可以係家長名）
+ *   family = 用邊個恆常班名冊帳號睇得到（家長登入名；同一家可共用）
+ * 例：張雅堯個 slot 實際係佢父母 Keith & Elaine 上堂，但用「張雅堯」家庭帳號睇。
+ */
+const PT_STUDENTS = [
+  { name:"鄧可澄",        family:"鄧可澄" },
+  { name:"Keith & Elaine", family:"張雅堯" },
+  { name:"陳大文",        family:"陳大文", demo:true }   // 示範帳號（電話後4位 1234）
+];
+const PT_CYCLE = 10;   // 每期堂數；夠數自動開新一期
+
+/* ═══════════ 只保留登入、不入任何班別（暫停／可能回歸的學員）═══════════
+ * 名單內的學生會出現喺 Roster（可用手機後4位登入），但唔屬於任何 c1–c7，
+ * 所以唔會出現喺教練點名格、唔會計繳費／出席。真正回歸時，將佢由此處移走、
+ * 加返入對應 CLASSES 班別即可。改完要執行一次 ensureRoster_/setup 先生效。
+ * 例：梁心朗 2026-06 暫停，7月可能回來 —— 先保留帳號可登入。
+ */
+const LOGIN_ONLY = ["梁心朗"];
+
 /* ═══════════ 家長手機後4位（報名表抽出；兄弟姊妹共用 → 一家睇晒）═══════════ */
 const PHONE = {
   "陳大文":"1234",
@@ -152,6 +174,86 @@ function addMonthsIso(isoStr, n){
   var d=new Date(a[0], a[1]-1, a[2]); d.setMonth(d.getMonth()+n);
   return iso(d);
 }
+function addDaysIso(isoStr, n){
+  var a=String(isoStr).split("-").map(Number);
+  var d=new Date(a[0], a[1]-1, a[2]); d.setDate(d.getDate()+n);
+  return iso(d);
+}
+// 暑期班請假補堂橋接：香港時間 2026-09-01 起自動關閉（家長端唔再顯示入口）
+var SUMMER_BRIDGE_UNTIL = "2026-09-01";
+function summerBridgeOn_(){ return todayIso() < SUMMER_BRIDGE_UNTIL; }
+
+/* ═══════════ 補堂限期延長（逐筆覆寫；僅限「請假」可補堂節數）═══════════
+   override store「限期延長」：學生|班別|缺席日|原限期|新限期|記錄時間
+   有覆寫就用新限期，否則 = 缺席日 + MAKEUP_MONTHS。 */
+function dlExtSheet(){
+  var sh=SS().getSheetByName("限期延長");
+  if(!sh){
+    sh=SS().insertSheet("限期延長");
+    sh.getRange(1,1,1,6).setValues([["學生","班別","缺席日","原限期","新限期","記錄時間"]]);
+    sh.setFrozenRows(1);
+    sh.getRange("A:F").setNumberFormat("@");
+  }
+  return sh;
+}
+function dlExtRows_(){
+  var sh=dlExtSheet(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,6).getValues().map(function(r,i){
+    return {row:i+2, name:String(r[0]||"").trim(), cid:String(r[1]||"").trim(),
+      absDate:toIso_(r[2]), oldDl:toIso_(r[3]), newDl:toIso_(r[4]), at:String(r[5]||"")};
+  }).filter(function(r){ return r.name && r.cid && r.absDate && r.newDl; });
+}
+function dlExtMap_(){
+  var m={}; dlExtRows_().forEach(function(r){ m[r.name+"|"+r.cid+"|"+r.absDate]=r.newDl; });
+  return m;
+}
+function effDeadline_(name, cid, absDate){
+  var ov=dlExtMap_()[name+"|"+cid+"|"+toIso_(absDate)];
+  return ov || addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS);
+}
+/* 一次性：把「已過期、未補堂」嘅請假節數限期 +21 日。
+   規則：新限期 = 原限期(缺席日+MAKEUP_MONTHS) + 21 日；
+   只處理 (a) 屬「請假」可補節數、(b) 原限期已過今日、(c) 加 21 日後 ≥ 今日。
+   仍過期者唔理；已覆寫過者略過（idempotent）。
+   先用 extendExpiredDeadlinesDryRun() 睇清單，確認先 extendExpiredDeadlinesApply()。*/
+function extendExpiredDeadlines(apply){
+  var today=todayIso(), ADD=21, map=dlExtMap_();
+  var eligible=[], stillExpired=[], already=[];
+  CLASS_IDS.forEach(function(cid){
+    var blk=readBlock(cid);
+    Object.keys(blk.status).forEach(function(nm){
+      var st=blk.status[nm]||[], lv=[];
+      st.forEach(function(s,i){ if(s==="請假") lv.push(blk.dates[i]); });
+      if(!lv.length) return;
+      lv.sort();
+      var madeUp=makeupAll().filter(function(m){ return m.name===nm && m.from===cid; }).length;
+      for(var k=madeUp;k<lv.length;k++){           // 未補堂嘅請假節數（最舊優先配對後剩低）
+        var d=lv[k], oldDl=addMonthsIso(d, CONFIG.MAKEUP_MONTHS);
+        if(oldDl>=today) continue;                 // 未過期，唔使延
+        var key=nm+"|"+cid+"|"+d;
+        if(map[key]){ already.push({name:nm,cid:cid,absDate:d,newDl:map[key]}); continue; }
+        var newDl=addDaysIso(oldDl, ADD);
+        if(newDl<today){ stillExpired.push({name:nm,cid:cid,absDate:d,oldDl:oldDl,newDl:newDl}); continue; }
+        eligible.push({name:nm,cid:cid,absDate:d,oldDl:oldDl,newDl:newDl});
+      }
+    });
+  });
+  if(apply && eligible.length){
+    var sh=dlExtSheet();
+    eligible.forEach(function(o){
+      var row=sh.getLastRow()+1;
+      sh.getRange(row,1,1,6).setNumberFormat("@");
+      sh.getRange(row,1,1,6).setValues([[o.name,o.cid,o.absDate,o.oldDl,o.newDl,nowStamp_()]]);
+    });
+  }
+  Logger.log("【補堂限期延長 +"+ADD+"日】"+(apply?"✅ 已套用寫入":"🔎 試行（未寫入）")
+    +"\n合資格延長："+eligible.length+" 筆　|　仍過期(唔理)："+stillExpired.length+" 筆　|　已延長過(略過)："+already.length+" 筆");
+  eligible.forEach(function(o){ Logger.log("  ✔ "+o.name+" / "+classLabel_(o.cid)+" / 缺席 "+o.absDate+" / 原限期 "+o.oldDl+" → 新限期 "+o.newDl); });
+  stillExpired.forEach(function(o){ Logger.log("  ✖ "+o.name+" / "+classLabel_(o.cid)+" / 缺席 "+o.absDate+" / +21日="+o.newDl+"（仍過期，不處理）"); });
+  return {apply:!!apply, eligible:eligible, stillExpired:stillExpired, already:already};
+}
+function extendExpiredDeadlinesDryRun(){ return extendExpiredDeadlines(false); }
+function extendExpiredDeadlinesApply(){ return extendExpiredDeadlines(true); }
 
 /* ═══════════ Settings：假期 / 加課 / 停課日（教練設定頁控制）═══════════ */
 function settingsSheet(){ return SS().getSheetByName("Settings"); }
@@ -232,9 +334,10 @@ function setup(){
   ensureDriveBackup();
   ensureReminders();
   ensureSickCertTrigger();
-  try{ feeSheet(); pinSheet(); addonSheet(); referralSheet(); noticeSheet(); transferSheet(); }catch(e){}   // 建立各分頁
+  try{ feeSheet(); pinSheet(); addonSheet(); referralSheet(); noticeSheet(); transferSheet(); dlExtSheet(); }catch(e){}   // 建立各分頁
   try{ genPeriod_(curPeriodLabel_()); genPeriod_(nextPeriodLabel_()); }catch(e){}   // 自動產生本期與下期繳費列
   try{ seedDemo_(); }catch(e){}
+  try{ seedPtData(); }catch(e){}
   try{ backup(); }catch(e){}
   Logger.log("setup 完成（非破壞性；已啟用每日自動備份 + Drive 整份備份）。");
 }
@@ -254,6 +357,12 @@ function ensureRoster_(ss){
   var rows=[];
   CLASS_IDS.forEach(function(cid){ var c=CLASSES[cid];
     c.students.forEach(function(nm){ rows.push([nm, prevPhone[nm]||PHONE[nm]||"", cid, c.dayZh, c.time]); });
+  });
+  // 只登入、不入班：可登入但無班別（暫停／待回歸）
+  var inClass={}; rows.forEach(function(r){ inClass[r[0]]=1; });
+  (typeof LOGIN_ONLY!=="undefined"?LOGIN_ONLY:[]).forEach(function(nm){
+    if(inClass[nm]) return;   // 若已在某班則略過，避免重複
+    rows.push([nm, prevPhone[nm]||PHONE[nm]||"", "", "", ""]);
   });
   if(rows.length) R.getRange(2,1,rows.length,5).setValues(rows);
 }
@@ -499,6 +608,12 @@ function route(p){
     case "coachLogin":      return apiCoachLogin(p);
     // ── 自訂登入密碼 ──
     case "setPin":          return apiSetPin(p);
+    // 公開:只回公眾假期(非敏感),畀家長頁顯示假期用,毋須登入。
+    case "holidays":        return apiHolidays(p);
+    // ── 私人訓練（與恆常班分開；只記上課日，無請假補堂）──
+    case "pt_coach_load":   return apiPtCoachLoad(p);
+    case "pt_mark":         return apiPtMark(p);
+    case "pt_undo":         return apiPtUndo(p);
     // ── B 相容 ──
     case "load":            return apiLoad(p);
     case "save_attendance": return apiSaveAttendance(p);
@@ -512,6 +627,7 @@ function route(p){
 function classesFor_(nm){
   var rows=rosterRows().filter(function(r){ return r.name===nm; });
   var mk=makeupAll().filter(function(m){ return m.name===nm; });
+  var dlMap=dlExtMap_();
   return rows.map(function(r){
     var cid=r.cid, blk=readBlock(cid), st=blk.status[nm]||[];
     var att=0,lv=0,ab=0;
@@ -525,9 +641,12 @@ function classesFor_(nm){
     var mkAtt=mkInfo.filter(function(x){ return x.status==="出席"; }).length;
     var sessions=blk.dates.map(function(d,i){ return {date:d, status:st[i]||""}; });
     var deadline=blk.dates.length? blk.dates[blk.dates.length-1] : "";
+    // 補堂限期逐筆覆寫（僅「請假」）：缺席日 → 新限期，前端優先採用
+    var mkExt={};
+    st.forEach(function(s,i){ if(s!=="請假") return; var d=blk.dates[i], ov=dlMap[nm+"|"+cid+"|"+d]; if(ov) mkExt[d]=ov; });
     return {key:cid, sport:cid, wd:r.dayZh, dayZh:r.dayZh, time:r.time,
       total:blk.dates.length, attended:att+mkAtt, leave:lv, absent:ab,
-      owed:Math.max(0, lv-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline};
+      owed:Math.max(0, lv-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline, mkExt:mkExt};
   });
 }
 /* ═══════════ 登入防爆破節流（CacheService，按帳號計失敗次數）═══════════ */
@@ -546,10 +665,10 @@ function apiLogin(p){
   rlClear_("login_"+nm);
   var fam=pad4(hit[0].last4);   // 內部家庭鍵＝名冊電話後4位（不變）
   var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
-  var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn), fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn)}; });
+  var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn), fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn)}; });
   return {ok:true, family:{last4:fam, hasPin:!!pinFor_(fam)}, children:children,
     student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[],
-    payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6)};
+    payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6), summerBridge:summerBridgeOn_()};
 }
 
 /* ═══════════ 請假 / 取消請假 ═══════════ */
@@ -614,8 +733,8 @@ function apiMakeup(p){
     lv.sort();
     var madeUp=makeupAll().filter(function(m){ return m.name===p.name && m.from===p.fromKey; }).length;
     if(madeUp>=lv.length) return {ok:false,err:"此班暫無待補堂節數"};
-    var absDate=lv[madeUp], dl=addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS);
-    if(date>dl) return {ok:false,err:"已超過補堂限期：缺席日 "+absDate+" 起 "+CONFIG.MAKEUP_MONTHS+" 個月內補堂，須於 "+dl+" 或之前"};
+    var absDate=lv[madeUp], dl=effDeadline_(p.name, p.fromKey, absDate);
+    if(date>dl) return {ok:false,err:"已超過補堂限期：須於 "+dl+" 或之前補堂"};
   }
   var onGrid = sessionsFor(toCid).indexOf(date)>=0;
   if(onGrid) markCell(toCid,p.name,date,"補堂",true);
@@ -1290,6 +1409,8 @@ function apiCancelDay(p){
    ─ 出席真相來源 = 格仔；以下由格仔反推 B 前端期望嘅資料形狀
    ═══════════════════════════════════════════════ */
 function apiLoad(p){
+  // load 會回傳全校資料(出席/補堂/成績/體測/醫療備註等),只准教練;匿名 /exec?action=load 一律拒絕。
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false, err:"未授權"};
   var attendance=[], absencesRaw=[];
   CLASS_IDS.forEach(function(cid){
     var full=readFull(cid);
@@ -1310,13 +1431,13 @@ function apiLoad(p){
     if(stt==="出席"){ (mkByName[m.name]=mkByName[m.name]||[]).push(m.date); }
   });
   Object.keys(mkByName).forEach(function(n){ mkByName[n].sort(); });
-  var absences=[], idx=0, used={};
+  var absences=[], idx=0, used={}, dlMap=dlExtMap_();
   absencesRaw.sort(function(a,b){ return a.absDate.localeCompare(b.absDate); });
   absencesRaw.forEach(function(a){
     var done=null, pool=mkByName[a.name];
     if(pool){ used[a.name]=used[a.name]||0; if(used[a.name]<pool.length){ done=pool[used[a.name]]; used[a.name]++; } }
     absences.push({ id:"g"+(idx++), name:a.name, classId:a.classId, absDate:a.absDate,
-      deadline:addMonthsIso(a.absDate, CONFIG.MAKEUP_MONTHS), madeUpDate:done });
+      deadline:(dlMap[a.name+"|"+a.classId+"|"+a.absDate] || addMonthsIso(a.absDate, CONFIG.MAKEUP_MONTHS)), madeUpDate:done });
   });
   // settings / perf / body / grades
   var settings=settingsRows_();
@@ -1331,6 +1452,126 @@ function settingsRows_(){
   return sh.getRange(2,1,sh.getLastRow()-1,2).getValues()
     .filter(function(r){return String(r[0]||"").trim();})
     .map(function(r){ return {key:String(r[0]), value:String(r[1])}; });
+}
+// 只回公眾假期陣列(非敏感),家長頁顯示假期用;不含任何學生個人資料。
+function apiHolidays(p){
+  var holidays=[];
+  settingsRows_().forEach(function(r){
+    if(r.key==="public_holidays"){ try{ var a=JSON.parse(r.value); if(Array.isArray(a)) holidays=a; }catch(e){} }
+  });
+  return {ok:true, holidays:holidays};
+}
+/* ═══════════════════════════════════════════════
+   私人訓練（PT）：與恆常班分開，無請假/補堂，只記「邊日上咗堂」
+   資料表「私人訓練」：學生 | 日期 | 期數 | 第幾堂 | 記錄時間（每行一堂）
+   每位學員各自獨立堂數；夠 PT_CYCLE 堂自動開新一期。
+   ═══════════════════════════════════════════════ */
+function ptSheet(){
+  var sh=SS().getSheetByName("私人訓練");
+  if(!sh){
+    sh=SS().insertSheet("私人訓練");
+    sh.getRange(1,1,1,5).setValues([["學生","日期","期數","第幾堂","記錄時間"]]);
+    sh.setFrozenRows(1);
+    sh.getRange("A:E").setNumberFormat("@");   // 文字格式，避免日期被自動轉
+  }
+  return sh;
+}
+function ptRows_(){
+  var sh=ptSheet(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(function(r,i){
+    return {row:i+2, name:String(r[0]||"").trim(), date:toIso_(r[1]),
+      cycle:Number(r[2])||1, no:Number(r[3])||0, at:String(r[4]||"")};
+  }).filter(function(r){ return r.name && r.date; });
+}
+function ptSummary_(name){
+  var rows=ptRows_().filter(function(r){ return r.name===name; })
+    .sort(function(a,b){ return a.date.localeCompare(b.date) || (a.no-b.no); });
+  var maxCycle=1; rows.forEach(function(r){ if(r.cycle>maxCycle) maxCycle=r.cycle; });
+  var cur=rows.filter(function(r){ return r.cycle===maxCycle; });
+  return {
+    name:name, cycle:maxCycle, cap:PT_CYCLE, done:cur.length, totalDone:rows.length,
+    curSessions:cur.map(function(r){ return {date:r.date, no:r.no}; }),
+    sessions:rows.map(function(r){ return {date:r.date, cycle:r.cycle, no:r.no}; })
+  };
+}
+function ptForFamily_(cn){
+  // 該登入帳號（cn）名下有冇私訓 slot；有就回 summary（用記錄名 name）
+  var hit=PT_STUDENTS.filter(function(s){ return s.family===cn; });
+  if(!hit.length) return null;
+  // 同一家可有多個 slot；目前每家最多一個，取第一個
+  return ptSummary_(hit[0].name);
+}
+function apiPtCoachLoad(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, cap:PT_CYCLE, today:todayIso(),
+    students:PT_STUDENTS.map(function(s){ return ptSummary_(s.name); })};
+}
+function apiPtMark(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var name=String(p.name||"").trim();
+  if(!PT_STUDENTS.some(function(s){ return s.name===name; })) return {ok:false,err:"非私人訓練學員"};
+  var date=p.date? toIso_(p.date) : todayIso();
+  var rows=ptRows_().filter(function(r){ return r.name===name; });
+  if(rows.some(function(r){ return r.date===date; }))
+    return {ok:false, dup:true, err:"今日已記錄此學員", summary:ptSummary_(name)};
+  var maxCycle=1; rows.forEach(function(r){ if(r.cycle>maxCycle) maxCycle=r.cycle; });
+  var inCur=rows.filter(function(r){ return r.cycle===maxCycle; }).length;
+  var cycle, no;
+  if(rows.length===0){ cycle=1; no=1; }
+  else if(inCur>=PT_CYCLE){ cycle=maxCycle+1; no=1; }   // 夠 PT_CYCLE 堂 → 自動開新一期
+  else { cycle=maxCycle; no=inCur+1; }
+  ptSheet().appendRow([name, date, String(cycle), String(no), nowStamp_()]);
+  logAppend({name:name, key:"PT", action:"pt_mark", date:date, status:"第"+cycle+"期 第"+no+"堂"});
+  return {ok:true, newCycle:(no===1 && cycle>1), cycle:cycle, no:no, summary:ptSummary_(name)};
+}
+function apiPtUndo(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var name=String(p.name||"").trim();
+  var rows=ptRows_().filter(function(r){ return r.name===name; });
+  if(!rows.length) return {ok:false,err:"未有記錄"};
+  var target;
+  if(p.date){ var d=toIso_(p.date);
+    target=rows.filter(function(r){ return r.date===d; }).sort(function(a,b){ return b.row-a.row; })[0];
+  } else {
+    target=rows.sort(function(a,b){ return b.date.localeCompare(a.date) || (b.row-a.row); })[0];
+  }
+  if(!target) return {ok:false,err:"搵唔到該記錄"};
+  ptSheet().deleteRow(target.row);
+  logAppend({name:name, key:"PT", action:"pt_undo", date:target.date, status:"撤銷"});
+  return {ok:true, summary:ptSummary_(name)};
+}
+/* 私訓：內部加一堂（idempotent；同名同日已存在則跳過）。自動計期數／第幾堂。回傳係咪新增。 */
+function ptAdd_(name, date){
+  name=String(name||"").trim(); date=toIso_(date);
+  if(!name || !date) return false;
+  var rows=ptRows_().filter(function(r){ return r.name===name; });
+  if(rows.some(function(r){ return r.date===date; })) return false;   // 已有同日 → 跳過
+  var maxCycle=1; rows.forEach(function(r){ if(r.cycle>maxCycle) maxCycle=r.cycle; });
+  var inCur=rows.filter(function(r){ return r.cycle===maxCycle; }).length;
+  var cycle, no;
+  if(rows.length===0){ cycle=1; no=1; }
+  else if(inCur>=PT_CYCLE){ cycle=maxCycle+1; no=1; }   // 夠 PT_CYCLE 堂 → 自動開新一期
+  else { cycle=maxCycle; no=inCur+1; }
+  ptSheet().appendRow([name, date, String(cycle), String(no), nowStamp_()]);
+  return true;
+}
+/* 種私訓資料：示範帳號 陳大文（跟恆常班節奏，每週一堂、穩定上課，現處第 1 期）
+   ＋ 鄧可澄(2026-06-12)、Keith & Elaine(2026-06-13) 實際記錄。
+   全部 idempotent：已有同日記錄就跳過，可安全重複執行。 */
+function seedPtData(){
+  // (1) 示範帳號 陳大文：跟恆常班 c1（星期一）節奏，每週一堂，已連續上 7 堂（現 7/10，似快完一期嘅恆常學生）
+  var demo="陳大文";
+  if(CLASSES.c1 && CLASSES.c1.students.indexOf(demo)>=0 &&
+     ptRows_().filter(function(r){ return r.name===demo; }).length===0){
+    var anchor=new Date(todayIso()+"T00:00:00");
+    var back=(anchor.getDay()-1+7)%7; if(back===0) back=7;   // today 之前最近一個星期一
+    var lastMon=new Date(anchor.getTime()); lastMon.setDate(lastMon.getDate()-back);
+    for(var k=6;k>=0;k--){ var d=new Date(lastMon.getTime()); d.setDate(d.getDate()-k*7); ptAdd_(demo, iso(d)); }
+  }
+  // (2) 實際記錄
+  ptAdd_("鄧可澄", "2026-06-12");
+  ptAdd_("Keith & Elaine", "2026-06-13");
+  Logger.log("私訓示範／記錄已種（idempotent）。");
 }
 function tableRows_(sheetName, cols){
   var sh=SS().getSheetByName(sheetName); if(!sh||sh.getLastRow()<2) return [];
@@ -1491,6 +1732,16 @@ function seedDemo_(){
   if(!CLASSES[c1] || CLASSES[c1].students.indexOf(nm)<0) return;
   var blk=readBlock(c1), st=blk.status[nm]||[];
   if(st.some(function(x){ return x; })) return;            // 已有資料 → 唔重複種
+  // 示範用：把 陳大文 本期與下期繳費設為「豁免」，令補堂示範唔會被繳費閘卡住
+  try{
+    [curPeriodLabel_(), nextPeriodLabel_()].forEach(function(per){
+      try{ genPeriod_(per); }catch(e){}
+      var fr=feeRows_().filter(function(x){ return x.name===nm && x.period===per; });
+      if(fr.length && fr[0].status!=="豁免" && fr[0].status!=="已繳"){
+        feeSheet().getRange(fr[0].row,8).setValue("豁免");
+      }
+    });
+  }catch(e){}
   var today=todayIso();
   var past=sessionsFor(c1).filter(function(d){ return d<today; });
   past.slice(0,3).forEach(function(d){ markCell(c1,nm,d,"出席",true); });   // 出席 ×3

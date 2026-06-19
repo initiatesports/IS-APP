@@ -36,7 +36,7 @@ const SCHED_OVR = { "六":{start:"2026-07-04", n:9} };
 const ROSTER = {
   badminton:{ "二":["蔡思言","梁心朗","吳瑋軒","黎柏希","黎柏言","葉天麒"],
               "三":["王韻喬","易晞渝","蔡芷彤","羅芷晴","潘洛詩","蔣佩琪","何諾軒"],
-              "四":["張爾淳","張雅堯","劉鎮碩","劉家頤","方鎮浩","鄧可澄"] },
+              "四":["張爾淳","張雅堯","劉鎮碩","劉家頤","方鎮浩","鄧可澄","陳大文"] },
   basketball:{"三":["張爾淳","張雅堯","甘卓熹","羅天佑","方鎮浩","曾衍霖","黃梓昕","方鎂恩"]},
   gym:{ "一":["曾愛斯","陳卓楠","王尉鏇","王斯顏","古詩詠"],
         "四":["黃樂悠","方鎂恩","劉家頤","張雅堯","盧文懿","呂洛希","周莉晶"] },
@@ -48,7 +48,7 @@ const ROSTER = {
   fitness:{ "五":["周莉晶","陳靖朗"] },
 };
 
-const PHONE = {"黃梓昕":"0397","曾衍霖":"0035","曾愛斯":"7058","曾喬烽":"7058","葉芯怡":"6759","葉芯淇":"6759","張爾淳":"1272","方鎮浩":"0162","胡汐森":"9126","胡苡晨":"9126","盧文懿":"5122","許思溢":"9159","古詩詠":"9158","古卓謙":"9158","張雅堯":"1272","蔡思言":"7716","梁心朗":"8883","劉鎮碩":"5352","劉家頤":"5352","鄧可澄":"0386","吳瑋軒":"6735","黎柏希":"2698","黎柏言":"2698","葉天麒":"5078","王韻喬":"9062","易晞渝":"0570","蔡芷彤":"8852","羅芷晴":"1331","潘洛詩":"6171","蔣佩琪":"2581","黃信晴":"1750","羅天佑":"9275","甘卓熹":"6736","陳卓琛":"9870","劉初靜":"1040","呂洛希":"4917","姚心穎":"6606","黃朗程":"9749","鍾皓惟":"9704","黃翊雅":"5791","陳卓楠":"9870","黃樂悠":"8345","方鎂恩":"0162","王尉鏇":"6801","王斯顏":"6801","周莉晶":"5181","何諾軒":"9613","陳柏謙":"3488","徐翊之":"3705","張煦翹":"9011","陳皓軒":"2359","汪柏叡":"8643","陳靖朗":"0623"};
+const PHONE = {"黃梓昕":"0397","曾衍霖":"0035","曾愛斯":"7058","曾喬烽":"7058","葉芯怡":"6759","葉芯淇":"6759","張爾淳":"1272","方鎮浩":"0162","胡汐森":"9126","胡苡晨":"9126","盧文懿":"5122","許思溢":"9159","古詩詠":"9158","古卓謙":"9158","張雅堯":"1272","蔡思言":"7716","梁心朗":"8883","劉鎮碩":"5352","劉家頤":"5352","鄧可澄":"0386","吳瑋軒":"6735","黎柏希":"2698","黎柏言":"2698","葉天麒":"5078","王韻喬":"9062","易晞渝":"0570","蔡芷彤":"8852","羅芷晴":"1331","潘洛詩":"6171","蔣佩琪":"2581","黃信晴":"1750","羅天佑":"9275","甘卓熹":"6736","陳卓琛":"9870","劉初靜":"1040","呂洛希":"4917","姚心穎":"6606","黃朗程":"9749","鍾皓惟":"9704","黃翊雅":"5791","陳卓楠":"9870","黃樂悠":"8345","方鎂恩":"0162","王尉鏇":"6801","王斯顏":"6801","周莉晶":"5181","何諾軒":"9613","陳柏謙":"3488","徐翊之":"3705","張煦翹":"9011","陳皓軒":"2359","汪柏叡":"8643","陳靖朗":"0623","陳大文":"1234"};
 
 /* 版面常數 */
 const ROPE_SLOTS = [   // 花式跳繩補堂可選時段（一/三/四/六）；六15:00–16:00 已改為正規班，不再作補堂時段
@@ -98,11 +98,25 @@ function setup(){
   Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){ buildGrid(ss,sp,wd,false); });});
   normalizeMakeupDates_();     // 把補堂索引日期修正成 yyyy-MM-dd 文字（兼修舊資料）
   syncMakeupsToGrid();         // 把補堂索引嘅每筆，確保寫返入目標班格仔
+  try{ seedDemo_(); }catch(e){}  // 示範帳號（陳大文）種一個請假，等暑期補堂都 demo 到
   cleanupStray(ss);
   ensureAutoBackup();          // 確保每日自動備份排程存在
   ensureReminders();           // 確保每晚「點名未完成提醒」排程存在
   try{ backup(); }catch(e){}   // 即時備份一次
   Logger.log("setup 完成（非破壞性；已啟用每日自動備份）。");
+}
+
+// 示範用：為 陳大文（羽毛球·四）種一個請假，令暑期補堂示範到「待補 1 堂 + 可揀補堂時段」。
+// 冪等：佢已有任何格仔狀態就唔覆蓋；只係示範，唔影響真實學生。
+function seedDemo_(){
+  var sp="badminton", wd="四", nm="陳大文";
+  if(!ROSTER[sp] || !ROSTER[sp][wd] || ROSTER[sp][wd].indexOf(nm)<0) return;
+  var blk=readBlock(sp,wd), st=blk.status[nm]||[];
+  if(st.some(function(x){ return x; })) return;              // 已有資料 → 唔重複種
+  var dates=blk.dates; if(!dates.length) return;
+  writeStatus(sp,wd,nm,dates[0],"請假");                     // 第一堂請假（可補堂）
+  logAppend({name:nm,key:sp+"|"+wd,action:"leave",date:dates[0],status:"請假(示範)",eligible:true});
+  Logger.log("示範帳號 陳大文 已種一個請假（"+dates[0]+"）。");
 }
 
 // 只刪明顯舊版殘留 / 預設空白分頁，唔會誤刪資料表
@@ -445,9 +459,32 @@ function apiCancelLeave(p){
 
 function apiMakeup(p){
   if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
-  var to=classKeyParts(p.toKey), date=toIso_(p.toDate);
+  var from=classKeyParts(p.fromKey), to=classKeyParts(p.toKey), date=toIso_(p.toDate);
   var dup=makeupAll().some(function(m){ return m.name===p.name && m.from===p.fromKey && m.to===p.toKey && m.date===date; });
   if(dup) return {ok:true, dup:true};                            // 已約過同一堂 → 唔重複寫
+  // —— 後端驗證閘（唔淨係信前端，防繞過網頁直打 API）——
+  // (a) 原班存在、且學生確屬該班
+  if(!ROSTER[from.sport]||!ROSTER[from.sport][from.wd]) return {ok:false,err:"原班不存在"};
+  var inClass=rosterRows().some(function(r){ return r.name===p.name && (r.sport+"|"+r.wd)===p.fromKey; });
+  if(!inClass) return {ok:false,err:"並非此班學生，無法補堂"};
+  // (b) 仲有待補額：請假數 − 已約補堂數 > 0
+  var fblk=readBlock(from.sport,from.wd), fst=fblk.status[p.name]||[], lv=0;
+  fst.forEach(function(s){ if(s==="請假") lv++; });
+  var booked=makeupAll().filter(function(m){ return m.name===p.name && m.from===p.fromKey; }).length;
+  if(lv-booked<=0) return {ok:false,err:"冇待補堂數，無法補堂"};
+  // (c) 補堂目標必須係此原班嘅合法時段（同項目、指定星期）
+  var slots=makeupSlotsFor(from.sport, from.wd), slot=null;
+  for(var si=0; si<slots.length; si++){ if(slots[si].sport===to.sport && slots[si].wd===to.wd){ slot=slots[si]; break; } }
+  if(!slot) return {ok:false,err:"並非有效補堂時段"};
+  // (d) 日期：唔可以過去；籃球後備日用固定日，其餘唔可以過補堂限期（原班最後一堂）
+  var todayIso_=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd");
+  if(date<todayIso_) return {ok:false,err:"補堂日已過，無法補堂"};
+  if(slot.fixed){
+    if(slot.fixed.indexOf(date)<0) return {ok:false,err:"並非有效後備日"};
+  } else {
+    var dl=fblk.dates.length? fblk.dates[fblk.dates.length-1] : "";
+    if(dl && date>dl) return {ok:false,err:"已超過補堂限期：須於 "+dl+" 或之前補堂"};
+  }
   var onGrid = (ROSTER[to.sport] && ROSTER[to.sport][to.wd] && sessionsFor(to.wd).indexOf(date)>=0);
   if(onGrid) markCell(to.sport,to.wd,p.name,date,"補堂",true);   // 正規上課日 → 寫入格仔
   var M=makeupSheet(), row=M.getLastRow()+1;

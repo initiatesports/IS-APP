@@ -44,7 +44,11 @@ function makeResponse(data) {
 function doGet(e) {
   try {
     const action = e.parameter.action;
-    if (action === 'load') return makeResponse(loadAll());
+    // 完整 load(含身高體重/醫療備註/繳費等敏感資料)只准教練：改用 POST 帶教練密碼。
+    // 匿名 GET ?action=load 一律拒絕，避免任何人攞到網址就睇晒全校資料。
+    if (action === 'load') return makeResponse({ error: '未授權:請用教練端登入' });
+    // 家長專區只攞「可公開展示」資料(班名/相片/星之學員/排行榜/補堂提醒);不含身高體重/醫療/繳費。
+    if (action === 'home') return makeResponse(loadHome());
     if (action === 'ping') return makeResponse({ ok: true, ts: new Date().toISOString() });
     return makeResponse({ error: 'Unknown action: ' + action });
   } catch(err) {
@@ -60,6 +64,12 @@ function doPost(e) {
 
     // 用教練密碼解鎖(畀前端鎖畫面用):只回傳是否正確,不洩漏密碼本身。
     if (action === 'verify') return makeResponse(verifyCoachThrottled_(body));
+
+    // 完整 load:教練端(is-attendance-app)登入後以 POST 帶教練密碼讀取全校資料;密碼錯誤即拒。
+    if (action === 'load') {
+      if (!checkCoach_(body)) return makeResponse({ ok: false, error: '未授權:教練密碼錯誤' });
+      return makeResponse(loadAll());
+    }
 
     // 所有寫入動作都必須帶正確教練密碼,否則拒絕 —— 防止任何人匿名清空/竄改資料。
     const WRITE_ACTIONS = ['save_attendance','save_absences','save_performance','save_body','save_fee','save_settings'];
@@ -90,6 +100,17 @@ function loadAll() {
     body:        sheetToArray('body'),
     fee_paid:    sheetToArray('fee_paid'),
     settings:    sheetToArray('settings'),
+  };
+}
+
+// 家長專區(is-home)用:只回可公開展示嘅資料。
+// 刻意排除 body(身高體重)、fee_paid(繳費)——呢啲敏感資料家長專區根本冇用到,
+// 唔再經匿名 endpoint 送出瀏覽器。settings 含班名/相片/星之學員,absences/performance 供補堂提醒同排行榜。
+function loadHome() {
+  return {
+    settings:    sheetToArray('settings'),
+    absences:    sheetToArray('absences'),
+    performance: sheetToArray('performance'),
   };
 }
 
