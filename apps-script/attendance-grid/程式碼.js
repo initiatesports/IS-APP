@@ -97,6 +97,7 @@ function setup(){
   // 各班格仔（非破壞性：已存在就保留資料，只補回下拉/變色）
   Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){ buildGrid(ss,sp,wd,false); });});
   normalizeMakeupDates_();     // 把補堂索引日期修正成 yyyy-MM-dd 文字（兼修舊資料）
+  try{ ensureRosterRows_(); }catch(e){}  // 自癒：ROSTER 新增但 grid 未有嘅學生，安全補回（保留現有狀態）
   syncMakeupsToGrid();         // 把補堂索引嘅每筆，確保寫返入目標班格仔
   try{ seedDemo_(); }catch(e){}  // 示範帳號（陳大文）種一個請假，等暑期補堂都 demo 到
   cleanupStray(ss);
@@ -104,6 +105,31 @@ function setup(){
   ensureReminders();           // 確保每晚「點名未完成提醒」排程存在
   try{ backup(); }catch(e){}   // 即時備份一次
   Logger.log("setup 完成（非破壞性；已啟用每日自動備份）。");
+}
+
+// 自癒：把「ROSTER 已加、但 grid 仲未有」嘅學生補返入格仔。
+// buildGrid 非破壞模式只會重設下拉/變色、唔會為已存在嘅班加新學生，所以新增學生需呢個補底。
+// 做法：先讀晒現有狀態 → force 重建（含新學生）→ 寫返原有狀態，零資料遺失；冪等（全部齊就唔郁）。
+function ensureRosterRows_(){
+  var ss=SS();
+  Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
+    var sh=ss.getSheetByName(gridName(sp,wd)); if(!sh) return;
+    var students=ROSTER[sp][wd];
+    var present={};
+    sh.getRange(DATA_START,NAME_COL,students.length,1).getValues().forEach(function(r){
+      var nm=String(r[0]||"").trim(); if(nm) present[nm]=true;
+    });
+    var missing=students.filter(function(nm){ return !present[nm]; });
+    if(!missing.length) return;                 // 全部齊 → 唔郁
+    var blk=readBlock(sp,wd);                    // 先保留現有狀態（keyed by 現有名）
+    buildGrid(ss,sp,wd,true);                    // force：按完整 ROSTER 重建（含新學生）
+    Object.keys(blk.status).forEach(function(nm){
+      if(students.indexOf(nm)<0) return;         // 殘留/非正式名 → 唔還原到正式區
+      var arr=blk.status[nm]||[];
+      for(var i=0;i<arr.length && i<blk.dates.length;i++){ if(arr[i]) writeStatus(sp,wd,nm,blk.dates[i],arr[i]); }
+    });
+    Logger.log("ensureRosterRows_: "+gridName(sp,wd)+" 補回 "+missing.join("、")+"（已保留原有狀態）");
+  });});
 }
 
 // 示範用：為 陳大文（羽毛球·四）種一個請假，令暑期補堂示範到「待補 1 堂 + 可揀補堂時段」。
