@@ -1864,10 +1864,6 @@ html, body {
       <span class="nav-icon">🏠</span>
       <span class="nav-label">首頁</span>
     </button>
-    <button class="nav-item" onclick="showScreen('makeup')" id="nav-makeup">
-      <span class="nav-icon" id="makeup-badge">📋</span>
-      <span class="nav-label">補堂</span>
-    </button>
     <button class="nav-item" onclick="showScreen('perf')" id="nav-perf">
       <span class="nav-icon">📊</span>
       <span class="nav-label">成績</span>
@@ -1903,10 +1899,6 @@ html, body {
     <button class="nav-item" onclick="showScreen('courses')" id="nav-courses">
       <span class="nav-icon">📋</span>
       <span class="nav-label">課程介紹</span>
-    </button>
-    <button class="nav-item" onclick="showScreen('parent')" id="nav-parent">
-      <span class="nav-icon">👨‍👩‍👧</span>
-      <span class="nav-label">補堂查詢</span>
     </button>
     <button class="nav-item" onclick="showScreen('settings')" id="nav-settings">
       <span class="nav-icon">⚙️</span>
@@ -2364,13 +2356,12 @@ function renderHome() {
 
 function classRowHTML(id, cls) {
   return `
-    <div class="class-row" onclick="openRoll('${id}')">
+    <div class="class-row" style="cursor:default">
       <span class="class-day-pill">${cls.dayZh}</span>
       <div class="class-row-info">
         <h3>${cls.time}</h3>
         <p>${cls.students.length} 位學生</p>
       </div>
-      <span class="class-row-arrow">›</span>
     </div>`;
 }
 
@@ -7448,9 +7439,6 @@ function renderSettings() {
 
   el.innerHTML = `
     <div style="padding:12px 0 8px;display:flex;flex-direction:column;gap:8px">
-      <button onclick="showScreen('history')" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:14px;font-weight:700;cursor:pointer;text-align:left">
-        📋 查看出席歷史記錄
-      </button>
       <button onclick="loadFromSheets()" style="width:100%;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--cyan);font-size:14px;font-weight:700;cursor:pointer;text-align:left">
         ☁️ 立即同步所有數據
       </button>
