@@ -462,6 +462,15 @@ async function refresh(){
 /* ═══════════ 家長主頁 ═══════════ */
 function setPeriod(idx){ S.period=idx; renderParent(); }
 function setKid(i){ S.kid=i; renderParent(); }
+/* 🏅📊⭐ 章別考核計劃／成績排行榜／優秀學員：三個按鈕（連去公開官網但需登入嘅分頁）。
+   位置邏輯：當「6–7月特別課程」同「暑期班請假補堂」按鈕仲喺度時放底部；兩者都過期後自動升上頂部。*/
+function featureLinks(){
+  var base='display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;text-decoration:none;font-weight:800;color:#fff;';
+  return ''
+  + `<a class="btn" style="${base}background:linear-gradient(135deg,#f0a73a,#d98a1f);box-shadow:0 6px 18px rgba(217,138,31,.22)" href="is-home.html?view=badge"><span>🏅 ${LANG==='en'?'Badge Assessment Plan':'章別考核計劃'}</span><span style="font-size:18px">›</span></a>`
+  + `<a class="btn" style="${base}background:linear-gradient(135deg,#3ecfcf,#1b8d9b);box-shadow:0 6px 18px rgba(27,141,155,.22)" href="is-home.html?view=lb"><span>📊 ${LANG==='en'?'Leaderboard':'成績排行榜'}</span><span style="font-size:18px">›</span></a>`
+  + `<a class="btn" style="${base}background:linear-gradient(135deg,#8c6cff,#5b3fd6);box-shadow:0 6px 18px rgba(91,63,214,.22)" href="is-home.html?view=star"><span>⭐ ${LANG==='en'?'Outstanding Students':'優秀學員'}</span><span style="font-size:18px">›</span></a>`;
+}
 function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
   const kids=(S.family&&S.family.children)||[];
@@ -472,6 +481,10 @@ function renderParent(){
   let html=`<div class="wrap">`;
   // 🌐 官網入口（登入後置頂）
   html+=`<a class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;box-shadow:0 6px 18px rgba(27,141,155,.25)" href="is-home.html">🌐 ${LANG==='en'?'INITIATE SPORTS Website':'INITIATE SPORTS 官網'}　›</a>`;
+  // 限時推廣按鈕是否仍在生效（6–7月特別課程未過期 或 暑期班補堂橋接仍開）
+  const promoActive = (new Date() < new Date('2026-07-11T00:00:00+08:00')) || !!S.summerBridge;
+  // 推廣按鈕都過期後，三個功能按鈕自動升上頂部
+  if(!promoActive) html+=featureLinks();
   // 📣 6–7月特別課程報名（2026-07-11 00:00 HKT 後自動消失）
   if(new Date() < new Date('2026-07-11T00:00:00+08:00')){
     html+=`<a class="btn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#7c5cff,#5b3fd6);color:#fff;box-shadow:0 6px 18px rgba(91,63,214,.25)" href="initiate-sports-booking.html" target="_blank" rel="noopener"><span>📣 ${LANG==='en'?'June–July special courses · Sign up now':'6–7月平日特別課程・接受報名中'}</span><span style="font-size:18px">›</span></a>`;
@@ -528,6 +541,8 @@ function renderParent(){
     html+=`</div>`;
   });
   if(!kids.length) html+=`<div class="no-result">—</div>`;
+  // 推廣按鈕仍生效期間，三個功能按鈕暫放底部
+  if(promoActive) html+=`<div style="height:6px"></div>`+featureLinks();
   html+=`</div>`; view().innerHTML=html;
 }
 function classCard(child,ki,c,ci){

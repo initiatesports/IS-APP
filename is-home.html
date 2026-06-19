@@ -6,15 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F7F9FA">
 <title>Initiate Sports — 家長專區</title>
-<script>
-/* 🔒 會員制：未登入家長端，唔可以入官網 */
-(function(){
-  try{
-    var a=JSON.parse(localStorage.getItem('is_parent_auth')||'null');
-    if(!a||!a.name){ location.replace('is-parent.html'); }
-  }catch(e){ location.replace('is-parent.html'); }
-})();
-</script>
+<!-- 公開官網：首頁／課程／成就等任何人都可瀏覽。排行榜／優秀學員／章別考核屬學生資料，喺 switchPanel 內按登入狀態保護。 -->
 <style>
 /* ── RESET & BASE ── */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -543,9 +535,6 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
       <button class="nav-link active" id="nav-home"      onclick="switchPanel('home')">首頁</button>
       <button class="nav-link news-flash"  id="nav-news"     onclick="switchPanel('news')">🔔 最新消息</button>
       <button class="nav-link"        id="nav-pt"        onclick="switchPanel('pt')">⭐ 私人訓練</button>
-      <button class="nav-link"        id="nav-lb"        onclick="switchPanel('lb')">排行榜</button>
-      <button class="nav-link"        id="nav-badge"     onclick="switchPanel('badge')">章別考核計劃</button>
-      <button class="nav-link"        id="nav-star"      onclick="switchPanel('star')">優秀學員</button>
       <button class="nav-link"        id="nav-ach"       onclick="switchPanel('ach')">🏆 學生成就</button>
       <button class="nav-link"        id="nav-courses"   onclick="switchPanel('courses')">課程</button>
       <button class="nav-link"        id="nav-knowledge" onclick="switchPanel('knowledge')">知識分享</button>
@@ -613,7 +602,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 
       <div class="home-section-head">
         <h2>探索 INITIATE SPORTS</h2>
-        <p>課程資訊、成績排行、章別考核與最新消息，一站式掌握學員的學習進度。</p>
+        <p>課程資訊、學生成就與最新消息，一站式了解我們的訓練理念與成果。</p>
       </div>
       <div class="home-cards">
         <div class="home-card hc-flash" onclick="switchPanel('news')">
@@ -626,20 +615,15 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
           <div class="hc-title">學生成就</div>
           <div class="hc-desc">學員比賽獎項一覽</div>
         </div>
-        <div class="home-card" onclick="switchPanel('lb')">
-          <div class="hc-icon">📊</div>
-          <div class="hc-title">成績排行</div>
-          <div class="hc-desc">各項目最佳成績</div>
-        </div>
-        <div class="home-card" onclick="switchPanel('star')">
+        <div class="home-card" onclick="switchPanel('pt')">
           <div class="hc-icon">⭐</div>
-          <div class="hc-title">優秀學員</div>
-          <div class="hc-desc">每期表揚進取學員</div>
+          <div class="hc-title">私人訓練</div>
+          <div class="hc-desc">度身訂造一對一指導</div>
         </div>
-        <div class="home-card" onclick="switchPanel('badge')">
-          <div class="hc-icon">🏅</div>
-          <div class="hc-title">章別考核</div>
-          <div class="hc-desc">考核計劃詳情</div>
+        <div class="home-card" onclick="switchPanel('knowledge')">
+          <div class="hc-icon">💡</div>
+          <div class="hc-title">知識分享</div>
+          <div class="hc-desc">運動及訓練小知識</div>
         </div>
         <div class="home-card" onclick="switchPanel('courses')">
           <div class="hc-icon">📚</div>
@@ -996,7 +980,10 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 // ═══════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════
+function isParentAuthed(){try{var a=JSON.parse(localStorage.getItem('is_parent_auth')||'null');return !!(a&&a.name);}catch(e){return false;}}
 function switchPanel(id) {
+  // 🔒 排行榜／優秀學員／章別考核屬學生資料，只限已登入家長（喺請假補堂登入），公開訪客帶去登入頁
+  if (['lb','star','badge'].indexOf(id) >= 0 && !isParentAuthed()) { location.href = 'is-parent.html'; return; }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
   const panel = document.getElementById('panel-' + id);
@@ -1703,7 +1690,11 @@ function switchTab(tab) {
   if (tab === 'star') renderStarPanel();
 }
 
-loadFromSheets();
+// 只有已登入家長先向後端攞學生資料（排行榜／優秀學員等）；公開訪客唔會載入任何學生數據
+if (isParentAuthed()) { loadFromSheets(); }
+else { var _si=document.getElementById('sync-icon'); if(_si) _si.style.display='none'; }
+// 深層連結：請假補堂家長頁帶 ?view=lb/star/badge 過嚟，直接開該頁（未登入會被 switchPanel 帶去登入頁）
+(function(){var v=new URLSearchParams(location.search).get('view');var ok=['lb','star','badge','ach','courses','news','knowledge','equipment','pt'];if(v&&ok.indexOf(v)>=0)switchPanel(v);})();
 
 </script>
 <!-- ══ 私人訓練彈出層（自包含；全部 .ptx 前綴，唔會撞到本頁原有樣式）══ -->
