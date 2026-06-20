@@ -514,7 +514,9 @@ function zhStatus11_(nm, d, raw, leaveSet){
   if(raw==="absent")    return leaveSet[nm+"|"+d] ? "請假" : "缺席";
   return raw;   // 已經係中文(教練直接打) → 原樣
 }
-// 家長顯示用：#11 為主、#4 grid 為後備（保留 is-parent 自助寫入的未來請假/補堂）
+// 家長顯示用：#4 grid 為主、#11 為後備
+// （遷移後 #11 出席/缺席已搬入 #4 grid，且日後教練改用 #4 點名 → #4 grid 即恆常班出席真相；
+//   #11 只作後備，補返個別未遷移嘅舊格，避免教練停用 #11 後家長見到舊資料。）
 function readBlockMerged_(cid){
   var base=readBlock(cid), c=CLASSES[cid], d=is11_();
   var leaveSet={}; d.abs.forEach(function(a){ if(a.cid===cid) leaveSet[a.name+"|"+a.absDate]=true; });
@@ -523,12 +525,9 @@ function readBlockMerged_(cid){
     var grid=base.status[nm]||[];
     map[nm]=base.dates.map(function(dt,i){
       var g=grid[i]||"";
-      var z=zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet);
-      // 家長喺 is-parent 自助申請嘅「請假」= 明確補堂權利。
-      // 若 #11 將該堂計做「缺席」（教練標 absent 但未登入 absences），而家長已自助請假 → 升級為「請假」(可補堂)，
-      // 令「申請補堂」按鈕正常亮起。#11 出席/豁免/停課（實際發生）仍然優先，唔受家長請假覆寫。
-      if(z==="缺席" && g==="請假") return "請假";
-      return z || g;   // #11 有紀錄→用 #11；冇→後備 #4 grid
+      if(g) return g;   // #4 grid 有值 → 以 #4 為準（含家長 is-parent 自助請假寫入嘅「請假」）
+      // #4 grid 該格為空 → 後備讀 #11（防個別未遷移嘅舊格）
+      return zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet) || "";
     });
   });
   return {dates:base.dates, n:base.n, students:base.students, status:map};
@@ -715,10 +714,10 @@ function classesFor_(nm){
     var mkExt={};
     abs11.forEach(function(a){ if(!a.madeUpDate && a.deadline) mkExt[a.absDate]=a.deadline; });
     st.forEach(function(s,i){ if(s!=="請假") return; var d=blk.dates[i], ov=dlMap[nm+"|"+cid+"|"+d]; if(ov) mkExt[d]=ov; });
-    // ── 待補（owed）對齊 IS教練主網頁(#11) ──
-    // #11 absences 是恆常班出席/補堂嘅真相來源（歷史紀錄一直喺 #11，未搬去 #4 grid）。
-    // 故待補 = #11 未補嘅缺堂（madeUpDate 空）為核心，
-    //          ＋ 家長喺 is-parent 自助請假但 #11 暫未有對應 absences 紀錄嘅堂（避免重複）
+    // ── 待補（owed）：#4 grid 為主、#11 absences 補歷史限期 ──
+    // 遷移後 #4 grid 係出席真相；#11 absences 仍保留歷史請假嘅補堂限期(deadline)。
+    // 待補 = #11 未補嘅缺堂（madeUpDate 空）
+    //          ＋ #4 grid 顯示「請假」但 #11 未有對應 absences 紀錄嘅堂（日後 #4-only 新請假，避免重複）
     //          － 已預約但未出席嘅補堂（mkInfo 中非「出席」者，多數係已 book 嘅補堂位）。
     var pendingAbs11=abs11.filter(function(a){ return !a.madeUpDate; }).length;
     var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
