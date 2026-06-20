@@ -1815,8 +1815,12 @@ var OFFSITE_TARGETS = [
   {id:"1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo", name:"IS App Data(#11)"},
   {id:"1EKLNEShazlt1N9HFvGK3E2vsxh_sAq08doofIom81zc", name:"6-7月報名系統(#1)"}
 ];
+var OFFSITE_EMAILS = ["initiatesports6331@gmail.com", "leocheung0615@gmail.com"];  // 固定寄去呢兩個信箱（雙保險）
 function monthlyOffsiteBackup(){
-  var to=PropertiesService.getScriptProperties().getProperty("BACKUP_EMAIL") || HEALTH_EMAIL;
+  var extra=PropertiesService.getScriptProperties().getProperty("BACKUP_EMAIL");   // 想再多一個收件人就設呢個屬性
+  var list=OFFSITE_EMAILS.slice();
+  if(extra && list.indexOf(extra)<0) list.push(extra);
+  var to=list.join(",");
   var stamp=Utilities.formatDate(new Date(), tz(), "yyyy-MM-dd");
   var attachments=[], failed=[];
   OFFSITE_TARGETS.forEach(function(t){
@@ -1842,7 +1846,7 @@ function monthlyOffsiteBackup(){
 function installMonthlyBackup(){
   ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==="monthlyOffsiteBackup") ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger("monthlyOffsiteBackup").timeBased().onMonthDay(1).atHour(7).create();   // 每月 1 號約 07:00
-  try{ SpreadsheetApp.getUi().alert("✅ 每月異地備份已設定（每月 1 號約 07:00 email 你 xlsx 副本）。\n想寄去另一個 email：專案設定 → 指令碼屬性 → 加 BACKUP_EMAIL。"); }catch(e){}
+  try{ SpreadsheetApp.getUi().alert("✅ 每月異地備份已設定（每月 1 號約 07:00 寄 xlsx 副本去：\n• "+OFFSITE_EMAILS.join("\n• ")+"）。\n想再加一個收件人：專案設定 → 指令碼屬性 → 加 BACKUP_EMAIL。"); }catch(e){}
   return "已設定";
 }
 function monthlyOffsiteBackupMenu(){
