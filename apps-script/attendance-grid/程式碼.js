@@ -73,6 +73,29 @@ function sessionsFor(wd){
   var out=[],b=startMon(); b.setDate(b.getDate()+(WD[wd]-1));
   for(var i=0;i<CONFIG.N_SESS;i++){ var x=new Date(b); x.setDate(x.getDate()+i*7); out.push(iso(x)); } return out; }
 function pad4(x){ var s=String(x).replace(/\D/g,""); return ("0000"+s).slice(-4); }
+/* ── 與恆常班(#4)密碼同步：讀 #4「登入密碼」分頁，家長改咗自訂密碼 → 暑期班亦即時生效 ──
+ * 家庭鍵＝電話後4位（兩系統一致）。唯讀；首次部署後須喺 #9 編輯器手動跑一次 setup()/任何函數批准 openById 授權。*/
+var REG4_SS_ID = "1MwIOIZ8tv6XXEnqlTlZgLli4cwlDMqHFxxusgefXvyE";   // INITIATE SPORTS 出席補堂系統(#4)
+var _pin4Cache = null;
+function pin4For_(last4){
+  if(_pin4Cache===null){
+    _pin4Cache={};
+    try{
+      var sh=SpreadsheetApp.openById(REG4_SS_ID).getSheetByName("登入密碼");  // 家庭(後4位), 自訂密碼, 更新時間
+      if(sh && sh.getLastRow()>1){
+        sh.getRange(2,1,sh.getLastRow()-1,2).getValues().forEach(function(r){
+          var k=pad4(r[0]), v=pad4(r[1]); if(k && v) _pin4Cache[k]=v;
+        });
+      }
+    }catch(e){ Logger.log("pin4For_ 讀 #4 登入密碼失敗（退回電話後4位）: "+e); }
+  }
+  return _pin4Cache[pad4(last4)]||"";
+}
+// 有效憑證檢查：接受「電話後4位」或「#4 自訂密碼」（與恆常班同步）
+function credOK9_(last4, entered){
+  var want=pad4(entered), p=pin4For_(last4);
+  return want===pad4(last4) || (!!p && want===p);
+}
 function gridName(sport,wd){ return SPORT[sport].name+"("+wd+")"; }
 function colLetter(c){ var s=""; while(c>0){ var m=(c-1)%26; s=String.fromCharCode(65+m)+s; c=(c-m-1)/26; } return s; }
 function classKeyParts(key){ var a=key.split("|"); return {sport:a[0],wd:a[1]}; }
@@ -431,23 +454,25 @@ function apiLogin(p){
   var want=pad4(p.last4), nm=String(p.name).trim();
   if(rlBlocked_("login_"+nm, 12)) return {ok:false,err:"嘗試太多次，請約 5 分鐘後再試"};
   var all=rosterRows();
-  // 必須中文全名＋後4位配對先得（防止淨係靠後4位掃出全部學生）
-  var ok=all.some(function(r){return r.name===nm && pad4(r.last4)===want;});
-  if(!ok){ rlBump_("login_"+nm, 300); return {ok:false,err:"搵唔到，請檢查中文全名同手機後4位"}; }
+  // 必須中文全名＋（手機後4位 或 恆常班自訂密碼）配對先得（防止淨係靠後4位掃出全部學生）
+  var hit=all.filter(function(r){ return r.name===nm && credOK9_(r.last4, p.last4); });
+  if(!hit.length){ rlBump_("login_"+nm, 300); return {ok:false,err:"搵唔到，請檢查中文全名同手機後4位（如已設定自訂密碼請用自訂密碼）"}; }
   rlClear_("login_"+nm);
+  var fam=pad4(hit[0].last4);   // 真正家庭鍵＝電話後4位（即使用自訂密碼登入亦然）
   // 同一電話後4位 = 一家人，列出所有小朋友（去重）
-  var names=[]; all.forEach(function(r){ if(pad4(r.last4)===want && names.indexOf(r.name)<0) names.push(r.name); });
+  var names=[]; all.forEach(function(r){ if(pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
   var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn)}; });
-  // 向後兼容：保留 student/classes（第一個小朋友）
-  return {ok:true, family:{last4:want}, children:children,
-    student:{name:nm,last4:want}, classes:children.length?children[0].classes:[]};
+  // 向後兼容：保留 student/classes（第一個小朋友）。一律回傳家庭鍵＝電話後4位（fam），
+  // 令前端之後嘅操作（authParent_）用後4位驗證，即使今次用自訂密碼登入亦正常。
+  return {ok:true, family:{last4:fam}, children:children,
+    student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[]};
 }
 
-// 家長操作權限：須附家庭登入碼（手機後4位），且該學生屬於該家庭，方可操作（防冒名）
+// 家長操作權限：須附家庭登入碼（手機後4位 或 恆常班自訂密碼），且該學生屬於該家庭，方可操作（防冒名）
 function authParent_(name, code){
   var nm=String(name).trim(), want=pad4(code);
   if(rlBlocked_("login_"+nm, 12)) return false;
-  var ok=rosterRows().some(function(r){ return r.name===nm && pad4(r.last4)===want; });
+  var ok=rosterRows().some(function(r){ return r.name===nm && credOK9_(r.last4, code); });
   if(ok) rlClear_("login_"+nm); else rlBump_("login_"+nm, 300);
   return ok;
 }

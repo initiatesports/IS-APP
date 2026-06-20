@@ -546,14 +546,19 @@ function renderParent(){
   html+=`</div>`; view().innerHTML=html;
 }
 function classCard(child,ki,c,ci){
-  const owed=c.owed||0;
+  const owed=c.owed||0;   // 待補：跨所有期數的總和（不限當期）
+  // 總堂／已上／請假：只計當前選定期數（例如 5-6月），由 c.sessions 按期過濾即時計算
+  const pSess=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period);
+  const pTotal=pSess.length;
+  const pAtt=pSess.filter(s=>s.status==='出席'||s.status==='補堂').length;
+  const pLeave=pSess.filter(s=>s.status==='請假').length;
   return `<div class="card">
     <div class="topline"><span class="dot"></span><h3>${classLabel(c.key||c.sport)}</h3></div>
-    <div class="meta">${LANG==='en'?(c.total||0)+' sessions':'共 '+(c.total||0)+' 堂'}</div>
+    <div class="meta">${LANG==='en'?pTotal+' sessions · '+periodLabel(S.period):periodLabel(S.period)+'・共 '+pTotal+' 堂'}</div>
     <div class="stats">
-      <div class="stat"><div class="n">${c.total||0}</div><div class="k">${t('total')}</div></div>
-      <div class="stat"><div class="n">${c.attended||0}</div><div class="k">${t('attended')}</div></div>
-      <div class="stat"><div class="n">${c.leave||0}</div><div class="k">${t('onLeave')}</div></div>
+      <div class="stat"><div class="n">${pTotal}</div><div class="k">${t('total')}</div></div>
+      <div class="stat"><div class="n">${pAtt}</div><div class="k">${t('attended')}</div></div>
+      <div class="stat"><div class="n">${pLeave}</div><div class="k">${t('onLeave')}</div></div>
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
     ${owed>0&&c.deadline?`<div class="dlnote">${t('dlNote',owed,fmtDate(c.deadline))}</div>`:''}

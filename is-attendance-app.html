@@ -1852,6 +1852,11 @@ html, body {
       <div id="courses-content" style="padding:0 12px 100px"></div>
     </div>
 
+    <!-- ══ ACHIEVEMENTS ══ -->
+    <div class="screen" id="screen-achievements">
+      <div id="achievements-content" style="padding:0 12px 100px"></div>
+    </div>
+
     <!-- ══ SETTINGS ══ -->
     <div class="screen" id="screen-settings">
       <div id="settings-content" style="padding:0 12px 100px"></div>
@@ -1899,6 +1904,10 @@ html, body {
     <button class="nav-item" onclick="showScreen('courses')" id="nav-courses">
       <span class="nav-icon">📋</span>
       <span class="nav-label">課程介紹</span>
+    </button>
+    <button class="nav-item" onclick="showScreen('achievements')" id="nav-achievements">
+      <span class="nav-icon">🥇</span>
+      <span class="nav-label">成就/賽果</span>
     </button>
     <button class="nav-item" onclick="showScreen('settings')" id="nav-settings">
       <span class="nav-icon">⚙️</span>
@@ -2143,6 +2152,7 @@ function showScreen(id, pushStack=true) {
   if (id === 'knowledge') renderKnowledgeScreen();
   if (id === 'equipment') renderEquipmentScreen();
   if (id === 'courses')   renderCoursesScreen();
+  if (id === 'achievements') renderAchievementsScreen();
   if (id === 'parent')  { /* no auto-render */ }
 }
 
@@ -7071,6 +7081,7 @@ function buildSettingsPayload() {
   payload['knowledge_posts']  = JSON.stringify(KNOWLEDGE_POSTS);
   payload['equipment_items']  = JSON.stringify(EQUIPMENT_ITEMS);
   payload['course_items']     = JSON.stringify(COURSE_ITEMS);
+  payload['achievements']     = JSON.stringify(ACHIEVEMENTS);
   payload['student_years']    = JSON.stringify(STUDENT_YEARS);
   return payload;
 }
@@ -7136,6 +7147,8 @@ function restoreSettings(rows) {
   if (Array.isArray(ei)) EQUIPMENT_ITEMS = ei;
   const ci = tryParse('course_items', null);
   if (Array.isArray(ci)) COURSE_ITEMS = ci;
+  const ach = tryParse('achievements', null);
+  if (Array.isArray(ach)) ACHIEVEMENTS = ach;
   const sy = tryParse('student_years', null);
   if (sy && typeof sy === 'object') Object.assign(STUDENT_YEARS, sy);
 }
@@ -7597,39 +7610,25 @@ function removeHoliday(d) {
 
 // Badge Levels — 14 levels, 7 videos uploaded
 let BADGE_DATA = {
-  title: 'INITIATE SPORTS 花式跳繩技術考核章別計劃',
-  subtitle: '彩虹章別（Level 1–7）＋ 進階技術能力考核（Level 8–14）',
-  description: '隨著花式跳繩在香港社會逐漸普及，為推進運動發展、提升學員學習能力，特此設立花式跳繩技術考核評估計劃。透過一系列等級動作指引，讓學員更有目標及系統地提升個人技術。',
-  disclaimer: '所有影片均為INITIATE SPORTS內部分享用途，請勿上傳至任何社交媒體或外傳，違者必究。',
-  levels: [
-    { id:1,  name:'Level 1',  badge:'🔴 紅色章', url:'https://youtu.be/oLgeE1wfzhU',
-      desc:'連續前繩跳×10、前後開合跳×2、左右開合跳×2、滑雪跳×2、連續單車步×5、側擺開跳×2、假掌上壓跳×2、功夫繩（連解開）' },
-    { id:2,  name:'Level 2',  badge:'🟠 橙色章', url:'https://youtu.be/AWFbYTnfKZo',
-      desc:'連續前繩跳×30、連續兩彈單重跳×10、後繩跳×5、肯肯跳×2、連續單車步×10、交叉開×5、全轉跳×2、鬥牛勇士跳×2、木乃伊收繩' },
-    { id:3,  name:'Level 3',  badge:'🟡 黃色章', url:'https://youtu.be/JTx3Fcnd0DM',
-      desc:'連續前繩跳×50、慢快拍子×4個八拍、後繩跳×10、提叉提放×2、連續單車步×20、跨下一式×2、前轉後後轉前跳×2、釣魚跳收繩' },
-    { id:4,  name:'Level 4',  badge:'🟢 綠色章', url:'https://youtu.be/8XnscUtoscA',
-      desc:'連續前繩跳×100、連續單車步×25、後繩跳×20、跨下二式跳×2、敬禮跳×2、交叉轉換跳×2、身後交叉跳×2、二重跳×5、釣魚接繩連前繩跳' },
-    { id:5,  name:'Level 5',  badge:'🔵 藍色章', url:'https://youtu.be/iZR-N5XWQ-M',
-      desc:'連續單車步×30、跨下三式×2、跨下四式×2、身後交叉跳×2、膝後交叉跳×2、上下手交叉跳×2、連續二重跳×10、二重側擺交叉側擺開跳×2、後繩側擺交叉開×2' },
-    { id:6,  name:'Level 6',  badge:'🟣 靛色章', url:'https://youtu.be/82CVP9c--p0',
-      desc:'連續單車步×35、後繩跨下一式×2、後繩跨下二式×2、連續二重跳×20、全轉二重跳×2、二重前轉後後轉前跳×2、二重敬禮跳×2、交叉單手放柄接繩跳×2' },
-    { id:7,  name:'Level 7',  badge:'💜 紫色章', url:'https://youtu.be/uSk051iqqug',
-      desc:'連續單車步×40、連續二重跳×30、側叉側開開開開叉叉叉叉開二重跳×2、後繩二重跳×5、跨下三四一二跳×2、三重側擺交叉側擺開跳×2、任意四個三重花式×2、側擺單手放柄接繩跳×2' },
-    { id:8,  name:'Level 8 — Mercury',  badge:'⚫ Mercury', url:'',
-      desc:'30秒單車步50下｜花式套路：跨下三四一二交叉敬禮，膝後交叉上下手身後田雞，二重側擺系列' },
-    { id:9,  name:'Level 9 — Venus',    badge:'🟠 Venus',   url:'',
-      desc:'30秒單車步55下｜花式套路：交叉側擺單手放柄系列，後二重系列，側擺敬禮繞繩' },
-    { id:10, name:'Level 10 — Mars',    badge:'🔴 Mars',    url:'',
-      desc:'30秒單車步60下｜花式套路：後跨下系列，跨下繞繩放柄，三重側擺系列' },
-    { id:11, name:'Level 11 — Jupiter', badge:'🟡 Jupiter', url:'',
-      desc:'30秒單車步65下｜花式套路：同Level 10進階版本，三重系列組合' },
-    { id:12, name:'Level 12 — Saturn',  badge:'🟠 Saturn',  url:'',
-      desc:'30秒單車步70下｜花式套路：三重側擺敬禮系列，身後交叉轉換，後三重系列' },
-    { id:13, name:'Level 13 — Uranus',  badge:'🔵 Uranus',  url:'',
-      desc:'30秒單車步75下｜花式套路：三重跨下系列，後三重敬禮跨下，後膝後轉換' },
-    { id:14, name:'Level 14 — Neptune', badge:'💙 Neptune', url:'',
-      desc:'30秒單車步80下｜花式套路：三重跨下四式系列，兔跳膝後交叉，後三重身後交叉上下手' },
+  title:'INITIATE SPORTS 花式跳繩技術考核章別計劃',
+  subtitle:'彩虹章別（Level 1–7）＋ 進階技術能力考核（Level 8–14）',
+  disclaimer:'所有影片均為INITIATE SPORTS內部分享用途，請勿上傳至任何社交媒體或外傳，違者必究。',
+  description:'隨著花式跳繩在香港社會逐漸普及，為推進運動發展、提升學員學習能力，特此設立花式跳繩技術考核評估計劃。透過一系列等級動作指引，讓學員更有目標及系統地提升個人技術。',
+  levels:[
+    {id:1,name:'Level 1',badge:'🔴 紅色章',url:'https://youtu.be/oLgeE1wfzhU',desc:'連續前繩跳×10、前後開合跳×2、左右開合跳×2、滑雪跳×2、連續單車步×5、側擺開跳×2、假掌上壓跳×2、功夫繩（連解開）'},
+    {id:2,name:'Level 2',badge:'🟠 橙色章',url:'https://youtu.be/AWFbYTnfKZo',desc:'連續前繩跳×30、連續兩彈單重跳×10、後繩跳×5、肯肯跳×2、連續單車步×10、交叉開×5、全轉跳×2、鬥牛勇士跳×2、木乃伊收繩'},
+    {id:3,name:'Level 3',badge:'🟡 黃色章',url:'https://youtu.be/JTx3Fcnd0DM',desc:'連續前繩跳×50、慢快拍子×4個八拍、後繩跳×10、提叉提放×2、連續單車步×20、跨下一式×2、前轉後後轉前跳×2、釣魚跳收繩'},
+    {id:4,name:'Level 4',badge:'🟢 綠色章',url:'https://youtu.be/8XnscUtoscA',desc:'連續前繩跳×100、連續單車步×25、後繩跳×20、跨下二式跳×2、敬禮跳×2、交叉轉換跳×2、身後交叉跳×2、二重跳×5、釣魚接繩連前繩跳'},
+    {id:5,name:'Level 5',badge:'🔵 藍色章',url:'https://youtu.be/iZR-N5XWQ-M',desc:'連續單車步×30、跨下三式×2、跨下四式×2、身後交叉跳×2、膝後交叉跳×2、上下手交叉跳×2、連續二重跳×10、二重側擺交叉×2、後繩側擺交叉開×2'},
+    {id:6,name:'Level 6',badge:'🟣 靛色章',url:'https://youtu.be/82CVP9c--p0',desc:'連續單車步×35、後繩跨下一式×2、後繩跨下二式×2、連續二重跳×20、全轉二重跳×2、二重前轉後後轉前×2、二重敬禮跳×2、交叉單手放柄接繩跳×2'},
+    {id:7,name:'Level 7',badge:'💜 紫色章',url:'https://youtu.be/uSk051iqqug',desc:'連續單車步×40、連續二重跳×30、多種二重組合×2、後繩二重跳×5、跨下三四一二跳×2、三重側擺交叉×2、任意四個三重花式×2、側擺單手放柄×2'},
+    {id:8,name:'Level 8 — Mercury',badge:'⚫ Mercury',url:'',desc:'30秒單車步50下｜花式套路系列 — 完成彩虹章別Level 1-7後方可報考'},
+    {id:9,name:'Level 9 — Venus',badge:'🟠 Venus',url:'',desc:'30秒單車步55下｜進階技術能力考核'},
+    {id:10,name:'Level 10 — Mars',badge:'🔴 Mars',url:'',desc:'30秒單車步60下｜進階技術能力考核'},
+    {id:11,name:'Level 11 — Jupiter',badge:'🟡 Jupiter',url:'',desc:'30秒單車步65下｜進階技術能力考核'},
+    {id:12,name:'Level 12 — Saturn',badge:'🟠 Saturn',url:'',desc:'30秒單車步70下｜進階技術能力考核'},
+    {id:13,name:'Level 13 — Uranus',badge:'🔵 Uranus',url:'',desc:'30秒單車步75下｜進階技術能力考核'},
+    {id:14,name:'Level 14 — Neptune',badge:'💙 Neptune',url:'',desc:'30秒單車步80下｜進階技術能力考核 — 最高等級'},
   ]
 };
 
@@ -7638,81 +7637,108 @@ let STUDENT_GRADES = {};
 
 // Knowledge posts
 let KNOWLEDGE_POSTS = [
-  {
-    id:'k1',
-    title:'健康新觀念：不只「沒生病」而已！',
-    date:'2025-01-01',
-    content:'【每日運動時間建議】\n\n兒童青少年（5-17歲）：每天至少60分鐘中高強度運動\n成年人（18-64歲）：每週150-300分鐘中等強度有氧，或75-150分鐘高強度有氧＋每週2天肌力訓練\n\n【沒有疾病即是健康？】\n世界衛生組織重新定義健康：不僅是「沒有疾病」！而是身體＋心理＋社會適應的「完全安適狀態」。運動是達成健康的三合一鑰匙🔑\n\n【運動兩大分類】\n● 有氧運動（持續性、強化心肺）：慢跑/游泳/騎車/跳舞 — 燃燒脂肪｜提升耐力｜改善代謝\n● 無氧運動（爆發性、增強肌力）：重訓/短跑/跳高/深蹲 — 增加肌肉量｜強化骨骼｜提升爆發力\n\n【運動好處比一比】\n給孩子的禮物：✓促進大腦發育與學習力 ✓培養團隊合作能力 ✓預防兒童肥胖問題 ✓建立終身運動習慣\n給大人的投資：✓降低三高&心血管疾病風險 ✓改善工作壓力和睡眠品質 ✓延緩肌肉流失與骨質疏鬆 ✓提升專注力與工作效率',
-    image:''
-  },
-  {
-    id:'k2',
-    title:'健身飲食懶人包 — 掌握營養科學，打造理想體態',
-    date:'2025-02-01',
-    content:'【巨量營養素基礎課】\n碳水 = 身體燃料🔥｜蛋白質 = 肌肉修復工🔧｜脂肪 = 身體組織守護者🛡｜膳食纖維 = 腸道清道夫\n小知識：1克碳水=4卡路里 / 1克蛋白=4卡 / 1克脂肪=9卡\n\n【3步驟算出你的TDEE】\n1. BMR（基礎代謝）：男：10×體重(kg)+6.25×身高(cm)-5×年齡+5 / 女：10×體重(kg)+6.25×身高(cm)-5×年齡-161\n2. 活動係數：久坐×1.2 / 每週1-3次運動×1.375 / 每週3-5次×1.55 / 每日2次×1.9\n3. TDEE = BMR × 活動係數\n\n【增重vs減脂怎麼吃？】\n減脂：TDEE - 500大卡 → 每週減0.5kg（蛋白質需求1.2-1.7g/體重）\n增肌：TDEE + 500大卡 → 每週增0.5kg（蛋白質需求1.7-2.5g/體重）\n\n黃金法則：減重族提高蛋白質到35%，控制精緻碳水；增肌族訓練後補充「碳水+蛋白質」黃金組合。\n\n實戰工具：熱量計算APP推薦MyFitnessPal（可掃條碼記錄），設置香港地區，輸入食物便可尋找所需數據。',
-    image:''
-  },
-  {
-    id:'k3',
-    title:'從影片出發，讓孩子的大腦也在練跳繩',
-    date:'2025-03-01',
-    content:'運用4大理論＋意象訓練，全面提升跳繩學習效率\n\n【為什麼要拍攝跳繩影片給學生與家長？】\n跳繩學習的關鍵，不只是「身體怎麼動」，更在於「大腦怎麼理解這些動作」。透過影片回顧＋腦中模擬訓練，學生能夠在課堂之外持續進步！\n\n① 視覺回饋理論：影片讓孩子知道自己的動作做得正確或偏差在哪裡（如：手擺太高、腳起跳角度不足），提升「自我察覺能力」\n\n② 觀察學習理論：學生可以觀察其他同學的跳繩節奏、手腳協調、身體姿勢，對初學者特別有幫助\n\n③ 錯誤導向學習：讓孩子自己看懂錯在哪裡，比老師直接講更有效！「錯誤 → 察覺 → 修正 → 強化 → 穩定」\n\n④ 意象訓練：觀看影片後，閉上眼睛，想像自己動作流暢、節奏一致地跳繩。就算沒實際動作，大腦也像真的在「練習」\n\n【學習策略建議：課後跳繩影片怎麼看？】\n✅ 看自己影片：尋找哪裡跳得不順、哪裡跳得對\n✅ 看同學影片：比較節奏、動作流暢度\n✅ 進行意象訓練：閉眼在腦中模擬跳繩畫面2-3分鐘\n✅ 親子提問互動：家長問「今天跳繩哪裡最順？為什麼？」',
-    image:''
-  },
-  {
-    id:'k4',
-    title:'兒童飲食與健康增重指南 — 幫助孩子「吃得下、吸收好、長得高」',
-    date:'2025-04-01',
-    content:'健康體重對兒童青少年的成長發育至關重要。\n\n【為什麼孩子瘦弱可能是問題？】\n體力不足影響運動表現、免疫力下降容易生病、生長發育遲緩、學習注意力不集中\n\n【健康增重的三大原則】\n1. 質量勝於數量：不是「吃多」，而是「吃對」！營養密度比單純熱量更重要\n2. 均衡飲食是基礎：蛋白質＋碳水＋健康脂肪＋維生素＋礦物質缺一不可\n3. 規律進餐習慣：三餐定時＋2-3次健康小食，避免長時間空腹\n\n【每日建議份量（6-12歲，活動量中等）】\n主食（穀物類）：4-6份 ｜蔬菜：3-5份 ｜水果：2-3份 ｜蛋白質：3-5份 ｜奶類：2份 ｜健康脂肪：2-3茶匙油+每週3-4次堅果\n\n【跳繩運動員的特別建議】\n運動前1-2小時：輕便小食（香蕉、小份三明治），持久能量\n運動後30分鐘內（黃金補充期）：蛋白質＋碳水，如巧克力牛奶、酸奶+水果、雞蛋三明治\n\n何時需要尋求專業幫助？若孩子體重持續下降或長期不增、食慾極差、長期疲勞，建議找醫生或營養師。',
-    image:''
-  },
+  {id:'k1',title:'健康新觀念：不只「沒生病」而已！',date:'運動知識分享 101',tag:'運動・健康',
+   image:'img/knowledge/k1.jpg',
+   summary:'世界衛生組織重新定義健康 —— 不只是「沒有疾病」，而是身體＋心理＋社會適應的「完全安適狀態」。運動，正是孩子大腦開發、習慣養成，與大人抗老投資的黃金鑰匙。',
+   body:'世界衛生組織（WHO）重新定義健康：不只是「沒有疾病」，而是身體＋心理＋社會適應的「完全安適狀態」。運動，正是串聯三大層面的黃金習慣。\n\n【各年齡運動處方・WHO 建議】\n• 兒童青少年（5–17歲）：每天至少 60 分鐘中高強度運動；每週 3 天加入肌肉與骨骼強化活動。\n• 成年人（18–64歲）：每週 150–300 分鐘中等強度，或 75–150 分鐘高強度有氧 ＋ 每週 2 天肌力訓練。\n\n【香港運動現況】\n• 超過 90% 學童達不到 WHO 建議運動量。\n• 成年人中等強度運動達標率僅 19.2%，肌力訓練達標率僅 8.5%。\n• 辦公室職員日均久坐 9.3 小時。\n\n【運動的雙世代禮物】\n給孩子：大腦開發提升 20% 學習專注力、從團隊運動學溝通與抗挫力、降低成年後肥胖機率 67%。\n給大人：降低 35% 心血管疾病風險、增肌減脂對抗每年 1% 肌肉流失、運動後工作效率提升 40%。\n\n【運動強度・說話測試】\n• 中等強度：能說話但無法唱歌（50–70% 最大心率），如親子騎車、羽球雙打。\n• 高強度：喘到無法說完整句子（70–85% 最大心率），如跳繩挑戰、HIIT。\n• 最大心率 ≈ 220 − 年齡。\n\n⚠ 高強度運動前熱身 10 分鐘；長輩／慢性病患者建議先諮詢醫師。'},
+  {id:'k2',title:'健身飲食懶人包 — 掌握 TDEE，打造理想體態',date:'運動知識分享 101',tag:'營養・飲食',
+   image:'img/knowledge/k2.jpg',
+   summary:'碳水、蛋白、脂肪、膳食纖維點樣配？教你 3 步算出自己嘅 TDEE，搞清楚增肌定減脂應該食幾多，附手掌份量法與飲食實戰技巧。',
+   body:'上次分享了運動的重要性，今次講健康生活 Part 2 —— 飲食。\n\n【四大引擎・巨量營養素與膳食纖維】\n• 碳水化合物（每克 4 卡）：主要能量來源；優選低 GI 原型食物（糙米、燕麥、蕃薯、藜麥）。\n• 蛋白質（每克 4 卡）：修復肌肉、合成激素；雞胸肉、牛肉、雞蛋、黃豆製品；每日每公斤體重 1.2–1.7 克。\n• 脂肪（每克 9 卡）：保護器官、吸收脂溶性維生素；三文魚、堅果、牛油果、冷壓橄欖油；避開反式脂肪。\n• 膳食纖維：促進腸道健康＋延緩飢餓；每日 25–35g。\n\n【3 步算 TDEE】\n1. BMR：男＝10×體重＋6.25×身高−5×年齡＋5；女＝−161。\n2. ×活動係數（久坐 1.2／每週 3–5 次運動 1.55）。\n3. 設定目標：減脂 TDEE−500 大卡（每週減 0.5kg）；增肌 TDEE＋500 大卡（每週增 0.5kg）。\n\n【飲食實戰技巧】\n• 熱量追蹤：MyFitnessPal（可掃條碼，設香港地區）。\n• 手掌份量法：一掌蛋白、一拳蔬菜、一拇指脂肪、一捧碳水。\n• 減脂期提高蛋白質至 35%、減少精緻糖；增肌期訓練後 30 分鐘補「碳水＋蛋白質」。'},
+  {id:'k3',title:'從影片出發，讓孩子大腦也在練跳繩',date:'運動知識分享 101',tag:'訓練心法',
+   image:'img/knowledge/k3.jpg',
+   summary:'點解我哋會幫學生影跳繩片？背後係 4 大學習理論 × 意象訓練 —— 等孩子落堂之後，大腦都繼續「練緊」。',
+   body:'運用 4 大學習理論 ＋ 意象訓練，讓孩子落堂後大腦也在練跳繩。\n\n① 視覺回饋（Visual Feedback）\n看到自己跳的樣子，大腦先知道點改進。影片讓孩子知道動作偏差（手擺太高、起跳角度不足），提升自我察覺。（Sigrist et al., 2013）\n\n② 觀察學習（Observational Learning）\n學動作唔一定要自己做，睇人做都學得到。觀察同學的節奏、手腳協調、身體姿勢，內化「什麼是做得好」。（Bandura, 1977）\n\n③ 錯誤導向學習（Error-Based Learning）\n錯誤唔係失敗，而係學習動作最強的燃料。讓孩子自己睇懂錯喺邊，比老師直接講更有效。（Shadmehr & Krakauer, 2008）\n\n④ 意象訓練（Motor Imagery）\n動作仲未做，大腦已經喺度練。閉眼喺腦中模擬跳繩 2–3 分鐘，活化與實際運動相同的腦區；舞者、體操、滑雪選手都用緊。\n\n【課後學習策略】\n✅ 看自己影片：找出哪裡跳得不順 → 建立動作意識\n✅ 看同學影片：比較節奏流暢度 → 找改進方向\n✅ 意象訓練：閉眼模擬 2–3 分鐘 → 強化記憶與動作一致性\n✅ 親子提問：「今天跳繩哪裡最順？為什麼？」→ 提升覺察與動機'},
+  {id:'k4',title:'兒童飲食與健康增重指南',date:'運動知識分享 101',tag:'營養・成長',
+   image:'img/knowledge/k4.jpg',
+   summary:'孩子「食極都唔肥」可能係問題。健康增重唔係吃多，而係吃對 —— 附每日份量、運動前後補充與家長檢視工具。',
+   body:'幫助孩子「吃得下、吸收好、長得高」。健康體重對成長發育至關重要。\n\n【為什麼瘦弱可能是問題】\n體力不足影響運動表現、免疫力下降易生病、生長發育遲緩、學習注意力不集中。\n\n【健康增重三大原則】\n1. 質量勝於數量：唔係「吃多」，而係「吃對」—— 營養密度比純熱量更重要。\n2. 均衡飲食：蛋白質＋碳水＋健康脂肪＋維生素＋礦物質，缺一不可。\n3. 規律進餐：三餐定時＋2–3 次健康小食，避免長時間空腹。\n\n【每日建議份量（6–12歲・中等活動量）】\n主食 4–6 份｜蔬菜 3–5 份｜水果 2–3 份｜蛋白質 3–5 份｜奶類 2 份｜健康脂肪 2–3 茶匙。\n\n【跳繩運動員特別建議】\n運動前 1–2 小時：輕便小食（香蕉、小份三明治）。\n運動後 30 分鐘內（黃金補充期）：蛋白質＋碳水 —— 巧克力牛奶／酸奶＋水果／雞蛋三明治。\n\n【成長能量需求】\n兒童基礎代謝高，平均每公斤體重需 70–90 kcal；30kg 的 8 歲兒童約需 2100–2400 kcal —— 解釋了點解孩子「吃不少卻還是瘦」。\n\n【常見家長誤區】\n✗ 靠垃圾食品增重　✗ 強迫餵食反降食慾　✗ 忽略運動只長脂肪　✗ 過度依賴補品。\n\n📌 與其追求快速「長肉」，更重要是打造強壯體魄＋良好免疫力，這才是成長與運動表現的基石。\n\n若孩子體重持續下降、食慾極差、長期疲勞腹痛，建議找醫生或營養師。'}
 ];
 
 // Equipment items
 let EQUIPMENT_ITEMS = [
-  { id:'e1', name:'IS 專業跳繩', price:280, desc:'碳纖維手柄，PVC繩，適合所有等級學員', image:'', inStock:true },
-  { id:'e2', name:'IS 速度跳繩', price:380, desc:'鋼絲繩身，超輕量設計，速度競賽專用', image:'', inStock:true },
-  { id:'e3', name:'IS 訓練跳繩套裝', price:580, desc:'包含專業跳繩 × 1 + 速度跳繩 × 1 + 收納袋', image:'', inStock:true },
+  {id:'e1',name:'拍子繩',price:100,unit:'條',desc:'適合初學者及一般練習使用，耐用易控制',image:'',inStock:true},
+  {id:'e2',name:'鋼絲繩',price:120,unit:'條',desc:'競技專用，輕量高速，適合中進階學員',image:'',inStock:true},
+  {id:'e3',name:'膠繩',price:80,unit:'條',desc:'適合初學及花式練習，彈性好易掌握',image:'',inStock:true},
+  {id:'e4',name:'跳繩袋',price:20,unit:'個',desc:'IS品牌專用跳繩收納袋，方便攜帶',image:'',inStock:true},
 ];
 
 // Course items
 let COURSE_ITEMS = [
-  {
-    id:'c1', name:'花式跳繩恆常班', age:'3歲或以上',
-    schedule:'每週一次', duration:'每節60分鐘', price:120, priceUnit:'堂',
-    priceNote:'按月收費｜試堂$100',
-    desc:'課堂結合跳繩基礎技巧與多樣花式動作，配合趣味遊戲和團隊合作。提供定期評估與測試，配合章別考核計劃。更有機會參與跳繩比賽，培養競技精神與自信心。師生比例1:12，4人成班。\n\n課程特色：系統化訓練花式跳繩技巧與節奏感、強化身體協調性與專注力、培養團隊精神與堅毅態度、推薦參與比賽增強自信\n\n請假補課政策：請假請於課堂前一天通知，缺席可於兩個月內補課。學費不設順延，逾期未補堂視為自動放棄。',
-    contact:'WhatsApp: 6331 7403', image:''
-  },
-  {
-    id:'c2', name:'田徑恆常班', age:'小學一年級或以上',
-    schedule:'每週一次', duration:'每節60分鐘', price:120, priceUnit:'堂',
-    priceNote:'按期收費｜試堂$100',
-    desc:'課程涵蓋田徑多項重要項目，包括跑步、跳遠與投擲等技術訓練。融合遊戲與競賽元素，激發學員運動興趣與競技精神。鼓勵學員積極參加田徑比賽，設有定期學習進度評估。師生比例1:10，4人成班。\n\n課程特色：教授短跑、跳遠、投擲等基本技能、強調速度爆發力及動作協調性、促進身體控制與敏捷度、鼓勵參與比賽實踐所學技能',
-    contact:'WhatsApp: 6331 7403', image:''
-  },
-  {
-    id:'c3', name:'綜合運動技能訓練班', age:'6歲或以上',
-    schedule:'每週一次', duration:'每節60分鐘', price:140, priceUnit:'堂',
-    priceNote:'按月預繳｜首堂試課$100',
-    desc:'以運動科學及S&C（Strength and Conditioning）訓練理念為核心，全面提升學員運動表現與身體素質。每班最多8人小班教學，針對個別學員能力調整。新學員申請須通過簡單評估。\n\n重點訓練：基礎力量與核心穩定性、動作控制與神經肌肉協調、爆發力與速度訓練、靈敏度與平衡力發展、跑跳投等基本動作技能\n\n預備體育呈分試｜名額限定',
-    contact:'WhatsApp: 6331 7403', image:''
-  },
-  {
-    id:'c4', name:'私人訓練 — 兒童及青少年', age:'兒童及青少年',
-    schedule:'靈活時間', duration:'每節60分鐘', price:600, priceUnit:'堂',
-    priceNote:'試堂$450｜5堂$2500($500/堂)｜10堂$4500($450/堂)｜20堂$8000($400/堂)',
-    desc:'個別化指導，讓每一堂課都最有效率！適合希望加強體能、提升運動表現或針對性改善姿勢動作的學生。訓練方向可涵蓋：跳繩、體能、田徑、體操、各類球類運動敏捷反應、肌力與協調性等。\n\n此價格只限青衣及荃灣地區，1:2訓練加收50%費用。如需其他地區/3人以上小組訓練請WhatsApp查詢。',
-    contact:'WhatsApp: 6331 7403', image:''
-  },
-  {
-    id:'c5', name:'私人訓練 — 成人及樂齡人士', age:'成人及樂齡人士',
-    schedule:'靈活時間', duration:'每節60分鐘', price:600, priceUnit:'堂',
-    priceNote:'試堂$600｜10堂$6500｜20堂$12000｜30堂$16500｜50堂$25000｜*可分期付款',
-    desc:'適合想提升體能、改善身形或保持活動能力的成人與長者。\n\n訓練方向：✔ 肌力訓練（預防肌肉流失、提升生活功能）✔ 增肌減脂體能訓練 ✔ 運動表現提升 ✔ 舒緩生活/工作壓力 ✔ 處理簡單的痛症問題 ✔ 低衝擊體能訓練 ✔ 附設飲食指導服務\n\n1:2訓練加收50%費用。如需3人以上小組訓練，請WhatsApp查詢。',
-    contact:'WhatsApp: 6331 7403', image:''
-  },
+  {id:'cf',name:'幼兒全方位運動啟蒙課程',age:'3–6歲幼兒',tag:'FMS 動作啟蒙',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   price:'',priceUnit:'堂',priceNote:'',
+   desc:'從基礎動作技能（FMS, Fundamental Movement Skills）開始，把握 3–6 歲「動作大腦」黃金期，為孩子打好一生的運動基礎。\n\n科學化教學系統，細拆 24 項核心元素：\n• 移動性技能 Locomotor — 空間位移、下肢爆發力、神經肌肉連動\n• 穩定性技能 Stability — 核心肌群、本體感受、防受傷能力\n• 操控性技能 Manipulative — 手眼／手腳協調、視覺追蹤、精準力量控制\n\n室內外交替訓練，適應不同環境；師生比例 1:10，每班限 10 人，並附專屬 PRE & POST 數據成長報告。',
+   contact:'WhatsApp: 6331 7403',image:''},
+  {id:'c1',name:'花式跳繩恆常班',age:'3歲或以上',tag:'恆常班',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   price:120,priceUnit:'堂',priceNote:'按月收費｜試堂$100',
+   desc:'結合跳繩基礎技巧與多樣花式動作，配合趣味遊戲及團隊合作，激發孩子的運動熱情與學習動力。\n\n課程特色：\n• 系統化訓練花式跳繩技巧與節奏感\n• 強化身體協調性、平衡感與專注力\n• 培養團隊精神與堅毅態度\n• 配合章別考核計劃，定期評估學習進度\n• 推薦參與比賽，增強自信\n\n師生比例 1:12，4 人成班。',
+   contact:'WhatsApp: 6331 7403',image:'img/courses/c1.jpg'},
+  {id:'c2',name:'田徑恆常班',age:'小學一年級或以上',tag:'恆常班',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   price:120,priceUnit:'堂',priceNote:'按期收費｜試堂$100',
+   desc:'涵蓋跑步、跳遠與投擲等徑賽與田賽技術訓練，融合遊戲與競賽元素，激發學員的運動興趣與競技精神。\n\n課程特色：\n• 教授短跑、跳遠、投擲等基本技能\n• 強調速度、爆發力及動作協調性\n• 促進身體控制與敏捷度\n• 設定期學習進度評估，鼓勵參與比賽實踐所學\n\n師生比例 1:10，4 人成班。',
+   contact:'WhatsApp: 6331 7403',image:'img/courses/c2.jpg'},
+  {id:'c3',name:'綜合運動技能訓練班',age:'6歲或以上',tag:'S&C 體能',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   price:140,priceUnit:'堂',priceNote:'按月預繳｜首堂試課$100',
+   desc:'以運動科學及 S&C（Strength & Conditioning）訓練理念為核心，系統化、循序漸進地全面提升運動表現與身體素質。\n\n重點訓練能力：\n• 基礎力量與核心穩定性\n• 動作控制與神經肌肉協調\n• 爆發力與速度發展\n• 靈敏度與平衡力\n• 跑、跳、投等基本動作技能強化\n\n預備體育呈分試；小班教學，每班最多 8 人，新學員須通過簡單評估，定期進行能力測試與成效分析。',
+   contact:'WhatsApp: 6331 7403',image:''},
+  {id:'c4',name:'私人訓練 — 兒童及青少年',age:'兒童及青少年',tag:'1對1',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   price:600,priceUnit:'堂',priceNote:'試堂$450｜5堂$2500($500/堂)｜10堂$4500($450/堂)｜20堂$8000($400/堂)',
+   desc:'一對一個別化指導，按學員能力與目標度身設計訓練計劃。\n\n訓練方向：跳繩、體能、田徑、體操、球類運動敏捷反應、肌力與協調性。\n\n🌟 獨家賣點：教練具備 NKT 神經動能療法 與 SCS 拮抗鬆弛術 資格，可即場評估及處理姿勢不良、動作代償或簡單痛症，令訓練更安全有效。\n\n可選 1 對 2 小組訓練；如需 3 人或以上小組，歡迎查詢。',
+   contact:'WhatsApp: 6331 7403',image:''},
+  {id:'c5',name:'私人訓練 — 成人及樂齡人士',age:'成人及樂齡人士',tag:'1對1',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
+   price:600,priceUnit:'堂',priceNote:'試堂$600｜10堂$6500｜20堂$12000｜30堂$16500｜50堂$25000｜*可分期付款',
+   desc:'一對一專業指導，因應個人身體狀況與目標設計訓練。\n\n訓練方向：✔ 肌力訓練 ✔ 增肌減脂 ✔ 運動表現提升 ✔ 舒緩壓力 ✔ 處理痛症 ✔ 低衝擊體能訓練 ✔ 附設飲食指導\n\n🌟 獨家賣點：教練具備 NKT 神經動能療法 與 SCS 拮抗鬆弛術 資格，從神經與大腦控制層面找出痛症與動作問題的根源，溫和徒手處理，安全適合各年齡。\n\n可選 1 對 2 小組訓練。',
+   contact:'WhatsApp: 6331 7403',image:''},
 ];
+
+// Achievements (比賽獎項 / 賽果)
+let ACHIEVEMENTS=[
+  {comp:'獅子會盃全港跳繩挑戰賽 2026',sub:'新界區初賽',items:[
+    {names:['陳曉瑩'],group:'11歲女子組',event:'30秒前繩速度賽',medal:1},
+    {names:['陳曉瑩'],group:'11歲女子組',event:'30秒二重跳速度賽',medal:3},
+  ]},
+  {comp:'葵青區跳繩錦標賽 2026',sub:'個人・30秒前繩速度挑戰賽',items:[
+    {names:['陳曉瑩'],group:'11歲女子組',event:'',medal:1},
+    {names:['鄧可澄'],group:'07歲女子組',event:'',medal:1},
+    {names:['文柏升'],group:'06歲或以下男子組',event:'',medal:1},
+    {names:['梁正宇'],group:'8歲男子組',event:'電子速度賽',medal:1},
+    {names:['古卓謙'],group:'06歲或以下男子組',event:'',medal:2},
+    {names:['吳瑋軒'],group:'11歲男子組',event:'',medal:2},
+    {names:['郭可昕'],group:'10歲女子組',event:'',medal:2},
+    {names:['黃玥晴'],group:'07歲女子組',event:'',medal:2},
+    {names:['張雅堯'],group:'06歲或以下女子組',event:'',medal:2},
+    {names:['黎柏言'],group:'07歲男子組',event:'',medal:3},
+    {names:['黎柏希'],group:'10歲男子組',event:'',medal:3},
+    {names:['許思溢'],group:'11歲男子組',event:'',medal:3},
+    {names:['陳柏睎'],group:'06歲或以下男子組',event:'',medal:3},
+    {names:['孔善盈'],group:'09歲女子組',event:'',medal:3},
+    {names:['梁德瑜'],group:'06歲或以下女子組',event:'',medal:3},
+  ]},
+  {comp:'葵青區跳繩錦標賽 2026',sub:'雙人・30秒單側迴旋速度賽',items:[
+    {names:['黎柏希','吳瑋軒'],group:'09-11歲男子組',event:'',medal:1},
+    {names:['梁正宇','黎柏言'],group:'08歲或以下男子組',event:'',medal:1},
+    {names:['許思溢','郭栩澄'],group:'09-11歲混合組',event:'',medal:1},
+    {names:['梁心朗','鄭宇喬'],group:'09-11歲混合組',event:'',medal:3},
+    {names:['黃朗程','黃玥晴'],group:'08歲或以下混合組',event:'',medal:3},
+    {names:['古卓謙','文柏升'],group:'08歲或以下男子組',event:'',medal:3},
+    {names:['羅靖誼','顧舒然'],group:'08歲或以下女子組',event:'',medal:3},
+  ]},
+  {comp:'葵青區跳繩錦標賽 2026',sub:'團體・4×30 單車接力速度賽',items:[
+    {names:['陳曉瑩','郭可昕','黎柏希','吳瑋軒'],group:'09-11歲混合組',event:'',medal:1},
+    {names:['羅靖誼','顧舒然','梁正宇','黎柏言'],group:'08歲或以下混合組',event:'',medal:1},
+    {names:['鄧可澄','鄧幗恩','周莉晶','黃玥晴'],group:'8歲或以下女子組',event:'',medal:1},
+    {names:['孔善盈','蔡芷彤','許思溢','古詩詠'],group:'09-11歲混合組',event:'',medal:2},
+    {names:['張爾淳','黃梓昕','陳焯棋','張雅堯'],group:'8歲或以下女子組',event:'',medal:2},
+  ]},
+  {comp:'南區跳繩比賽 2025/26',sub:'',items:[
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒前繩跳',medal:1},
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒二重跳',medal:2},
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒單車步',medal:4},
+    {names:['梁正宇'],group:'8歲男子兒童組',event:'30秒二重跳',medal:2},
+  ]},
+];
+const CMS_MEDAL_NAME ={1:'冠軍',2:'亞軍',3:'季軍',4:'殿軍'};
+const CMS_MEDAL_EMOJI={1:'🥇',2:'🥈',3:'🥉',4:'🎖'};
 
 // ─── BADGE SCREEN (COACH) ───
 function renderBadgeScreen() {
@@ -7738,9 +7764,13 @@ function renderBadgeScreen() {
         </div>
       </div>
       <div id="edit-level-${idx}" style="display:none">
+        <input id="lv-name-${idx}" value="${(lv.name||'').replace(/"/g,'&quot;')}" placeholder="等級名稱（例：Level 1）"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;margin-bottom:6px;color-scheme:dark">
+        <input id="lv-badge-${idx}" value="${(lv.badge||'').replace(/"/g,'&quot;')}" placeholder="章別標籤（例：🔴 紅色章）"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;margin-bottom:6px;color-scheme:dark">
         <input id="lv-url-${idx}" value="${lv.url}" placeholder="YouTube URL"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;margin-bottom:6px;color-scheme:dark">
-        <input id="lv-desc-${idx}" value="${lv.desc}" placeholder="說明"
+        <input id="lv-desc-${idx}" value="${(lv.desc||'').replace(/"/g,'&quot;')}" placeholder="說明"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;margin-bottom:8px;color-scheme:dark">
         <button onclick="saveBadgeLevel(${idx})" style="background:var(--cyan);color:#111;border:none;border-radius:8px;padding:7px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">儲存</button>
         <button onclick="document.getElementById('edit-level-${idx}').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;cursor:pointer;margin-left:6px">取消</button>
@@ -7771,12 +7801,25 @@ function renderBadgeScreen() {
       }).join('')}
     </div>`;
 
+  const metaInp = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;margin-bottom:8px;color-scheme:dark;box-sizing:border-box';
   el.innerHTML = `
     <div style="padding:14px 0 8px;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:16px;font-weight:900">${BADGE_DATA.title}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">${BADGE_DATA.subtitle}</div>
       </div>
+    </div>
+    <div style="background:var(--surface);border:1.5px solid var(--cyan);border-radius:14px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:10px">✏️ 計劃資料</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">標題</div>
+      <input id="bd-title" value="${(BADGE_DATA.title||'').replace(/"/g,'&quot;')}" placeholder="標題" style="${metaInp}">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">副標題</div>
+      <input id="bd-subtitle" value="${(BADGE_DATA.subtitle||'').replace(/"/g,'&quot;')}" placeholder="副標題" style="${metaInp}">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">計劃介紹</div>
+      <textarea id="bd-description" rows="3" placeholder="計劃介紹" style="${metaInp};resize:vertical;line-height:1.6">${BADGE_DATA.description||''}</textarea>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">免責聲明</div>
+      <textarea id="bd-disclaimer" rows="2" placeholder="免責聲明" style="${metaInp};resize:vertical;line-height:1.6">${BADGE_DATA.disclaimer||''}</textarea>
+      <button onclick="saveBadgeMeta()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:9px 18px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">💾 儲存計劃資料</button>
     </div>
     <div style="background:var(--amber-dim);border:1px solid var(--amber);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">
       ⚠️ ${BADGE_DATA.disclaimer}
@@ -7792,10 +7835,28 @@ function editBadgeLevel(idx) {
 }
 
 function saveBadgeLevel(idx) {
+  const nameEl  = document.getElementById(`lv-name-${idx}`);
+  const badgeEl = document.getElementById(`lv-badge-${idx}`);
+  if (nameEl)  BADGE_DATA.levels[idx].name  = nameEl.value.trim();
+  if (badgeEl) BADGE_DATA.levels[idx].badge = badgeEl.value.trim();
   BADGE_DATA.levels[idx].url  = document.getElementById(`lv-url-${idx}`)?.value?.trim() || '';
   BADGE_DATA.levels[idx].desc = document.getElementById(`lv-desc-${idx}`)?.value?.trim() || '';
   syncCMS();
   toast('已儲存', '✓');
+  renderBadgeScreen();
+}
+
+function saveBadgeMeta() {
+  const t  = document.getElementById('bd-title');
+  const s  = document.getElementById('bd-subtitle');
+  const d  = document.getElementById('bd-description');
+  const dc = document.getElementById('bd-disclaimer');
+  if (t)  BADGE_DATA.title       = t.value.trim();
+  if (s)  BADGE_DATA.subtitle    = s.value.trim();
+  if (d)  BADGE_DATA.description = d.value.trim();
+  if (dc) BADGE_DATA.disclaimer  = dc.value.trim();
+  syncCMS();
+  toast('已儲存 ✓', '✓');
   renderBadgeScreen();
 }
 
@@ -7821,14 +7882,14 @@ function renderKnowledgeScreen() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:700">${p.title}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${p.date}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${p.tag ? p.tag + ' · ' : ''}${p.date || ''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
           <button onclick="editKnowledge(${i})" style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer">✏️ 編輯</button>
           <button onclick="deleteKnowledge(${i})" style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer">🗑</button>
         </div>
       </div>
-      <div style="font-size:13px;color:var(--muted);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${p.content}</div>
+      <div style="font-size:13px;color:var(--muted);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${p.summary || p.body || p.content || ''}</div>
     </div>`).join('');
 
   el.innerHTML = `
@@ -7839,8 +7900,10 @@ function renderKnowledgeScreen() {
     <div id="knowledge-editor" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">新增 / 編輯貼文</div>
       <input id="ke-title" placeholder="標題" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
-      <input id="ke-date" type="date" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark;-webkit-appearance:none">
-      <textarea id="ke-content" placeholder="內容（支援換行）" rows="5" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;resize:vertical;margin-bottom:8px;color-scheme:dark"></textarea>
+      <input id="ke-tag" placeholder="標籤（例：運動・健康）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
+      <input id="ke-date" type="text" placeholder="日期 / 標示（例：運動知識分享 101）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
+      <textarea id="ke-summary" placeholder="摘要（卡片預覽顯示）" rows="2" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;resize:vertical;margin-bottom:8px;color-scheme:dark"></textarea>
+      <textarea id="ke-content" placeholder="全文內容（支援換行）" rows="6" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;resize:vertical;margin-bottom:8px;color-scheme:dark"></textarea>
       <input id="ke-image" placeholder="圖片URL（選填）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:10px;color-scheme:dark">
       <input type="hidden" id="ke-idx" value="-1">
       <div style="display:flex;gap:8px">
@@ -7853,7 +7916,9 @@ function renderKnowledgeScreen() {
 
 function addKnowledgePost() {
   document.getElementById('ke-title').value = '';
-  document.getElementById('ke-date').value = todayStr();
+  document.getElementById('ke-tag').value = '';
+  document.getElementById('ke-date').value = '';
+  document.getElementById('ke-summary').value = '';
   document.getElementById('ke-content').value = '';
   document.getElementById('ke-image').value = '';
   document.getElementById('ke-idx').value = '-1';
@@ -7862,9 +7927,11 @@ function addKnowledgePost() {
 
 function editKnowledge(i) {
   const p = KNOWLEDGE_POSTS[i];
-  document.getElementById('ke-title').value = p.title;
-  document.getElementById('ke-date').value = p.date;
-  document.getElementById('ke-content').value = p.content;
+  document.getElementById('ke-title').value = p.title || '';
+  document.getElementById('ke-tag').value = p.tag || '';
+  document.getElementById('ke-date').value = p.date || '';
+  document.getElementById('ke-summary').value = p.summary || '';
+  document.getElementById('ke-content').value = p.body || p.content || '';
   document.getElementById('ke-image').value = p.image || '';
   document.getElementById('ke-idx').value = i;
   document.getElementById('knowledge-editor').style.display = 'block';
@@ -7873,12 +7940,14 @@ function editKnowledge(i) {
 
 function saveKnowledgePost() {
   const title   = document.getElementById('ke-title').value.trim();
-  const date    = document.getElementById('ke-date').value;
-  const content = document.getElementById('ke-content').value.trim();
+  const tag     = document.getElementById('ke-tag').value.trim();
+  const date    = document.getElementById('ke-date').value.trim();
+  const summary = document.getElementById('ke-summary').value.trim();
+  const body    = document.getElementById('ke-content').value.trim();
   const image   = document.getElementById('ke-image').value.trim();
   const idx     = +document.getElementById('ke-idx').value;
-  if (!title || !content) { toast('請填寫標題和內容', '⚠'); return; }
-  const post = { id: idx >= 0 ? KNOWLEDGE_POSTS[idx].id : 'k'+Date.now(), title, date, content, image };
+  if (!title || !body) { toast('請填寫標題和內容', '⚠'); return; }
+  const post = { id: idx >= 0 ? KNOWLEDGE_POSTS[idx].id : 'k'+Date.now(), title, tag, date, image, summary, body };
   if (idx >= 0) KNOWLEDGE_POSTS[idx] = post;
   else KNOWLEDGE_POSTS.unshift(post);
   syncCMS();
@@ -7907,7 +7976,7 @@ function renderEquipmentScreen() {
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="font-size:15px;font-weight:700">${item.name}</div>
-          <span style="font-size:14px;font-weight:900;color:var(--cyan)">HK$${item.price}</span>
+          <span style="font-size:14px;font-weight:900;color:var(--cyan)">HK$${item.price}${item.unit ? `<span style="font-size:11px;font-weight:400;color:var(--muted)">/${item.unit}</span>` : ''}</span>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">${item.desc}</div>
         <div style="display:flex;gap:6px;margin-top:8px">
@@ -7928,6 +7997,7 @@ function renderEquipmentScreen() {
       <input id="ee-name" placeholder="產品名稱" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input id="ee-price" type="number" placeholder="價格 (HK$)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
+        <input id="ee-unit" placeholder="單位（例：條 / 個）" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
       </div>
       <textarea id="ee-desc" placeholder="產品描述" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;resize:vertical;margin-bottom:8px;color-scheme:dark"></textarea>
       <input id="ee-image" placeholder="圖片URL（選填）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:10px;color-scheme:dark">
@@ -7942,23 +8012,27 @@ function renderEquipmentScreen() {
 
 function addEquipment() {
   document.getElementById('ee-name').value='';document.getElementById('ee-price').value='';
+  document.getElementById('ee-unit').value='';
   document.getElementById('ee-desc').value='';document.getElementById('ee-image').value='';
   document.getElementById('ee-idx').value='-1';document.getElementById('equipment-editor').style.display='block';
 }
 function editEquipment(i) {
   const e=EQUIPMENT_ITEMS[i];
   document.getElementById('ee-name').value=e.name;document.getElementById('ee-price').value=e.price;
+  document.getElementById('ee-unit').value=e.unit||'';
   document.getElementById('ee-desc').value=e.desc;document.getElementById('ee-image').value=e.image||'';
   document.getElementById('ee-idx').value=i;document.getElementById('equipment-editor').style.display='block';
 }
 function saveEquipment() {
   const name=document.getElementById('ee-name').value.trim();
   const price=+document.getElementById('ee-price').value;
+  const unit=document.getElementById('ee-unit').value.trim();
   const desc=document.getElementById('ee-desc').value.trim();
   const image=document.getElementById('ee-image').value.trim();
   const idx=+document.getElementById('ee-idx').value;
   if(!name){toast('請填寫產品名稱','⚠');return;}
-  const item={id:idx>=0?EQUIPMENT_ITEMS[idx].id:'e'+Date.now(),name,price,desc,image,inStock:true};
+  const inStock=idx>=0?EQUIPMENT_ITEMS[idx].inStock!==false:true;
+  const item={id:idx>=0?EQUIPMENT_ITEMS[idx].id:'e'+Date.now(),name,price,unit,desc,image,inStock};
   if(idx>=0)EQUIPMENT_ITEMS[idx]=item;else EQUIPMENT_ITEMS.push(item);
   syncCMS();toast('產品已儲存','✓');renderEquipmentScreen();
 }
@@ -8042,6 +8116,12 @@ function renderCoursesScreen() {
         <input id="ce-age" placeholder="例：3歲或以上" style="${inpStyle}">
       </div>
 
+      <!-- 課程標籤 -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">課程標籤（例：恆常班 / 1對1 / S&C 體能）</div>
+        <input id="ce-tag" placeholder="例：恆常班 / 1對1 / S&C 體能" style="${inpStyle}">
+      </div>
+
       <!-- 收費 + 單位 -->
       <div style="margin-bottom:8px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">收費（HK$）及單位</div>
@@ -8058,6 +8138,14 @@ function renderCoursesScreen() {
       <div style="margin-bottom:8px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">收費備註（可選）</div>
         <input id="ce-pricenote" placeholder="例：試堂$100｜10堂$4500($450/堂)" style="${inpStyle}">
+      </div>
+
+      <!-- 不在官網顯示價格 -->
+      <div style="margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer">
+          <input type="checkbox" id="ce-hideprice" style="width:16px;height:16px;cursor:pointer">
+          ☑ 不在官網顯示價格
+        </label>
       </div>
 
       <!-- 堂數 + 時長 -->
@@ -8131,9 +8219,10 @@ function removeCourseImg() {
 }
 
 function addCourse() {
-  ['ce-name','ce-age','ce-price','ce-priceunit','ce-pricenote','ce-schedule','ce-duration','ce-desc','ce-contact'].forEach(id => {
+  ['ce-name','ce-age','ce-tag','ce-price','ce-priceunit','ce-pricenote','ce-schedule','ce-duration','ce-desc','ce-contact'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  document.getElementById('ce-hideprice').checked = true;
   document.getElementById('ce-idx').value = '-1';
   document.getElementById('ce-img-data').value = '';
   const prev = document.getElementById('ce-img-preview');
@@ -8150,6 +8239,8 @@ function editCourse(i) {
   const co = COURSE_ITEMS[i];
   document.getElementById('ce-name').value      = co.name      || '';
   document.getElementById('ce-age').value       = co.age       || '';
+  document.getElementById('ce-tag').value       = co.tag       || '';
+  document.getElementById('ce-hideprice').checked = co.hidePrice !== false;
   document.getElementById('ce-price').value     = co.price     || '';
   document.getElementById('ce-priceunit').value = co.priceUnit || '堂';
   document.getElementById('ce-pricenote').value = co.priceNote || '';
@@ -8175,6 +8266,8 @@ function editCourse(i) {
 function saveCourse() {
   const name      = document.getElementById('ce-name').value.trim();
   const age       = document.getElementById('ce-age').value.trim();
+  const tag       = document.getElementById('ce-tag').value.trim();
+  const hidePrice = document.getElementById('ce-hideprice').checked;
   const priceRaw  = document.getElementById('ce-price').value.trim();
   const priceUnit = document.getElementById('ce-priceunit').value.trim() || '堂';
   const priceNote = document.getElementById('ce-pricenote').value.trim();
@@ -8187,7 +8280,7 @@ function saveCourse() {
   if (!name) { toast('請填寫課程名稱','⚠'); return; }
   const course = {
     id: idx >= 0 ? COURSE_ITEMS[idx].id : 'c' + Date.now(),
-    name, age,
+    name, age, tag, hidePrice,
     price: priceRaw !== '' ? +priceRaw : '',
     priceUnit, priceNote, schedule, duration, desc, contact, image
   };
@@ -8201,6 +8294,177 @@ function deleteCourse(i) {
   COURSE_ITEMS.splice(i, 1); syncCMS(); renderCoursesScreen();
 }
 
+// ─── ACHIEVEMENTS SCREEN (COACH) ───
+function renderAchievementsScreen() {
+  document.getElementById('header-title-text').textContent = '成就 / 賽果';
+  document.getElementById('header-subtitle-text').textContent = 'Achievements';
+  const el = document.getElementById('achievements-content');
+  const aInp = 'background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;outline:none;color-scheme:dark;width:100%;box-sizing:border-box';
+
+  const blocksHtml = ACHIEVEMENTS.map((b, bi) => {
+    const itemsHtml = (b.items || []).map((it, ii) => {
+      const medalLabel = (CMS_MEDAL_EMOJI[it.medal] || '') + ' ' + (CMS_MEDAL_NAME[it.medal] || '');
+      return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-top:1px solid var(--border);gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700">${medalLabel} ${(it.names||[]).join('、')}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${it.group||''}${it.event ? '・'+it.event : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="editAchItem(${bi},${ii})" style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer">✏️</button>
+          <button onclick="deleteAchItem(${bi},${ii})" style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="flex:1;min-width:0;margin-right:10px">
+          <div style="font-size:15px;font-weight:800">${b.comp||''}</div>
+          ${b.sub ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${b.sub}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="editAchBlock(${bi})" style="background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer">✏️ 賽事</button>
+          <button onclick="deleteAchBlock(${bi})" style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;cursor:pointer">🗑</button>
+        </div>
+      </div>
+      ${itemsHtml || '<div style="font-size:12px;color:var(--muted);padding:6px 0">暫無賽果</div>'}
+      <button onclick="addAchItem(${bi})" style="margin-top:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">➕ 新增賽果</button>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="padding:14px 0 12px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:16px;font-weight:900">🥇 成就 / 賽果</div>
+      <button onclick="addAchBlock()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">➕ 新增賽事</button>
+    </div>
+
+    <!-- 賽事編輯器 -->
+    <div id="ach-block-editor" style="display:none;background:var(--surface);border:1.5px solid var(--cyan);border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:12px">✏️ 新增 / 編輯賽事</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">賽事名稱 *</div>
+      <input id="ab-comp" placeholder="例：葵青區跳繩錦標賽 2026" style="${aInp};margin-bottom:8px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">分項說明（可選）</div>
+      <input id="ab-sub" placeholder="例：個人・30秒前繩速度挑戰賽" style="${aInp};margin-bottom:12px">
+      <input type="hidden" id="ab-idx" value="-1">
+      <div style="display:flex;gap:8px">
+        <button onclick="saveAchBlock()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">💾 儲存賽事</button>
+        <button onclick="document.getElementById('ach-block-editor').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 16px;font-family:inherit;font-size:14px;cursor:pointer">取消</button>
+      </div>
+    </div>
+
+    <!-- 賽果編輯器 -->
+    <div id="ach-item-editor" style="display:none;background:var(--surface);border:1.5px solid var(--cyan);border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:12px">✏️ 新增 / 編輯賽果</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">學生姓名 *（多人以逗號分隔）</div>
+      <input id="ai-names" placeholder="例：陳曉瑩 或 黎柏希,吳瑋軒" style="${aInp};margin-bottom:8px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">組別</div>
+      <input id="ai-group" placeholder="例：11歲女子組" style="${aInp};margin-bottom:8px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">項目（可選）</div>
+      <input id="ai-event" placeholder="例：30秒前繩速度賽" style="${aInp};margin-bottom:8px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">名次</div>
+      <select id="ai-medal" style="${aInp};margin-bottom:12px">
+        <option value="1">🥇 冠軍</option>
+        <option value="2">🥈 亞軍</option>
+        <option value="3">🥉 季軍</option>
+        <option value="4">🎖 殿軍</option>
+      </select>
+      <input type="hidden" id="ai-bidx" value="-1">
+      <input type="hidden" id="ai-iidx" value="-1">
+      <div style="display:flex;gap:8px">
+        <button onclick="saveAchItem()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">💾 儲存賽果</button>
+        <button onclick="document.getElementById('ach-item-editor').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 16px;font-family:inherit;font-size:14px;cursor:pointer">取消</button>
+      </div>
+    </div>
+
+    ${blocksHtml || '<div style="color:var(--muted);text-align:center;padding:40px">暫無賽果</div>'}`;
+}
+
+function addAchBlock() {
+  document.getElementById('ab-comp').value = '';
+  document.getElementById('ab-sub').value = '';
+  document.getElementById('ab-idx').value = '-1';
+  document.getElementById('ach-item-editor').style.display = 'none';
+  const ed = document.getElementById('ach-block-editor');
+  ed.style.display = 'block';
+  ed.scrollIntoView({ behavior:'smooth' });
+}
+
+function editAchBlock(bi) {
+  const b = ACHIEVEMENTS[bi];
+  document.getElementById('ab-comp').value = b.comp || '';
+  document.getElementById('ab-sub').value = b.sub || '';
+  document.getElementById('ab-idx').value = bi;
+  document.getElementById('ach-item-editor').style.display = 'none';
+  const ed = document.getElementById('ach-block-editor');
+  ed.style.display = 'block';
+  ed.scrollIntoView({ behavior:'smooth' });
+}
+
+function saveAchBlock() {
+  const comp = document.getElementById('ab-comp').value.trim();
+  const sub  = document.getElementById('ab-sub').value.trim();
+  const idx  = +document.getElementById('ab-idx').value;
+  if (!comp) { toast('請填寫賽事名稱','⚠'); return; }
+  if (idx >= 0) { ACHIEVEMENTS[idx].comp = comp; ACHIEVEMENTS[idx].sub = sub; }
+  else ACHIEVEMENTS.push({ comp, sub, items: [] });
+  document.getElementById('ach-block-editor').style.display = 'none';
+  syncCMS(); toast('已儲存 ✓','✓'); renderAchievementsScreen();
+}
+
+function deleteAchBlock(bi) {
+  if (!confirm('確定刪除此賽事及其所有賽果？')) return;
+  ACHIEVEMENTS.splice(bi, 1); syncCMS(); toast('已刪除 ✓','✓'); renderAchievementsScreen();
+}
+
+function addAchItem(bi) {
+  document.getElementById('ai-names').value = '';
+  document.getElementById('ai-group').value = '';
+  document.getElementById('ai-event').value = '';
+  document.getElementById('ai-medal').value = '1';
+  document.getElementById('ai-bidx').value = bi;
+  document.getElementById('ai-iidx').value = '-1';
+  document.getElementById('ach-block-editor').style.display = 'none';
+  const ed = document.getElementById('ach-item-editor');
+  ed.style.display = 'block';
+  ed.scrollIntoView({ behavior:'smooth' });
+}
+
+function editAchItem(bi, ii) {
+  const it = ACHIEVEMENTS[bi].items[ii];
+  document.getElementById('ai-names').value = (it.names || []).join(',');
+  document.getElementById('ai-group').value = it.group || '';
+  document.getElementById('ai-event').value = it.event || '';
+  document.getElementById('ai-medal').value = String(it.medal || 1);
+  document.getElementById('ai-bidx').value = bi;
+  document.getElementById('ai-iidx').value = ii;
+  document.getElementById('ach-block-editor').style.display = 'none';
+  const ed = document.getElementById('ach-item-editor');
+  ed.style.display = 'block';
+  ed.scrollIntoView({ behavior:'smooth' });
+}
+
+function saveAchItem() {
+  const names = document.getElementById('ai-names').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  const group = document.getElementById('ai-group').value.trim();
+  const event = document.getElementById('ai-event').value.trim();
+  const medal = +document.getElementById('ai-medal').value;
+  const bi    = +document.getElementById('ai-bidx').value;
+  const ii    = +document.getElementById('ai-iidx').value;
+  if (!names.length) { toast('請填寫學生姓名','⚠'); return; }
+  if (bi < 0 || !ACHIEVEMENTS[bi]) { toast('賽事不存在','⚠'); return; }
+  if (!ACHIEVEMENTS[bi].items) ACHIEVEMENTS[bi].items = [];
+  const item = { names, group, event, medal };
+  if (ii >= 0) ACHIEVEMENTS[bi].items[ii] = item; else ACHIEVEMENTS[bi].items.push(item);
+  document.getElementById('ach-item-editor').style.display = 'none';
+  syncCMS(); toast('已儲存 ✓','✓'); renderAchievementsScreen();
+}
+
+function deleteAchItem(bi, ii) {
+  if (!confirm('確定刪除此賽果？')) return;
+  ACHIEVEMENTS[bi].items.splice(ii, 1); syncCMS(); toast('已刪除 ✓','✓'); renderAchievementsScreen();
+}
+
 // ─── CMS SYNC ───
 async function syncCMS() {
   setSyncIndicator('saving');
@@ -8212,6 +8476,7 @@ async function syncCMS() {
       knowledge_posts:  JSON.stringify(KNOWLEDGE_POSTS),
       equipment_items:  JSON.stringify(EQUIPMENT_ITEMS),
       course_items:     JSON.stringify(COURSE_ITEMS),
+      achievements:     JSON.stringify(ACHIEVEMENTS),
     }});
     setSyncIndicator('ok');
   } catch(e) { setSyncIndicator('error'); }

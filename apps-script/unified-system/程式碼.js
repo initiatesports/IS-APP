@@ -522,8 +522,13 @@ function readBlockMerged_(cid){
   c.students.forEach(function(nm){
     var grid=base.status[nm]||[];
     map[nm]=base.dates.map(function(dt,i){
+      var g=grid[i]||"";
       var z=zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet);
-      return z || (grid[i]||"");   // #11 有紀錄→用 #11；冇→後備 #4 grid
+      // 家長喺 is-parent 自助申請嘅「請假」= 明確補堂權利。
+      // 若 #11 將該堂計做「缺席」（教練標 absent 但未登入 absences），而家長已自助請假 → 升級為「請假」(可補堂)，
+      // 令「申請補堂」按鈕正常亮起。#11 出席/豁免/停課（實際發生）仍然優先，唔受家長請假覆寫。
+      if(z==="缺席" && g==="請假") return "請假";
+      return z || g;   // #11 有紀錄→用 #11；冇→後備 #4 grid
     });
   });
   return {dates:base.dates, n:base.n, students:base.students, status:map};
@@ -710,9 +715,19 @@ function classesFor_(nm){
     var mkExt={};
     abs11.forEach(function(a){ if(!a.madeUpDate && a.deadline) mkExt[a.absDate]=a.deadline; });
     st.forEach(function(s,i){ if(s!=="請假") return; var d=blk.dates[i], ov=dlMap[nm+"|"+cid+"|"+d]; if(ov) mkExt[d]=ov; });
+    // ── 待補（owed）對齊 IS教練主網頁(#11) ──
+    // #11 absences 是恆常班出席/補堂嘅真相來源（歷史紀錄一直喺 #11，未搬去 #4 grid）。
+    // 故待補 = #11 未補嘅缺堂（madeUpDate 空）為核心，
+    //          ＋ 家長喺 is-parent 自助請假但 #11 暫未有對應 absences 紀錄嘅堂（避免重複）
+    //          － 已預約但未出席嘅補堂（mkInfo 中非「出席」者，多數係已 book 嘅補堂位）。
+    var pendingAbs11=abs11.filter(function(a){ return !a.madeUpDate; }).length;
+    var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
+    var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]]) extraLeaves++; });
+    var bookedPending=mkInfo.filter(function(x){ return x.status!=="出席"; }).length;
+    var owed=Math.max(0, pendingAbs11 + extraLeaves - bookedPending);
     return {key:cid, sport:cid, wd:r.dayZh, dayZh:r.dayZh, time:r.time,
       total:blk.dates.length, attended:att+mkAtt, leave:lv, absent:ab,
-      owed:Math.max(0, lv-mkInfo.length), sessions:sessions, makeups:mkInfo, deadline:deadline, mkExt:mkExt};
+      owed:owed, sessions:sessions, makeups:mkInfo, deadline:deadline, mkExt:mkExt};
   });
 }
 /* ═══════════ 登入防爆破節流（CacheService，按帳號計失敗次數）═══════════ */
@@ -2042,6 +2057,17 @@ function importParentData(){
 
   var SRC=SpreadsheetApp.openById(PORTAL_SHEET_ID);
 
+  // 先建 absences 索引：key=cid|absDate|name → 有此 row 代表「正式請假(有記錄、可補堂)」
+  // 用嚟分辨 #11 attendance 嘅 absent：有對應 absences = 請假；冇 = 缺席。
+  var absSet={};
+  var abvPre=SRC.getSheetByName("absences").getDataRange().getValues();
+  for(var ap=1;ap<abvPre.length;ap++){
+    var an=String(abvPre[ap][1]||"").trim(); an=IMPORT_NAME_FIX[an]||an;
+    var ac=String(abvPre[ap][2]||"").trim();
+    var ad=toIso_(abvPre[ap][3]);
+    if(an&&ac&&ad) absSet[ac+"|"+ad+"|"+an]=true;
+  }
+
   // (b)「IS App Data」出席：原班原日，官網為準覆蓋
   var av=SRC.getSheetByName("attendance").getDataRange().getValues();
   var attSkip=[];
@@ -2052,6 +2078,8 @@ function importParentData(){
     var st=String(av[i][4]||"").trim();
     if(!cid||!name||!st) continue;
     var zh=EN2ZH[st]; if(!zh){ attSkip.push(cid+"|"+date+"|"+name+"|"+st+"(未知狀態)"); continue; }
+    // absent：有 absences 記錄 → 請假(可補)；冇 → 缺席。修正 EN2ZH 一律當請假嘅失真。
+    if(st==="absent" && !absSet[cid+"|"+date+"|"+name]) zh="缺席";
     if(!marks[cid]){ attSkip.push(cid+"|"+date+"|"+name+"|"+st+"(未知班別)"); continue; }
     put(cid,name,date,zh);
   }
