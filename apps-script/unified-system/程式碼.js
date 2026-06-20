@@ -226,7 +226,7 @@ function extendExpiredDeadlines(apply){
       st.forEach(function(s,i){ if(s==="請假") lv.push(blk.dates[i]); });
       if(!lv.length) return;
       lv.sort();
-      var madeUp=makeupAll().filter(function(m){ return m.name===nm && m.from===cid; }).length;
+      var madeUp=makeupUniq_().filter(function(m){ return m.name===nm && m.from===cid; }).length;
       for(var k=madeUp;k<lv.length;k++){           // 未補堂嘅請假節數（最舊優先配對後剩低）
         var d=lv[k], oldDl=addMonthsIso(d, CONFIG.MAKEUP_MONTHS);
         if(oldDl>=today) continue;                 // 未過期，唔使延
@@ -607,6 +607,17 @@ function makeupAll(){
     return {row:i+2, name:String(r[0]), from:String(r[1]), to:String(r[2]), date:toIso_(r[3]), status:String(r[4]||"")};
   });
 }
+// 計數/顯示專用：按 name|from|to|date 去重（補堂表可能有重複行 → 一筆補堂被當成多筆，
+// 令待補(owed)被扣爆、預約被拒）。保留首次出現嗰行嘅 row。
+// ⚠️ 涉及 row 號嘅寫入（取消補堂）仍要用 makeupAll()。
+function makeupUniq_(){
+  var seen={}, out=[];
+  makeupAll().forEach(function(m){
+    var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
+    if(seen[k]) return; seen[k]=1; out.push(m);
+  });
+  return out;
+}
 function logAppend(a){
   var L=SS().getSheetByName("Log"); if(!L) return;
   L.appendRow([new Date(), a.name, a.key||"", a.action, a.date||"", a.status||"",
@@ -690,7 +701,7 @@ function route(p){
 /* ═══════════ 家長：一個小朋友全部班別資料 ═══════════ */
 function classesFor_(nm){
   var rows=rosterRows().filter(function(r){ return r.name===nm; });
-  var mk=makeupAll().filter(function(m){ return m.name===nm; });
+  var mk=makeupUniq_().filter(function(m){ return m.name===nm; });
   var dlMap=dlExtMap_();
   var abs11all=is11_().abs;
   return rows.map(function(r){
@@ -700,7 +711,7 @@ function classesFor_(nm){
     // 補堂來源：#11 absences 已補（madeUpDate）+ 家長經 is-parent 預約嘅 #4 補堂
     var abs11=abs11all.filter(function(a){ return a.name===nm && a.cid===cid; });
     var done11=abs11.filter(function(a){ return a.madeUpDate; });
-    var mk4=mk.filter(function(m){ return m.from===cid; });
+    var mk4=mk.filter(function(m){ return m.from===cid; });   // mk 已由 makeupUniq_ 去重
     var mkInfo=done11.map(function(a){ return {to:cid, date:a.madeUpDate, status:"出席"}; })
       .concat(mk4.map(function(m){
         var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
@@ -817,7 +828,7 @@ function apiMakeup(p){
     var fb=readBlock(p.fromKey), fst=fb.status[p.name]||[], fd=fb.dates, lv=[];
     fst.forEach(function(s,i){ if(s==="請假") lv.push(fd[i]); });
     lv.sort();
-    var madeUp=makeupAll().filter(function(m){ return m.name===p.name && m.from===p.fromKey; }).length;
+    var madeUp=makeupUniq_().filter(function(m){ return m.name===p.name && m.from===p.fromKey; }).length;
     if(madeUp>=lv.length) return {ok:false,err:"此班暫無待補堂節數"};
     var absDate=lv[madeUp], dl=effDeadline_(p.name, p.fromKey, absDate);
     if(date>dl) return {ok:false,err:"已超過補堂限期：須於 "+dl+" 或之前補堂"};
@@ -1742,7 +1753,7 @@ function buildReport(){
   sh.appendRow(["INITIATE SPORTS · 出席報表","","","","","","","",""]);
   sh.appendRow(["產生時間："+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm"),"","","","","","","",""]);
   sh.appendRow(["班別","星期","學生","總堂","已上","請假","缺席","補堂(約/到)","出席率"]);
-  var rows=[], mkAll=makeupAll();
+  var rows=[], mkAll=makeupUniq_();
   CLASS_IDS.forEach(function(cid){
     var full=readFull(cid), c=CLASSES[cid];
     full.students.forEach(function(nm){
