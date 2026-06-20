@@ -1796,7 +1796,68 @@ function onOpen(){
     .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
     .addSeparator()
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
+    .addSeparator()
+    .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
+    .addItem("🩺 立即健康檢查（測試）","healthCheckMenu")
     .addToUi();
+}
+
+/* ═══════════ 每日系統健康檢查 ═══════════
+ * 每日自動 ping 4 個後端 /exec + 各前端頁面；有異常先 email 老闆（正常唔寄，免騷擾）。
+ * 安裝：選單「🩺 安裝每日健康檢查」撳一次（順便授權 UrlFetch + 寄信）。
+ * 測試：選單「🩺 立即健康檢查」即時跑一次並彈出結果。 */
+var HEALTH_EMAIL = "initiatesports6331@gmail.com";
+var HEALTH_BACKENDS = [
+  {name:"#4 unified-system",  url:"https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec", expect:"is-unified-v2"},
+  {name:"#11 parent-portal",  url:"https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec", expect:null},
+  {name:"#9 attendance-grid", url:"https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec", expect:"v2-grid"},
+  {name:"#1 booking",         url:"https://script.google.com/macros/s/AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj/exec", expect:"\"ok\":true"}
+];
+var HEALTH_PAGES = [
+  "https://initiatesports.github.io/IS-APP/is-home.html",
+  "https://initiatesports.github.io/IS-APP/is-parent.html",
+  "https://initiatesports.github.io/IS-APP/is-coach.html",
+  "https://initiatesports.github.io/IS-APP/is-leave-makeup.html",
+  "https://initiatesports.github.io/IS-APP/is-attendance-app.html",
+  "https://initiatesports.github.io/IS-APP/initiate-sports-booking.html",
+  "https://initiatesports.github.io/SUMMER-COURSE-2026/index.html"
+];
+function healthCheck(){
+  var problems=[];
+  HEALTH_BACKENDS.forEach(function(e){
+    try{
+      var r=UrlFetchApp.fetch(e.url,{muteHttpExceptions:true,followRedirects:true});
+      var code=r.getResponseCode();
+      if(code!==200) problems.push("後端 "+e.name+" → HTTP "+code);
+      else if(e.expect && r.getContentText().indexOf(e.expect)<0) problems.push("後端 "+e.name+" → 回應異常（缺「"+e.expect+"」）");
+    }catch(err){ problems.push("後端 "+e.name+" → 連線失敗："+err); }
+  });
+  HEALTH_PAGES.forEach(function(u){
+    try{
+      var r=UrlFetchApp.fetch(u,{muteHttpExceptions:true,followRedirects:true});
+      if(r.getResponseCode()!==200) problems.push("前端 "+u+" → HTTP "+r.getResponseCode());
+    }catch(err){ problems.push("前端 "+u+" → 連線失敗："+err); }
+  });
+  if(problems.length){
+    try{
+      MailApp.sendEmail(HEALTH_EMAIL,
+        "⚠️ INITIATE 系統健康警示（"+problems.length+" 項異常）",
+        "以下系統檢查未通過，建議盡快查看：\n\n• "+problems.join("\n• ")+
+        "\n\n—— 每日自動健康檢查（"+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm")+"）");
+    }catch(e){ Logger.log("健康警示 email 寄送失敗："+e); }
+  }
+  Logger.log("健康檢查完成："+(problems.length?problems.length+" 項異常":"全部正常"));
+  return problems;
+}
+function installHealthCheck(){
+  ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==="healthCheck") ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger("healthCheck").timeBased().everyDays(1).atHour(8).create();   // 每日約 08:00
+  try{ SpreadsheetApp.getUi().alert("✅ 每日健康檢查已設定（約 08:00）。\n有異常先會 email 你，正常唔會騷擾。"); }catch(e){}
+  return "每日健康檢查已設定";
+}
+function healthCheckMenu(){
+  var p=healthCheck();
+  SpreadsheetApp.getUi().alert(p.length ? ("發現 "+p.length+" 項異常：\n\n• "+p.join("\n• ")+"\n\n（同樣已 email 你一份）") : "✅ 全部正常（前端＋後端即時檢查通過）");
 }
 
 /* ═══════════ 清理「補堂」表重複行 ═══════════
