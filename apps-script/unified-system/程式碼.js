@@ -718,12 +718,18 @@ function classesFor_(nm){
     // 遷移後 #4 grid 係出席真相；#11 absences 仍保留歷史請假嘅補堂限期(deadline)。
     // 待補 = #11 未補嘅缺堂（madeUpDate 空）
     //          ＋ #4 grid 顯示「請假」但 #11 未有對應 absences 紀錄嘅堂（日後 #4-only 新請假，避免重複）
-    //          － 已預約但未出席嘅補堂（mkInfo 中非「出席」者，多數係已 book 嘅補堂位）。
+    //          － 經 is-parent 預約嘅 #4 補堂（mk4），不論已出席或待出席都各抵銷一節待補。
+    //            （done11 已出席嘅 #11 補堂唔再減，因為佢哋已喺 pendingAbs11 用 madeUpDate 扣除咗，避免重複。）
     var pendingAbs11=abs11.filter(function(a){ return !a.madeUpDate; }).length;
     var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
     var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]]) extraLeaves++; });
-    var bookedPending=mkInfo.filter(function(x){ return x.status!=="出席"; }).length;
-    var owed=Math.max(0, pendingAbs11 + extraLeaves - bookedPending);
+    // booked4：真正由本班「新預約」出去嘅補堂（不論已出席或待出席，各抵銷一節待補）。
+    //   ⚠️ done11（#11 已補）已喺 pendingAbs11 用 madeUpDate 扣除咗；而 importParentData 遷移時
+    //   又會把每筆 done11 寫入補堂表（from=to=本班、status 出席）。若直接 mk4.length 會把佢哋
+    //   再扣一次 → 遷移家庭待補被低估。故剔走「to===本班 且日期=某 done11 madeUpDate」嘅遷移重複行。
+    var done11Dates={}; done11.forEach(function(a){ done11Dates[a.madeUpDate]=true; });
+    var booked4=mk4.filter(function(m){ return !(m.to===cid && done11Dates[m.date]); }).length;
+    var owed=Math.max(0, pendingAbs11 + extraLeaves - booked4);
     return {key:cid, sport:cid, wd:r.dayZh, dayZh:r.dayZh, time:r.time,
       total:blk.dates.length, attended:att+mkAtt, leave:lv, absent:ab,
       owed:owed, sessions:sessions, makeups:mkInfo, deadline:deadline, mkExt:mkExt};
