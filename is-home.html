@@ -1653,6 +1653,9 @@ function doSearch(){
 // ═══════════════════════════════════════════════════
 //  RENDER — Knowledge & Equipment (parent-adapted)
 // ═══════════════════════════════════════════════════
+// 知識圖片版本碼：每次換圖把數字 +1，瀏覽器即取新檔（防舊 cache）
+const KN_IMG_VER = '20260620';
+function knImg(src){ if(!src) return ''; return src + (src.indexOf('?')>=0?'&':'?') + 'v=' + KN_IMG_VER; }
 function renderKnowledgeScreen() {
   const el = document.getElementById('knowledge-list');
   if (!el) return;
@@ -1663,7 +1666,7 @@ function renderKnowledgeScreen() {
   el.innerHTML = KNOWLEDGE_POSTS.map((p, i) => `
     <article class="kn-card">
       ${p.image ? `<button type="button" class="kn-cover" onclick="openKnowledgePost('${p.id}')">
-        <img src="${p.image}" alt="${p.title||''}" loading="lazy">
+        <img src="${knImg(p.image)}" alt="${p.title||''}" loading="lazy">
         <span class="kn-zoom">📖 閱讀全文</span>
       </button>` : ''}
       <div class="kn-body">
@@ -1689,7 +1692,7 @@ function openKnowledgePost(id){
     document.body.appendChild(lb);
     lb.addEventListener('click',e=>{ if(e.target===lb || e.target.classList.contains('kn-reader-x')) closeKnowledgePost(); });
   }
-  lb.querySelector('.kn-reader-img').src=p.image||'';
+  lb.querySelector('.kn-reader-img').src=knImg(p.image);
   lb.querySelector('.kn-reader-img').style.display=p.image?'':'none';
   lb.querySelector('.kn-reader-meta').innerHTML=(p.tag?`<span class="kn-tag">${p.tag}</span>`:'')+(p.date?`<span class="kn-date">${p.date}</span>`:'');
   lb.querySelector('.kn-reader-title').textContent=p.title||'';
