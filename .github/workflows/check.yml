@@ -1,0 +1,23 @@
+name: Consistency check
+
+# 每次 push / PR 到 main 都自動跑一致性檢查。
+# 任何一項 ✗ → workflow 失敗(紅 X) → 即知道改壞咗共用內容(私人訓練/器材/章別)。
+# 想做到「未過就唔畀 merge」：喺 GitHub repo Settings → Branches 對 main 開
+# branch protection，要求 "Consistency check" 通過先可 merge。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 跑一致性檢查
+        run: node tools/check-consistency.mjs

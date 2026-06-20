@@ -1794,7 +1794,35 @@ function onOpen(){
     .addItem("🔄 重建學生名冊（只顯示現時班別）","rebuildRosterMenu")
     .addItem("✅ 標記 5-6月 全部已繳","markFiveSixPaidMenu")
     .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
+    .addSeparator()
+    .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addToUi();
+}
+
+/* ═══════════ 清理「補堂」表重複行 ═══════════
+ * 背景：補堂表曾出現同一筆補堂被寫入多次（例如陳大文 c1→c3 同日 ×14），
+ *       令 owed/預約計數一度出錯。計數路徑已用 makeupUniq_() 去重避開，
+ *       但底層髒資料仍會被每日備份一直複製、且 makeupAll() 路徑仍會撞到。
+ * 做法：先整份備份到 Drive（可還原），再按 name|from|to|date 保留首行、
+ *       由下而上刪除其餘重複行（保留其他欄如 IMP 標記，唔做整片重寫）。 */
+function cleanupDupMakeup(){
+  var M=makeupSheet(); if(!M||M.getLastRow()<2) return {removed:0,kept:0};
+  backupToDrive();                         // 先整份複製到 Drive，確保任何誤刪可還原
+  backup();                                // 同時寫一份 sheet 內快照
+  var seen={}, dupRows=[], kept=0;
+  makeupAll().forEach(function(m){         // 已帶 row 號，按現有行序
+    var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
+    if(seen[k]){ dupRows.push(m.row); } else { seen[k]=1; kept++; }
+  });
+  dupRows.sort(function(a,b){ return b-a; });          // 由下而上刪，避免行號偏移
+  dupRows.forEach(function(r){ M.deleteRow(r); });
+  Logger.log("清理重複補堂行：刪除 "+dupRows.length+" 行，保留 "+kept+" 筆唯一補堂");
+  return {removed:dupRows.length, kept:kept};
+}
+function cleanupDupMakeupMenu(){
+  var r=cleanupDupMakeup();
+  SpreadsheetApp.getUi().alert(
+    "清理完成 ✅\n刪除重複補堂行："+r.removed+" 行\n保留唯一補堂："+r.kept+" 筆\n（已先整份備份到 Drive，可還原）");
 }
 
 /* ═══════════ 自動備份 / 還原 ═══════════ */

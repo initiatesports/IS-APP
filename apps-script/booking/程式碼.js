@@ -76,6 +76,22 @@ function pruneBackups(folder, keep){
   for (var i = keep; i < files.length; i++) files[i].setTrashed(true);
 }
 
+// 寫入/刪除前自動備份整份報名表(節流:同一 30 分鐘窗口最多一次)。
+// 不依賴 installDailyBackup() trigger;沿用原政策(BACKUP_KEEP=0 → 全部保留,不自動刪)。
+// 備份失敗唔阻塞報名(只記 log)。
+function backupBeforeWrite_(){
+  try {
+    var cache = CacheService.getScriptCache();
+    if (cache.get("bk_done")) return;                          // 30 分鐘內已備份 → 跳過
+    var folder = getOrCreateFolder(BACKUP_FOLDER);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd_HHmm");
+    DriveApp.getFileById(ss.getId()).makeCopy("INITIATE備份_" + stamp, folder);
+    cache.put("bk_done", "1", 1800);                           // 1800 秒 = 30 分鐘
+    if (BACKUP_KEEP > 0) pruneBackups(folder, BACKUP_KEEP);    // 沿用設定:0 = 不刪
+  } catch (e) { Logger.log("backupBeforeWrite_ 失敗(不阻塞寫入): " + e); }
+}
+
 /* ---------- HTTP 入口 ---------- */
 // 登入防爆破節流（CacheService，按 bucket 計失敗次數）
 function rlBlocked_(bucket, max){ return Number(CacheService.getScriptCache().get("rl_"+bucket)||0) >= max; }
@@ -98,6 +114,11 @@ function doPost(e){
       if (String(body.pin || "") !== ADMIN_PIN) { rlBump_("adminpin", 300); return json({ok:false, error:"密碼錯誤"}); }
       rlClear_("adminpin");
     }
+    // 寫入/刪除類動作:執行前先整份備份(節流),確保 deleteReg 等不可逆操作可還原。
+    // (booking 雖有 dailyBackup,但要手動 installDailyBackup() 才會跑;此處自動執行,不依賴 trigger。)
+    var WRITE_ACTIONS = ["register","uploadProof","setPaid","setRefunded","deleteReg","releaseReg","saveConfig","setRegOpen"];
+    if (WRITE_ACTIONS.indexOf(body.action) >= 0) backupBeforeWrite_();
+
     switch(body.action){
       case "register":    return json(register(body));     // 公開
       case "lookup":      return json(lookup(body));        // 公開(只回傳該電話)

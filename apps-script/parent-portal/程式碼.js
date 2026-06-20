@@ -34,6 +34,26 @@ function getSheet(name) {
   return sheet;
 }
 
+// 寫入前自動備份整份 IS App Data 到 Drive。節流:同一 30 分鐘窗口最多備份一次,
+// 避免每次 save 都複製;保留最近 14 份。備份失敗唔阻塞寫入(只記 log)。
+function backupBeforeWrite_() {
+  try {
+    const cache = CacheService.getScriptCache();
+    if (cache.get('bk_done')) return;                       // 30 分鐘內已備份 → 跳過
+    const FOLDER = 'IS App Data 備份', KEEP = 14;
+    const it = DriveApp.getFoldersByName(FOLDER);
+    const folder = it.hasNext() ? it.next() : DriveApp.createFolder(FOLDER);
+    const tz = SpreadsheetApp.openById(SHEET_ID).getSpreadsheetTimeZone();
+    const stamp = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd_HHmm');
+    DriveApp.getFileById(SHEET_ID).makeCopy('IS App Data 備份 ' + stamp, folder);
+    cache.put('bk_done', '1', 1800);                        // 1800 秒 = 30 分鐘
+    const copies = [], fit = folder.getFiles();
+    while (fit.hasNext()) { const f = fit.next(); if (f.getName().indexOf('IS App Data 備份 ') === 0) copies.push(f); }
+    copies.sort((a, b) => b.getDateCreated() - a.getDateCreated());
+    copies.slice(KEEP).forEach(f => { try { f.setTrashed(true); } catch (e) {} });
+  } catch (e) { Logger.log('backupBeforeWrite_ 失敗(不阻塞寫入): ' + e); }
+}
+
 function makeResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
@@ -73,8 +93,11 @@ function doPost(e) {
 
     // 所有寫入動作都必須帶正確教練密碼,否則拒絕 —— 防止任何人匿名清空/竄改資料。
     const WRITE_ACTIONS = ['save_attendance','save_absences','save_performance','save_body','save_fee','save_settings'];
-    if (WRITE_ACTIONS.indexOf(action) >= 0 && !checkCoach_(body)) {
-      return makeResponse({ ok: false, error: '未授權:教練密碼錯誤' });
+    if (WRITE_ACTIONS.indexOf(action) >= 0) {
+      if (!checkCoach_(body)) return makeResponse({ ok: false, error: '未授權:教練密碼錯誤' });
+      // ⚠️ save_* 多數係「清空 tab 再整片寫入」,萬一推送空資料就會清掉整個 tab。
+      // 寫入前先整份備份(節流),確保任何覆寫/清空都可還原。
+      backupBeforeWrite_();
     }
 
     if (action === 'save_attendance')  return makeResponse(saveAttendance(body.data));
