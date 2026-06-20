@@ -1799,7 +1799,55 @@ function onOpen(){
     .addSeparator()
     .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
     .addItem("🩺 立即健康檢查（測試）","healthCheckMenu")
+    .addSeparator()
+    .addItem("📦 安裝每月異地備份（email xlsx）","installMonthlyBackup")
+    .addItem("📦 立即寄一份異地備份（測試）","monthlyOffsiteBackupMenu")
     .addToUi();
+}
+
+/* ═══════════ 每月異地備份（email xlsx 附件）═══════════
+ * 把核心營運試算表匯出 xlsx 作 email 附件寄畀老闆，令備份「離開 Google Drive」。
+ * 萬一 Google 帳號被鎖/盜，仲有 email 收件箱（甚至可轉寄去非 Google 信箱）嗰份可救。
+ * 收件人：指令碼屬性 BACKUP_EMAIL（自己設，唔使畀我睇）；未設就用 HEALTH_EMAIL。
+ * 安裝：選單「📦 安裝每月異地備份」撳一次（順便授權）。 */
+var OFFSITE_TARGETS = [
+  {id:"1MwIOIZ8tv6XXEnqlTlZgLli4cwlDMqHFxxusgefXvyE", name:"出席補堂系統(#4)"},
+  {id:"1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo", name:"IS App Data(#11)"},
+  {id:"1EKLNEShazlt1N9HFvGK3E2vsxh_sAq08doofIom81zc", name:"6-7月報名系統(#1)"}
+];
+function monthlyOffsiteBackup(){
+  var to=PropertiesService.getScriptProperties().getProperty("BACKUP_EMAIL") || HEALTH_EMAIL;
+  var stamp=Utilities.formatDate(new Date(), tz(), "yyyy-MM-dd");
+  var attachments=[], failed=[];
+  OFFSITE_TARGETS.forEach(function(t){
+    try{
+      var url="https://docs.google.com/spreadsheets/d/"+t.id+"/export?format=xlsx";
+      var blob=UrlFetchApp.fetch(url,{headers:{Authorization:"Bearer "+ScriptApp.getOAuthToken()},muteHttpExceptions:true}).getBlob();
+      blob.setName(t.name+"_"+stamp+".xlsx");
+      attachments.push(blob);
+    }catch(e){ failed.push(t.name+"："+e); }
+  });
+  MailApp.sendEmail({
+    to: to,
+    subject: "📦 INITIATE 每月異地備份 "+stamp+(failed.length?"（部分失敗）":""),
+    body: "附件為各營運試算表 xlsx 副本，建議下載另存（脫離 Google Drive 作異地備份）。\n\n包含：\n• "+
+          OFFSITE_TARGETS.map(function(t){return t.name;}).join("\n• ")+
+          (failed.length?("\n\n⚠️ 匯出失敗：\n• "+failed.join("\n• ")):"")+
+          "\n\n—— 每月自動異地備份",
+    attachments: attachments
+  });
+  Logger.log("異地備份：寄出 "+attachments.length+" 個附件，失敗 "+failed.length);
+  return {sent:attachments.length, failed:failed.length};
+}
+function installMonthlyBackup(){
+  ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==="monthlyOffsiteBackup") ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger("monthlyOffsiteBackup").timeBased().onMonthDay(1).atHour(7).create();   // 每月 1 號約 07:00
+  try{ SpreadsheetApp.getUi().alert("✅ 每月異地備份已設定（每月 1 號約 07:00 email 你 xlsx 副本）。\n想寄去另一個 email：專案設定 → 指令碼屬性 → 加 BACKUP_EMAIL。"); }catch(e){}
+  return "已設定";
+}
+function monthlyOffsiteBackupMenu(){
+  var r=monthlyOffsiteBackup();
+  SpreadsheetApp.getUi().alert("已寄出 "+r.sent+" 個 xlsx 附件"+(r.failed?("（"+r.failed+" 個失敗）"):"")+"。\n請查收 email（未設定時用預設收件箱）。");
 }
 
 /* ═══════════ 每日系統健康檢查 ═══════════

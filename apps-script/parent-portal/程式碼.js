@@ -181,9 +181,10 @@ function saveAttendance(data) {
 function saveAbsences(data) {
   const sheet = getSheet('absences');
   ensureHeaders(sheet, ['id','name','classId','absDate','deadline','madeUpDate']);
-  clearDataRows(sheet);
-  if (!data || !data.length) return { ok: true, rows: 0 };
+  // 防呆：收到空資料一律唔清空，避免一次壞 push 抹走整個 tab
+  if (!data || !data.length) return { ok: true, rows: 0, skipped: 'empty-guard' };
   const rows = data.map(a => [a.id||'', a.name||'', a.classId||'', a.absDate||'', a.deadline||'', a.madeUpDate||'']);
+  clearDataRows(sheet);
   sheet.getRange(2, 1, rows.length, 6).setValues(rows);
   return { ok: true, rows: rows.length };
 }
@@ -194,7 +195,6 @@ function saveAbsences(data) {
 function savePerformance(data) {
   const sheet = getSheet('performance');
   ensureHeaders(sheet, ['name','metricId','date','val','v1','v2','v3']);
-  clearDataRows(sheet);
   const rows = [];
   Object.entries(data || {}).forEach(([name, metrics]) => {
     Object.entries(metrics).forEach(([metricId, records]) => {
@@ -204,7 +204,10 @@ function savePerformance(data) {
       });
     });
   });
-  if (rows.length) sheet.getRange(2, 1, rows.length, 7).setValues(rows);
+  // 防呆：算唔到任何資料就唔清空
+  if (!rows.length) return { ok: true, rows: 0, skipped: 'empty-guard' };
+  clearDataRows(sheet);
+  sheet.getRange(2, 1, rows.length, 7).setValues(rows);
   return { ok: true, rows: rows.length };
 }
 
@@ -214,12 +217,14 @@ function savePerformance(data) {
 function saveBody(data) {
   const sheet = getSheet('body');
   ensureHeaders(sheet, ['name','date','height','weight']);
-  clearDataRows(sheet);
   const rows = [];
   Object.entries(data || {}).forEach(([name, records]) => {
     (records || []).forEach(r => rows.push([name, r.date||'', r.height||'', r.weight||'']));
   });
-  if (rows.length) sheet.getRange(2, 1, rows.length, 4).setValues(rows);
+  // 防呆：算唔到任何資料就唔清空
+  if (!rows.length) return { ok: true, rows: 0, skipped: 'empty-guard' };
+  clearDataRows(sheet);
+  sheet.getRange(2, 1, rows.length, 4).setValues(rows);
   return { ok: true, rows: rows.length };
 }
 
@@ -229,12 +234,14 @@ function saveBody(data) {
 function saveFee(data) {
   const sheet = getSheet('fee_paid');
   ensureHeaders(sheet, ['key','periodId','classId','name','paid']);
-  clearDataRows(sheet);
   const rows = Object.entries(data || {}).filter(([,v])=>v).map(([key]) => {
     const p = key.split('|');
     return [key, p[0]||'', p[1]||'', p[2]||'', true];
   });
-  if (rows.length) sheet.getRange(2, 1, rows.length, 5).setValues(rows);
+  // 防呆：算唔到任何資料就唔清空
+  if (!rows.length) return { ok: true, rows: 0, skipped: 'empty-guard' };
+  clearDataRows(sheet);
+  sheet.getRange(2, 1, rows.length, 5).setValues(rows);
   return { ok: true, rows: rows.length };
 }
 
@@ -246,13 +253,15 @@ function saveFee(data) {
 function saveSettings(data) {
   const sheet = getSheet('settings');
   ensureHeaders(sheet, ['key','value']);
-  clearDataRows(sheet);
   const rows = Object.entries(data || {}).map(([k, v]) => {
     // 照片 data URL 已是字串，直接存；其餘 object/array 才 stringify
     const stored = (typeof v === 'string') ? v : JSON.stringify(v);
     return [k, stored];
   });
-  if (rows.length) sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  // 防呆：算唔到任何資料就唔清空（保住相片/星星/設定）
+  if (!rows.length) return { ok: true, rows: 0, skipped: 'empty-guard' };
+  clearDataRows(sheet);
+  sheet.getRange(2, 1, rows.length, 2).setValues(rows);
   return { ok: true, rows: rows.length };
 }
 
