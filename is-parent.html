@@ -163,6 +163,18 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
   background:var(--ink);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;
   opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:9999;box-shadow:0 4px 16px rgba(16,24,40,.2);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* 課堂相簿 */
+.alb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
+.alb-cell{position:relative;padding:0;border:none;border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--surface2,#eee);cursor:pointer;}
+.alb-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.alb-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;background:rgba(0,0,0,.28);text-shadow:0 1px 4px rgba(0,0,0,.5);}
+#alb-lb{position:fixed;inset:0;background:rgba(8,12,18,.92);z-index:10000;display:none;align-items:center;justify-content:center;padding:18px;}
+#alb-lb.show{display:flex;}
+#alb-lb .alb-stage{max-width:96vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:10px;}
+#alb-lb img{max-width:96vw;max-height:84vh;border-radius:10px;object-fit:contain;}
+#alb-lb iframe{width:min(96vw,860px);height:min(84vh,520px);border:0;border-radius:10px;background:#000;}
+#alb-lb .alb-cap{color:#eee;font-size:14px;text-align:center;max-width:760px;}
+#alb-lb .alb-x{position:absolute;top:14px;right:16px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;line-height:1;}
 </style>
 </head>
 <body>
@@ -562,6 +574,7 @@ function classCard(child,ki,c,ci){
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
     ${owed>0&&c.deadline?`<div class="dlnote">${t('dlNote',owed,fmtDate(c.deadline))}</div>`:''}
+    <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAlbum(${ki},${ci})">📷 ${LANG==='en'?'Class Album':'課堂相簿'}</button>
     ${ isPeriodActive(child,S.period) ? `
     <div class="rowbtns">
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">${t('applyLeave')}</button>
@@ -825,6 +838,37 @@ function downloadICS(ki){
   a.href=url; a.download='INITIATE_'+child.name+'.ics'; document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},300);
   toast(t('icsDone'));
+}
+
+/* ═══════════ 課堂相簿（逐班共用；登入家長只睇自己班）═══════════ */
+let ALBUM=[];
+function escA(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function openAlbum(ki,ci){
+  const child=(S.family&&S.family.children||[])[ki]; if(!child) return;
+  const c=(child.classes||[])[ci]; if(!c) return;
+  const cid=c.key||c.sport, title=classLabel(cid);
+  openSheet(`<h2>📷 ${title}</h2><div class="sd">${LANG==='en'?'Loading…':'載入中…'}</div>`);
+  let r; try{ r=await api('albumList',{classId:cid, name:child.name}); }catch(e){ r=null; }
+  if(!r||!r.ok){ $('sheet').innerHTML=`<h2>📷 ${title}</h2><div class="sd">${escA((r&&r.err)||(LANG==='en'?'Failed to load':'載入失敗'))}</div><button class="btn ghost" onclick="closeSheet()">${LANG==='en'?'Close':'關閉'}</button>`; return; }
+  ALBUM=r.items||[];
+  const grid = ALBUM.length
+    ? `<div class="alb-grid">`+ALBUM.map((m,idx)=>`<button class="alb-cell" onclick="albLightbox(${idx})"><img src="https://drive.google.com/thumbnail?id=${m.driveId}&sz=w400" loading="lazy" alt="">${m.type==='video'?'<span class="alb-play">▶</span>':''}</button>`).join('')+`</div>`
+    : `<div class="period-empty">${LANG==='en'?'No photos yet — check back later 😊':'暫時未有相片，遲啲再嚟睇 😊'}</div>`;
+  $('sheet').innerHTML=`<h2>📷 ${title}</h2>
+    <div class="sd">${LANG==='en'?'Photos & clips shared by coach':'教練分享嘅課堂相片／短片'}</div>
+    ${grid}
+    <button class="btn ghost" style="margin-top:14px" onclick="closeSheet()">${LANG==='en'?'Close':'關閉'}</button>`;
+}
+function albLightbox(idx){
+  const m=ALBUM[idx]; if(!m) return;
+  let lb=document.getElementById('alb-lb');
+  if(!lb){ lb=document.createElement('div'); lb.id='alb-lb'; document.body.appendChild(lb);
+    lb.addEventListener('click',e=>{ if(e.target===lb||e.target.classList.contains('alb-x')) lb.classList.remove('show'); }); }
+  const body = m.type==='video'
+    ? `<iframe src="https://drive.google.com/file/d/${m.driveId}/preview" allow="autoplay" allowfullscreen></iframe>`
+    : `<img src="https://lh3.googleusercontent.com/d/${m.driveId}=w1600" alt="">`;
+  lb.innerHTML=`<button class="alb-x" aria-label="close">✕</button><div class="alb-stage">${body}${m.caption?`<div class="alb-cap">${escA(m.caption)}</div>`:''}</div>`;
+  lb.classList.add('show');
 }
 
 /* ═══════════ Sheet / Receipt ═══════════ */

@@ -694,6 +694,10 @@ function route(p){
     case "save_attendance": return apiSaveAttendance(p);
     case "save_absences":   return apiSaveAbsences(p);
     case "save_settings":   return apiSaveSettings(p);
+    // ── 課堂相簿（逐班共用：教練上載相片/短片，已登入家長睇返自己班）──
+    case "albumList":       return apiAlbumList(p);
+    case "albumAdd":        return apiAlbumAdd(p);
+    case "albumDelete":     return apiAlbumDelete(p);
     default:                return {ok:false, err:"unknown action"};
   }
 }
@@ -894,6 +898,84 @@ function apiUploadMedNote(p){
     notify("【醫生紙】"+p.name, p.name+"\n班別："+classLabel_(p.key)+"\n日期："+toIso_(p.date)+"\n醫生證明："+link);
     return {ok:true, link:link};
   }catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
+}
+
+/* ═══════════ 課堂相簿（逐班共用）═══════════
+ * 教練喺教練端上載相片/短片 → 存私密 Drive 子資料夾「IS 課堂相簿/<班別>」。
+ * 已登入家長（家庭碼）只睇到自己小朋友所屬班別嘅相簿，唔會出現喺公開官網。
+ * 媒體檔以 ANYONE_WITH_LINK 供瀏覽（同醫生紙/繳費截圖一致），但連結只透過
+ * 登入後嘅 API 派發；資料夾本身私密、唔分享。記錄存「相簿」分頁。 */
+function albumSheet(){
+  var sh=SS().getSheetByName("相簿");
+  if(!sh){ sh=SS().insertSheet("相簿");
+    sh.getRange(1,1,1,7).setValues([["id","班別","類型","DriveId","說明","上載者","時間"]]);
+    sh.setFrozenRows(1); }
+  return sh;
+}
+function albumRows_(){
+  var sh=albumSheet(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,7).getValues().map(function(r,i){
+    return {row:i+2, id:String(r[0]), cid:String(r[1]), type:String(r[2]),
+      driveId:String(r[3]), caption:String(r[4]||""), by:String(r[5]||""), at:String(r[6]||"")};
+  }).filter(function(x){ return x.id && x.driveId; });
+}
+function albumFolder_(cid){
+  var root=DriveApp.getFoldersByName("IS 課堂相簿");
+  var rf=root.hasNext()?root.next():DriveApp.createFolder("IS 課堂相簿");
+  var label=gridName(cid);
+  var sub=rf.getFoldersByName(label);
+  return sub.hasNext()?sub.next():rf.createFolder(label);
+}
+// 家長 name 係咪屬於 cid 班
+function parentInClass_(name, cid){
+  return rosterRows().some(function(r){ return r.name===String(name).trim() && r.cid===cid; });
+}
+// 列出某班相簿（教練密碼 OR 該班已登入家長）
+function apiAlbumList(p){
+  var cid=String(p.classId||"");
+  if(!CLASSES[cid]) return {ok:false,err:"班別不存在"};
+  var isCoach=(String(p.coachPass||"")===String(CONFIG.COACH_PASS) && p.coachPass);
+  if(!isCoach){
+    if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確"};
+    if(!parentInClass_(p.name,cid)) return {ok:false,err:"無權瀏覽此班相簿"};
+  }
+  var list=albumRows_().filter(function(x){ return x.cid===cid; })
+    .map(function(x){ return {id:x.id, type:x.type, driveId:x.driveId, caption:x.caption, at:x.at}; });
+  list.sort(function(a,b){ return a.at<b.at?1:(a.at>b.at?-1:0); });   // 最新喺前
+  return {ok:true, classId:cid, label:gridName(cid), canEdit:!!isCoach, items:list};
+}
+// 教練上載一個媒體（dataUrl base64）；type 由 MIME 自動判斷
+function apiAlbumAdd(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var cid=String(p.classId||""); if(!CLASSES[cid]) return {ok:false,err:"班別不存在"};
+  try{
+    var dataUrl=String(p.dataUrl||""); var comma=dataUrl.indexOf(",");
+    if(comma<0) return {ok:false,err:"檔案格式不正確"};
+    var meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
+    var ctMatch=meta.match(/data:(.*?);/); var ct=ctMatch?ctMatch[1]:"image/jpeg";
+    var isVid=ct.indexOf("video")>=0;
+    var ext=isVid?(ct.indexOf("webm")>=0?"webm":"mp4"):(ct.indexOf("png")>=0?"png":"jpg");
+    var stamp=Utilities.formatDate(new Date(), tz(), "yyyyMMdd_HHmmss");
+    var fname=gridName(cid)+"_"+stamp+"."+ext;
+    var blob=Utilities.newBlob(Utilities.base64Decode(b64), ct, fname);
+    var file=albumFolder_(cid).createFile(blob);
+    try{ file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }catch(e){}
+    var id=Utilities.getUuid().slice(0,8);
+    var sh=albumSheet(), row=sh.getLastRow()+1;
+    sh.getRange(row,1).setNumberFormat("@"); sh.getRange(row,4).setNumberFormat("@");
+    sh.getRange(row,1,1,7).setValues([[id, cid, isVid?"video":"photo", file.getId(),
+      String(p.caption||"").slice(0,200), "coach", nowStamp_()]]);
+    return {ok:true, id:id, type:isVid?"video":"photo", driveId:file.getId()};
+  }catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
+}
+// 教練刪除一個媒體（檔案丟去 Drive 垃圾桶，30 日內可還原）
+function apiAlbumDelete(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var id=String(p.id||""); var hit=albumRows_().filter(function(x){ return x.id===id; })[0];
+  if(!hit) return {ok:false,err:"搵唔到該相片"};
+  try{ DriveApp.getFileById(hit.driveId).setTrashed(true); }catch(e){}
+  albumSheet().deleteRow(hit.row);
+  return {ok:true};
 }
 
 /* ═══════════ 病假待證明（當日病假 48 小時內須交醫生證明，否則改計缺席）═══════════ */
