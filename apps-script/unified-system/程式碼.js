@@ -709,6 +709,8 @@ function route(p){
     // ── 繳費（Phase 1）──
     case "genPeriod":       return apiGenPeriod(p);
     case "payUpload":       return apiPayUpload(p);
+    case "payLookup":       return apiPayLookup(p);
+    case "payUploadOpen":   return apiPayUploadOpen(p);
     case "verifyPay":       return apiVerifyPay(p);
     case "setFeeAdj":       return apiSetFeeAdj(p);
     case "feesAll":         return apiFeesAll(p);
@@ -1422,30 +1424,55 @@ function apiSetFeeAdj(p){
   return {ok:true, net:r.net, status:r.status};
 }
 /* 家長：上傳付款截圖（存 Drive，狀態→待核實）*/
+// 上載付款截圖核心（已驗身或已核名後呼叫）：寫入截圖連結 + 標待核實 + 通知
+function payUploadCore_(nm, label, dataUrl){
+  var rows=feeRows_(), hit=null;
+  for(var i=0;i<rows.length;i++){ if(rows[i].name===nm && rows[i].period===label){ hit=rows[i]; break; } }
+  if(!hit) return {ok:false,err:"搵唔到該期繳費紀錄，請聯絡張 Sir"};
+  if(hit.status==="豁免") return {ok:false,err:"此期為豁免，無須繳費"};
+  dataUrl=String(dataUrl||""); var comma=dataUrl.indexOf(",");
+  if(comma<0) return {ok:false,err:"檔案格式不正確"};
+  var meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
+  var ctMatch=meta.match(/data:(.*?);/); var ct=ctMatch?ctMatch[1]:"image/jpeg";
+  var ext=ct.indexOf("pdf")>=0?"pdf":(ct.indexOf("png")>=0?"png":"jpg");
+  var fname=nm+"_"+label+"_付款."+ext;
+  var folders=DriveApp.getFoldersByName("IS 付款截圖");
+  var folder=folders.hasNext()?folders.next():DriveApp.createFolder("IS 付款截圖");
+  var file=folder.createFile(Utilities.newBlob(Utilities.base64Decode(b64), ct, fname));
+  try{ file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }catch(e){}
+  var link=file.getUrl(), sh=feeSheet();
+  sh.getRange(hit.row,9).setValue(link);
+  if(hit.status!=="已繳") sh.getRange(hit.row,8).setValue("待核實");
+  logAppend({name:nm,key:label,action:"payUpload",status:"上傳付款截圖"});
+  notify("【繳費截圖】"+nm, nm+"\n期："+label+"\n金額：$"+hit.net+"\n截圖："+link+"\n請於教練端核實。");
+  return {ok:true, link:link};
+}
 function apiPayUpload(p){
   if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
-  try{
-    var nm=String(p.name).trim(), label=String(p.period).trim();
-    var rows=feeRows_(), hit=null;
-    for(var i=0;i<rows.length;i++){ if(rows[i].name===nm && rows[i].period===label){ hit=rows[i]; break; } }
-    if(!hit) return {ok:false,err:"搵唔到該期繳費紀錄，請聯絡張 Sir"};
-    var dataUrl=String(p.dataUrl||""); var comma=dataUrl.indexOf(",");
-    if(comma<0) return {ok:false,err:"檔案格式不正確"};
-    var meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
-    var ctMatch=meta.match(/data:(.*?);/); var ct=ctMatch?ctMatch[1]:"image/jpeg";
-    var ext=ct.indexOf("pdf")>=0?"pdf":(ct.indexOf("png")>=0?"png":"jpg");
-    var fname=nm+"_"+label+"_付款."+ext;
-    var folders=DriveApp.getFoldersByName("IS 付款截圖");
-    var folder=folders.hasNext()?folders.next():DriveApp.createFolder("IS 付款截圖");
-    var file=folder.createFile(Utilities.newBlob(Utilities.base64Decode(b64), ct, fname));
-    try{ file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }catch(e){}
-    var link=file.getUrl(), sh=feeSheet();
-    sh.getRange(hit.row,9).setValue(link);
-    if(hit.status!=="已繳") sh.getRange(hit.row,8).setValue("待核實");
-    logAppend({name:nm,key:label,action:"payUpload",status:"上傳付款截圖"});
-    notify("【繳費截圖】"+nm, nm+"\n期："+label+"\n金額：$"+hit.net+"\n截圖："+link+"\n請於教練端核實。");
-    return {ok:true, link:link};
-  }catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
+  try{ return payUploadCore_(String(p.name).trim(), String(p.period).trim(), p.dataUrl); }
+  catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
+}
+
+/* ═══════════ 免登入「一鍵繳費」（只憑姓名，供 is-pay.html）═══════════
+   只暴露應繳金額同明細；上載只標「待核實」，要教練核實先當收到。 */
+function rosterHasName_(nm){ return rosterRows().some(function(r){ return r.name===nm && r.cid; }); }
+function apiPayLookup(p){
+  var nm=String(p.name||"").trim();
+  if(!nm) return {ok:false, err:"請輸入小朋友中文全名"};
+  if(rlBlocked_("paylk_"+nm, 20)) return {ok:false, err:"嘗試太多次，請稍後再試"};
+  if(!rosterHasName_(nm)){ rlBump_("paylk_"+nm, 300); return {ok:false, err:"搵唔到呢位小朋友，請確認中文全名（如有疑問請 WhatsApp 教練 6331 7403）"}; }
+  rlClear_("paylk_"+nm);
+  var fees=feesFor_(nm).filter(function(f){ return f.net>0 && f.status!=="已繳" && f.status!=="豁免"; })
+    .sort(function(a,b){ return periodOrder_(a.period)-periodOrder_(b.period); });
+  return {ok:true, name:nm, payNumber:CONFIG.PAY_NUMBER, fees:fees};
+}
+function apiPayUploadOpen(p){
+  var nm=String(p.name||"").trim(), label=String(p.period||"").trim();
+  if(!nm || !rosterHasName_(nm)) return {ok:false, err:"搵唔到呢位小朋友，請確認中文全名"};
+  if(rlBlocked_("payup_"+nm, 12)) return {ok:false, err:"嘗試太多次，請稍後再試"};
+  rlBump_("payup_"+nm, 600);
+  try{ return payUploadCore_(nm, label, p.dataUrl); }
+  catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
 }
 
 /* ═══════════ 退出學生回歸（returner）═══════════

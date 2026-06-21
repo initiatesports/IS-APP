@@ -1309,6 +1309,7 @@ async function renderFees(){
       ${Object.keys(CLASSES).map(id=>`<option value="${id}" ${FEES_CLASS===id?'selected':''}>${id.toUpperCase()}・${CLASSES[id].dayZh} ${CLASSES[id].time}</option>`).join('')}
     </select>
     <button class="btn-makeup-done" onclick="genFeePeriod()">產生本期繳費列</button>
+    <button class="btn-makeup-done" onclick="genFeeMsg()">📣 繳費文案</button>
   </div>`;
   html+=`<div class="stats-grid">
     <div class="stat-card"><div class="num">${rows.length}</div><div class="lbl">學生</div></div>
@@ -1383,6 +1384,40 @@ async function addReferral(){
 }
 function onFeePeriod(v){ FEES_PERIOD=v; renderFees(); }
 function onFeeClass(v){ FEES_CLASS=v; renderFees(); }
+/* 📣 一鍵繳費文案：通用提醒（唔列名／唔列金額）＋ 免登入付款連結，copy 去 WhatsApp 班群 */
+function genFeeMsg(){
+  const PAY_URL='https://initiatesports.github.io/IS-APP/is-pay.html';
+  const PAY_NUM='6709 3390';
+  const cls=(FEES_CLASS!=='全部'&&CLASSES[FEES_CLASS])?(CLASSES[FEES_CLASS].dayZh+' '+CLASSES[FEES_CLASS].time+' 班'):'';
+  const greet=cls?('各位 '+cls+'家長：'):'各位家長：';
+  const msg=`【INITIATE SPORTS 學費提醒】
+${greet}
+${FEES_PERIOD} 學費可以開始繳交喇 🙏
+
+💳 付款方式：FPS / PayMe ${PAY_NUM}
+🔗 一鍵查睇應繳金額並上傳付款截圖：
+${PAY_URL}
+
+只需輸入小朋友中文全名，即見學費明細（已自動計入停課扣減），付款後上傳截圖即可，毋須登入。
+多謝支持！INITIATE SPORTS`;
+  const wrap=document.getElementById('fees-content'); if(!wrap) return;
+  const old=document.getElementById('fee-msg-panel'); if(old) old.remove();
+  const p=document.createElement('div');
+  p.id='fee-msg-panel'; p.className='cancelpanel';
+  p.innerHTML=`<div class="cp-h">📣 繳費文案（已就 ${FEES_CLASS==='全部'?'全部班別':FEES_CLASS.toUpperCase()} · ${FEES_PERIOD} 生成）</div>
+    <textarea id="fee-msg-text" rows="11" style="width:100%;font-size:13px;line-height:1.6">${msg}</textarea>
+    <button class="btn-copy" onclick="copyFeeMsg()">複製文案</button>
+    <button class="btn-copy" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb;margin-left:8px" onclick="document.getElementById('fee-msg-panel').remove()">關閉</button>`;
+  wrap.prepend(p);
+  p.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function copyFeeMsg(){
+  const t=document.getElementById('fee-msg-text'); if(!t) return;
+  t.select(); t.setSelectionRange(0,99999);
+  const done=()=>toast('已複製，可貼去 WhatsApp 班群','✓');
+  try{ navigator.clipboard.writeText(t.value).then(done,()=>{document.execCommand('copy');done();}); }
+  catch(e){ try{ document.execCommand('copy'); done(); }catch(_){ toast('請長按文字手動複製','ℹ'); } }
+}
 async function genFeePeriod(){
   if(!confirm('為所有在學學生產生「'+FEES_PERIOD+'」應繳列？已有嘅會自動跳過。')) return;
   let r; try{ r=await apiPost({action:'genPeriod', coachPass:cpass(), period:FEES_PERIOD}); }catch(e){ r=null; }

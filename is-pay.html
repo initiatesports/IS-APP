@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>INITIATE SPORTS · 學費繳交</title>
+<style>
+:root{--teal:#1b8d9b;--teal2:#28b8c8;--ink:#16242f;--muted:#6b7b86;--line:#e6ebee;--bg:#f4f7f8;--surface:#fff;--amber:#b5862b;--green:#2e9e6b;--red:#d9534f;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);padding:max(16px,env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom))}
+.wrap{max-width:520px;margin:0 auto}
+.top{text-align:center;margin:8px 0 16px}
+.top .logo{font-size:20px;font-weight:900;letter-spacing:.04em;color:var(--teal)}
+.top .sub{font-size:13px;color:var(--muted);margin-top:3px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(16,36,47,.05)}
+h3{margin:0 0 4px;font-size:15px;font-weight:900}
+.lbl{font-size:13px;color:var(--muted);margin-bottom:10px}
+input[type=text]{width:100%;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;font-size:16px;padding:13px;outline:none}
+input[type=text]:focus{border-color:var(--teal)}
+.btn{border:none;border-radius:13px;font-family:inherit;font-weight:900;cursor:pointer;width:100%;padding:14px;font-size:15.5px;background:linear-gradient(135deg,var(--teal2),var(--teal));color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px}
+.btn:disabled{opacity:.6}
+.btn.ghost{background:var(--surface);border:1.5px solid var(--line);color:var(--muted)}
+.err{color:var(--red);font-size:13.5px;margin-top:10px;min-height:16px;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 2px}
+.stat{background:var(--bg);border-radius:12px;padding:11px 6px;text-align:center}
+.stat .n{font-size:22px;font-weight:900;line-height:1.1}
+.stat .k{font-size:11.5px;color:var(--muted);margin-top:3px}
+.calc{margin-top:10px;padding:11px 13px;border-radius:12px;background:var(--bg);font-size:12.8px;line-height:2}
+.calc .h{font-weight:800;color:var(--muted);margin-bottom:2px}
+.calc .r{display:flex;justify-content:space-between}
+.calc .tot{border-top:1px solid var(--line);margin-top:4px;padding-top:4px;font-weight:900}
+.note{margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(27,141,155,.07);border:1px solid rgba(27,141,155,.25);font-size:12.5px;line-height:1.6;color:var(--teal)}
+.pay-to{font-size:13px;color:var(--ink);margin-top:12px;background:#fff7e6;border:1px solid #f0d9a8;border-radius:10px;padding:9px 12px}
+.up-row{margin-top:10px}
+.up-row input[type=file]{width:100%;font-size:13px;color:var(--muted)}
+.ok-box{background:rgba(46,158,107,.1);border:1px solid rgba(46,158,107,.35);color:var(--green);border-radius:12px;padding:12px;font-size:13.5px;text-align:center;margin-top:10px}
+.hide{display:none!important}
+.muted{color:var(--muted);font-size:12.5px}
+.foot{text-align:center;font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.7}
+a{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">INITIATE SPORTS</div>
+    <div class="sub">💳 學費繳交</div>
+  </div>
+
+  <!-- 查詢 -->
+  <div class="card" id="lookup">
+    <h3>輸入小朋友中文全名</h3>
+    <div class="lbl">輸入後即見應繳學費明細，毋須登入。</div>
+    <input type="text" id="name" placeholder="例：陳大文" autocomplete="off" enterkeyhint="search">
+    <button class="btn" id="go" onclick="lookup()">🔍 查睇學費</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result"></div>
+
+  <div class="foot">如有疑問，歡迎 WhatsApp 教練 6331 7403<br>INITIATE SPORTS · AIM HIGH JUMP HIGH</div>
+</div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec';
+let PAYNUM='6709 3390', NAME='', FILES={};
+const $=id=>document.getElementById(id);
+async function api(action,body){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action},body))});
+  return r.json();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function lookup(){
+  const nm=$('name').value.trim(); $('err').textContent='';
+  if(!nm){ $('err').textContent='請輸入小朋友中文全名'; return; }
+  const btn=$('go'); btn.disabled=true; btn.textContent='查詢中…';
+  let r; try{ r=await api('payLookup',{name:nm}); }catch(e){ r=null; }
+  btn.disabled=false; btn.textContent='🔍 查睇學費';
+  if(!r||!r.ok){ $('err').textContent=(r&&r.err)||'查詢失敗，請稍後再試'; $('result').innerHTML=''; return; }
+  NAME=r.name; PAYNUM=r.payNumber||'6709 3390';
+  render(r.fees||[]);
+}
+function feeCard(f,i){
+  const unit=Number(f.unitPrice)||(f.weekly>=2?110:130);
+  const sess=(f.sessions!=null)?f.sessions:((f.due>0&&f.due%unit===0)?f.due/unit:null);
+  const ded=Number(f.deducted)||0;
+  const sched=(f.scheduled!=null)?f.scheduled:(sess!=null?sess+ded:null);
+  let rows='';
+  if(sess!=null&&ded>0){
+    rows+=`<div class="r"><span>本期原定 <b>${sched}</b> 堂 × $${unit}/堂</span><span>$${sched*unit}</span></div>`;
+    rows+=`<div class="r" style="color:var(--green)"><span>扣減 <b>${ded}</b> 堂（停課／順延，不收費）</span><span>−$${ded*unit}</span></div>`;
+    rows+=`<div class="r"><span>實收 <b>${sess}</b> 堂 × $${unit}</span><b>$${f.due}</b></div>`;
+  }else if(sess!=null){
+    rows+=`<div class="r"><span>本期上課 <b>${sess}</b> 堂 × $${unit}/堂</span><b>$${f.due}</b></div>`;
+  }else rows+=`<div class="r"><span>本期學費</span><b>$${f.due}</b></div>`;
+  if(f.discount>0) rows+=`<div class="r" style="color:var(--green)"><span>推薦折扣</span><span>−$${f.discount}</span></div>`;
+  if(f.adj>0) rows+=`<div class="r" style="color:var(--amber)"><span>額外收費${f.adjNote?'（'+esc(f.adjNote)+'）':''}</span><span>+$${f.adj}</span></div>`;
+  if(f.adj<0) rows+=`<div class="r" style="color:var(--green)"><span>抵扣${f.adjNote?'（'+esc(f.adjNote)+'）':''}</span><span>−$${-f.adj}</span></div>`;
+  const note=f.note?`<div class="note">📌 已扣減以下取消／停課課堂（唔收費）：<br>${esc(f.note).replace(/；/g,'<br>')}</div>`:'';
+  const pending=f.status==='待核實'||f.hasScreenshot;
+  return `<div class="card">
+    <h3>💳 ${esc(f.period)} 學費</h3>
+    <div class="lbl">${NAME}　·　每週 ${f.weekly||1} 節</div>
+    <div class="stats">
+      <div class="stat"><div class="n">$${f.net}</div><div class="k">應繳</div></div>
+      <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">已繳</div></div>
+      <div class="stat"><div class="n" style="font-size:15px;color:${pending?'var(--teal)':'var(--amber)'}">${pending?'待核實':'未繳'}</div><div class="k">狀態</div></div>
+    </div>
+    <div class="calc"><div class="h">🧮 學費明細</div>${rows}<div class="r tot"><span>應繳</span><span>$${f.net}</span></div></div>
+    ${note}
+    <div class="pay-to">💰 付款方式：FPS / PayMe　<b>${esc(PAYNUM)}</b><br><span class="muted">轉數後請喺下面上傳付款截圖</span></div>
+    <div class="up-row">
+      <input type="file" id="file-${i}" accept="image/*,application/pdf" onchange="onFile(${i},this)">
+      <div class="muted" id="fst-${i}" style="margin-top:4px">${pending?'已有截圖，如重新付款可再上傳':'請揀選付款截圖（相片或 PDF）'}</div>
+      <button class="btn" id="upb-${i}" onclick="upload(${i},'${esc(f.period)}')">${pending?'🔁 重新上傳截圖':'📷 上傳付款截圖'}</button>
+    </div>
+    <div class="ok-box hide" id="ok-${i}"></div>
+  </div>`;
+}
+function render(fees){
+  $('lookup').querySelector('h3').textContent=NAME+' 的學費';
+  if(!fees.length){
+    $('result').innerHTML=`<div class="card"><div class="ok-box" style="display:block">✅ ${NAME} 暫時冇未繳學費，多謝支持！</div></div>`;
+    return;
+  }
+  $('result').innerHTML=fees.map((f,i)=>feeCard(f,i)).join('');
+}
+function onFile(i,input){
+  const f=input.files&&input.files[0]; const st=$('fst-'+i);
+  if(!f){FILES[i]=null;return;}
+  if(f.size>6*1024*1024){ st.textContent='檔案太大（上限 6MB），請另揀'; st.style.color='var(--red)'; input.value=''; return; }
+  const rd=new FileReader(); rd.onload=()=>{FILES[i]=rd.result; st.textContent='已揀：'+f.name; st.style.color='var(--green)';}; rd.readAsDataURL(f);
+}
+async function upload(i,period){
+  if(!FILES[i]){ const st=$('fst-'+i); st.textContent='請先揀選付款截圖'; st.style.color='var(--red)'; return; }
+  const btn=$('upb-'+i); btn.disabled=true; btn.textContent='上傳中…';
+  let r; try{ r=await api('payUploadOpen',{name:NAME,period,dataUrl:FILES[i]}); }catch(e){ r=null; }
+  if(!r||!r.ok){ btn.disabled=false; btn.textContent='📷 上傳付款截圖'; const st=$('fst-'+i); st.textContent=(r&&r.err)||'上傳失敗，請再試'; st.style.color='var(--red)'; return; }
+  const ok=$('ok-'+i); ok.textContent='✅ 已收到付款截圖！教練核實後會更新狀態。多謝支持 🙏'; ok.classList.remove('hide');
+  btn.classList.add('hide');
+}
+$('name').addEventListener('keydown',e=>{ if(e.key==='Enter') lookup(); });
+$('name').focus();
+</script>
+</body>
+</html>
