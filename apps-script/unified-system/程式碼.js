@@ -1759,7 +1759,8 @@ function apiSaveSettings(p){
 
 /* ═══════════ 通知 / 提醒 ═══════════ */
 function notify(subject, body){
-  try{ GmailApp.sendEmail(CONFIG.COACH_EMAIL, "INITIATE SPORTS · "+subject, body); }catch(e){}
+  // 用 MailApp（窄權限：只「以你身份寄信」）取代 GmailApp（要求闊 Gmail 讀寫權限）
+  try{ MailApp.sendEmail(CONFIG.COACH_EMAIL, "INITIATE SPORTS · "+subject, body); }catch(e){}
 }
 function ensureReminders(){
   try{
