@@ -1321,6 +1321,18 @@ function apiReturnsAll(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   return {ok:true, returns:returnRows_()};
 }
+// 選單：核實回歸申請（列出待核實 → 輸入姓名核實 → 加入班別）
+function reviewReturnsMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var pending=returnRows_().filter(function(x){ return x.status!=="已核實"; });
+  if(!pending.length){ ui.alert("冇待核實嘅回歸申請。"); return; }
+  var msg=pending.map(function(x){ return "• "+x.name+" → "+x.cids.map(function(c){ return classLabel_(c); }).join("、")+"（"+x.period+"，$"+x.fee+"）"; }).join("\n");
+  var resp=ui.prompt("待核實回歸："+pending.length+" 宗\n\n"+msg+"\n\n核實前請先睇「回歸」表嘅付款截圖。\n輸入要核實嘅學生中文全名（核實＝加入班別、變正常學生）：", ui.ButtonSet.OK_CANCEL);
+  if(resp.getSelectedButton()!==ui.Button.OK) return;
+  var nm=String(resp.getResponseText()||"").trim(); if(!nm) return;
+  var vr=apiReturnVerify({coachPass:CONFIG.COACH_PASS, name:nm});
+  ui.alert(vr.ok ? ("✅ "+nm+" 已核實回歸，加入："+vr.classes.map(function(c){ return classLabel_(c); }).join("、")+"\n\n⚠️ 跟住請：1) 執行一次「⬇️ 匯入家長資料」令 grid 對齊；2) 通知我把佢加入程式碼名單做永久。") : ("核實失敗："+(vr.err||"")));
+}
 /* 教練：核實已繳 */
 function apiVerifyPay(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
@@ -1911,6 +1923,7 @@ function onOpen(){
     .addItem("產生出席報表","buildReport")
     .addItem("產生繳費列（本期＋下期）","genCurrentPeriodFees")
     .addItem("🧪 取消示範帳號豁免（陳大文）","fixDemoUnexempt")
+    .addItem("🔄 核實回歸申請（退出學生付款回歸）","reviewReturnsMenu")
     .addItem("立即備份","backup")
     .addItem("備份到 Drive（整份複製）","backupToDrive")
     .addItem("備份清單","listBackups")
