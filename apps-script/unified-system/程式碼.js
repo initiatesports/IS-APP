@@ -50,6 +50,22 @@ const CLASSES = {
 };
 const CLASS_IDS = Object.keys(CLASSES);
 
+/* ⚙️ 統一名單來源（2026-06）：啟動時把「設定(Settings 表) class_cN_students」套入 CLASSES，
+ * 令後端名單 = 教練喺 coach.html 設定改嘅（與點名 / 家長端 / grid 一致），以後改設定全系統生效。
+ * 防呆：某班設定為空或讀取失敗 → 唔覆蓋，沿用上面程式碼預設名單。
+ * ⚠️ 改完設定（加/減學生）後，請執行一次「⬇️ 匯入家長資料」或「初始化/更新」令 grid 對齊（非破壞性、會先備份）。*/
+(function applyRosterSettings_(){
+  try{
+    var m=settingsMap();
+    CLASS_IDS.forEach(function(cid){
+      var v=m["class_"+cid+"_students"]; if(v==null) return;
+      var arr=Array.isArray(v)?v:String(v).split(",");
+      arr=arr.map(function(x){ return String(x).trim(); }).filter(Boolean);
+      if(arr.length) CLASSES[cid].students=arr;   // 防呆：空就唔覆蓋
+    });
+  }catch(e){ Logger.log("套用設定名單失敗，沿用程式碼預設："+e); }
+})();
+
 /* ═══════════ 私人訓練（PT）═══════════
  * 與恆常班完全分開：各自 1對1、獨立 10 堂一個週期，無請假/補堂，只記「邊日上咗堂」。
  * 加／減私訓學員：在 PT_STUDENTS 陣列加減項目即可，毋須改其他地方。
@@ -70,7 +86,9 @@ const PT_CYCLE = 10;   // 每期堂數；夠數自動開新一期
  * 加返入對應 CLASSES 班別即可。改完要執行一次 ensureRoster_/setup 先生效。
  * 例：梁心朗 2026-06 暫停，7月可能回來 —— 先保留帳號可登入。
  */
-const LOGIN_ONLY = ["梁心朗"];
+const LOGIN_ONLY = ["陳信澄","陳澔泓","潘洛詩","顧舒然","梁心朗"];  // 退出可回歸：可登入＋排行榜出名＋見回歸面板
+var RETURNABLE = LOGIN_ONLY;              // returner 名單（同 LOGIN_ONLY）
+var RET_FEE_1 = 1200, RET_FEE_2 = 1800;   // 回歸費：1週1堂 $1200 / 1週2堂 $1800（$150/節）
 
 /* ═══════════ 家長手機後4位（報名表抽出；兄弟姊妹共用 → 一家睇晒）═══════════ */
 const PHONE = {
@@ -594,11 +612,18 @@ function syncMakeupsToGrid(){
 
 /* ═══════════ Roster / 補堂 / Log ═══════════ */
 function rosterRows(){
-  var sh=SS().getSheetByName("Roster");
-  if(!sh || sh.getLastRow()<2) return [];
-  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues()
-    .map(function(r){ return {name:String(r[0]).trim(), last4:String(r[1]), cid:String(r[2]), dayZh:String(r[3]), time:String(r[4])}; })
-    .filter(function(r){ return r.name; });
+  var sh=SS().getSheetByName("Roster"), rows=[];
+  if(sh && sh.getLastRow()>1){
+    rows=sh.getRange(2,1,sh.getLastRow()-1,5).getValues()
+      .map(function(r){ return {name:String(r[0]).trim(), last4:String(r[1]), cid:String(r[2]), dayZh:String(r[3]), time:String(r[4])}; })
+      .filter(function(r){ return r.name; });
+  }
+  // 自癒：可回歸學生若未喺名冊 → 用 PHONE 補返（可登入、無班別），毋須先跑 setup
+  (typeof RETURNABLE!=="undefined"?RETURNABLE:[]).forEach(function(nm){
+    if(!rows.some(function(r){ return r.name===nm; }) && PHONE[nm])
+      rows.push({name:nm, last4:pad4(PHONE[nm]), cid:"", dayZh:"", time:""});
+  });
+  return rows;
 }
 function makeupSheet(){ return SS().getSheetByName("補堂"); }
 function makeupAll(){
@@ -710,6 +735,10 @@ function route(p){
     case "save_attendance": return apiSaveAttendance(p);
     case "save_absences":   return apiSaveAbsences(p);
     case "save_settings":   return apiSaveSettings(p);
+    // ── 退出學生回歸 ──
+    case "returnPay":       return apiReturnPay(p);
+    case "returnVerify":    return apiReturnVerify(p);
+    case "returnsAll":      return apiReturnsAll(p);
     // ── 老闆控制台營運快照（教練密碼）──
     case "opsSnapshot":     return apiOpsSnapshot(p);
     default:                return {ok:false, err:"unknown action"};
@@ -780,10 +809,13 @@ function apiLogin(p){
   rlClear_("login_"+nm);
   var fam=pad4(hit[0].last4);   // 內部家庭鍵＝名冊電話後4位（不變）
   var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
-  var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn), fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn)}; });
+  var children=names.map(function(cn){ var cl=classesFor_(cn);
+    return {name:cn, classes:cl, fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn),
+      returnable:(cl.length===0 && RETURNABLE.indexOf(cn)>=0)}; });
   return {ok:true, family:{last4:fam, hasPin:!!pinFor_(fam)}, children:children,
     student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[],
-    payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6), summerBridge:summerBridgeOn_()};
+    payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6), summerBridge:summerBridgeOn_(),
+    retFees:{f1:RET_FEE_1, f2:RET_FEE_2}, nextPeriod:nextPeriodLabel_()};
 }
 
 /* ═══════════ 請假 / 取消請假 ═══════════ */
@@ -1229,6 +1261,81 @@ function apiPayUpload(p){
     notify("【繳費截圖】"+nm, nm+"\n期："+label+"\n金額：$"+hit.net+"\n截圖："+link+"\n請於教練端核實。");
     return {ok:true, link:link};
   }catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
+}
+
+/* ═══════════ 退出學生回歸（returner）═══════════
+ * RETURNABLE 學生：可登入、排行榜出名、is-parent 中間區換成「回歸下一期」面板。
+ * 流程：揀 1～2 班 → 上傳付款截圖（$1200/$1800）→ 教練核實 → 自動加入該班設定（變正常學生）。*/
+function returnSheet(){
+  var sh=SS().getSheetByName("回歸");
+  if(!sh){ sh=SS().insertSheet("回歸");
+    sh.getRange(1,1,1,9).setValues([["學生","選班別","期","每週堂數","費用","狀態","截圖","申請時間","核實時間"]]);
+    sh.setFrozenRows(1); }
+  return sh;
+}
+function returnRows_(){
+  var sh=returnSheet(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,9).getValues().map(function(r,i){
+    var cids=[]; try{ cids=JSON.parse(r[1]); }catch(e){ cids=String(r[1]).split(","); }
+    return {row:i+2, name:String(r[0]), cids:cids, period:String(r[2]), weekly:Number(r[3])||0,
+      fee:Number(r[4])||0, status:String(r[5]||""), link:String(r[6]||""), at:String(r[7]||""), verifiedAt:String(r[8]||"")};
+  }).filter(function(x){ return x.name; });
+}
+function isReturnable_(nm){ return RETURNABLE.indexOf(String(nm).trim())>=0 && classesFor_(nm).length===0; }
+function returnFee_(n){ return n>=2 ? RET_FEE_2 : RET_FEE_1; }
+
+// 家長：回歸付款（揀 1～2 班 + 上傳截圖）
+function apiReturnPay(p){
+  if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確"};
+  var nm=String(p.name).trim();
+  if(!isReturnable_(nm)) return {ok:false,err:"此帳戶毋須回歸（已在學或非可回歸名單）"};
+  var cids=(p.classIds||[]).map(function(x){ return String(x).trim(); }).filter(function(c){ return CLASSES[c]; });
+  cids=cids.filter(function(c,i){ return cids.indexOf(c)===i; });
+  if(!cids.length || cids.length>2) return {ok:false,err:"請揀 1～2 個班別"};
+  var fee=returnFee_(cids.length), per=nextPeriodLabel_();
+  try{
+    var dataUrl=String(p.dataUrl||""); var comma=dataUrl.indexOf(",");
+    if(comma<0) return {ok:false,err:"請上傳付款截圖"};
+    var meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
+    var ctMatch=meta.match(/data:(.*?);/); var ct=ctMatch?ctMatch[1]:"image/jpeg";
+    var ext=ct.indexOf("pdf")>=0?"pdf":(ct.indexOf("png")>=0?"png":"jpg");
+    var folders=DriveApp.getFoldersByName("IS 付款截圖");
+    var folder=folders.hasNext()?folders.next():DriveApp.createFolder("IS 付款截圖");
+    var file=folder.createFile(Utilities.newBlob(Utilities.base64Decode(b64), ct, nm+"_回歸_"+per+"."+ext));
+    try{ file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }catch(e){}
+    var link=file.getUrl(), sh=returnSheet();
+    var rowVals=[nm, JSON.stringify(cids), per, cids.length, fee, "待核實", link, nowStamp_(), ""];
+    var existing=returnRows_().filter(function(x){ return x.name===nm && x.status!=="已核實"; })[0];
+    if(existing) sh.getRange(existing.row,1,1,9).setValues([rowVals]);
+    else sh.getRange(sh.getLastRow()+1,1,1,9).setValues([rowVals]);
+    notify("【回歸付款】"+nm, nm+" 申請回歸\n班別："+cids.map(function(c){ return classLabel_(c); }).join("、")+
+      "\n期："+per+"\n費用：$"+fee+"\n截圖："+link+"\n請喺教練端核實。");
+    return {ok:true, link:link, fee:fee, period:per};
+  }catch(e){ return {ok:false,err:"上載失敗："+(e&&e.message||e)}; }
+}
+// 教練：核實回歸 → 加入班別設定（即變正常學生；先自動備份）
+function apiReturnVerify(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name).trim();
+  var hit=returnRows_().filter(function(x){ return x.name===nm && x.status!=="已核實"; })[0];
+  if(!hit) return {ok:false,err:"搵唔到待核實回歸申請"};
+  try{ backup(); }catch(e){}
+  hit.cids.forEach(function(cid){
+    if(!CLASSES[cid]) return;
+    var arr=CLASSES[cid].students.slice();
+    if(arr.indexOf(nm)<0) arr.push(nm);
+    upsertSetting_("class_"+cid+"_students", JSON.stringify(arr));   // 寫設定 → 全系統認
+    CLASSES[cid].students=arr;                                       // 即時生效（同次執行）
+  });
+  try{ ensureRoster_(SS()); }catch(e){}                              // 名冊即時更新 → 家長端認得
+  var sh=returnSheet(); sh.getRange(hit.row,6).setValue("已核實"); sh.getRange(hit.row,9).setValue(nowStamp_());
+  notify("【回歸完成】"+nm, nm+" 已核實回歸，加入："+hit.cids.map(function(c){ return classLabel_(c); }).join("、")+
+    "\n⚠️ 請執行一次「⬇️ 匯入家長資料」令 grid 加返佢嗰行（非破壞性）。");
+  return {ok:true, name:nm, classes:hit.cids};
+}
+function apiReturnsAll(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, returns:returnRows_()};
 }
 /* 教練：核實已繳 */
 function apiVerifyPay(p){
