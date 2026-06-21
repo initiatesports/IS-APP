@@ -1260,7 +1260,12 @@ function apiFeesAll(p){
   });
   return {ok:true, fees:rows};
 }
-function genCurrentPeriodFees(){ var r=apiGenPeriod({coachPass:CONFIG.COACH_PASS}); SpreadsheetApp.getUi().alert("已產生 "+r.period+" 繳費列，新增 "+r.added+" 位學生。"); }
+function genCurrentPeriodFees(){
+  // 一次過產生本期＋下期繳費列（已存在嘅期會跳過）→ 家長端揀下期就會見到收費功能區
+  var cur=apiGenPeriod({coachPass:CONFIG.COACH_PASS, period:curPeriodLabel_()});
+  var nxt=apiGenPeriod({coachPass:CONFIG.COACH_PASS, period:nextPeriodLabel_()});
+  SpreadsheetApp.getUi().alert("已產生繳費列：\n• "+cur.period+"：新增 "+cur.added+" 位\n• "+nxt.period+"：新增 "+nxt.added+" 位\n\n（家長端揀對應月份即見收費功能區）");
+}
 
 /* ═══════════ 家長操作權限：須附家庭登入碼（後端驗證，防冒用）═══════════ */
 function authParent_(name, code){
@@ -1800,7 +1805,7 @@ function onOpen(){
   SpreadsheetApp.getUi().createMenu("INITIATE")
     .addItem("初始化 / 更新（保留資料）","setup")
     .addItem("產生出席報表","buildReport")
-    .addItem("產生本期繳費列","genCurrentPeriodFees")
+    .addItem("產生繳費列（本期＋下期）","genCurrentPeriodFees")
     .addItem("立即備份","backup")
     .addItem("備份到 Drive（整份複製）","backupToDrive")
     .addItem("備份清單","listBackups")
