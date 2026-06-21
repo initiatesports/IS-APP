@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>INITIATE 控制台</title>
+<style>
+:root{--teal:#1b8d9b;--teal2:#2bb3c6;--ink:#16242f;--muted:#6b7b86;--line:#e6ebee;--bg:#f4f7f8;--surface:#fff;--red:#d9534f;--green:#2e9e6b;--amber:#b5862b;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);
+  padding:max(16px,env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom));}
+.wrap{max-width:680px;margin:0 auto;}
+.top{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 16px;}
+.top h1{font-size:20px;font-weight:900;margin:0;letter-spacing:.02em;}
+.top .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.btn{border:none;border-radius:12px;font-family:inherit;font-weight:800;cursor:pointer;}
+.btn-pri{background:linear-gradient(135deg,var(--teal2),var(--teal));color:#fff;padding:14px;font-size:15px;width:100%;}
+.btn-ghost{background:var(--surface);border:1.5px solid var(--line);color:var(--muted);padding:8px 12px;font-size:13px;}
+/* gate */
+#gate{max-width:380px;margin:14vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 22px;box-shadow:0 10px 34px rgba(16,36,47,.08);}
+#gate h2{margin:0 0 4px;font-size:19px;font-weight:900;}
+#gate p{margin:0 0 16px;font-size:13px;color:var(--muted);}
+#gate input{width:100%;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;font-size:16px;padding:13px;outline:none;margin-bottom:12px;letter-spacing:.15em;text-align:center;}
+#gate input:focus{border-color:var(--teal);}
+#gate .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px;text-align:center;}
+.hide{display:none!important;}
+/* snapshot */
+.snap{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px;}
+.snap .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.snap .h b{font-size:15px;font-weight:900;}
+.snap .h span{font-size:11.5px;color:var(--muted);}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cell{background:var(--bg);border-radius:12px;padding:11px 8px;text-align:center;}
+.cell .n{font-size:22px;font-weight:900;line-height:1.1;}
+.cell .k{font-size:11px;color:var(--muted);margin-top:3px;}
+.cell.alert .n{color:var(--red);}
+.cell.good .n{color:var(--green);}
+.todaybox{margin-top:10px;font-size:13px;color:var(--ink);line-height:1.7;}
+.todaybox .t{color:var(--muted);font-size:12px;margin-bottom:2px;}
+.sec{font-size:12.5px;font-weight:800;color:var(--muted);letter-spacing:.06em;margin:16px 4px 8px;}
+.links{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.link{display:flex;flex-direction:column;gap:3px;text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--ink);transition:transform .08s;}
+.link:active{transform:scale(.98);}
+.link .ic{font-size:20px;}
+.link .nm{font-size:14.5px;font-weight:800;}
+.link .ds{font-size:11.5px;color:var(--muted);}
+.load{font-size:13px;color:var(--muted);padding:8px 2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 登入閘 -->
+  <div id="gate">
+    <h2>🔐 老闆控制台</h2>
+    <p>輸入教練密碼以查看營運快照同快速入口。</p>
+    <input id="g-pass" type="password" inputmode="numeric" placeholder="教練密碼" onkeydown="if(event.key==='Enter')gateLogin()">
+    <button class="btn btn-pri" onclick="gateLogin()">進入</button>
+    <div class="err" id="g-err"></div>
+  </div>
+
+  <!-- 主畫面 -->
+  <div id="app" class="hide">
+    <div class="top">
+      <div>
+        <h1>INITIATE 控制台</h1>
+        <div class="sub" id="app-sub">營運快照載入中…</div>
+      </div>
+      <button class="btn btn-ghost" onclick="logout()">登出</button>
+    </div>
+
+    <div class="snap">
+      <div class="h"><b>📊 今日營運快照</b><span id="snap-time"></span></div>
+      <div id="snap-body"><div class="load">載入中…</div></div>
+    </div>
+
+    <div class="sec">每日營運（恆常班）</div>
+    <div class="links">
+      <a class="link" href="coach.html"><span class="ic">📝</span><span class="nm">教練點名</span><span class="ds">出席 / 補堂 / 加操</span></a>
+      <a class="link" href="coach.html"><span class="ic">📷</span><span class="nm">課堂相簿</span><span class="ds">上載相片 / 短片</span></a>
+      <a class="link" href="is-parent.html"><span class="ic">👨‍👩‍👧</span><span class="nm">家長網頁</span><span class="ds">家長視角預覽</span></a>
+      <a class="link" href="is-attendance-app.html"><span class="ic">⭐</span><span class="nm">教練主網頁</span><span class="ds">星之學員 / 成績</span></a>
+    </div>
+
+    <div class="sec">報名</div>
+    <div class="links">
+      <a class="link" href="https://initiatesports.github.io/SUMMER-COURSE-2026/" target="_blank" rel="noopener"><span class="ic">☀️</span><span class="nm">暑期班報名</span><span class="ds">即時名額 / 候補</span></a>
+      <a class="link" href="initiate-sports-booking.html"><span class="ic">🗒️</span><span class="nm">6-7月特別課程</span><span class="ds">報名 / 付款核實</span></a>
+    </div>
+
+    <div class="sec">暑期班營運</div>
+    <div class="links">
+      <a class="link" href="is-coach.html"><span class="ic">✅</span><span class="nm">暑期教練點名</span><span class="ds">逐班 grid 出席</span></a>
+      <a class="link" href="is-leave-makeup.html"><span class="ic">🔁</span><span class="nm">暑期請假補堂</span><span class="ds">家長請假 / 補堂</span></a>
+    </div>
+  </div>
+
+</div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec';
+let CPASS=(function(){ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
+async function apiPost(body){
+  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+  return r.json();
+}
+async function gateLogin(){
+  const v=(document.getElementById('g-pass').value||'').trim();
+  if(!v){ document.getElementById('g-err').textContent='請輸入密碼'; return; }
+  document.getElementById('g-err').textContent='驗證中…';
+  let r; try{ r=await apiPost({action:'coachLogin', coachPass:v}); }catch(e){ r=null; }
+  if(r&&r.ok){ CPASS=v; try{ sessionStorage.setItem('is_cpass',v); }catch(e){} enter(); }
+  else document.getElementById('g-err').textContent='密碼錯誤';
+}
+function logout(){ CPASS=''; try{ sessionStorage.removeItem('is_cpass'); }catch(e){} location.reload(); }
+function enter(){
+  document.getElementById('gate').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  loadSnapshot();
+}
+async function loadSnapshot(){
+  const body=document.getElementById('snap-body');
+  let r; try{ r=await apiPost({action:'opsSnapshot', coachPass:CPASS}); }catch(e){ r=null; }
+  if(!r||!r.ok){ body.innerHTML='<div class="load" style="color:var(--red)">快照載入失敗'+(r&&r.err?('：'+r.err):'')+'</div>'; return; }
+  document.getElementById('snap-time').textContent=r.at||'';
+  document.getElementById('app-sub').textContent='共 '+(r.students||0)+' 位學生 · '+(r.fees&&r.fees.period||'');
+  const f=r.fees||{};
+  const todayHtml = (r.today&&r.today.length)
+    ? r.today.map(c=>'• '+c.label+'｜'+c.count+' 人').join('<br>')
+    : '今日無恆常班課堂';
+  body.innerHTML=`
+    <div class="grid">
+      <div class="cell ${f.unpaid>0?'alert':'good'}"><div class="n">${f.unpaid||0}</div><div class="k">未繳人數</div></div>
+      <div class="cell ${f.verify>0?'alert':''}"><div class="n">${f.verify||0}</div><div class="k">待核實</div></div>
+      <div class="cell"><div class="n">${f.rate==null?'—':f.rate+'%'}</div><div class="k">本期完成率</div></div>
+      <div class="cell ${r.makeupSoon>0?'alert':''}"><div class="n">${r.makeupSoon||0}</div><div class="k">補堂7日內到期</div></div>
+      <div class="cell"><div class="n">${r.outstandingMakeups||0}</div><div class="k">未補堂總數</div></div>
+      <div class="cell"><div class="n">$${(f.unpaidAmt||0).toLocaleString()}</div><div class="k">未收學費</div></div>
+    </div>
+    <div class="todaybox"><div class="t">今日課堂</div>${todayHtml}</div>`;
+}
+// 開頁：若 session 已有密碼，直接驗證入內
+(async function(){
+  if(CPASS){
+    let r; try{ r=await apiPost({action:'coachLogin', coachPass:CPASS}); }catch(e){ r=null; }
+    if(r&&r.ok){ enter(); return; }
+    CPASS=''; try{ sessionStorage.removeItem('is_cpass'); }catch(e){}
+  }
+  document.getElementById('g-pass').focus();
+})();
+</script>
+</body>
+</html>

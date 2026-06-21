@@ -133,9 +133,28 @@ function doPost(e){
       case "getProof":    return json(getProof(body));       // 需密碼
       default:            return json({ok:false, error:"unknown action"});
     }
+  } catch(err){
+    reportError_("#1 doPost "+(body&&body.action||""), err);
+    return json({ok:false, error:"系統錯誤，請稍後再試"});
   } finally {
     lock.releaseLock();
   }
+}
+/* ═══════════ 統一錯誤通報：後端一出 exception 自動 email 老闆（節流防洗信）═══════════ */
+function reportError_(where, err){
+  try{
+    var sig=String((err&&err.stack)||err).slice(0,140).replace(/\s+/g," ");
+    var c=CacheService.getScriptCache();
+    var k="errmail_"+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, sig)).slice(0,24);
+    if(c.get(k)) return;                              // 同類錯誤 15 分鐘內唔重複寄
+    if(Number(c.get("errmail_cap")||0)>=6) return;    // 全域每小時最多 6 封
+    c.put(k,"1",900); c.put("errmail_cap", String(Number(c.get("errmail_cap")||0)+1), 3600);
+    MailApp.sendEmail(COACH_EMAIL,
+      "🛑 INITIATE 系統錯誤（"+where+"）",
+      "報名系統後端發生錯誤，已自動記錄：\n\n位置："+where+"\n\n"+String((err&&err.stack)||err)+
+      "\n\n時間："+Utilities.formatDate(new Date(), "Asia/Hong_Kong", "yyyy-MM-dd HH:mm:ss")+
+      "\n\n（同類錯誤 15 分鐘內只會通知一次）");
+  }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
 
 /* ---------- 公開狀態:只回傳人數,唔含個人資料 ---------- */
@@ -176,8 +195,22 @@ function adminList(body){
 /* ---------- 報名:建立「未完成(pending)」紀錄,未占位;上傳截圖先正式留位 ---------- */
 function register(body){
   if (isRegClosed_()) return {ok: false, closed: true, error: "報名已截止"};   // 自動關閉:伺服器端把關,前端改唔到都報唔到
+  // ── 防洗版 / 防垃圾提交：欄位驗證 + 每電話節流 ──
+  var phone  = String(body.phone  || "").trim();
+  var parent = String(body.parent || "").trim();
+  var student= String(body.student|| "").trim();
+  if (!/^\d{8}$/.test(phone))                 return {ok:false, error:"電話號碼格式不正確（需 8 位數字）"};
+  if (parent.length  < 1 || parent.length  > 40) return {ok:false, error:"請填寫家長姓名"};
+  if (student.length < 1 || student.length > 40) return {ok:false, error:"請填寫學生姓名"};
+  var classes = body.classes || [];
+  if (!Array.isArray(classes) || classes.length < 1) return {ok:false, error:"請至少選擇一個班別"};
+  if (classes.length > 20)                    return {ok:false, error:"一次選擇的班別過多"};
+  // 每電話節流：1 小時內最多 10 次報名提交，擋連環洗版（dedup 之外再加一層）
+  if (rlBlocked_("reg_"+phone, 10)) return {ok:false, error:"提交太頻繁，請稍後再試或 WhatsApp 我們"};
+  rlBump_("reg_"+phone, 3600);
+  body.phone = phone; body.parent = parent; body.student = student;
   var sh = regSheet(), data = sh.getDataRange().getValues();
-  var classes = body.classes || [], now = new Date(), results = [];
+  var now = new Date(), results = [];
 
   function dupStatus(cid){
     for (var i = 1; i < data.length; i++){

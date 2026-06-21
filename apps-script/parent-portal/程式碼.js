@@ -72,8 +72,25 @@ function doGet(e) {
     if (action === 'ping') return makeResponse({ ok: true, ts: new Date().toISOString() });
     return makeResponse({ error: 'Unknown action: ' + action });
   } catch(err) {
+    reportError_('#11 doGet ' + ((e&&e.parameter&&e.parameter.action)||''), err);
     return makeResponse({ error: err.message });
   }
+}
+/* ═══════════ 統一錯誤通報：後端一出 exception 自動 email 老闆（節流防洗信）═══════════ */
+function reportError_(where, err){
+  try{
+    var sig=String((err&&err.stack)||err).slice(0,140).replace(/\s+/g,' ');
+    var c=CacheService.getScriptCache();
+    var k='errmail_'+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, sig)).slice(0,24);
+    if(c.get(k)) return;                              // 同類錯誤 15 分鐘內唔重複寄
+    if(Number(c.get('errmail_cap')||0)>=6) return;    // 全域每小時最多 6 封
+    c.put(k,'1',900); c.put('errmail_cap', String(Number(c.get('errmail_cap')||0)+1), 3600);
+    MailApp.sendEmail('initiatesports6331@gmail.com',
+      '🛑 INITIATE 系統錯誤（'+where+'）',
+      '家長資料後端發生錯誤，已自動記錄：\n\n位置：'+where+'\n\n'+String((err&&err.stack)||err)+
+      '\n\n時間：'+Utilities.formatDate(new Date(), 'Asia/Hong_Kong', 'yyyy-MM-dd HH:mm:ss')+
+      '\n\n（同類錯誤 15 分鐘內只會通知一次）');
+  }catch(e){ Logger.log('reportError_ 失敗：'+e); }
 }
 
 // ─── POST ───────────────────────────────────────────────────────────
@@ -108,6 +125,7 @@ function doPost(e) {
     if (action === 'save_settings')    return makeResponse(saveSettings(body.data));
     return makeResponse({ error: 'Unknown action: ' + action });
   } catch(err) {
+    reportError_('#11 doPost', err);
     return makeResponse({ error: err.message });
   }
 }
