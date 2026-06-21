@@ -1933,7 +1933,7 @@ const CLASSES = {
 };
 
 const PERF_CLASSES_STUDENTS = {
-  c5: ['顧舒然','吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋'],
+  c5: ['吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋'],
 };
 
 function getPerfStudents(classId) {
@@ -1941,10 +1941,7 @@ function getPerfStudents(classId) {
 }
 
 function getRollStudents(classId, dateStr) {
-  if (classId === 'c5' && dateStr >= '2026-05-01') {
-    const base = CLASSES[classId].students;
-    return base.includes('顧舒然') ? base : ['顧舒然', ...base];
-  }
+  // （2026-06-21 移除：原本 c5 由 2026-05-01 起強制加返「顧舒然」嘅特例，已退出 c5）
   return CLASSES[classId]?.students || [];
 }
 
