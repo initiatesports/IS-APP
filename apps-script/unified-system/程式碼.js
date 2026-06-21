@@ -784,7 +784,7 @@ function apiLogin(p){
   rlClear_("login_"+nm);
   var fam=pad4(hit[0].last4);   // 內部家庭鍵＝名冊電話後4位（不變）
   var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
-  var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn), fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn)}; });
+  var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn), fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), referralEarned:referralEarned_(cn), referralCount:referralCount_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn)}; });
   return {ok:true, family:{last4:fam, hasPin:!!pinFor_(fam)}, children:children,
     student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[],
     payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6), summerBridge:summerBridgeOn_()};
@@ -1083,10 +1083,11 @@ function feeAmount_(n){ return n>=2 ? CONFIG.FEE_2 : CONFIG.FEE_1; }
 function feesFor_(nm){
   return feeRows_().filter(function(x){ return x.name===nm; }).map(function(x){
     return {period:x.period, weekly:x.weekly, due:x.due, discount:x.discount, adj:x.adj, adjNote:x.adjNote,
-      net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link,
+      net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link, verifyTime:x.verifyTime||"",
       active:(x.status==="已繳"||x.status==="豁免")};
   });
 }
+function referralCount_(nm){ var n=0; referralRows_().forEach(function(x){ if(x.ref===nm) n++; }); return n; }
 /* 期排序值（年×6＋雙月序）；用嚟分辨「本期及之前」vs「未來期」*/
 function periodOrder_(label){
   var m=String(label).match(/(\d{4})\s*(\d{1,2})-/);
@@ -1903,9 +1904,10 @@ function onOpen(){
     .addItem("📦 安裝每月異地備份（email xlsx）","installMonthlyBackup")
     .addItem("📦 立即寄一份異地備份（測試）","monthlyOffsiteBackupMenu")
     .addSeparator()
-    .addItem("📊 安裝營運簡報（每日07:00＋逢一催繳）","installOpsReports")
+    .addItem("📊 安裝營運簡報（每日07:00＋逢一催繳＋月報）","installOpsReports")
     .addItem("📊 立即寄每日營運簡報（測試）","dailyOpsBriefMenu")
     .addItem("💸 立即寄催繳名單（測試）","weeklyUnpaidReportMenu")
+    .addItem("📈 立即寄月度營運報表（測試）","monthlyOpsReportMenu")
     .addToUi();
 }
 
@@ -2154,15 +2156,67 @@ function weeklyUnpaidReport(){
 function installOpsReports(){
   ScriptApp.getProjectTriggers().forEach(function(t){
     var f=t.getHandlerFunction();
-    if(f==="dailyOpsBrief"||f==="weeklyUnpaidReport") ScriptApp.deleteTrigger(t);
+    if(f==="dailyOpsBrief"||f==="weeklyUnpaidReport"||f==="monthlyOpsReport") ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger("dailyOpsBrief").timeBased().everyDays(1).atHour(7).create();                       // 每日約 07:00
   ScriptApp.newTrigger("weeklyUnpaidReport").timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();  // 逢星期一約 09:00
-  try{ SpreadsheetApp.getUi().alert("✅ 營運簡報已設定：\n• 每日約 07:00 寄「營運簡報」\n• 逢星期一約 09:00 寄「催繳名單」\n全部只寄你自己，唔會騷擾家長。"); }catch(e){}
+  ScriptApp.newTrigger("monthlyOpsReport").timeBased().onMonthDay(1).atHour(8).create();                   // 每月 1 號約 08:00
+  try{ SpreadsheetApp.getUi().alert("✅ 營運簡報已設定：\n• 每日約 07:00 寄「營運簡報」\n• 逢星期一約 09:00 寄「催繳名單」\n• 每月 1 號約 08:00 寄「月度營運報表」\n全部只寄你自己，唔會騷擾家長。"); }catch(e){}
   return "已設定";
 }
 function dailyOpsBriefMenu(){ var r=dailyOpsBrief(); SpreadsheetApp.getUi().alert("已寄出每日營運簡報。\n今日課堂 "+r.classes+" 班｜未繳 "+r.unpaid+" 位｜待核實 "+r.verify+" 筆｜補堂將到期 "+r.makeupSoon+" 筆。"); }
 function weeklyUnpaidReportMenu(){ var r=weeklyUnpaidReport(); SpreadsheetApp.getUi().alert("已寄出催繳名單。\n未繳 "+r.chase+" 位，合共 $"+r.amount+"｜待核實 "+r.verify+" 筆。"); }
+
+/* ── 月度營運報表（每月 1 號；學生數 / 出席率 / 收入 / 各班人數 / 推薦 / 未補堂）── */
+function monthlyOpsReport(){
+  var today=todayIso(), mo=today.slice(0,7), cur=curPeriodLabel_();
+  var curRows=feeRows_().filter(function(x){ return x.period===cur; });
+  var billed=0, collected=0, unpaidAmt=0;
+  curRows.forEach(function(x){
+    billed+=x.net; collected+=Math.min(x.paid,x.net);
+    if(x.status!=="已繳"&&x.status!=="豁免") unpaidAmt+=Math.max(0,x.net-x.paid);
+  });
+  var rate=billed?Math.round(collected/billed*100):100;
+  var distinct={}; rosterRows().forEach(function(r){ if(r.name) distinct[r.name]=1; });
+  // 本期出席率（只計本期月份內、已點名嘅格）
+  var att=0, tot=0;
+  CLASS_IDS.forEach(function(cid){
+    var blk=readBlockMerged_(cid);
+    blk.dates.forEach(function(d,i){
+      if(periodLabelFromIso_(d)!==cur) return;
+      Object.keys(blk.status).forEach(function(nm){
+        var s=(blk.status[nm]||[])[i]||"";
+        if(s==="出席"||s==="補堂"){ att++; tot++; }
+        else if(s==="請假"||s==="缺席"){ tot++; }
+      });
+    });
+  });
+  var attRate=tot?Math.round(att/tot*100):0;
+  var refMo=referralRows_().filter(function(x){ return String(x.date).slice(0,7)===mo; });
+  var refAmt=refMo.reduce(function(s,x){ return s+x.amt; },0);
+  var outM=opsOutstandingMakeups_();
+  var L=[];
+  L.push("INITIATE 月度營運報表　"+mo);
+  L.push("");
+  L.push("👥 在學學生："+Object.keys(distinct).length+" 位");
+  L.push("📊 本期出席率（"+cur+"）："+attRate+"%（出席+補堂 "+att+" / 已點名 "+tot+" 格）");
+  L.push("");
+  L.push("💰 學費（本期 "+cur+"）：");
+  L.push("• 應收 $"+billed+"｜已收 $"+collected+"｜完成率 "+rate+"%");
+  L.push("• 尚未收 $"+unpaidAmt);
+  L.push("");
+  L.push("🏫 各班人數：");
+  CLASS_IDS.forEach(function(cid){ L.push("• "+gridName(cid)+"："+CLASSES[cid].students.length+" 人"); });
+  L.push("");
+  L.push("🎁 本月新推薦："+refMo.length+" 宗（折扣額共 $"+refAmt+"）");
+  L.push("🔁 未補堂總數："+outM+" 筆");
+  L.push("");
+  L.push("—— 每月 1 號自動營運報表（只寄你自己）");
+  try{ MailApp.sendEmail(OPS_EMAIL, "📈 INITIATE 月度營運報表 "+mo, L.join("\n")); }
+  catch(e){ Logger.log("月報寄送失敗："+e); }
+  return {students:Object.keys(distinct).length, attRate:attRate, rate:rate, unpaidAmt:unpaidAmt};
+}
+function monthlyOpsReportMenu(){ var r=monthlyOpsReport(); SpreadsheetApp.getUi().alert("已寄出月度營運報表。\n學生 "+r.students+" 位｜出席率 "+r.attRate+"%｜繳費完成率 "+r.rate+"%｜未收 $"+r.unpaidAmt+"。"); }
 
 /* 老闆控制台用：即時營運快照（教練密碼）*/
 function apiOpsSnapshot(p){

@@ -175,6 +175,25 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 #alb-lb iframe{width:min(96vw,860px);height:min(84vh,520px);border:0;border-radius:10px;background:#000;}
 #alb-lb .alb-cap{color:#eee;font-size:14px;text-align:center;max-width:760px;}
 #alb-lb .alb-x{position:absolute;top:14px;right:16px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;line-height:1;}
+/* 電子收據 */
+.rcpt{border:1px solid var(--border);border-radius:14px;padding:18px 16px;background:#fff;}
+.rcpt-h{font-size:20px;font-weight:900;letter-spacing:.04em;text-align:center;color:var(--ink);}
+.rcpt-sub{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px;}
+.rcpt-rows .rcpt-row{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--border);}
+.rcpt-rows .rcpt-row:last-child{border-bottom:none;}
+.rcpt-rows .rcpt-row span{color:var(--muted);}
+.rcpt-rows .rcpt-row b{color:var(--ink);text-align:right;}
+.rcpt-paid{margin:14px auto 0;width:fit-content;border:2px solid var(--green);color:var(--green);font-weight:900;letter-spacing:.1em;padding:5px 16px;border-radius:8px;transform:rotate(-3deg);}
+.rcpt-foot{text-align:center;font-size:12px;color:var(--muted);margin-top:14px;}
+.rcpt-print-btn{margin-top:14px;width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;}
+@media print{
+  body *{visibility:hidden!important;}
+  #receipt-scrim{position:static!important;display:block!important;background:none!important;padding:0!important;}
+  #receipt-box{box-shadow:none!important;max-width:none!important;padding:0!important;}
+  #rcpt-print, #rcpt-print *{visibility:visible!important;}
+  #rcpt-print{position:absolute;left:0;top:0;width:100%;}
+  .rcpt-print-btn, .receipt .close{display:none!important;}
+}
 </style>
 </head>
 <body>
@@ -662,7 +681,14 @@ function paymentCard(child,ki){
   const L=(zh,en)=>LANG==='en'?en:zh;
   const lbl=periodLabel(S.period);
   const f=feeForPeriod(child,S.period);
-  if(!f || f.status==='已繳' || f.status==='豁免') return '';   // 已付款／豁免 → 唔顯示付款功能區
+  if(!f || f.status==='豁免') return '';   // 豁免 → 唔顯示
+  if(f.status==='已繳'){                    // 已繳 → 顯示確認 + 電子收據掣
+    const who = ((S.family&&S.family.children)||[]).length>1 ? `<div style="font-size:12px;color:var(--muted);margin:-2px 0 8px">${child.name}</div>` : '';
+    return `<div class="card" style="border-color:rgba(52,211,153,.4)"><div class="topline"><span class="dot" style="background:var(--green)"></span><h3>✅ ${t('feeTitle')}・${L('已繳','Paid')}</h3></div>${who}
+      <div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}　·　$${f.net}</div>
+      <button onclick='openFeeReceipt(${ki},"${f.period}")' style="margin-top:10px;width:100%;padding:13px;border:1.5px solid var(--green);border-radius:12px;background:rgba(52,211,153,.08);color:var(--green);font-family:inherit;font-size:14.5px;font-weight:800;cursor:pointer">📄 ${L('電子收據','View Receipt')}</button>
+    </div>`;
+  }
   const stMap={'未繳':t('stUnpaid'),'待核實':t('stPending'),'已繳':t('stPaid'),'部分':t('stPartial'),'豁免':t('stExempt')};
   const stK=LANG==='en'?'Status':'狀態';
   const stTxt=stMap[f.status]||f.status;
@@ -695,7 +721,17 @@ function paymentCard(child,ki){
 }
 // 其他記錄：推薦餘額 / 加操 / 調堂（放喺課堂下面）
 function extrasCard(child,ki){
-  const balLine=(child.referralBalance&&child.referralBalance>0)?`<div style="font-size:13px;color:var(--teal-dark)">${t('referralBal',child.referralBalance)}</div>`:'';
+  // 🎁 推薦獎賞（後端已有帳本：每位新生 $100、每期上限 50%、餘額結轉）
+  const refEarned=child.referralEarned||0, refCount=child.referralCount||0, refBal=child.referralBalance||0, refUsed=Math.max(0,refEarned-refBal);
+  const waMsg = LANG==='en'
+    ? `Hi! I'd recommend INITIATE SPORTS kids' sports classes 🏃 (badminton / pickleball / rope skipping / conditioning). New students get $100 off tuition!`
+    : `想介紹 INITIATE SPORTS 兒童運動課程俾你 🏃（羽毛球／匹克球／跳繩／體能）。新生報名可享 $100 學費折扣！`;
+  const balLine=`<div style="padding:12px;border-radius:12px;background:rgba(40,184,200,.07);border:1px solid rgba(40,184,200,.22)">
+    <div style="font-weight:800;color:var(--teal-dark);font-size:14px">🎁 ${LANG==='en'?'Referral rewards':'推薦獎賞'}</div>
+    ${(refEarned>0||refCount>0)?`<div style="font-size:13px;color:var(--ink);margin-top:6px;line-height:1.6">${LANG==='en'?'Referred':'已介紹'} <b>${refCount}</b> ${LANG==='en'?'· earned':'位 · 累積'} <b>$${refEarned}</b>${refUsed>0?` · ${LANG==='en'?'used':'已用'} $${refUsed}`:''} · ${LANG==='en'?'balance':'餘額'} <b style="color:var(--teal-dark)">$${refBal}</b>${refBal>0?`<span style="color:var(--muted)">（${LANG==='en'?'auto-applied next period':'下期自動扣'}）</span>`:''}</div>`:''}
+    <div style="font-size:12.5px;color:var(--muted);margin-top:6px">${LANG==='en'?'Refer a friend — each new student gets $100 off tuition.':'介紹朋友報名，每位新生減 $100 學費。'}</div>
+    <a href="https://wa.me/?text=${encodeURIComponent(waMsg)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px;background:#25D366;color:#062b14;border-radius:10px;padding:10px;font-weight:800;font-size:13.5px;text-decoration:none">💬 ${LANG==='en'?'Share with a friend':'分享俾朋友'}</a>
+  </div>`;
   const months=[S.period*2+1,S.period*2+2].map(m=>String(m).padStart(2,'0'));
   const ads=(child.addons||[]).filter(a=>months.indexOf(String(a.month).slice(5,7))>=0).sort((a,b)=>a.date<b.date?-1:1);
   let adBlock='';
@@ -882,6 +918,32 @@ function showReceipt(title,lines,waText){
   $('receipt-scrim').classList.add('show');
 }
 function closeReceipt(){ $('receipt-scrim').classList.remove('show'); }
+/* 📄 電子收據（已繳期數；可列印 / 儲存 PDF）*/
+function openFeeReceipt(ki, period){
+  const child=(S.family&&S.family.children||[])[ki]; if(!child) return;
+  const f=(child.fees||[]).find(x=>x.period===period); if(!f) return;
+  const L=(zh,en)=>LANG==='en'?en:zh;
+  let h=0; const seed=child.name+period; for(let i=0;i<seed.length;i++) h=(h*31+seed.charCodeAt(i))>>>0;
+  const rno='IS-'+String(period).replace(/[^0-9]/g,'').slice(0,6)+'-'+String(h%100000).padStart(5,'0');
+  const cls=(child.classes||[]).map(c=>classLabel(c.key||c.sport)).join('、')||'—';
+  const rows=[[L('收據編號','Receipt No.'),rno],[L('學生','Student'),child.name],[L('班別','Class'),cls],[L('收費期','Period'),periodLabel(period)],[L('應繳','Subtotal'),'$'+f.due]];
+  if(f.discount>0) rows.push([L('推薦折扣','Referral discount'),'−$'+f.discount]);
+  if(f.adj&&f.adj!==0) rows.push([L('調整','Adjustment'),(f.adj>0?'+':'')+'$'+f.adj]);
+  rows.push([L('實收金額','Amount paid'),'$'+f.net]);
+  rows.push([L('付款方式','Payment'),'FPS / PayMe ('+(S.payNumber||'6709 3390')+')']);
+  if(f.verifyTime) rows.push([L('核實日期','Verified'),f.verifyTime]);
+  $('receipt-box').innerHTML=`
+    <div id="rcpt-print" class="rcpt">
+      <div class="rcpt-h">INITIATE SPORTS</div>
+      <div class="rcpt-sub">${L('學費收據','Tuition Receipt')}</div>
+      <div class="rcpt-rows">${rows.map(r=>`<div class="rcpt-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>
+      <div class="rcpt-paid">✓ ${L('已繳','PAID')}</div>
+      <div class="rcpt-foot">${L('多謝支持 INITIATE SPORTS！','Thank you for choosing INITIATE SPORTS!')}</div>
+    </div>
+    <button class="rcpt-print-btn" onclick="window.print()">🖨 ${L('列印 / 儲存 PDF','Print / Save PDF')}</button>
+    <button class="close" onclick="closeReceipt()">${L('關閉','Close')}</button>`;
+  $('receipt-scrim').classList.add('show');
+}
 
 /* ═══════════ 請假 ═══════════ */
 let LF={};
