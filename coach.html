@@ -913,8 +913,14 @@ function openRoll(classId){
   loadRollSession();
 }
 function getRollStudents(classId, dateStr){
-  // （2026-06-21 移除：原本 c5 由 2026-05-01 起強制加返「顧舒然」嘅特例，已退出 c5）
-  return CLASSES[classId] ? CLASSES[classId].students : [];
+  const base = CLASSES[classId] ? CLASSES[classId].students.slice() : [];
+  // 加入當日補堂學生：家長申請補堂後，後端已喺目標班嗰格寫低（喺 ATT_LOG 出現但唔屬正規名單）→ 點名名單見到佢
+  const sess = (dateStr && ATT_LOG[classId + '|' + dateStr]) || {};
+  Object.keys(sess).forEach(n => { if (n && base.indexOf(n) < 0) base.push(n); });
+  return base;
+}
+function isMakeupVisitor(classId, name){
+  return !!(CLASSES[classId] && CLASSES[classId].students.indexOf(name) < 0);
 }
 function changeMonth(delta){
   let { year, month } = rollViewMonth;
@@ -1020,7 +1026,7 @@ function renderRollTable(){
     return `
     <div class="student-card ${cardCls}" id="sc-${name}">
       <div class="student-name-wrap">
-        <div class="student-name">${name}</div>
+        <div class="student-name">${name}${isMakeupVisitor(currentClass,name)?` <span style="font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-dim);border-radius:6px;padding:1px 7px;margin-left:4px">↩ 補堂</span>`:''}</div>
         ${subText ? `<div class="student-sub ${subCls}">${subText}</div>` : ''}
         ${makeupHint}
       </div>
