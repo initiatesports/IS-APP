@@ -173,8 +173,6 @@ input:focus,select:focus{border-color:var(--accent)}
 .ig-btn:active{background:#E9F8F9}
 .ig-btn svg{width:18px;height:18px;flex:none}
 .banner-demo{background:#FFF3CD;color:#7a5b00;font-size:12px;text-align:center;padding:6px}
-.wa-a{display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff !important;font-weight:700;text-decoration:none;padding:3px 12px;border-radius:999px;font-size:.9em;line-height:1.55;white-space:nowrap;vertical-align:middle}
-.wa-a:hover{filter:brightness(.95)}.wa-a:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -201,7 +199,7 @@ input:focus,select:focus{border-color:var(--accent)}
     })();
   </script>
   <div id="view"></div>
-  <div class="foot">INITIATE SPORTS · 查詢 WhatsApp 6331 7403 教練<br>
+  <div class="foot">INITIATE SPORTS · 查詢 WhatsApp 6331 7403 張 Sir<br>
     <a href="https://www.instagram.com/initiate_sports.2023?igsh=aW5ud3FmNWpnZ2J2&utm_source=qr" target="_blank" rel="noopener">Instagram</a>　·　<a href="https://www.facebook.com/share/1FcXaarDc1/?mibextid=wwXIfr" target="_blank" rel="noopener">Facebook</a></div>
 </div>
 
@@ -215,7 +213,7 @@ input:focus,select:focus{border-color:var(--accent)}
 const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec",   // Apps Script Web App
   // 教練密碼不再寫死:即場輸入,經後端 verifyCoach 驗證,啱先入教練模式。
-  WHATSAPP: "85263317403",  // 教練 WhatsApp（家長確認連結用）
+  WHATSAPP: "85263317403",  // 張 Sir WhatsApp（家長確認連結用）
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 
@@ -424,8 +422,8 @@ function waLink(text){ return "https://wa.me/"+CONFIG.WHATSAPP+"?text="+encodeUR
 function showReceipt(title, lines, waText){
   openSheet(`<h2>${title}</h2>
     <div class="receipt">${lines.map(l=>`<div class="rc-row">${l}</div>`).join("")}</div>
-    <p class="sd" style="margin-top:10px">已即時通知教練。如想 WhatsApp 留底俾教練，可撳下面：</p>
-    <a class="btn wa" href="${waLink(waText)}" target="_blank" rel="noopener">📲 WhatsApp 通知教練</a>
+    <p class="sd" style="margin-top:10px">已即時通知教練。如想 WhatsApp 留底俾張 Sir，可撳下面：</p>
+    <a class="btn wa" href="${waLink(waText)}" target="_blank" rel="noopener">📲 WhatsApp 通知張 Sir</a>
     <div style="height:10px"></div>
     <button class="btn ghost" onclick="closeSheet()">完成</button>`);
 }
@@ -745,7 +743,7 @@ function openCancelLeave(ki,ci){
     <div id="cf-opts">${opts.map(s=>{const d=new Date(s.date+"T00:00:00");return `<div class="opt" onclick="toggleCancel('${s.date}',this)">
       <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div><div class="s">原狀態：${s.status}</div></div>
       <div class="cap" style="display:none">✓</div></div>`;}).join("")}</div>
-    ${hasMk?`<div class="notice warn" style="font-size:12.5px">你呢班已約咗補堂；取消請假後補堂仍會保留，如唔需要請 WhatsApp 教練 6331 7403 取消。</div>`:''}
+    ${hasMk?`<div class="notice warn" style="font-size:12.5px">你呢班已約咗補堂；取消請假後補堂仍會保留，如唔需要請 WhatsApp 張 Sir 6331 7403 取消。</div>`:''}
     <div class="confirm-q" id="cf-count">未揀任何堂</div>
     <input id="cf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
@@ -837,7 +835,7 @@ function openMakeup(ki,ci){
   if(owed<=0){ openSheet(`<h2>申請補堂</h2><p class="sd">暫時冇待補堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   const slots=makeupSlotsFor(c);
   if(!slots.length){ openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
-     <div class="notice warn">呢個班別暫未設網上補堂時段，請 WhatsApp 教練 另約。</div>
+     <div class="notice warn">呢個班別暫未設網上補堂時段，請 WhatsApp 張 Sir 另約。</div>
      <button class="btn ghost" onclick="closeSheet()">關閉</button>`); return; }
   const today=new Date(); today.setHours(0,0,0,0);
   const deadline=lastSession(c), refund=(c.sport==="basketball");
@@ -857,7 +855,7 @@ function openMakeup(ki,ci){
   openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
     <p class="sd">待補 ${owed} 堂，可揀最多 ${owed} 堂${refund?'':`　·　須於 ${fmt(deadline)} 前完成`}</p>
     ${refund?`<div class="notice warn">籃球設兩日後備補堂日；如兩日都未能出席，將作退款處理。</div>`:''}
-    ${opts||'<div class="notice warn">截止前已冇可補時段，請 WhatsApp 教練。</div>'}
+    ${opts||'<div class="notice warn">截止前已冇可補時段，請 WhatsApp 張 Sir。</div>'}
     <div class="confirm-q" id="mf-count">未揀任何堂</div>
     <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
@@ -1158,8 +1156,8 @@ bootSSO();
       <div class="ptx-sec">📍 上課地點及安排</div>
       <div class="ptx-venue">
         <div class="ptx-vm">以上價錢適用於青衣區 / 荃灣區（已包場租）</div>
-        <div class="ptx-vb">其他地區及上門服務，請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
-        <div class="ptx-vb">👥 1 對 2 訓練：價格請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
+        <div class="ptx-vb">其他地區及上門服務，請 WhatsApp 查詢</div>
+        <div class="ptx-vb">👥 1 對 2 訓練：價格請 WhatsApp 查詢</div>
         <div class="ptx-vb" style="opacity:0.7">＊為確保私人訓練質素，不建議人數過多，建議以不超過 3 人為宜</div>
       </div>
       </div><!-- /ptx-pane-kid -->
@@ -1219,10 +1217,10 @@ bootSSO();
           <div class="ptx-card feat"><div class="ptx-badge">💎 最高性價比</div><div class="ptx-s">50 堂</div><div class="ptx-t">$25,000</div><div class="ptx-p">$500 / 堂</div><div class="ptx-e">1年使用限期</div></div>
         </div>
         <div class="ptx-venue">
-          <div class="ptx-vm">👥 1 對 2 訓練：價格請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
+          <div class="ptx-vm">👥 1 對 2 訓練：價格請 WhatsApp 查詢</div>
           <div class="ptx-vb">🎓 大學生享學生優惠</div>
           <div class="ptx-vb">💳 可分期付款</div>
-          <div class="ptx-vb">👥 如需 3 人或以上小組訓練，請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
+          <div class="ptx-vb">👥 如需 3 人或以上小組訓練，請 WhatsApp 6331 7403 查詢</div>
         </div>
       </div><!-- /ptx-pane-adult -->
       <div class="ptx-cta">
