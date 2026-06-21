@@ -397,8 +397,24 @@ function makeupSlotsFor(sport,wd){
 function doGet(){ return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK"); }
 function doPost(e){
   var p={}; try{ p=JSON.parse(e.postData.contents); }catch(err){}
-  var out; try{ out=route(p); }catch(err){ out={ok:false,err:String(err)}; }
+  var out; try{ out=route(p); }catch(err){ reportError_("#9 doPost "+(p&&p.action||""), err); out={ok:false,err:String(err)}; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+/* ═══════════ 統一錯誤通報：後端一出 exception 自動 email 老闆（節流防洗信）═══════════ */
+function reportError_(where, err){
+  try{
+    var sig=String((err&&err.stack)||err).slice(0,140).replace(/\s+/g," ");
+    var c=CacheService.getScriptCache();
+    var k="errmail_"+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, sig)).slice(0,24);
+    if(c.get(k)) return;
+    if(Number(c.get("errmail_cap")||0)>=6) return;
+    c.put(k,"1",900); c.put("errmail_cap", String(Number(c.get("errmail_cap")||0)+1), 3600);
+    MailApp.sendEmail((CONFIG&&CONFIG.COACH_EMAIL) || "initiatesports6331@gmail.com",
+      "🛑 INITIATE 系統錯誤（"+where+"）",
+      "暑期班出席後端發生錯誤，已自動記錄：\n\n位置："+where+"\n\n"+String((err&&err.stack)||err)+
+      "\n\n時間："+Utilities.formatDate(new Date(), "Asia/Hong_Kong", "yyyy-MM-dd HH:mm:ss")+
+      "\n\n（同類錯誤 15 分鐘內只會通知一次）");
+  }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
 function route(p){
   switch(p.action){

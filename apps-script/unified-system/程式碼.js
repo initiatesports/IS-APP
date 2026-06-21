@@ -634,14 +634,30 @@ function makeupSlotsFor(cid){
 /* ═══════════ Web App ═══════════ */
 function doGet(e){
   var p=(e&&e.parameter)||{};
-  if(p.action){ var out; try{ out=route(p); }catch(err){ out={ok:false,err:String(err)}; }
+  if(p.action){ var out; try{ out=route(p); }catch(err){ reportError_("#4 doGet "+(p.action||""), err); out={ok:false,err:String(err)}; }
     return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON); }
   return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK");
 }
 function doPost(e){
   var p={}; try{ p=JSON.parse(e.postData.contents); }catch(err){}
-  var out; try{ out=route(p); }catch(err){ out={ok:false,err:String(err)}; }
+  var out; try{ out=route(p); }catch(err){ reportError_("#4 doPost "+(p&&p.action||""), err); out={ok:false,err:String(err)}; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+/* ═══════════ 統一錯誤通報：後端一出 exception 自動 email 老闆（節流防洗信）═══════════ */
+function reportError_(where, err){
+  try{
+    var sig=String((err&&err.stack)||err).slice(0,140).replace(/\s+/g," ");
+    var c=CacheService.getScriptCache();
+    var k="errmail_"+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, sig)).slice(0,24);
+    if(c.get(k)) return;                              // 同類錯誤 15 分鐘內唔重複寄
+    if(Number(c.get("errmail_cap")||0)>=6) return;    // 全域每小時最多 6 封
+    c.put(k,"1",900); c.put("errmail_cap", String(Number(c.get("errmail_cap")||0)+1), 3600);
+    MailApp.sendEmail("initiatesports6331@gmail.com",
+      "🛑 INITIATE 系統錯誤（"+where+"）",
+      "後端發生錯誤，已自動記錄：\n\n位置："+where+"\n\n"+String((err&&err.stack)||err)+
+      "\n\n時間："+Utilities.formatDate(new Date(), tz(), "yyyy-MM-dd HH:mm:ss")+
+      "\n\n（同類錯誤 15 分鐘內只會通知一次）");
+  }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
 function route(p){
   switch(p.action){
@@ -698,6 +714,8 @@ function route(p){
     case "albumList":       return apiAlbumList(p);
     case "albumAdd":        return apiAlbumAdd(p);
     case "albumDelete":     return apiAlbumDelete(p);
+    // ── 老闆控制台營運快照（教練密碼）──
+    case "opsSnapshot":     return apiOpsSnapshot(p);
     default:                return {ok:false, err:"unknown action"};
   }
 }
@@ -1953,6 +1971,7 @@ var HEALTH_BACKENDS = [
 ];
 var HEALTH_PAGES = [
   "https://initiatesports.github.io/IS-APP/is-home.html",
+  "https://initiatesports.github.io/IS-APP/is-hub.html",
   "https://initiatesports.github.io/IS-APP/is-parent.html",
   "https://initiatesports.github.io/IS-APP/is-coach.html",
   "https://initiatesports.github.io/IS-APP/is-leave-makeup.html",
@@ -2144,6 +2163,21 @@ function installOpsReports(){
 }
 function dailyOpsBriefMenu(){ var r=dailyOpsBrief(); SpreadsheetApp.getUi().alert("已寄出每日營運簡報。\n今日課堂 "+r.classes+" 班｜未繳 "+r.unpaid+" 位｜待核實 "+r.verify+" 筆｜補堂將到期 "+r.makeupSoon+" 筆。"); }
 function weeklyUnpaidReportMenu(){ var r=weeklyUnpaidReport(); SpreadsheetApp.getUi().alert("已寄出催繳名單。\n未繳 "+r.chase+" 位，合共 $"+r.amount+"｜待核實 "+r.verify+" 筆。"); }
+
+/* 老闆控制台用：即時營運快照（教練密碼）*/
+function apiOpsSnapshot(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var cls=opsTodayClasses_(), up=opsUnpaid_(), soon=opsMakeupsDueSoon_(7), outM=opsOutstandingMakeups_();
+  var cur=curPeriodLabel_(), curRows=feeRows_().filter(function(x){ return x.period===cur; });
+  var done=curRows.filter(function(x){ return x.status==="已繳"||x.status==="豁免"||x.net<=0; }).length;
+  return {ok:true,
+    today: cls.map(function(c){ return {label:c.label, count:c.count}; }),
+    fees: { unpaid:up.chase.length, unpaidAmt:up.chase.reduce(function(s,x){return s+x.owed;},0),
+            verify:up.verify.length, period:cur, rate:(curRows.length?Math.round(done/curRows.length*100):100) },
+    makeupSoon: soon.length, outstandingMakeups: outM,
+    students: (function(){ var s={}; rosterRows().forEach(function(r){ if(r.name)s[r.name]=1; }); return Object.keys(s).length; })(),
+    at: nowStamp_() };
+}
 
 /* ═══════════ 清理「補堂」表重複行 ═══════════
  * 背景：補堂表曾出現同一筆補堂被寫入多次（例如陳大文 c1→c3 同日 ×14），
