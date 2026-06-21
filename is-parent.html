@@ -668,8 +668,21 @@ function paymentCard(child,ki){
   const stCol=f.status==='待核實'?'var(--teal-dark)':'var(--amber)';
   const adjLine=(f.adj&&f.adj!==0)?`<div style="font-size:13px;color:${f.adj<0?'var(--green)':'var(--amber)'};margin-top:6px">${t('feeAdjK')}：${f.adj>0?'+':''}$${f.adj}${f.adjNote?'（'+f.adjNote+'）':''}</div>`:'';
   const discLine=(f.discount&&f.discount>0)?`<div style="font-size:13px;color:var(--green);margin-top:4px">${t('feeDiscK')}：−$${f.discount}</div>`:'';
-  // 順延豁免說明：列出被取消／豁免嘅課堂日期（已從本期學費扣減）
-  const noteLine=f.note?`<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(27,141,155,.07);border:1px solid rgba(27,141,155,.25);font-size:12.5px;line-height:1.6;color:var(--teal-dark)">📌 ${L('本期學費已扣減以下取消／豁免課堂（順延優惠）：','This period\'s fee already deducts these cancelled / exempt sessions (carried forward):')}<br>${f.note.replace(/；/g,'<br>')}</div>`:'';
+  // 💡 學費明細：清楚列出「X 堂 × 每堂價 = 學費」＋ 折扣／額外／抵扣，等家長一睇就明點計出嚟
+  const unit=Number(f.unitPrice)|| (f.weekly>=2?110:130);
+  const sess=(f.sessions!=null)?f.sessions:((f.due>0&&f.due%unit===0)?f.due/unit:null);
+  const rows=[];
+  if(sess!=null) rows.push(`<div style="display:flex;justify-content:space-between"><span>${L('本期上課','Sessions')} <b>${sess}</b> ${L('堂','×')} × $${unit}/${L('堂','ea')}</span><b>$${f.due}</b></div>`);
+  else rows.push(`<div style="display:flex;justify-content:space-between"><span>${L('本期學費','Tuition')}</span><b>$${f.due}</b></div>`);
+  if(f.discount&&f.discount>0) rows.push(`<div style="display:flex;justify-content:space-between;color:var(--green)"><span>${t('feeDiscK')}</span><span>−$${f.discount}</span></div>`);
+  if(f.adj&&f.adj>0) rows.push(`<div style="display:flex;justify-content:space-between;color:var(--amber)"><span>${L('額外收費','Extra')}${f.adjNote?'（'+f.adjNote+'）':''}</span><span>+$${f.adj}</span></div>`);
+  if(f.adj&&f.adj<0) rows.push(`<div style="display:flex;justify-content:space-between;color:var(--green)"><span>${L('抵扣','Credit')}${f.adjNote?'（'+f.adjNote+'）':''}</span><span>−$${-f.adj}</span></div>`);
+  const calcLine=`<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--bg,#f4f7f8);font-size:12.5px;line-height:1.9;color:var(--ink)">
+    <div style="font-weight:800;color:var(--muted);margin-bottom:2px">🧮 ${L('學費明細','How it adds up')}</div>
+    ${rows.join('')}
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line,#e6ebee);margin-top:4px;padding-top:4px;font-weight:900"><span>${L('應繳','Total due')}</span><span>$${f.net}</span></div></div>`;
+  // 順延豁免／停課說明：列出被取消／豁免／停課嘅課堂日期（已從本期學費扣減）
+  const noteLine=f.note?`<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(27,141,155,.07);border:1px solid rgba(27,141,155,.25);font-size:12.5px;line-height:1.6;color:var(--teal-dark)">📌 ${L('已扣減以下取消／停課課堂（唔收費）：','Deducted these cancelled sessions (not charged):')}<br>${f.note.replace(/；/g,'<br>')}</div>`:'';
   // 上一期／累積未補堂 + 補堂限期
   const os=owedSummary(child);
   let owedLine;
@@ -692,7 +705,7 @@ function paymentCard(child,ki){
       <div class="stat"><div class="n">$${f.net}</div><div class="k">${t('feeDue')}</div></div>
       <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
       <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
-    </div>${discLine}${adjLine}${owedLine}${actions}</div>`;
+    </div>${calcLine}${noteLine}${owedLine}${actions}</div>`;
 }
 // 其他記錄：推薦餘額 / 加操 / 調堂（放喺課堂下面）
 function extrasCard(child,ki){
