@@ -1428,7 +1428,7 @@ function apiPayUpload(p){
     var nm=String(p.name).trim(), label=String(p.period).trim();
     var rows=feeRows_(), hit=null;
     for(var i=0;i<rows.length;i++){ if(rows[i].name===nm && rows[i].period===label){ hit=rows[i]; break; } }
-    if(!hit) return {ok:false,err:"搵唔到該期繳費紀錄，請聯絡教練"};
+    if(!hit) return {ok:false,err:"搵唔到該期繳費紀錄，請聯絡張 Sir"};
     var dataUrl=String(p.dataUrl||""); var comma=dataUrl.indexOf(",");
     if(comma<0) return {ok:false,err:"檔案格式不正確"};
     var meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);

@@ -169,8 +169,6 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .ret-opt input{width:17px;height:17px;accent-color:#e0a93a;}
 .ret-opt:has(input:checked){border-color:#e0a93a;background:rgba(224,169,58,.1);font-weight:700;}
 .ret-fee{font-size:15px;font-weight:800;color:#a06a10;margin:4px 0 2px;}
-.wa-a{display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff !important;font-weight:700;text-decoration:none;padding:3px 12px;border-radius:999px;font-size:.9em;line-height:1.55;white-space:nowrap;vertical-align:middle}
-.wa-a:hover{filter:brightness(.95)}.wa-a:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -276,7 +274,7 @@ const T={
   codePh:{zh:'輸入手機後 4 位確認',en:'Enter last 4 digits to confirm'},submitLeave:{zh:'提交請假',en:'Submit leave'},submitting:{zh:'提交中…',en:'Submitting…'},
   codeWrong:{zh:'後 4 位數字唔啱',en:'Wrong last 4 digits'},
   rcLeave:{zh:'✅ 已提交請假',en:'✅ Leave submitted'},child:{zh:'小朋友',en:'Child'},klass:{zh:'班別',en:'Class'},dateK:{zh:'日期',en:'Date'},leaveTypeK:{zh:'假別',en:'Type'},
-  waConfirm:{zh:'📲 WhatsApp 通知教練確認',en:'📲 Confirm via WhatsApp'},done:{zh:'完成',en:'Done'},
+  waConfirm:{zh:'📲 WhatsApp 通知張 Sir 確認',en:'📲 Confirm via WhatsApp'},done:{zh:'完成',en:'Done'},
   feeTitle:{zh:'學費',en:'Tuition'},feeDue:{zh:'應繳',en:'Due'},feePaid:{zh:'已繳',en:'Paid'},
   feeNoRec:{zh:'本期暫無繳費紀錄',en:'No fee record for this period'},
   feeUpload:{zh:'上傳付款截圖',en:'Upload payment screenshot'},
@@ -316,7 +314,7 @@ const T={
   cancelLeaveSd:{zh:'揀返你唔使請嘅堂，小朋友會照常出席',en:'Select sessions to un-cancel — your child will attend as usual'},
   origStatus:{zh:s=>`原狀態：${s}`,en:s=>`Was: ${s}`},rcCancelL:{zh:'✅ 已取消請假',en:'✅ Leave cancelled'},restored:{zh:d=>`已恢復出席：${d}`,en:d=>`Attendance restored: ${d}`},
   mkSd:{zh:(o,d)=>`待補 ${o} 堂，可揀最多 ${o} 堂　·　須於 ${d} 前完成`,en:(o,d)=>`${o} owed, pick up to ${o}　·　complete before ${d}`},
-  mkNoSlot:{zh:'補堂限期前已冇可補時段，請 WhatsApp 教練 6331 7403 另約。',en:'No slots before the deadline. Please WhatsApp 6331 7403 to arrange.'},
+  mkNoSlot:{zh:'補堂限期前已冇可補時段，請 WhatsApp 張 Sir 6331 7403 另約。',en:'No slots before the deadline. Please WhatsApp 6331 7403 to arrange.'},
   mkMax:{zh:o=>`最多揀 ${o} 堂`,en:o=>`Pick at most ${o}`},submitMk:{zh:'提交補堂',en:'Submit make-up'},
   rcMk:{zh:'✅ 已預約補堂',en:'✅ Make-up booked'},origClass:{zh:'原班',en:'From'},mkTo:{zh:p=>`補去：${p}`,en:p=>`To: ${p}`},
   noCancelMk:{zh:'暫時冇可取消嘅補堂。',en:'No make-ups to cancel.'},cancelMkT:{zh:'取消補堂',en:'Cancel make-up'},
@@ -1260,8 +1258,8 @@ document.addEventListener('DOMContentLoaded', async function(){
       <div class="ptx-sec">📍 上課地點及安排</div>
       <div class="ptx-venue">
         <div class="ptx-vm">以上價錢適用於青衣區 / 荃灣區（已包場租）</div>
-        <div class="ptx-vb">其他地區及上門服務，請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
-        <div class="ptx-vb">👥 1 對 2 訓練：價格請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
+        <div class="ptx-vb">其他地區及上門服務，請 WhatsApp 查詢</div>
+        <div class="ptx-vb">👥 1 對 2 訓練：價格請 WhatsApp 查詢</div>
         <div class="ptx-vb" style="opacity:0.7">＊為確保私人訓練質素，不建議人數過多，建議以不超過 3 人為宜</div>
       </div>
       </div><!-- /ptx-pane-kid -->
@@ -1321,10 +1319,10 @@ document.addEventListener('DOMContentLoaded', async function(){
           <div class="ptx-card feat"><div class="ptx-badge">💎 最高性價比</div><div class="ptx-s">50 堂</div><div class="ptx-t">$25,000</div><div class="ptx-p">$500 / 堂</div><div class="ptx-e">1年使用限期</div></div>
         </div>
         <div class="ptx-venue">
-          <div class="ptx-vm">👥 1 對 2 訓練：價格請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
+          <div class="ptx-vm">👥 1 對 2 訓練：價格請 WhatsApp 查詢</div>
           <div class="ptx-vb">🎓 大學生享學生優惠</div>
           <div class="ptx-vb">💳 可分期付款</div>
-          <div class="ptx-vb">👥 如需 3 人或以上小組訓練，請 <a class="wa-a" href="https://wa.me/85263317403" target="_blank" rel="noopener">💬 WhatsApp 查詢</a></div>
+          <div class="ptx-vb">👥 如需 3 人或以上小組訓練，請 WhatsApp 6331 7403 查詢</div>
         </div>
       </div><!-- /ptx-pane-adult -->
       <div class="ptx-cta">
