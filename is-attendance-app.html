@@ -1605,10 +1605,7 @@ html, body {
         <p id="greeting-date">載入中…</p>
       </div>
       <div class="stats-grid" id="home-stats"></div>
-      <div class="section-header">今日班別</div>
-      <div class="class-list" id="today-classes"></div>
-      <div class="section-header">所有班別</div>
-      <div class="class-list" id="all-classes"></div>
+      <div id="home-hub"></div>
     </div>
 
     <!-- ══ ROLL CALL ══ -->
@@ -1880,10 +1877,6 @@ html, body {
     <button class="nav-item" onclick="showScreen('student')" id="nav-student">
       <span class="nav-icon">👤</span>
       <span class="nav-label">學生</span>
-    </button>
-    <button class="nav-item" onclick="showScreen('fee')" id="nav-fee">
-      <span class="nav-icon">💰</span>
-      <span class="nav-label">收費</span>
     </button>
     <button class="nav-item" onclick="showScreen('star')" id="nav-star">
       <span class="nav-icon">⭐</span>
@@ -2175,8 +2168,8 @@ function COACH_REDIRECT_HTML(what){
   return `<div style="padding:48px 22px;text-align:center">
     <div style="font-size:42px">📋➡️</div>
     <h2 style="margin:14px 0 8px;font-size:20px">${what}已搬至教練網頁</h2>
-    <p style="color:var(--muted);font-size:14px;line-height:1.65">為咗避免兩邊資料唔同步，恆常班嘅<b>出席點名同補堂</b>一律改用<br><b>教練網頁（coach.html）</b>。<br>呢度繼續用嚟管理成績、星之學員、章別等。</p>
-    <a href="coach.html" style="display:inline-block;margin-top:20px;background:var(--cyan);color:#fff;text-decoration:none;font-weight:800;padding:14px 24px;border-radius:12px">前往教練網頁${what} ›</a>
+    <p style="color:var(--muted);font-size:14px;line-height:1.65">為咗統一管理、避免兩邊唔同步，恆常班嘅<b>${what}</b>一律改用<br><b>教練網頁（coach.html）</b>處理。<br>呢個 App 而家專責成績、優秀學員、考核章別、知識分享等內容。</p>
+    <a href="coach.html" style="display:inline-block;margin-top:20px;background:var(--cyan);color:#fff;text-decoration:none;font-weight:800;padding:14px 24px;border-radius:12px">前往教練網頁 ›</a>
   </div>`;
 }
 function openRoll(classId) {
@@ -2342,41 +2335,20 @@ function renderHome() {
   document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('zh-HK', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
   const totalStudents = Object.values(CLASSES).reduce((s,c)=>s+c.students.length, 0);
-  const pending  = totalPendingAll();
-  const expired  = totalExpiredAll();
-  const sessions = Object.keys(ATT_LOG).length;
-
   document.getElementById('home-stats').innerHTML = `
-    <div class="stat-card">
-      <div class="num">${totalStudents}</div>
-      <div class="lbl">總學生數</div>
-    </div>
-    <div class="stat-card">
-      <div class="num ${pending>0?'warn':''}">${pending}</div>
-      <div class="lbl">待補堂節數</div>
-    </div>
-    <div class="stat-card">
-      <div class="num ${expired>0?'danger':''}">${expired}</div>
-      <div class="lbl">已過期未補</div>
-    </div>
-    <div class="stat-card">
-      <div class="num ok">${sessions}</div>
-      <div class="lbl">已記錄堂數</div>
-    </div>
-  `;
+    <div class="stat-card"><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
+    <div class="stat-card"><div class="num ok">${Object.keys(CLASSES).length}</div><div class="lbl">班別數</div></div>`;
 
-  const todayDow = new Date().getDay();
-  const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);
-
-  const todayWrap = document.getElementById('today-classes');
-  if (todayCls.length) {
-    todayWrap.innerHTML = todayCls.map(([id, cls]) => classRowHTML(id, cls)).join('');
-  } else {
-    todayWrap.innerHTML = `<div style="padding:12px 0;color:var(--muted);font-size:14px">今天沒有班別</div>`;
-  }
-
-  document.getElementById('all-classes').innerHTML =
-    Object.entries(CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');
+  const hub = document.getElementById('home-hub');
+  if (hub) hub.innerHTML = `
+    <div style="background:var(--cyan-dim,rgba(43,179,198,.1));border:1px solid var(--cyan);border-radius:14px;padding:16px;margin-top:8px">
+      <div style="font-weight:800;font-size:15px;margin-bottom:6px">📋 點名 / 補堂 / 繳費 / 設定</div>
+      <div style="color:var(--muted);font-size:13px;line-height:1.65">已統一搬去<b>教練網頁（coach.html）</b>處理，避免兩邊資料唔同步。</div>
+      <a href="coach.html" style="display:inline-block;margin-top:12px;background:var(--cyan);color:#fff;text-decoration:none;font-weight:800;padding:11px 18px;border-radius:10px">前往教練網頁 ›</a>
+    </div>
+    <div style="margin-top:14px;color:var(--muted);font-size:13px;line-height:1.7">
+      呢個 App 而家專責：<br>📊 成績 · 🏆 排行 · 👤 學生 · ⭐ 優秀學員 · 🎖 考核章別 · 📚 知識分享 · 🛠 器材<br>（喺底部選單揀，內容會同步官網）
+    </div>`;
 }
 
 function classRowHTML(id, cls) {
@@ -3236,8 +3208,12 @@ function fmtFeeDate(d) {
 }
 
 function renderFee() {
-  document.getElementById('header-title-text').textContent = '收費管理';
-  document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
+  document.getElementById('header-title-text').textContent = '收費';
+  document.getElementById('header-subtitle-text').textContent = '已搬至教練網頁';
+  const _fe = document.getElementById('screen-fee');
+  if (_fe) _fe.innerHTML = COACH_REDIRECT_HTML('繳費');
+  return;
+  /* eslint-disable */
 
   document.getElementById('fee-period-pills').innerHTML = PERIODS.map(p =>
     `<div class="fee-period-pill ${feePeriod===p.id?'active':''}" onclick="selectFeePeriod('${p.id}')">${p.label}</div>`
@@ -7372,8 +7348,12 @@ const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五',
 let settingsOpenClass = null;
 
 function renderSettings() {
-  document.getElementById('header-title-text').textContent = '班別設定';
-  document.getElementById('header-subtitle-text').textContent = '管理學生名單及上課時間';
+  document.getElementById('header-title-text').textContent = '設定';
+  document.getElementById('header-subtitle-text').textContent = '已搬至教練網頁';
+  const _se = document.getElementById('screen-settings');
+  if (_se) _se.innerHTML = COACH_REDIRECT_HTML('設定');
+  return;
+  /* eslint-disable */
 
   const el = document.getElementById('settings-content');
 
