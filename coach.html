@@ -531,9 +531,10 @@ async function loadFromSheets(){
     toast('資料已從雲端載入', '☁');
     setTimeout(silentValidate, 2000);
   }catch(e){
-    CLOUD_LOADED = false;
-    setSyncIndicator('error');
-    toast('未能載入雲端資料，請重新整理', '⚠');
+    const hasData = Object.keys(ATT_LOG).length > 0;
+    CLOUD_LOADED = hasData;                          // 已經有資料就唔當失敗（避免背景重試失敗誤報橫額）
+    setSyncIndicator(hasData ? 'ok' : 'error');
+    if (!hasData) toast('未能載入雲端資料，請重新整理', '⚠');
     renderHome();
   }
 }
