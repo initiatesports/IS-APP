@@ -454,74 +454,11 @@ const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Se
 const CLASS_EXTRA_DATES     = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
 
 /* 出席記錄（fallback 本地資料，雲端載入後會合併） */
-const ATT_LOG = {
-  "c1|2026-03-02":{"陳書雅":"absent","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
-  "c1|2026-03-09":{"陳書雅":"absent","余悅":"present","孔善盈":"absent","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"absent","許思溢":"absent","梁心朗":"absent"},
-  "c1|2026-03-16":{"陳書雅":"present","余悅":"present","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present","梁心朗":"present"},
-  "c1|2026-03-23":{"陳書雅":"absent","余悅":"present","孔善盈":"present","何芯蕾":"absent","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
-  "c1|2026-03-30":{"陳書雅":"present","余悅":"absent","孔善盈":"present","何芯蕾":"present","蔡芷彤":"present","羅梓晉":"present","許思溢":"present"},
-  "c2|2026-03-02":{"蘇穎悠":"present","陳柏睎":"absent","葉宇浩":"present"},
-  "c2|2026-03-09":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"absent","陳柏睎":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"absent"},
-  "c2|2026-03-16":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏睎":"present","葉宇浩":"present","梁德瑜":"present","梁德澤":"present"},
-  "c2|2026-03-23":{"翟悅廷":"present","蘇穎悠":"present","郭栩澄":"present","陳柏睎":"present","葉宇浩":"absent","梁德瑜":"absent","梁德澤":"present"},
-  "c2|2026-03-30":{"翟悅廷":"absent","蘇穎悠":"absent","郭栩澄":"present","陳柏睎":"present","葉宇浩":"present","梁德瑜":"absent","梁德澤":"absent"},
-  "c3|2026-03-04":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
-  "c3|2026-03-11":{"鄧可澄":"present","鄧幗恩":"absent","胡苡晨":"present","胡汐森":"present","文柏升":"absent","陳曉瑩":"absent","何梓程":"present","梁正軒":"present"},
-  "c3|2026-03-18":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
-  "c3|2026-03-25":{"鄧可澄":"present","鄧幗恩":"present","胡苡晨":"present","胡汐森":"present","文柏升":"present","陳曉瑩":"present","何梓程":"present","梁正軒":"present"},
-  "c4|2026-03-04":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","羅靖誼":"present","梁正宇":"present"},
-  "c4|2026-03-11":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"absent","古卓謙":"absent","梁心朗":"present","羅靖誼":"present","梁正宇":"present"},
-  "c4|2026-03-18":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","梁心朗":"present","羅靖誼":"present","梁正宇":"present"},
-  "c4|2026-03-25":{"陳卓楠":"present","曾愛斯":"present","王一言":"present","王一心":"present","古詩詠":"present","古卓謙":"present","梁心朗":"absent","羅靖誼":"present","梁正宇":"absent"},
-  "c5|2026-03-06":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"absent","黃朗程":"present","姚心穎":"present","陳思允":"present"},
-  "c5|2026-03-13":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present"},
-  "c5|2026-03-20":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"present","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present"},
-  "c5|2026-03-27":{"顧舒然":"present","吳瑋軒":"present","黎柏言":"present","陳曉瑩":"present","梁正宇":"absent","郭可昕":"present","黃玥晴":"present","黃朗程":"present","姚心穎":"present","陳思允":"present"},
-  "c6|2026-02-28":{"陳焯棋":"present","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"absent","王斯顏":"absent","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
-  "c6|2026-03-07":{"陳焯棋":"absent","張爾淳":"present","張雅堯":"present","黃梓昕":"present","王尉鏇":"present","王斯顏":"present","呂洛希":"present","馬仲然":"present","鄧朗森":"present"},
-  "c7|2026-03-07":{"潘洛詩":"present","劉家頤":"absent","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"present","李灝宏":"present"},
-  "c7|2026-03-28":{"潘洛詩":"present","劉家頤":"present","鄭宇喬":"present","鍾皓惟":"present","周莉晶":"absent","李灝宏":"absent"}
-};
+const ATT_LOG = {};  // seed 已清空：一律以雲端 (#4) 載入為準，避免 load 失敗時顯示假資料
 
 /* 補堂記錄 */
 let MEDNOTES = [];
-let ABSENCES = [
-  {id:"imp1", name:"陳書雅",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp2", name:"何芯蕾",classId:"c1",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp3", name:"陳書雅",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp4", name:"孔善盈",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp5", name:"何芯蕾",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp6", name:"羅梓晉",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp7", name:"許思溢",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp8", name:"梁心朗",classId:"c1",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp9", name:"何芯蕾",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp10",name:"余悅",  classId:"c1",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp11",name:"陳柏睎",classId:"c2",absDate:"2026-03-02",deadline:"2026-05-02",madeUpDate:null},
-  {id:"imp12",name:"郭栩澄",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp13",name:"梁德澤",classId:"c2",absDate:"2026-03-09",deadline:"2026-05-09",madeUpDate:null},
-  {id:"imp14",name:"葉宇浩",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp15",name:"梁德瑜",classId:"c2",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null},
-  {id:"imp16",name:"翟悅廷",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp17",name:"蘇穎悠",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp18",name:"梁德瑜",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp19",name:"梁德澤",classId:"c2",absDate:"2026-03-30",deadline:"2026-05-30",madeUpDate:null},
-  {id:"imp20",name:"鄧幗恩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp21",name:"文柏升",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp22",name:"陳曉瑩",classId:"c3",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:"2026-04-06"},
-  {id:"imp23",name:"古詩詠",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp24",name:"古卓謙",classId:"c4",absDate:"2026-03-11",deadline:"2026-05-11",madeUpDate:null},
-  {id:"imp25",name:"梁心朗",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
-  {id:"imp26",name:"梁正宇",classId:"c4",absDate:"2026-03-25",deadline:"2026-05-25",madeUpDate:null},
-  {id:"imp27",name:"黃玥晴",classId:"c5",absDate:"2026-03-06",deadline:"2026-05-06",madeUpDate:null},
-  {id:"imp28",name:"梁正宇",classId:"c5",absDate:"2026-03-27",deadline:"2026-05-27",madeUpDate:null},
-  {id:"imp29",name:"陳焯棋",classId:"c6",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
-  {id:"imp30",name:"王尉鏇",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
-  {id:"imp31",name:"王斯顏",classId:"c6",absDate:"2026-02-28",deadline:"2026-04-28",madeUpDate:null},
-  {id:"imp32",name:"劉家頤",classId:"c7",absDate:"2026-03-07",deadline:"2026-05-07",madeUpDate:null},
-  {id:"imp33",name:"周莉晶",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
-  {id:"imp34",name:"李灝宏",classId:"c7",absDate:"2026-03-28",deadline:"2026-05-28",madeUpDate:null},
-  {id:"imp35",name:"陳書雅",classId:"c1",absDate:"2026-03-23",deadline:"2026-05-23",madeUpDate:null}
-];
+let ABSENCES = [];  // seed 已清空：一律以雲端 (#4) 載入為準，避免 load 失敗時顯示假資料
 
 /* ═══════════ 二、全局狀態 ═══════════ */
 let currentClass     = null;
@@ -588,16 +525,19 @@ async function loadFromSheets(){
       date:ensureDateStr(m.date), link:String(m.link||'')
     })).filter(m=>m.name&&m.link) : [];
 
+    CLOUD_LOADED = true;
     setSyncIndicator('ok');
     renderHome();
     toast('資料已從雲端載入', '☁');
     setTimeout(silentValidate, 2000);
   }catch(e){
+    CLOUD_LOADED = false;
     setSyncIndicator('error');
-    toast('載入失敗，使用本地資料', '⚠');
+    toast('未能載入雲端資料，請重新整理', '⚠');
     renderHome();
   }
 }
+let CLOUD_LOADED = false;
 
 function restoreSettings(rows){
   if (!rows || !rows.length) return;
@@ -856,6 +796,7 @@ function renderHome(){
   const sessions = Object.keys(ATT_LOG).length;
 
   document.getElementById('home-stats').innerHTML = `
+    ${!CLOUD_LOADED ? `<div style="grid-column:1/-1;background:rgba(248,113,113,.12);border:1px solid var(--red,#f87171);color:var(--red,#f87171);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px"><span>⚠ 未載入雲端資料，數字未必準確</span><button onclick="loadFromSheets()" style="background:var(--red,#f87171);color:#fff;border:0;border-radius:8px;padding:7px 12px;font-family:inherit;font-weight:800;cursor:pointer;white-space:nowrap">重新載入</button></div>` : ''}
     <div class="stat-card"><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
     <div class="stat-card"><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待補堂節數</div></div>
     <div class="stat-card"><div class="num ${expired>0?'danger':''}">${expired}</div><div class="lbl">已過期未補</div></div>
