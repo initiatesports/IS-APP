@@ -1932,6 +1932,8 @@ const CLASSES = {
         students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','何芯蕾'] }
 };
 
+// 退出可回歸學生：唔出現喺點名/班別，但排行榜照出名（觀感好、鼓勵回歸）
+const RETURNABLE = ['陳信澄','陳澔泓','潘洛詩','顧舒然','梁心朗'];
 const PERF_CLASSES_STUDENTS = {
   c5: ['吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋','梁正軒'],
 };
@@ -3931,9 +3933,10 @@ function renderLB() {
   const m = METRICS.find(x => x.id === lbMetric);
   if (!m) return;
 
-  // 只顯示現役學生（在任何班別中的學生才顯示排行榜）
+  // 只顯示現役學生（在任何班別中的學生才顯示排行榜）＋退出可回歸學生（照出名，鼓勵回歸）
   const activeStudentNames = new Set();
   Object.values(CLASSES).forEach(cls => cls.students.forEach(n => activeStudentNames.add(n)));
+  RETURNABLE.forEach(n => activeStudentNames.add(n));
 
   const entries = [];
   const seen = new Set();
