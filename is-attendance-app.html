@@ -2170,7 +2170,22 @@ let rollSelectedDate = null;
 const MIN_YEAR = 2026;
 const MIN_MONTH = 2;
 
+// 恆常班點名／補堂已收歸教練網頁(coach.html / #4)；此 #11 App 不再點名，避免兩邊資料唔同步。
+function COACH_REDIRECT_HTML(what){
+  return `<div style="padding:48px 22px;text-align:center">
+    <div style="font-size:42px">📋➡️</div>
+    <h2 style="margin:14px 0 8px;font-size:20px">${what}已搬至教練網頁</h2>
+    <p style="color:var(--muted);font-size:14px;line-height:1.65">為咗避免兩邊資料唔同步，恆常班嘅<b>出席點名同補堂</b>一律改用<br><b>教練網頁（coach.html）</b>。<br>呢度繼續用嚟管理成績、星之學員、章別等。</p>
+    <a href="coach.html" style="display:inline-block;margin-top:20px;background:var(--cyan);color:#fff;text-decoration:none;font-weight:800;padding:14px 24px;border-radius:12px">前往教練網頁${what} ›</a>
+  </div>`;
+}
 function openRoll(classId) {
+  // 點名已收歸 coach.html(#4)；顯示轉址提示，唔再喺 #11 點名／寫入
+  const _el = document.getElementById('screen-roll');
+  if (_el) _el.innerHTML = COACH_REDIRECT_HTML('點名');
+  showScreen('roll');
+  return;
+  /* eslint-disable */
   currentClass = classId;
   rollSession  = {};
 
@@ -2845,9 +2860,12 @@ function buildRadarSVG(s, axes, date) {
 
 
 function renderMakeup() {
-  document.getElementById('header-title-text').textContent = '補堂記錄';
-  document.getElementById('header-subtitle-text').textContent = '所有班別';
-
+  document.getElementById('header-title-text').textContent = '補堂';
+  document.getElementById('header-subtitle-text').textContent = '已搬至教練網頁';
+  const _mk = document.getElementById('screen-makeup');
+  if (_mk) _mk.innerHTML = COACH_REDIRECT_HTML('補堂');
+  return;
+  /* eslint-disable */
   const filters = [
     { key:'pending',  label:'待補堂' },
     { key:'urgent',   label:'即將到期' },
@@ -7169,20 +7187,12 @@ function setSyncIndicator(status) {
   el.textContent = icons[status] || '☁';
 }
 
-// ── Patch: 所有需要同步的動作 ──
-const _origSaveRoll = saveRoll;
+// ── 點名／補堂已收歸 coach.html(#4)：截停 #11 出席/補堂寫入，避免兩邊唔同步 ──
 saveRoll = function() {
-  _origSaveRoll();
-  const date = rollSelectedDate;
-  const key = currentClass + '|' + date;
-  syncAttendance(key);
-  syncAbsences();
+  alert('恆常班點名已改用教練網頁（coach.html），此處不再儲存。');
 };
-
-const _origMarkMakeupDone = markMakeupDone;
 markMakeupDone = function(id) {
-  _origMarkMakeupDone(id);
-  syncAbsences();
+  alert('補堂已改用教練網頁（coach.html），此處不再標記。');
 };
 
 const _origFinishPerfEntry = finishPerfEntry;
