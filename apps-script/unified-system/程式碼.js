@@ -1802,6 +1802,10 @@ function onOpen(){
     .addSeparator()
     .addItem("📦 安裝每月異地備份（email xlsx）","installMonthlyBackup")
     .addItem("📦 立即寄一份異地備份（測試）","monthlyOffsiteBackupMenu")
+    .addSeparator()
+    .addItem("📊 安裝營運簡報（每日07:00＋逢一催繳）","installOpsReports")
+    .addItem("📊 立即寄每日營運簡報（測試）","dailyOpsBriefMenu")
+    .addItem("💸 立即寄催繳名單（測試）","weeklyUnpaidReportMenu")
     .addToUi();
 }
 
@@ -1911,6 +1915,153 @@ function healthCheckMenu(){
   var p=healthCheck();
   SpreadsheetApp.getUi().alert(p.length ? ("發現 "+p.length+" 項異常：\n\n• "+p.join("\n• ")+"\n\n（同樣已 email 你一份）") : "✅ 全部正常（前端＋後端即時檢查通過）");
 }
+
+/* ═══════════ 營運自動簡報（只 email 老闆自己，零對外風險）═══════════
+ * 全部資料即時讀 #4：繳費表、補堂表、點名格、名冊。唔寄畀家長、唔改任何資料。
+ *   1) dailyOpsBrief()      每日約 07:00：今日課堂 + 繳費概況 + 補堂限期將到期
+ *   2) weeklyUnpaidReport() 逢星期一約 09:00：未繳名單 + 可即用 WhatsApp 催繳範本
+ * 安裝：選單「📊 安裝營運簡報」撳一次（順便授權寄信）。 */
+var OPS_EMAIL = "initiatesports6331@gmail.com";   // 營運簡報收件（老闆自己）
+
+function dDaysOps_(a,b){ var x=a.split("-").map(Number),y=b.split("-").map(Number); return Math.round((new Date(y[0],y[1]-1,y[2])-new Date(x[0],x[1]-1,x[2]))/86400000); }
+
+// 今日有上課嘅恆常班（已扣假期/停課，以 sessionsFor 為準）
+function opsTodayClasses_(){
+  var today=todayIso(), out=[];
+  CLASS_IDS.forEach(function(cid){
+    if(sessionsFor(cid).indexOf(today)>=0)
+      out.push({cid:cid, label:gridName(cid), count:CLASSES[cid].students.length});
+  });
+  return out;
+}
+
+// 未繳費（本期及之前；分「催繳」同「等核實」兩批）
+function opsUnpaid_(){
+  var today=todayIso(), curOrd=periodOrder_(curPeriodLabel_());
+  var roster=rosterRows(), chase=[], verify=[];
+  feeRows_().forEach(function(x){
+    if(x.status==="已繳"||x.status==="豁免") return;
+    var owed=x.net-x.paid; if(owed<=0) return;
+    if(periodOrder_(x.period) > curOrd) return;             // 未來期未到繳費時間，唔催
+    var start=periodStartIso_(x.period), dueBy=start?addMonthsIso(start,1):"";
+    var overdue=(dueBy && today>dueBy);
+    var cids={}; roster.forEach(function(r){ if(r.name===x.name && r.cid) cids[r.cid]=1; });
+    var labels=Object.keys(cids).map(function(c){ return classLabel_(c); });
+    var rec={name:x.name, period:x.period, owed:owed, status:x.status, overdue:overdue, classes:labels};
+    if(x.status==="待核實") verify.push(rec); else chase.push(rec);
+  });
+  chase.sort(function(a,b){ return (b.overdue?1:0)-(a.overdue?1:0) || b.owed-a.owed; });
+  return {chase:chase, verify:verify};
+}
+
+// 未補堂、限期喺 days 日內到期（沿用補堂限期延長工具同一套算法：請假節數 − 已補 = 未補；effDeadline_ 已含延期覆寫）
+function opsMakeupsDueSoon_(days){
+  var today=todayIso(), out=[];
+  CLASS_IDS.forEach(function(cid){
+    var blk=readBlock(cid);
+    Object.keys(blk.status).forEach(function(nm){
+      var lv=[]; (blk.status[nm]||[]).forEach(function(s,i){ if(s==="請假") lv.push(blk.dates[i]); });
+      if(!lv.length) return;
+      lv.sort();
+      var madeUp=makeupUniq_().filter(function(m){ return m.name===nm && m.from===cid; }).length;
+      for(var k=madeUp;k<lv.length;k++){
+        var d=lv[k], dl=effDeadline_(nm,cid,d);
+        if(dl<today) continue;                               // 已過期 → 由「補堂限期延長」工具另行處理
+        var left=dDaysOps_(today,dl);
+        if(left<=days) out.push({name:nm, label:classLabel_(cid), absDate:d, deadline:dl, daysLeft:left});
+      }
+    });
+  });
+  out.sort(function(a,b){ return a.deadline<b.deadline?-1:(a.deadline>b.deadline?1:0); });
+  return out;
+}
+// 未補堂總數（不限到期日）
+function opsOutstandingMakeups_(){
+  var n=0;
+  CLASS_IDS.forEach(function(cid){
+    var blk=readBlock(cid);
+    Object.keys(blk.status).forEach(function(nm){
+      var lv=0; (blk.status[nm]||[]).forEach(function(s){ if(s==="請假") lv++; });
+      if(!lv) return;
+      var madeUp=makeupUniq_().filter(function(m){ return m.name===nm && m.from===cid; }).length;
+      if(lv>madeUp) n+=(lv-madeUp);
+    });
+  });
+  return n;
+}
+
+// ── 每日營運簡報 ──
+function dailyOpsBrief(){
+  var today=todayIso(), wd=["日","一","二","三","四","五","六"][new Date().getDay()];
+  var cls=opsTodayClasses_(), up=opsUnpaid_(), soon=opsMakeupsDueSoon_(7), outM=opsOutstandingMakeups_();
+  var cur=curPeriodLabel_(), curRows=feeRows_().filter(function(x){ return x.period===cur; });
+  var done=curRows.filter(function(x){ return x.status==="已繳"||x.status==="豁免"||x.net<=0; }).length;
+  var rate=curRows.length? Math.round(done/curRows.length*100):100;
+  var chaseAmt=up.chase.reduce(function(s,x){ return s+x.owed; },0);
+
+  var L=[];
+  L.push("INITIATE 每日營運簡報　"+today+"（星期"+wd+"）");
+  L.push("");
+  L.push("📅 今日課堂："+(cls.length?"":"今日無恆常班課堂"));
+  cls.forEach(function(c){ L.push("• "+c.label+"｜"+c.count+" 人"); });
+  L.push("");
+  L.push("💰 繳費（本期 "+cur+"，完成率 "+rate+"%）：");
+  L.push("• 未繳 / 部分："+up.chase.length+" 位，合共 $"+chaseAmt);
+  L.push("• 等你核實（家長已上傳截圖）："+up.verify.length+" 筆");
+  L.push("");
+  L.push("🔁 補堂限期 7 日內到期："+soon.length+" 筆　|　未補堂總數："+outM+" 筆");
+  soon.forEach(function(m){ L.push("• "+(m.daysLeft<=3?"🔴":"🟡")+" "+m.name+"（"+m.label+"）缺席 "+m.absDate+"｜限期 "+m.deadline+"（剩 "+m.daysLeft+" 日）"); });
+  L.push("");
+  L.push("—— 每日自動營運簡報（只寄你自己）");
+  try{ MailApp.sendEmail(OPS_EMAIL, "📊 INITIATE 每日營運簡報 "+today, L.join("\n")); }
+  catch(e){ Logger.log("每日簡報寄送失敗："+e); }
+  return {classes:cls.length, unpaid:up.chase.length, verify:up.verify.length, makeupSoon:soon.length};
+}
+
+// ── 每週催繳名單（含 WhatsApp 範本）──
+function weeklyUnpaidReport(){
+  var today=todayIso(), up=opsUnpaid_(), pay=CONFIG.PAY_NUMBER;
+  var chaseAmt=up.chase.reduce(function(s,x){ return s+x.owed; },0);
+  var L=[];
+  L.push("INITIATE 本週催繳名單　截至 "+today);
+  L.push("");
+  if(!up.chase.length && !up.verify.length){
+    L.push("🎉 本期學費全部收清，無須催繳。");
+  } else {
+    L.push("🔴 未繳 / 部分（建議催繳）："+up.chase.length+" 位，合共 $"+chaseAmt);
+    up.chase.forEach(function(x){
+      L.push("• "+x.name+"（"+(x.classes.join("、")||"—")+"）｜"+x.period+"｜欠 $"+x.owed+(x.overdue?"　⚠️逾期":""));
+    });
+    L.push("");
+    L.push("🟡 已上傳截圖、等你核實："+up.verify.length+" 筆");
+    up.verify.forEach(function(x){ L.push("• "+x.name+"｜"+x.period+"｜$"+x.owed); });
+    L.push("（核實：教練端或繳費表第 8 欄改「已繳」即可）");
+    L.push("");
+    L.push("════ WhatsApp 催繳範本（copy 即用）════");
+    up.chase.forEach(function(x){
+      L.push("— "+x.name+" —");
+      L.push("家長您好 🙂 溫馨提醒 "+x.name+" "+x.period+"學費 $"+x.owed+" 暫未收到，方便嘅話請於本週內以 FPS／PayMe（"+pay+"）繳交，多謝支持！— INITIATE SPORTS");
+      L.push("");
+    });
+  }
+  L.push("—— 每週一自動催繳提醒（只寄你自己）");
+  try{ MailApp.sendEmail(OPS_EMAIL, "💸 INITIATE 本週催繳名單 "+today+"（未繳 "+up.chase.length+" 位）", L.join("\n")); }
+  catch(e){ Logger.log("催繳名單寄送失敗："+e); }
+  return {chase:up.chase.length, verify:up.verify.length, amount:chaseAmt};
+}
+
+function installOpsReports(){
+  ScriptApp.getProjectTriggers().forEach(function(t){
+    var f=t.getHandlerFunction();
+    if(f==="dailyOpsBrief"||f==="weeklyUnpaidReport") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("dailyOpsBrief").timeBased().everyDays(1).atHour(7).create();                       // 每日約 07:00
+  ScriptApp.newTrigger("weeklyUnpaidReport").timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();  // 逢星期一約 09:00
+  try{ SpreadsheetApp.getUi().alert("✅ 營運簡報已設定：\n• 每日約 07:00 寄「營運簡報」\n• 逢星期一約 09:00 寄「催繳名單」\n全部只寄你自己，唔會騷擾家長。"); }catch(e){}
+  return "已設定";
+}
+function dailyOpsBriefMenu(){ var r=dailyOpsBrief(); SpreadsheetApp.getUi().alert("已寄出每日營運簡報。\n今日課堂 "+r.classes+" 班｜未繳 "+r.unpaid+" 位｜待核實 "+r.verify+" 筆｜補堂將到期 "+r.makeupSoon+" 筆。"); }
+function weeklyUnpaidReportMenu(){ var r=weeklyUnpaidReport(); SpreadsheetApp.getUi().alert("已寄出催繳名單。\n未繳 "+r.chase+" 位，合共 $"+r.amount+"｜待核實 "+r.verify+" 筆。"); }
 
 /* ═══════════ 清理「補堂」表重複行 ═══════════
  * 背景：補堂表曾出現同一筆補堂被寫入多次（例如陳大文 c1→c3 同日 ×14），
