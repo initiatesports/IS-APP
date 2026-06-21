@@ -853,8 +853,8 @@ function apiMakeup(p){
   var toCid=p.toKey, date=toIso_(p.toDate);
   if(!CLASSES[toCid]) return {ok:false,err:"目標班別不存在"};
   if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
-  var perM=periodLabelFromIso_(date);
-  if(!periodPaid_(p.name,perM)) return {ok:false, locked:true, err:"請先繳付 "+perM+" 學費，方可預約補堂"};
+  // 註：補堂係補返「已付款嘅缺席」，2個月限期由下面 effDeadline_ 把關，
+  //     故唔再用補堂目標日期所屬期嘅學費作閘（即使補去未繳費嘅下一期都照畀預約）。
   var dup=makeupAll().some(function(m){ return m.name===p.name && m.from===p.fromKey && m.to===p.toKey && m.date===date; });
   if(dup) return {ok:true, dup:true};
   // 限期檢查：今次補堂對應「最舊未補嘅缺席」，須喺該缺席日 +N 個月內（#9）
