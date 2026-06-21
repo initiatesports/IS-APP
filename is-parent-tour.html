@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>INITIATE 家長系統・導覽</title>
+<style>
+:root{--teal:#1b8d9b;--teal2:#28B8C8;--ink:#16242f;--muted:#6b7b86;--line:#e6ebee;--bg:#eef3f5;--surface:#fff;--amber:#c8881f;--green:#2e9e6b;--purple:#8257d8;--red:#d9534f;}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;background:radial-gradient(circle at 30% 0%,#e7f3f5,#dfeaee 60%,#d6e2e7);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.stage{width:100%;max-width:1100px;aspect-ratio:16/9;background:linear-gradient(135deg,#0e6f7c,#16242f);border-radius:22px;box-shadow:0 30px 80px rgba(16,36,47,.35);position:relative;overflow:hidden;display:flex;}
+/* 左：旁白 */
+.narr{flex:1;padding:46px 40px;display:flex;flex-direction:column;justify-content:center;color:#fff;position:relative;z-index:2;}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:15px;letter-spacing:.08em;opacity:.9;margin-bottom:26px;}
+.brand .dot{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--teal2),#fff);display:flex;align-items:center;justify-content:center;color:var(--teal);font-size:13px;font-weight:900;}
+.step-no{font-size:13px;font-weight:800;color:var(--teal2);letter-spacing:.12em;margin-bottom:10px;}
+.title{font-size:32px;font-weight:900;line-height:1.18;margin-bottom:16px;}
+.desc{font-size:17px;line-height:1.7;color:#cfe2e6;max-width:420px;}
+.desc b{color:#fff;}
+/* 右：手機 */
+.phone-wrap{width:300px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:30px 36px 30px 0;position:relative;z-index:2;}
+.phone{width:248px;height:506px;background:#0b1118;border-radius:34px;padding:11px;box-shadow:0 18px 50px rgba(0,0,0,.45);position:relative;}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:90px;height:20px;background:#0b1118;border-radius:0 0 14px 14px;z-index:5;}
+.screen{width:100%;height:100%;background:var(--bg);border-radius:25px;overflow:hidden;position:relative;}
+.scr-pad{padding:16px 12px;height:100%;overflow:hidden;}
+/* 通用 UI 元件（模擬 is-parent） */
+.btn-teal{background:linear-gradient(135deg,var(--teal2),var(--teal));color:#fff;border:0;border-radius:11px;font-family:inherit;font-weight:800;font-size:12px;padding:11px;width:100%;text-align:center;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:11px;margin-bottom:9px;box-shadow:0 2px 8px rgba(16,36,47,.04);}
+.card h3{font-size:13px;font-weight:900;display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.dotc{width:8px;height:8px;border-radius:50%;background:var(--teal);}
+.stats{display:flex;gap:6px;}
+.stat{flex:1;background:var(--bg);border-radius:9px;padding:8px 4px;text-align:center;}
+.stat .n{font-size:17px;font-weight:900;}
+.stat .k{font-size:9px;color:var(--muted);margin-top:2px;}
+.field{border:1.5px solid var(--line);border-radius:10px;padding:10px;font-size:12px;color:var(--muted);margin-bottom:9px;background:#fff;}
+.field b{color:var(--ink);}
+.pill{display:inline-block;background:var(--teal2);color:#fff;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;}
+.rowbtn{display:flex;gap:6px;}
+.rowbtn .b{flex:1;border:1.5px solid var(--teal2);color:var(--teal);background:#fff;border-radius:10px;font-size:11px;font-weight:800;padding:9px;text-align:center;}
+.rowbtn .b.fill{background:linear-gradient(135deg,var(--teal2),var(--teal));color:#fff;border:0;}
+.banner{border-radius:11px;padding:9px 11px;font-size:11px;font-weight:700;margin-bottom:9px;line-height:1.45;}
+.banner.amber{background:rgba(200,136,31,.12);border:1px solid rgba(200,136,31,.35);color:var(--amber);}
+.banner.green{background:rgba(46,158,107,.1);border:1px solid rgba(46,158,107,.3);color:var(--green);}
+.sess{display:flex;justify-content:space-between;font-size:11px;padding:6px 2px;border-bottom:1px solid var(--line);}
+.tag-present{color:var(--green);font-weight:800;} .tag-leave{color:var(--amber);font-weight:800;} .tag-makeup{color:var(--purple);font-weight:800;}
+.fingerprint{position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.5);border:2px solid #fff;box-shadow:0 0 0 6px rgba(40,184,200,.25);pointer-events:none;z-index:6;opacity:0;}
+/* 進度＋控制 */
+.bar{position:absolute;bottom:0;left:0;right:0;height:5px;background:rgba(255,255,255,.12);z-index:4;}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal2),#fff);transition:width .1s linear;}
+.ctrl{position:absolute;bottom:16px;left:40px;display:flex;align-items:center;gap:12px;z-index:5;}
+.ctrl button{background:rgba(255,255,255,.14);border:0;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;}
+.ctrl .lbl{color:#bcd6da;font-size:12px;font-weight:700;}
+.dots{position:absolute;bottom:22px;right:40px;display:flex;gap:6px;z-index:5;}
+.dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;}
+.dots i.on{background:var(--teal2);width:20px;border-radius:5px;}
+.glow{position:absolute;inset:0;background:radial-gradient(circle at 78% 30%,rgba(40,184,200,.18),transparent 55%);z-index:1;}
+.fade{animation:fade .5s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+@keyframes tap{0%{opacity:0;transform:scale(1.4);}30%{opacity:1;}60%{opacity:1;transform:scale(.85);}100%{opacity:0;transform:scale(.85);}}
+@media (max-width:680px){.stage{aspect-ratio:auto;height:100vh;border-radius:0;flex-direction:column;}.phone-wrap{padding:0 0 14px;order:-1;}.narr{padding:18px 22px;}.title{font-size:22px;}.desc{font-size:14px;}.ctrl{left:22px;}.dots{right:22px;}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow"></div>
+  <div class="narr">
+    <div class="brand"><span class="dot">IS</span> INITIATE SPORTS</div>
+    <div class="step-no" id="stepno">導覽</div>
+    <div class="title fade" id="title">—</div>
+    <div class="desc fade" id="desc">—</div>
+  </div>
+  <div class="phone-wrap">
+    <div class="phone"><div class="notch"></div>
+      <div class="screen"><div class="scr-pad fade" id="screen"></div>
+        <div class="fingerprint" id="finger"></div>
+      </div>
+    </div>
+  </div>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="ctrl"><button id="pp">⏸</button><button id="prev">‹</button><button id="next">›</button><span class="lbl" id="counter">1 / 11</span></div>
+  <div class="dots" id="dots"></div>
+</div>
+<script>
+const TEAL='var(--teal)';
+const SCENES=[
+ { no:'導覽 · 1 分鐘識用', title:'INITIATE 家長系統', desc:'恆常班<b>請假、補堂、繳費、睇出席</b>，全部喺手機一個網頁搞掂。以下用示範帳號「陳大文」帶你行勻每個功能。',
+   finger:null, screen:`
+   <div style="text-align:center;padding-top:60px">
+     <div style="width:64px;height:64px;border-radius:16px;margin:0 auto 14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:24px">IS</div>
+     <div style="font-size:16px;font-weight:900">INITIATE SPORTS</div>
+     <div style="font-size:11px;color:var(--muted);margin-top:4px">恆常班家長系統</div>
+     <div style="margin-top:30px;font-size:12px;color:var(--muted)">📲 用手機開網址即用，<br>唔使下載 App</div>
+   </div>` },
+
+ { no:'步驟 ①', title:'用電話後 4 位登入', desc:'輸入小朋友<b>中文全名</b>同<b>登記電話最後 4 個數字</b>就登入。一個電話可以睇晒幾個小朋友。',
+   finger:{x:128,y:300}, screen:`
+   <div style="text-align:center;font-weight:900;font-size:14px;margin:14px 0 16px">家長登入</div>
+   <div class="field">中文全名　<b>陳大文</b></div>
+   <div class="field" style="letter-spacing:.25em;text-align:center"><b>1 2 3 4</b></div>
+   <button class="btn-teal">登入</button>
+   <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:12px">首次用電話後4位；之後可自設密碼</div>` },
+
+ { no:'步驟 ②', title:'一眼睇晒出席情況', desc:'登入即見每班嘅<b>總堂數、已出席、請假、待補堂</b>。月份可以揀，紀錄清清楚楚。',
+   finger:null, screen:`
+   <div class="card"><h3><span class="dotc"></span>星期一 5–6pm</h3>
+     <div class="stats">
+       <div class="stat"><div class="n">8</div><div class="k">總堂</div></div>
+       <div class="stat"><div class="n" style="color:var(--green)">6</div><div class="k">已出席</div></div>
+       <div class="stat"><div class="n" style="color:var(--amber)">1</div><div class="k">請假</div></div>
+       <div class="stat"><div class="n" style="color:var(--red)">1</div><div class="k">待補</div></div>
+     </div>
+   </div>
+   <div class="card" style="padding:9px 11px">
+     <div class="sess"><span>3月3日（一）</span><span class="tag-present">出席</span></div>
+     <div class="sess"><span>3月10日（一）</span><span class="tag-leave">請假</span></div>
+     <div class="sess" style="border:0"><span>3月17日（一）</span><span class="tag-makeup">補堂</span></div>
+   </div>` },
+
+ { no:'步驟 ③', title:'手機一撳就請假', desc:'撳<b>「申請請假」</b>→ 揀日子 → 提交。當日病假可補堂，記得<b>48 小時內上傳醫生紙</b>。',
+   finger:{x:80,y:250}, screen:`
+   <div class="card"><h3><span class="dotc"></span>星期一 5–6pm</h3>
+     <div class="rowbtn"><span class="b">📝 申請請假</span><span class="b fill">↩ 申請補堂</span></div>
+   </div>
+   <div class="card">
+     <div style="font-size:12px;font-weight:900;margin-bottom:8px">申請請假</div>
+     <div class="field">日期　<b>3月10日（星期一）</b></div>
+     <div class="field">類型　<b>事假</b></div>
+     <button class="btn-teal">提交請假</button>
+   </div>` },
+
+ { no:'步驟 ④', title:'請咗假就嚟補堂', desc:'撳<b>「申請補堂」</b>→ 揀邊一日、邊一班補返 → 提交。系統會自動計<b>補堂限期</b>，唔使你記。',
+   finger:{x:160,y:250}, screen:`
+   <div class="card">
+     <div style="font-size:12px;font-weight:900;margin-bottom:8px">申請補堂</div>
+     <div class="field">補去班別　<b>星期三 5–6pm</b></div>
+     <div class="field">補堂日期　<b>3月19日（星期三）</b></div>
+     <button class="btn-teal">確認補堂</button>
+   </div>
+   <div class="banner amber">⏳ 你尚有 <b>1 堂</b>未補・補堂限期 <b>5月10日</b> 前</div>` },
+
+ { no:'步驟 ⑤', title:'補堂限期提醒', desc:'快到期但未補，系統會<b>橙色提你</b>；過咗期會清楚顯示<b>不可補</b>。一目了然，唔會蝕堂。',
+   finger:null, screen:`
+   <div class="banner amber">⏳ 尚有 <b>1 堂</b>未補・補堂限期 <b>5月10日</b> 前　（剩 6 日）</div>
+   <div class="card"><h3><span class="dotc"></span>已預約補堂</h3>
+     <div class="sess"><span>星期三・3月19日</span><span class="tag-makeup">待出席</span></div>
+     <div class="sess" style="border:0"><span>星期五・3月14日</span><span class="tag-present">已出席</span></div>
+   </div>
+   <div class="banner green">✅ 冇待補堂，繼續保持！</div>` },
+
+ { no:'步驟 ⑥', title:'繳費・上傳截圖', desc:'每期學費喺主頁<b>付款功能區</b>：用 FPS／PayMe 過數後，<b>影低截圖上傳</b>，教練核實就完成，狀態即時更新。',
+   finger:{x:128,y:330}, screen:`
+   <div class="card" style="border-color:rgba(40,184,200,.4)"><h3>💳 學費</h3>
+     <div style="font-size:10px;color:var(--muted);margin-bottom:6px">2026 3-4月・每週 1 堂</div>
+     <div class="stats">
+       <div class="stat"><div class="n">$1040</div><div class="k">應繳</div></div>
+       <div class="stat"><div class="n">$0</div><div class="k">已繳</div></div>
+       <div class="stat"><div class="n" style="font-size:12px;color:var(--amber)">未繳</div><div class="k">狀態</div></div>
+     </div>
+     <div style="font-size:10px;color:var(--muted);margin:8px 0 6px">FPS／PayMe：6709 3390</div>
+     <button class="btn-teal">📷 上傳付款截圖</button>
+   </div>` },
+
+ { no:'步驟 ⑦', title:'想加堂？加操好方便', desc:'想小朋友多練？撳<b>「加操」</b>揀日子，系統階梯計價，付款上傳一條龍。',
+   finger:{x:128,y:120}, screen:`
+   <div class="card">
+     <span class="b fill" style="display:block;text-align:center;border-radius:10px;background:#fff;color:var(--teal);border:1.5px solid var(--teal2);font-weight:800;font-size:12px;padding:10px">➕ 申請加操</span>
+   </div>
+   <div class="card">
+     <div style="font-size:12px;font-weight:900;margin-bottom:8px">加操</div>
+     <div class="field">去邊班　<b>星期三 6–7pm</b></div>
+     <div class="field">日期　<b>3月26日</b>　·　<b>$130</b></div>
+     <button class="btn-teal">提交加操</button>
+   </div>` },
+
+ { no:'步驟 ⑧', title:'私人訓練紀錄', desc:'有報私人訓練嘅，主頁有<b>金色私訓卡</b>，睇得到第幾期、上咗幾多堂、進度條一目了然。',
+   finger:null, screen:`
+   <div class="card" style="border-color:rgba(224,169,58,.5)">
+     <h3 style="color:#a06a10"><span class="dotc" style="background:#e0a93a"></span>⭐ 私人訓練</h3>
+     <div style="font-size:10px;color:var(--muted);margin-bottom:8px">第 1 期・每期 10 堂</div>
+     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+       <div style="flex:1;height:9px;border-radius:5px;background:#eee;overflow:hidden"><div style="height:100%;width:70%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
+       <b style="color:#a06a10;font-size:12px">7 / 10</b>
+     </div>
+     <div class="sess"><span>3月3日（一）</span><span class="pill" style="background:#e0a93a">第7堂</span></div>
+   </div>` },
+
+ { no:'步驟 ⑨', title:'通知・官網・社交', desc:'主頁頂有<b>INITIATE 官網入口</b>、最新<b>場地／天氣通知</b>、社交媒體連結，重要消息唔會錯過。',
+   finger:null, screen:`
+   <button class="btn-teal" style="margin-bottom:9px">🌐 INITIATE SPORTS 官網　›</button>
+   <div class="card" style="border-color:rgba(200,136,31,.35)">
+     <h3 style="color:var(--amber)"><span class="dotc" style="background:var(--amber)"></span>📣 最新通知</h3>
+     <div style="font-size:11px;line-height:1.5">本週六因天氣關係改於室內進行，請準時到場。</div>
+   </div>
+   <div style="display:flex;gap:8px;justify-content:center;margin-top:6px;font-size:18px">📷 💬 ▶️</div>` },
+
+ { no:'完', title:'就係咁簡單！', desc:'請假、補堂、繳費、睇出席，<b>手機一撳搞掂</b>。有任何問題，隨時 <b>WhatsApp 我哋</b>。多謝支持 INITIATE SPORTS！',
+   finger:null, screen:`
+   <div style="text-align:center;padding-top:40px">
+     <div style="font-size:34px">🎉</div>
+     <div style="font-size:15px;font-weight:900;margin-top:10px">歡迎使用</div>
+     <div style="font-size:12px;color:var(--muted);margin-top:4px">INITIATE 家長系統</div>
+     <a style="display:block;margin-top:24px;background:#25D366;color:#062b14;border-radius:11px;padding:11px;font-weight:800;font-size:12px;text-decoration:none">💬 WhatsApp 查詢</a>
+     <div style="font-size:10px;color:var(--muted);margin-top:14px">登入：中文全名 + 電話後4位</div>
+   </div>` },
+];
+const SECS=6;
+let i=0, playing=true, t=0, timer=null;
+const $=id=>document.getElementById(id);
+function render(){
+  const s=SCENES[i];
+  $('stepno').textContent=s.no;
+  $('title').textContent=s.title; $('title').classList.remove('fade'); void $('title').offsetWidth; $('title').classList.add('fade');
+  $('desc').innerHTML=s.desc;
+  $('screen').innerHTML=s.screen; $('screen').classList.remove('fade'); void $('screen').offsetWidth; $('screen').classList.add('fade');
+  $('counter').textContent=(i+1)+' / '+SCENES.length;
+  [...$('dots').children].forEach((d,k)=>d.classList.toggle('on',k===i));
+  const fg=$('finger');
+  if(s.finger){ fg.style.left=s.finger.x+'px'; fg.style.top=s.finger.y+'px'; fg.style.animation='none'; void fg.offsetWidth; fg.style.animation='tap 1.4s ease 0.6s 2'; }
+  else { fg.style.animation='none'; fg.style.opacity=0; }
+  t=0; $('prog').style.width='0%';
+}
+function tick(){ if(!playing)return; t+=0.1; $('prog').style.width=Math.min(100,t/SECS*100)+'%'; if(t>=SECS){ next(); } }
+function next(){ i=(i+1)%SCENES.length; render(); }
+function prev(){ i=(i-1+SCENES.length)%SCENES.length; render(); }
+function toggle(){ playing=!playing; $('pp').textContent=playing?'⏸':'▶'; }
+SCENES.forEach((_,k)=>{ const d=document.createElement('i'); d.onclick=()=>{i=k;render();}; $('dots').appendChild(d); });
+$('next').onclick=()=>{next();}; $('prev').onclick=()=>{prev();}; $('pp').onclick=toggle;
+document.addEventListener('keydown',e=>{ if(e.key==='ArrowRight')next(); if(e.key==='ArrowLeft')prev(); if(e.key===' '){e.preventDefault();toggle();} });
+render(); timer=setInterval(tick,100);
+</script>
+</body>
+</html>
