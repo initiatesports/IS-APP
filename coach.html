@@ -268,16 +268,6 @@ html,body{
   border:1px solid var(--border);opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:9999;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-/* 課堂相簿（教練端）*/
-.alb-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px;}
-.alb-tab{background:var(--surface);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;padding:7px 11px;cursor:pointer;}
-.alb-tab.on{background:var(--cyan);border-color:var(--cyan);color:#fff;}
-.alb-up{display:flex;align-items:center;justify-content:center;width:100%;padding:13px;border:2px dashed var(--cyan);border-radius:12px;color:var(--cyan);font-size:14px;font-weight:800;cursor:pointer;background:rgba(43,179,198,.06);}
-.alb-cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
-.alb-c{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--surface);}
-.alb-c img{width:100%;height:100%;object-fit:cover;display:block;}
-.alb-vp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;background:rgba(0,0,0,.28);text-shadow:0 1px 4px rgba(0,0,0,.5);}
-.alb-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:1;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -313,7 +303,6 @@ html,body{
       </div>
       <div class="stats-grid" id="home-stats"></div>
       <div id="home-dashboard"></div>
-      <button onclick="showScreen('album')" style="width:100%;margin:4px 0 6px;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#2bb3c6,#1b8d9b);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">📷 課堂相簿（上載相片／短片畀家長睇）</button>
       <div class="section-header">今日課堂</div>
       <div class="class-list" id="today-classes"></div>
       <div class="section-header">所有班別</div>
@@ -396,11 +385,6 @@ html,body{
     <!-- 私人訓練（與恆常班分開；只記上課日）-->
     <div class="screen" id="screen-pt">
       <div id="pt-content" style="padding:0 12px 100px"></div>
-    </div>
-
-    <!-- 課堂相簿（教練上載相片/短片；已登入家長睇返自己班）-->
-    <div class="screen" id="screen-album">
-      <div id="album-content" style="padding:0 12px 100px"></div>
     </div>
 
   </div><!-- scroll-area -->
@@ -785,7 +769,6 @@ function showScreen(id, pushStack=true){
   if (id === 'settings') renderSettings();
   if (id === 'fees')     renderFees();
   if (id === 'pt')       renderPt();
-  if (id === 'album')    renderAlbum();
 }
 function goBack(){
   const prev = screenStack.pop() || 'home';
@@ -1964,71 +1947,6 @@ document.addEventListener('DOMContentLoaded', async function(){
     document.getElementById('coach-gate').style.display='flex';
   }
 });
-
-/* ═══════════ 課堂相簿（教練端：上載相片/短片）═══════════ */
-let ALBUM_CID='c1', ALBUM_ITEMS=[];
-function renderAlbum(){
-  const el=document.getElementById('album-content'); if(!el)return;
-  const tabs=Object.keys(CLASSES).map(cid=>`<button class="alb-tab ${cid===ALBUM_CID?'on':''}" onclick="albPick('${cid}')">${cid} ${CLASSES[cid].dayZh||''}</button>`).join('');
-  el.innerHTML=`
-    <div class="section-header" style="margin-top:10px">課堂相簿（上載畀家長睇）</div>
-    <div class="alb-tabs">${tabs}</div>
-    <label class="alb-up">＋ 上載相片／短片
-      <input id="alb-file" type="file" accept="image/*,video/*" multiple style="display:none" onchange="albUpload(this.files)">
-    </label>
-    <div id="alb-status" style="font-size:13px;color:var(--muted);margin:6px 2px"></div>
-    <div id="alb-grid" class="alb-cgrid"></div>`;
-  albLoad();
-}
-function albPick(cid){ ALBUM_CID=cid; renderAlbum(); }
-async function albLoad(){
-  const g=document.getElementById('alb-grid'); if(g)g.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px">載入中…</div>';
-  let r; try{ r=await apiPost({action:'albumList', classId:ALBUM_CID}); }catch(e){ r=null; }
-  if(!r||!r.ok){ if(g)g.innerHTML='<div style="color:#c0392b;font-size:13px;padding:10px">載入失敗：'+((r&&r.err)||'')+'</div>'; return; }
-  ALBUM_ITEMS=r.items||[]; if(!g)return;
-  g.innerHTML = ALBUM_ITEMS.length ? ALBUM_ITEMS.map(m=>`
-    <div class="alb-c">
-      <img src="https://drive.google.com/thumbnail?id=${m.driveId}&sz=w300" loading="lazy" alt="">
-      ${m.type==='video'?'<span class="alb-vp">▶</span>':''}
-      <button class="alb-del" onclick="albDelete('${m.id}')">✕</button>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:14px 4px">呢班暫時未有相片。撳上面「＋ 上載」開始。</div>';
-}
-function albStatus(s){ const e=document.getElementById('alb-status'); if(e)e.textContent=s; }
-async function albUpload(files){
-  if(!files||!files.length)return;
-  const arr=[...files]; let ok=0, fail=0;
-  for(let i=0;i<arr.length;i++){
-    const f=arr[i]; albStatus(`上載中… ${i+1}/${arr.length}（${f.name}）`);
-    try{
-      if(f.type.startsWith('video') && f.size>45*1024*1024){ fail++; toast('短片太大(>45MB)已略過','⚠'); continue; }
-      const dataUrl = f.type.startsWith('video') ? await fileToDataUrl(f) : await compressImage(f);
-      const r=await apiPost({action:'albumAdd', classId:ALBUM_CID, dataUrl});
-      if(r&&r.ok) ok++; else fail++;
-    }catch(e){ fail++; }
-  }
-  albStatus(`完成：成功 ${ok} 個${fail?`，失敗/略過 ${fail} 個`:''}`);
-  const fi=document.getElementById('alb-file'); if(fi)fi.value='';
-  albLoad();
-}
-function fileToDataUrl(f){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); }); }
-function compressImage(f){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>{ const img=new Image(); img.onload=()=>{
-      const max=1280; let w=img.width, h=img.height;
-      if(w>h && w>max){ h=Math.round(h*max/w); w=max; } else if(h>=w && h>max){ w=Math.round(w*max/h); h=max; }
-      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      res(cv.toDataURL('image/jpeg',0.82));
-    }; img.onerror=rej; img.src=r.result; };
-    r.onerror=rej; r.readAsDataURL(f);
-  });
-}
-async function albDelete(id){
-  if(!confirm('確定刪除呢個相片／短片？（會移去 Drive 垃圾桶，30 日內可還原）'))return;
-  let r; try{ r=await apiPost({action:'albumDelete', id}); }catch(e){ r=null; }
-  if(r&&r.ok){ toast('已刪除','🗑'); albLoad(); } else toast('刪除失敗','⚠');
-}
 </script>
 </body>
 </html>
