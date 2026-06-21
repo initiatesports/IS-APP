@@ -723,22 +723,29 @@ function openAddon(ki,ci){
   const cands=[]; const seen={};
   CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time});} } }); });
   cands.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
-  AD={ki,ci,name:child.name,pick:null};
+  const byDate={}; cands.forEach(x=>{ (byDate[x.date]=byDate[x.date]||[]).push(x); });
+  AD={ki,ci,name:child.name,pick:null,byDate};
   if(!cands.length){ openSheet(`<h2>${t('addonTitle')}</h2><p class="sd">${t('addonNoSlot')}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
+  const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
   openSheet(`<h2>${t('addonTitle')}</h2>
     <p class="sd">${t('addonSd')}</p>
     <div class="notice warn">${t('addonPriceNote')}</div>
-    <div id="ad-opts">${cands.map((x,i)=>{const d=new Date(x.date+'T00:00:00');return `<div class="opt" onclick="pickAddon(${i},this)"><div><div class="t">${classLabel(x.toKey)}</div><div style="font-size:12px;color:var(--muted)">${fmt(d)}${dow(d)}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
+    <select id="ad-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="adPickDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${dateOpts}</select>
+    <div id="ad-opts" style="margin-top:8px"></div>
     <div id="ad-price" style="margin:10px 0;font-size:15px"></div>
     <input id="ad-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="ad-go" onclick="submitAddon()" disabled>${t('addonSubmit')}</button>`);
-  AD.cands=cands;
 }
-function pickAddon(i,el){
+function adPickDate(){
+  const d=$('ad-date').value, area=$('ad-opts'); AD.pick=null; $('ad-price').innerHTML=''; $('ad-go').disabled=true;
+  if(!d){ area.innerHTML=''; return; }
+  area.innerHTML=(AD.byDate[d]||[]).map(x=>`<div class="opt" onclick="pickAddon('${x.date}','${x.toKey}',this)"><div><div class="t">${classLabel(x.toKey)}</div><div style="font-size:12px;color:var(--muted)">${x.time||''}</div></div><div class="cap" style="display:none">✓</div></div>`).join('');
+}
+function pickAddon(date,toKey,el){
   [...el.parentNode.children].forEach(c=>{c.classList.remove('on');const cap=c.querySelector('.cap');if(cap)cap.style.display='none';});
   el.classList.add('on'); const cap=el.querySelector('.cap'); if(cap)cap.style.display='block';
-  AD.pick=AD.cands[i];
-  const month=AD.pick.date.slice(0,7);
+  AD.pick={toKey,date};
+  const month=date.slice(0,7);
   const child=S.family.children[AD.ki];
   const n=(child.addons||[]).filter(a=>a.month===month).length;
   const price=addonCumCost(n+1)-addonCumCost(n);
@@ -1008,28 +1015,52 @@ function openMakeup(ki,ci){
   const cands=[];
   makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline) cands.push({toKey:s.key,date:d,time:s.time}); }); });
   cands.sort((a,b)=>a.date.localeCompare(b.date));
-  MF={ki,ci,cands,picks:[],owed};
+  // 按日期分組 → 家長先揀日期、再揀該日班別（唔使碌長 list）
+  const byDate={}; cands.forEach(cd=>{ (byDate[cd.date]=byDate[cd.date]||[]).push(cd); });
+  MF={ki,ci,byDate,picks:[],owed};
   if(!cands.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
-  const opts=cands.map((cd,i)=>{const d=new Date(cd.date+'T00:00:00');return `<div class="opt" onclick="toggleMakeup(${i},this)"><div><div class="t">${classLabel(cd.toKey)}・${fmt(d)}${dow(d)}</div><div class="s">${cd.time||''}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('');
+  const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
   openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
     <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
-    ${opts}<div class="confirm-q" id="mf-count">${t('none')}</div>
+    <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfPickDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${dateOpts}</select>
+    <div id="mf-classes" style="margin-top:8px"></div>
+    <div id="mf-picks" style="margin-top:10px"></div>
     <input id="mf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="mf-go" onclick="submitMakeup()" disabled>${t('submitMk')}</button>`);
+  renderMfPicks();
 }
-function toggleMakeup(i,el){const idx=MF.picks.indexOf(i);if(idx>=0){MF.picks.splice(idx,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}
-  else{ if(MF.picks.length>=MF.owed) return toast(t('mkMax',MF.owed)); MF.picks.push(i);el.classList.add('on');el.querySelector('.cap').style.display='';}
-  $('mf-count').textContent=MF.picks.length?t('picked',MF.picks.length):t('none');$('mf-go').disabled=MF.picks.length===0;}
+function mfPickDate(){
+  const d=$('mf-date').value, area=$('mf-classes');
+  if(!d){ area.innerHTML=''; return; }
+  area.innerHTML=(MF.byDate[d]||[]).map(cd=>{
+    const taken=MF.picks.some(p=>p.date===cd.date&&p.toKey===cd.toKey);
+    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${classLabel(cd.toKey)}</div><div class="s">${cd.time||''}</div></div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
+  }).join('');
+}
+function mfAdd(date,toKey){
+  const idx=MF.picks.findIndex(p=>p.date===date&&p.toKey===toKey);
+  if(idx>=0){ MF.picks.splice(idx,1); }
+  else { if(MF.picks.length>=MF.owed) return toast(t('mkMax',MF.owed)); MF.picks.push({date,toKey}); }
+  mfPickDate(); renderMfPicks();
+}
+function renderMfPicks(){
+  const el=$('mf-picks'); if(!el) return;
+  el.innerHTML=MF.picks.length
+    ? `<div class="confirm-q">${t('picked',MF.picks.length)}</div>`+MF.picks.map((p,i)=>{const d=new Date(p.date+'T00:00:00');return `<div class="opt on"><div class="t">${classLabel(p.toKey)}・${fmt(d)}${dow(d)}</div><div class="cap" onclick="mfRemove(${i})" style="cursor:pointer">✕</div></div>`;}).join('')
+    : `<div class="confirm-q">${t('none')}</div>`;
+  if($('mf-go')) $('mf-go').disabled=MF.picks.length===0;
+}
+function mfRemove(i){ MF.picks.splice(i,1); mfPickDate(); renderMfPicks(); }
 async function submitMakeup(){
   const code=$('mf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong')); if(!MF.picks.length) return;
   const child=S.family.children[MF.ki], c=child.classes[MF.ci]; const btn=$('mf-go'); btn.disabled=true; btn.textContent=t('submitting');
   let fail=0,err='';
-  for(const i of MF.picks){ const cd=MF.cands[i];
-    try{ const r=await api('bookMakeup',{name:child.name,fromKey:classKey(c),fromDate:'',toKey:cd.toKey,toDate:cd.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
+  for(const p of MF.picks){
+    try{ const r=await api('bookMakeup',{name:child.name,fromKey:classKey(c),fromDate:'',toKey:p.toKey,toDate:p.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
   }
   closeSheet(); await refresh();
   if(fail) return toast(t('failN',fail,err));
-  const picks=MF.picks.map(i=>MF.cands[i]).map(cd=>{const d=new Date(cd.date+'T00:00:00');return `${classLabel(cd.toKey)}・${fmt(d)}${dow(d)}`;});
+  const picks=MF.picks.map(p=>{const d=new Date(p.date+'T00:00:00');return `${classLabel(p.toKey)}・${fmt(d)}${dow(d)}`;});
   showReceipt(t('rcMk'),[`${t('child')}：<b>${child.name}</b>`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...picks.map(p=>t('mkTo',p))],
     `INITIATE 補堂預約\n小朋友：${child.name}\n原班：${classLabel(c.key||c.sport)}\n${picks.map(p=>'補去：'+p).join('\n')}`);
 }
