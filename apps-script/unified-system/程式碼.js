@@ -1043,10 +1043,15 @@ function feeAmount_(n){ return n>=2 ? CONFIG.FEE_2 : CONFIG.FEE_1; }
 function feesFor_(nm){
   return feeRows_().filter(function(x){ return x.name===nm; }).map(function(x){
     var unit=(x.weekly>=2 ? PERIOD_RATE_2 : PERIOD_RATE_1);          // 每堂價：$130(一週一堂)/$110(一週兩堂)
-    var sess=(x.due>0 && x.due%unit===0) ? x.due/unit : null;        // 本期計費堂數（應繳÷每堂價）
+    var sess=(x.due>0 && x.due%unit===0) ? x.due/unit : null;        // 實收堂數（應繳÷每堂價）
+    // 扣減（停課/順延）堂數 + 原定堂數：原定 = 實收 + 扣減（即扣減前本期應上幾多堂）
+    var det=null; try{ det=periodFeeDetail_(x.name, x.period); }catch(e){}
+    var deducted=det ? det.exemptDates.length : 0;
+    var dnote=det ? periodExemptNote_(det) : x.note;
+    var sched=(sess!=null) ? sess+deducted : null;
     return {period:x.period, weekly:x.weekly, due:x.due, discount:x.discount, adj:x.adj, adjNote:x.adjNote,
-      net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link, note:x.note,
-      unitPrice:unit, sessions:sess,
+      net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link, note:dnote,
+      unitPrice:unit, sessions:sess, deducted:deducted, scheduled:sched,
       active:(x.status==="已繳"||x.status==="豁免")};
   });
 }
