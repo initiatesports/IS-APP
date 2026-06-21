@@ -1266,6 +1266,18 @@ function genCurrentPeriodFees(){
   var nxt=apiGenPeriod({coachPass:CONFIG.COACH_PASS, period:nextPeriodLabel_()});
   SpreadsheetApp.getUi().alert("已產生繳費列：\n• "+cur.period+"：新增 "+cur.added+" 位\n• "+nxt.period+"：新增 "+nxt.added+" 位\n\n（家長端揀對應月份即見收費功能區）");
 }
+/* 一次性：把示範帳號 陳大文 現有「豁免」繳費列改返「未繳」（先自動備份）*/
+function fixDemoUnexempt(){
+  try{ backup(); }catch(e){}                          // 先備份，確保可還原
+  var nm="陳大文", sh=feeSheet(), n=0;
+  feeRows_().filter(function(x){ return x.name===nm && x.status==="豁免"; }).forEach(function(x){
+    sh.getRange(x.row,7).setValue(0);                 // 已繳 = 0
+    recalcFeeRow_(x.row);                              // 重算 → 狀態變「未繳」
+    n++;
+  });
+  try{ SpreadsheetApp.getUi().alert("已把示範帳號 陳大文 嘅 "+n+" 筆「豁免」改返「未繳」。\n家長端用 1234 登入、揀對應月份就會見到收費功能區。"); }catch(e){}
+  return n;
+}
 
 /* ═══════════ 家長操作權限：須附家庭登入碼（後端驗證，防冒用）═══════════ */
 function authParent_(name, code){
@@ -1806,6 +1818,7 @@ function onOpen(){
     .addItem("初始化 / 更新（保留資料）","setup")
     .addItem("產生出席報表","buildReport")
     .addItem("產生繳費列（本期＋下期）","genCurrentPeriodFees")
+    .addItem("🧪 取消示範帳號豁免（陳大文）","fixDemoUnexempt")
     .addItem("立即備份","backup")
     .addItem("備份到 Drive（整份複製）","backupToDrive")
     .addItem("備份清單","listBackups")
@@ -2213,16 +2226,7 @@ function seedDemo_(){
   if(!CLASSES[c1] || CLASSES[c1].students.indexOf(nm)<0) return;
   var blk=readBlock(c1), st=blk.status[nm]||[];
   if(st.some(function(x){ return x; })) return;            // 已有資料 → 唔重複種
-  // 示範用：把 陳大文 本期與下期繳費設為「豁免」，令補堂示範唔會被繳費閘卡住
-  try{
-    [curPeriodLabel_(), nextPeriodLabel_()].forEach(function(per){
-      try{ genPeriod_(per); }catch(e){}
-      var fr=feeRows_().filter(function(x){ return x.name===nm && x.period===per; });
-      if(fr.length && fr[0].status!=="豁免" && fr[0].status!=="已繳"){
-        feeSheet().getRange(fr[0].row,8).setValue("豁免");
-      }
-    });
-  }catch(e){}
+  // 註：示範帳號 陳大文 繳費不再設「豁免」（補堂示範用本期日子，periodPaid_ 本期及之前自動放行，唔會被閘）。
   var today=todayIso();
   var past=sessionsFor(c1).filter(function(d){ return d<today; });
   past.slice(0,3).forEach(function(d){ markCell(c1,nm,d,"出席",true); });   // 出席 ×3
