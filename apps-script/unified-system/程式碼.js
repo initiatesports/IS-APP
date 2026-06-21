@@ -704,6 +704,7 @@ function route(p){
     case "dailyList":       return apiDaily(p);
     case "markAttendance":  return apiMark(p);
     case "cancelDay":       return apiCancelDay(p);
+    case "cancelDayFree":   return apiCancelDayFree(p);
     case "uploadMedNote":   return apiUploadMedNote(p);
     // ── 繳費（Phase 1）──
     case "genPeriod":       return apiGenPeriod(p);
@@ -1075,6 +1076,47 @@ function periodStartIso_(label){
   if(!m) return "";
   var y=m[1], mo=("0"+m[2]).slice(-2); return y+"-"+mo+"-01";
 }
+/* 指定期之後嗰一期（如 2026 7-8月 → 2026 9-10月；11-12月 → 下年 1-2月） */
+function periodAfter_(label){
+  var m=String(label).match(/(\d{4})\s*(\d{1,2})-/); if(!m) return "";
+  var y=Number(m[1]), idx=Math.floor((Number(m[2])-1)/2)+1;
+  if(idx>5){ idx=0; y++; }
+  return y+" "+(idx*2+1)+"-"+(idx*2+2)+"月";
+}
+
+/* ═══════════ 學費抵扣 ledger（停課退費等順延折扣；可重複套用、唔會被重算覆蓋）═══════════
+   每筆：學生｜套用期｜金額(正數=要扣)｜原因｜時間。genPeriodNet_ 寫列時會自動扣減。*/
+function creditSheet(){
+  var sh=SS().getSheetByName("學費抵扣");
+  if(!sh){ sh=SS().insertSheet("學費抵扣");
+    sh.getRange(1,1,1,5).setValues([["學生","套用期","金額","原因","時間"]]);
+    sh.setFrozenRows(1); sh.getRange("B:B").setNumberFormat("@"); }
+  return sh;
+}
+function creditRows_(){
+  var sh=creditSheet(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(function(r,i){
+    return {row:i+2, name:String(r[0]||"").trim(), period:String(r[1]||"").trim(),
+      amt:Number(r[2])||0, why:String(r[3]||""), at:String(r[4]||"")};
+  }).filter(function(x){ return x.name && x.period; });
+}
+function creditsFor_(nm,label){
+  var t=0; creditRows_().forEach(function(x){ if(x.name===nm && x.period===label) t+=x.amt; }); return t;
+}
+function creditNotesFor_(nm,label){
+  return creditRows_().filter(function(x){ return x.name===nm && x.period===label; })
+    .map(function(x){ return x.why+" -$"+x.amt; }).join("；");
+}
+// 加一筆抵扣（idempotent：同學生/期/原因已存在就唔重覆加）
+function addCredit_(nm,label,amt,why){
+  if(!nm||!label||!(amt>0)) return false;
+  var dup=creditRows_().some(function(x){ return x.name===nm && x.period===label && x.why===why; });
+  if(dup) return false;
+  var sh=creditSheet(), row=sh.getLastRow()+1;
+  sh.getRange(row,2).setNumberFormat("@");
+  sh.getRange(row,1,1,5).setValues([[nm,label,amt,why,nowStamp_()]]);
+  return true;
+}
 /* 內部：為所有在學學生產生某期應繳列（已存在則跳過）；供 setup 與 API 共用 */
 /* ═══════════ 按淨堂計學費（順延豁免 / 個別豁免 / 額外收費）═══════════ */
 // 某班喺指定期（雙月）窗口內嘅實際上課堂數（受 sessionsFor 假期/停課/TERM_END 限制）
@@ -1113,10 +1155,10 @@ function periodExemptNote_(d){
   return d.exemptDates.map(function(e){ return classLabel_(e.cid)+" "+e.date+"（"+e.reason+"）"; }).join("；");
 }
 // 產生／更新某期「按淨堂計」收費列（已繳／豁免行唔郁）；dry=true 只試算記 log
-function genPeriodNet_(label, dry){
+function genPeriodNet_(label, dry, skipBackup){
   label=String(label).trim();
   var names=[]; rosterRows().forEach(function(r){ if(r.name && names.indexOf(r.name)<0) names.push(r.name); });
-  if(!dry) backup();   // 寫入前備份
+  if(!dry && !skipBackup) backup();   // 寫入前備份
   var sh=feeSheet(), rowMap={};
   feeRows_().forEach(function(x){ if(x.period===label) rowMap[x.name]={row:x.row, status:x.status}; });
   var lines=[], n_new=0, n_upd=0, n_skip=0, n_void=0;
@@ -1134,18 +1176,22 @@ function genPeriodNet_(label, dry){
     }
     var d=periodFeeDetail_(nm, label); if(!d) return;   // 無在學班別（如暫停學生）→ 略過
     var disc=referralAutoDisc_(nm, d.base, 0);           // 保留推薦優惠（上限該期 base 50%）
-    var net=d.base - disc + d.extraTot;
+    var credit=creditsFor_(nm, label);                   // 順延抵扣（停課退費等；ledger，重算唔會丟）
+    var adjAmt=d.extraTot - credit;                      // 調整 = 額外收費 − 抵扣
+    var net=Math.max(0, d.base - disc + adjAmt);
     var note=periodExemptNote_(d);
     if(d.newJoin && !note) note="本期新加入（收全費，不適用順延豁免）";
-    var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; }).join("；");
-    var vals=[nm, label, d.weekly, d.base, disc, net, 0, "未繳", "", "", "", note, d.extraTot, adjNote];
-    var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+" = $"+net;
+    var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; })
+      .concat(credit>0 ? ["抵扣 "+creditNotesFor_(nm,label)] : []).join("；");
+    var vals=[nm, label, d.weekly, d.base, disc, net, 0, "未繳", "", "", "", note, adjAmt, adjNote];
+    var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+(credit?(" −抵扣$"+credit):"")+" = $"+net;
     var hit=rowMap[nm];
     if(hit){
       if(hit.status==="已繳"||hit.status==="豁免"){ n_skip++; lines.push("⏭ "+line+"（"+hit.status+"，略過）"); return; }
       if(!dry){ sh.getRange(hit.row,2).setNumberFormat("@"); sh.getRange(hit.row,1,1,14).setValues([vals]); }
       n_upd++; lines.push("✏ "+line);
     } else {
+      if(d.base<=0){ return; }   // 該期未排堂（如超出學期窗）→ 唔建空列（抵扣留喺 ledger，排堂後先套用）
       if(!dry){ var nr=sh.getLastRow()+1; sh.getRange(nr,2).setNumberFormat("@"); sh.getRange(nr,1,1,14).setValues([vals]); }
       n_new++; lines.push("＋ "+line);
     }
@@ -1199,22 +1245,10 @@ function genPeriod78NetApply(){
   return {ok:true, net:r, crossVoid:v};
 }
 
+// 產生某期繳費列：改用「按實際堂數×每堂價」（接 sessionsFor／點名停課），取代固定 $1040/$1760。
+// 已繳／豁免行唔郁；未繳行會跟最新排程重算（停課自動少計、抵扣 ledger 自動套用）。
 function genPeriod_(label){
-  label=String(label).trim();
-  var existing={}; feeRows_().forEach(function(x){ if(x.period===label) existing[x.name]=1; });
-  var names=[]; rosterRows().forEach(function(r){ if(r.name && names.indexOf(r.name)<0) names.push(r.name); });
-  var sh=feeSheet(), added=0;
-  names.forEach(function(nm){
-    if(existing[nm]) return;
-    var wk=weeklySessions_(nm); if(!wk) return;   // 暫停／退出學生（無在學班別）唔建收費列
-    var due=feeAmount_(wk);
-    var disc=referralAutoDisc_(nm, due, 0);   // 自動套用推薦優惠（上限 50%）
-    var row=sh.getLastRow()+1;
-    sh.getRange(row,2).setNumberFormat("@");
-    sh.getRange(row,1,1,14).setValues([[nm,label,wk,due,disc,due-disc,0,"未繳","","","","",0,""]]);
-    added++;
-  });
-  return {ok:true, period:label, added:added};
+  return genPeriodNet_(String(label).trim(), false, true);   // skipBackup：通常由 setup/呼叫方自行備份
 }
 function apiGenPeriod(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
@@ -1786,6 +1820,44 @@ function apiCancelDay(p){
   logAppend({name:"(全班)",key:"-",action:"cancelDay",date:date,status:"停課"});
   notify("【停課】"+date, "今日課堂已標記為停課（共 "+classes.length+" 班）。按報名須知計一堂、不設補堂。");
   return {ok:true, date:date, classes:classes};
+}
+/* 停課（不收費）：某日課堂取消且唔收費 → 該堂從 sessionsFor 剔走（學費自動少計一堂）。
+   已繳該期費嘅學生 → 多收咗一堂，自動順延做下一期折扣（抵扣 ledger）。
+   未繳 → 重算即自動平。idempotent：同日再撳唔會重覆扣。 */
+function apiCancelDayFree(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var date=toIso_(p.date), label=periodLabelFromIso_(date), nextLab=periodAfter_(label);
+  var m=settingsMap(), affected=[];
+  CLASS_IDS.forEach(function(cid){
+    if(sessionsFor(cid).indexOf(date)<0) return;     // 該班嗰日本身唔上堂／已停 → skip
+    affected.push(cid);
+  });
+  if(!affected.length) return {ok:false, err:"當日冇恆常班上堂（或已停課）"};
+  backup();
+  // 1) 已繳/豁免該期嘅學生 → 順延一堂折扣去下一期（先記 ledger，後面 genPeriodNet_ 自動套）
+  var paidRows={}; feeRows_().forEach(function(x){ if(x.period===label) paidRows[x.name]=x.status; });
+  var credited=[];
+  affected.forEach(function(cid){
+    (CLASSES[cid].students||[]).forEach(function(nm){
+      var st=paidRows[nm];
+      if(st==="已繳"||st==="豁免"){
+        var rate=(weeklySessions_(nm)>=2?PERIOD_RATE_2:PERIOD_RATE_1);
+        if(addCredit_(nm, nextLab, rate, classLabel_(cid)+" "+date+" 停課")) credited.push(nm);
+      }
+    });
+  });
+  // 2) 把該日加入 cancelled_cN（sessionsFor 之後唔再計 → 學費自動少一堂）
+  affected.forEach(function(cid){
+    var arr=Array.isArray(m["cancelled_"+cid])?m["cancelled_"+cid].slice():[];
+    if(arr.map(toIso_).indexOf(date)<0){ arr.push(date); upsertSetting_("cancelled_"+cid, JSON.stringify(arr)); }
+  });
+  // 3) 重算本期（未繳自動少一堂）＋下一期（套用順延折扣）；4) 重建受影響 grid（剔走該日）
+  genPeriodNet_(label, false, true);
+  genPeriodNet_(nextLab, false, true);
+  affected.forEach(function(cid){ try{ buildGrid(SS(),cid,false); }catch(e){} });
+  logAppend({name:"(全班)",key:"-",action:"cancelDayFree",date:date,status:"停課·不收費"});
+  notify("【停課·不收費】"+date, "已取消 "+affected.length+" 班（不收費）：\n• 該期學費自動少計一堂\n• 已繳家長自動順延 "+credited.length+" 位做「"+nextLab+"」折扣");
+  return {ok:true, date:date, classes:affected, credited:credited.length, nextPeriod:nextLab};
 }
 
 /* ═══════════════════════════════════════════════

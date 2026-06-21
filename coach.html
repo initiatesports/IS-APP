@@ -318,7 +318,8 @@ html,body{
         <button class="today-mini" onclick="coachToday()">今日</button>
         <button class="today-mini" onclick="loadDaily()">↻</button>
       </div>
-      <button class="weather-btn" onclick="weatherCancel()">🌧 天氣停課（當日全部班別）</button>
+      <button class="weather-btn" onclick="weatherCancel()">🌧 天氣停課（當日全部班別，照收一堂）</button>
+      <button class="weather-btn" style="background:rgba(46,158,107,.12);border-color:rgba(46,158,107,.45);color:var(--green,#2e9e6b)" onclick="freeCancel()">🚫 停課・不收費（當日全部班別，學費自動少計一堂）</button>
       <div id="daily-list"></div>
       <div style="height:80px"></div>
     </div>
@@ -1789,6 +1790,20 @@ async function doWeatherCancel(date){
   await loadDaily();
   showCancelPanel(date);
   toast(`已停課 ${r.classes?r.classes.length:0} 班`, '✓');
+}
+/* ── 停課（不收費）：學費自動少計一堂，已繳家長自動順延下期折扣 ── */
+async function freeCancel(){
+  const date = document.getElementById('today-date').value;
+  const d = new Date(date + 'T00:00:00');
+  const wd = '日一二三四五六'[d.getDay()];
+  if (!confirm(`確定將 ${d.getMonth()+1}/${d.getDate()}（星期${wd}）所有課堂標記為「停課・不收費」？\n\n• 該堂會從學費中扣減（少計一堂）\n• 已繳費家長自動順延做下一期折扣\n• 此堂不設補堂`)) return;
+  toast('處理中…', '🚫');
+  let r;
+  try { r = await apiPost({ action:'cancelDayFree', date, coachPass:cpass() }); }
+  catch(e){ toast('連線錯誤，請再試', '⚠'); return; }
+  if (!r || !r.ok) { toast('失敗' + (r&&r.err?'：'+r.err:''), '⚠'); return; }
+  await loadDaily();
+  toast(`已停課(不收費) ${r.classes?r.classes.length:0} 班・順延折扣 ${r.credited||0} 位`, '✓');
 }
 function showCancelPanel(date){
   const box = document.getElementById('daily-list'); if (!box) return;
