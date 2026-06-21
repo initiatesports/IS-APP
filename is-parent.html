@@ -668,6 +668,8 @@ function paymentCard(child,ki){
   const stCol=f.status==='待核實'?'var(--teal-dark)':'var(--amber)';
   const adjLine=(f.adj&&f.adj!==0)?`<div style="font-size:13px;color:${f.adj<0?'var(--green)':'var(--amber)'};margin-top:6px">${t('feeAdjK')}：${f.adj>0?'+':''}$${f.adj}${f.adjNote?'（'+f.adjNote+'）':''}</div>`:'';
   const discLine=(f.discount&&f.discount>0)?`<div style="font-size:13px;color:var(--green);margin-top:4px">${t('feeDiscK')}：−$${f.discount}</div>`:'';
+  // 順延豁免說明：列出被取消／豁免嘅課堂日期（已從本期學費扣減）
+  const noteLine=f.note?`<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(27,141,155,.07);border:1px solid rgba(27,141,155,.25);font-size:12.5px;line-height:1.6;color:var(--teal-dark)">📌 ${L('本期學費已扣減以下取消／豁免課堂（順延優惠）：','This period\'s fee already deducts these cancelled / exempt sessions (carried forward):')}<br>${f.note.replace(/；/g,'<br>')}</div>`:'';
   // 上一期／累積未補堂 + 補堂限期
   const os=owedSummary(child);
   let owedLine;
