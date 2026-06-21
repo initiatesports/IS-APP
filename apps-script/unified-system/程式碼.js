@@ -50,22 +50,6 @@ const CLASSES = {
 };
 const CLASS_IDS = Object.keys(CLASSES);
 
-/* ⚙️ 統一名單來源（2026-06）：啟動時把「設定(Settings 表) class_cN_students」套入 CLASSES，
- * 令後端名單 = 教練喺 coach.html 設定改嘅（與點名 / 家長端 / grid 一致），以後改設定全系統生效。
- * 防呆：某班設定為空或讀取失敗 → 唔覆蓋，沿用上面程式碼預設名單。
- * ⚠️ 改完設定（加/減學生）後，請執行一次「⬇️ 匯入家長資料」或「初始化/更新」令 grid 對齊（非破壞性、會先備份）。*/
-(function applyRosterSettings_(){
-  try{
-    var m=settingsMap();
-    CLASS_IDS.forEach(function(cid){
-      var v=m["class_"+cid+"_students"]; if(v==null) return;
-      var arr=Array.isArray(v)?v:String(v).split(",");
-      arr=arr.map(function(x){ return String(x).trim(); }).filter(Boolean);
-      if(arr.length) CLASSES[cid].students=arr;   // 防呆：空就唔覆蓋
-    });
-  }catch(e){ Logger.log("套用設定名單失敗，沿用程式碼預設："+e); }
-})();
-
 /* ═══════════ 私人訓練（PT）═══════════
  * 與恆常班完全分開：各自 1對1、獨立 10 堂一個週期，無請假/補堂，只記「邊日上咗堂」。
  * 加／減私訓學員：在 PT_STUDENTS 陣列加減項目即可，毋須改其他地方。
