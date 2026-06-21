@@ -614,6 +614,42 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
   .bs-title{font-size:30px}
   .bs-beliefs{grid-template-columns:1fr 1fr}
 }
+/* ── 課程卡片（精簡）+ 課程詳情頁（overlay）── */
+.course-card{background:var(--surface,#fff);border:1px solid var(--border,#e6ebee);border-radius:16px;overflow:hidden;margin-bottom:12px;cursor:pointer;transition:transform .12s,box-shadow .12s}
+.course-card:active{transform:scale(.99)}
+.course-card:hover{box-shadow:0 8px 24px rgba(16,30,40,.07)}
+.cc-img{width:100%;height:152px;object-fit:cover;display:block}
+.cc-body{padding:14px 16px}
+.cc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cc-name{font-size:17px;font-weight:800;color:var(--ink,#1a2230)}
+.cc-tag{font-size:11px;font-weight:800;color:var(--cyan,#1b8d9b);background:var(--cyan-dim,rgba(27,141,155,.1));border:1px solid var(--cyan,#1b8d9b);border-radius:999px;padding:2px 9px}
+.cc-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cc-meta span{font-size:11.5px;color:var(--muted,#6b7b86);background:var(--surface2,#f1f4f5);border-radius:6px;padding:2px 7px}
+.cc-sum{font-size:13.5px;color:var(--muted,#6b7b86);line-height:1.6;margin-top:9px}
+.cc-more{margin-top:11px;font-size:13px;font-weight:800;color:var(--cyan,#1b8d9b)}
+.cc-more span{display:inline-block;transition:transform .12s}
+.course-card:hover .cc-more span{transform:translateX(3px)}
+.course-ov{position:fixed;inset:0;background:rgba(16,30,40,.5);z-index:9999;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s;overflow-y:auto}
+.course-ov.show{opacity:1}
+.cd-sheet{background:var(--surface,#fff);width:100%;max-width:600px;border-radius:20px 20px 0 0;min-height:50vh;padding:0 20px 30px;position:relative;transform:translateY(18px);transition:transform .22s}
+.course-ov.show .cd-sheet{transform:translateY(0)}
+.cd-close{position:sticky;top:12px;float:right;margin:12px -6px 0 0;width:34px;height:34px;border-radius:50%;border:none;background:var(--surface2,#eef2f3);color:var(--muted,#6b7b86);font-size:15px;cursor:pointer;z-index:3}
+.cd-img{width:calc(100% + 40px);margin:0 -20px 6px;height:210px;object-fit:cover;display:block}
+.cd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:16px;clear:both}
+.cd-title{font-size:21px;font-weight:900;color:var(--ink,#1a2230)}
+.cd-sum{font-size:14.5px;color:var(--cyan,#1b8d9b);font-weight:600;line-height:1.65;margin:10px 0 2px}
+.cd-body{margin-top:4px}
+.cd-sec{margin-top:17px}
+.cd-h{font-size:15.5px;font-weight:800;color:var(--ink,#1a2230);margin:0 0 7px}
+.cd-p{font-size:14px;line-height:1.78;color:var(--ink,#1a2230);opacity:.88;margin:0}
+.cd-ul{margin:0;padding:0;list-style:none}
+.cd-ul li{font-size:14px;line-height:1.7;color:var(--ink,#1a2230);opacity:.88;padding-left:17px;position:relative;margin-bottom:3px}
+.cd-ul li:before{content:"•";color:var(--cyan,#1b8d9b);position:absolute;left:2px;font-weight:900}
+.cd-cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+.cd-btn{flex:1;min-width:150px;text-align:center;text-decoration:none;padding:14px;border-radius:13px;font-weight:800;font-size:14.5px}
+.cd-btn.primary{background:linear-gradient(135deg,#28b8c8,#1b8d9b);color:#fff}
+.cd-btn.ghost{background:var(--surface2,#eef2f3);color:var(--cyan,#1b8d9b);border:1px solid var(--cyan,#1b8d9b)}
+@media(min-width:640px){.course-ov{align-items:center;padding:24px}.cd-sheet{border-radius:18px;min-height:0;max-height:88vh;overflow-y:auto}.cd-img{height:240px}}
 </style>
 </head>
 <body>
@@ -1400,6 +1436,109 @@ let EQUIPMENT_ITEMS=[
    desc:'🌞 2026 暑期限定 — 7 月 17 日起，連續 7 個星期\n\n為對籃球有興趣嘅學生提供訓練，按能力水平因材施教。教授籃球基礎技術，包括運球、傳球、投籃及防守基本動作，並透過小組練習及對抗訓練，培養團隊合作精神與比賽意識，全面提升籃球技術及體能。\n\n📅 班別（青衣體育館附近籃球場）：\n• 星期三 09:00–10:00（高小班）\n• 星期五 09:00–10:00（低小班）\n\n👥 師生比例 1:10\n\n🎁 報名禮品：課程現金券；報兩班或以上加送獨家運動水樽\n\n📲 即時名額及網上報名：initiatesports.github.io/SUMMER-COURSE-2026',
    contact:'WhatsApp: 6331 7403',image:''},
 ];
+/* ═══════════ 課程詳情（豐富介紹；撳卡開詳情頁）═══════════ */
+const _jump=[
+  {icon:'🎯',h:'課程理念',p:'花式跳繩是入門門檻低、變化卻無限的全身帶氧運動，一條繩、一個空間就能玩出千變萬化。我們相信運動應該由「成功感」開始：以由淺到深的花式進程，配合音樂與遊戲，讓孩子在不知不覺間練好基本功，建立對運動的長遠興趣與習慣。'},
+  {icon:'🧩',h:'學員會學到',list:['基礎跳繩：正確握繩、搖繩節奏、雙腳併跳與連續跳','步法變化：開合跳、前後跳、左右跳、單腳交替','入門花式：交叉跳、回環、側擺等手腳協調動作','速度與耐力：限時計次跳、間歇跳，提升心肺','進階個人花式：多重跳（雙搖）、組合連招','合作項目：雙人繩、長繩、交互繩等團體玩法']},
+  {icon:'🌱',h:'對孩子的好處',list:['強化心肺功能與肌耐力，高效又安全的全身帶氧運動','訓練手腳協調與手眼協調，刺激神經連結','配合音樂培養節奏感與身體控制','在反覆練習中提升專注力與反應速度','由克服動作建立自信、堅毅與不放棄的態度']},
+  {icon:'👤',h:'適合對象',list:['幼稚園高班至小學階段、想打好運動基礎的孩子','好動或精力旺盛、需要正面渠道發揮的小朋友','想由零開始、循序漸進挑戰花式技巧的初學者']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，教練照顧每位孩子的進度','清晰的彩虹章別考核制度，逐級晉升有目標','由淺到深、遊戲化教學，先建立成功感','表現出色者推薦參加校際／公開比賽','兼顧個人技術與雙人、團體花式']}
+];
+const _ath=[
+  {icon:'🎯',h:'課程理念',p:'田徑被譽為「運動之母」，因為走、跑、跳、投擲是幾乎所有運動的根基，速度、力量、協調與平衡都由此而來。我們以正確姿勢與安全為先，透過遊戲化的訓練讓孩子掌握最核心的基本動作，不只為田徑打底，更為將來各項運動及體育學習奠定扎實基礎。'},
+  {icon:'🧩',h:'學員會學到',list:['跑的技術：正確跑姿、擺臂、加速與衝線','起跑與反應：站立式／蹲踞式起跑，訓練起動爆發','跳的項目：立定跳遠、跳遠助跑與起跳','擲的項目：擲球／推擲動作的發力與全身協調','體能基礎：敏捷、爆發力、核心穩定與步法','障礙與綜合練習：跨越、急停變向']},
+  {icon:'🌱',h:'對孩子的好處',list:['全面提升速度、爆發力與肌耐力','強化全身協調、平衡與敏捷度','跑跳擲動作可遷移到其他運動','與小學體育課程及呈分試的跑、跳項目高度相關','在挑戰個人紀錄中培養專注、目標感與毅力']},
+  {icon:'👤',h:'適合對象',list:['小學階段、想打好體能與運動基礎的孩子','喜歡跑跳、精力充沛的小朋友','希望為校隊或體育呈分試做準備的學生']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，教練細心糾正姿勢','涵蓋跑、跳、擲三大範疇，全面均衡','由基本動作到項目技術循序漸進','設個人表現與進度追蹤','為表現出色學員推薦參加校際／公開比賽']}
+];
+const _gym=[
+  {icon:'🎯',h:'課程理念',p:'基礎體操是所有運動的根基。我們相信每個孩子都應該先學會「控制自己的身體」，才能在任何運動上走得更遠。課程透過循序漸進的體操與柔韌度訓練，幫助孩子建立身體覺知、力量與協調，並在過程中培養專注與耐性。'},
+  {icon:'🧩',h:'學員會學到',list:['基礎翻滾：前滾翻、後滾翻、側手翻，學會安全落地','倒立與支撐：牆邊倒立、手臂支撐，建立上肢力量','柔韌度：一字馬、大字馬、橋式、壓腿等伸展','平衡與控制：平衡木行走、單腳站立、定型動作','核心訓練：透過爬行、跳躍、定點動作訓練腹背','基本體操組合：把動作串連成流暢序列']},
+  {icon:'🌱',h:'對孩子的好處',list:['提升柔韌度，肌肉與關節更靈活','強化核心、上肢與下肢力量','改善身體協調與平衡','培養良好體態與身體覺知','建立自律、專注與自信']},
+  {icon:'👤',h:'適合對象',list:['幼稚園至小學階段、想打好運動基礎的孩子','想改善柔韌度、協調或平衡的初學者','為其他運動建立身體底子的學員（零基礎歡迎）']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，照顧每位學員的進度與安全','因材施教，不催谷、不勉強','循序漸進的動作分解，建立成功感','安全至上：完善軟墊與保護輔助','正面鼓勵的學習氣氛']}
+];
+const _bball=[
+  {icon:'🎯',h:'課程理念',p:'籃球是一項結合技術、體能與團隊智慧的運動。我們的課程不只教孩子「點樣入波」，更著重打好正確基本功，並透過比賽情境讓孩子學會閱讀球場、與隊友溝通合作，在享受運動之餘學會堅持與承擔。'},
+  {icon:'🧩',h:'學員會學到',list:['運球控球：左右手運球、低運球、變向','傳接球：胸前傳球、地板傳球、接球技巧','投籃技術：正確姿勢、上籃步法、罰球','防守基礎：防守站姿、滑步、卡位','腳步與身體控制：急停、轉身、起動','比賽意識：透過小型比賽學習走位與配合']},
+  {icon:'🌱',h:'對孩子的好處',list:['提升手眼協調、敏捷度與心肺耐力','強化團隊合作與溝通能力','培養專注力與臨場判斷','建立自信與抗逆力','透過群體運動擴闊社交圈']},
+  {icon:'👤',h:'適合對象',list:['小學階段、喜歡球類及團體活動的孩子','想打好籃球基本功的初學者','希望提升體能、協調與專注力的學員（零基礎歡迎）']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，確保足夠觸球與練習時間','因材施教，重視基本功多於勝負','由分解動作到實戰演練','注重運動精神與紀律','比賽情境教學，玩樂中吸收戰術']}
+];
+const _bad=[
+  {icon:'🎯',h:'課程理念',p:'羽毛球節奏明快、動作全面，是訓練兒童協調與專注的理想入門運動。我們由基本功打好根基，循序漸進帶孩子進入有來有往的對打樂趣，讓每位學員在運動中建立自信與興趣。'},
+  {icon:'🧩',h:'學員會學到',list:['正確握拍與揮拍姿勢','正手與反手高遠球、吊球、殺球基礎','高球、發短球等發球技巧','場上步法與重心轉移','多球餵球訓練，密集練習擊球手感','一對一及雙打實戰對打']},
+  {icon:'🌱',h:'對孩子的好處',list:['提升手眼協調與擊球準繩度','訓練快速反應與判斷球路','強化敏捷、移位與全身協調','跑跳揮拍鍛鍊心肺與耐力','培養專注力與臨場應變']},
+  {icon:'👤',h:'適合對象',list:['對羽毛球有興趣的小學至中學階段學員','零基礎完全歡迎，由零開始打穩基本功','想提升現有水平、加強實戰的學員']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，照顧每位學員','因材施教，按程度調整訓練內容','多球餵球訓練，提升練習密度與成效','著重實戰對打，學以致用','重視正確姿勢，預防受傷']}
+];
+const _tt=[
+  {icon:'🎯',h:'課程理念',p:'乒乓球講求瞬間反應，是公認最能鍛鍊大腦與反射神經的運動之一。我們從握拍與基本動作入手，讓孩子在安全、有趣的環境中逐步掌握技巧，享受快速來回的對打樂趣。'},
+  {icon:'🧩',h:'學員會學到',list:['直拍／橫拍握法與基本站位','正手與反手攻球、推擋','發球與接發球技巧','配合擊球的腳步移動與重心轉換','多球訓練，密集練習擊球節奏','對打練習，學習實戰判斷與走位']},
+  {icon:'🌱',h:'對孩子的好處',list:['大幅提升快速反應與反射神經','強化手眼協調，準確追蹤高速來球','訓練專注力與短時記憶','鍛鍊精細動作與全身協調','培養冷靜判斷與臨場應變']},
+  {icon:'👤',h:'適合對象',list:['對乒乓球有興趣的小學至中學階段學員','零基礎完全歡迎，由握拍開始學起','想加強反應與技術的學員']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，充足練習與指導','因材施教，按進度調整','多球訓練，提升擊球穩定度','著重實戰對打，培養比賽感覺','由淺入深，建立正確動作根基']}
+];
+const _pick=[
+  {icon:'🎯',h:'匹克球係咩？',p:'匹克球（Pickleball）結合了羽毛球、乒乓球與網球的特點，在較小的場地上、用輕巧球拍與帶孔膠球進行，球速較慢、上手容易，是近年全球增長最快的運動之一。規則簡單、入門門檻低，特別適合小朋友建立信心、享受運動樂趣。'},
+  {icon:'🧩',h:'學員會學到',list:['認識場地、球拍與膠球，了解基本玩法','「廚房區（非截擊區）」規則：近網約 2 米內不可截擊','下手發球與接發球','正手與反手擊球','「雙彈規則」：發球與接發球各須先落地一次','落點控制與雙打走位、與隊友配合']},
+  {icon:'🌱',h:'對孩子的好處',list:['規則簡單、球速較慢，初學者快速享受成功感','提升手眼協調與反應能力','鍛鍊敏捷移動與心肺功能','著重策略與落點，訓練思考多於蠻力','多以雙打進行，培養溝通、合作與社交']},
+  {icon:'👤',h:'適合對象',list:['對新興運動有興趣的小學至中學階段學員','零基礎歡迎，幾堂內即可掌握基本','想嘗試易上手、有策略性運動的孩子']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，照顧不同程度','針對兒童設計，循序漸進','重點講解廚房區等核心規則','多以雙打對打，趣味互動兼備','因材施教，零基礎輕鬆投入']}
+];
+const _fms=[
+  {icon:'🎯',h:'課程理念',p:'3 至 6 歲係兒童基礎動作技能（FMS）發展嘅關鍵窗口，亦係公認嘅「動作學習黃金期」。呢個階段嘅大腦同神經系統對動作刺激特別敏感，今日打好嘅根基，會影響孩子日後跑、跳、接、投嘅自信同能力。本課程以「遊戲化教學」為核心，讓幼兒喺玩樂中自然掌握身體素養。'},
+  {icon:'🧩',h:'學員會學到',list:['移動技能 Locomotor：跑、跳、單腳跳、踏步、閃避','穩定技能 Stability：靜態與動態平衡、轉身、扭動、伸展','操控技能 Manipulative：拋、接、踢、滾、拍打','身體空間感與方向感：上下左右、快慢高低','透過遊戲建立規則感、輪流等待與合作','對運動嘅正面情感：覺得郁動係開心、好玩']},
+  {icon:'🌱',h:'對孩子的好處',list:['喺最佳發展期打好動作根基，為各類運動鋪路','提升專注力、反應與身體協調','建立自信、勇於嘗試，唔怕跌倒','增加活動量，培養由細到大嘅運動習慣','喺團體遊戲中發展社交與情緒能力']},
+  {icon:'👤',h:'適合對象',list:['3–6 歲幼兒，有冇運動底子都啱','特別適合首次接觸結構化運動、或怕醜、唔夠自信嘅小朋友']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，照顧每個小朋友嘅發展步伐','全程遊戲化設計，孩子玩得開心又掌握技能','PRE & POST 動作發展評估報告，成長用數據紀錄','室內外場地交替，多元環境刺激','依 FMS 三大類別系統編排，循序漸進']}
+];
+const _af=[
+  {icon:'🎯',h:'家長最常問：呢個班係學咩？',p:'好多家長問：「係咪打波？係咪跑步？」答案係——兩樣都唔係，但兩樣都幫到。本課程唔教單一專項，而係專注訓練孩子跨運動共通嘅「體能引擎」：力量、速度、敏捷、協調同平衡。呢啲就係國際 LTAD 模型講嘅「動作 ABC」（敏捷、平衡、協調），係 6 歲後身體最適合密集打磨嘅能力。底子打得好，孩子之後學羽毛球、籃球、游水、田徑都快人一步。'},
+  {icon:'🧩',h:'學員會學到',list:['力量：以自身體重為主嘅安全肌力訓練，建立核心控制','速度：起步、加速、煞停同變向嘅跑動技巧','敏捷：快速反應、閃避同改變方向','協調：手腳並用、上下肢配合嘅複合動作','平衡：靜態與動態平衡，預防受傷','正確嘅跑、跳、落地姿勢——呈分試常考嘅基本動作']},
+  {icon:'🌱',h:'對孩子的好處',list:['一套底子，通用所有運動，避免太早專項化','直接幫到小學體育堂同呈分試表現','改善動作質素，降低運動受傷風險','體能、反應同自信同步提升','培養紀律同恆心，運動以外都受用']},
+  {icon:'👤',h:'適合對象',list:['6 歲或以上、想全面打好運動底子嘅孩子','已玩開某項運動、想提升整體體能嘅小朋友','仲未揀定專項、想先建立全面能力嘅孩子','想為小學體育呈分試提早準備嘅學生']},
+  {icon:'⭐',h:'課程特色',list:['小班教學，針對每個孩子強弱項調整','PRE & POST 體能數據成長報告','室內外場地交替，貼近實戰','依 LTAD 發展原則編排，安全為先','訓練全面而有趣，有得玩又有得進步']}
+];
+const _cond=[
+  {icon:'🎯',h:'課程理念',p:'暑假係孩子難得有完整時間集中訓練嘅黃金檔期。本課程以運動科學為本，透過短期、密集而有系統嘅安排，喺一個暑假內為孩子打好穩固嘅體能基礎。我哋唔追求即時專項成績，而係建立可以「帶得走」嘅身體能力。'},
+  {icon:'🧩',h:'學員會學到',list:['24 項核心體能元素：力量、速度、敏捷、協調、平衡、爆發力與耐力','正確嘅跑步、跳躍同落地力學，預防受傷','核心肌群與身體控制訓練','反應速度與變向能力','循序漸進嘅體能進階，認識自己身體','運動前後嘅熱身、伸展同恢復概念']},
+  {icon:'🌱',h:'對孩子的好處',list:['暑假密集訓練，短時間內見明顯進步','為新學年體育堂同呈分試打好底氣','一套通用底子，為其他運動打底','避免暑假體能倒退，開學即有狀態','養成規律運動習慣']},
+  {icon:'👤',h:'適合對象',list:['小學一年級或以上學生','想善用暑假提升體能、為新學年準備嘅孩子','有玩開其他運動、想加強體能底子嘅小朋友']},
+  {icon:'⭐',h:'課程特色',list:['以運動科學編排嘅 24 項核心元素，系統全面','小班教學，因材施教','PRE & POST 體能數據成長報告，暑假前後對比','室內外場地交替，貼近真實運動情境','暑期短期密集模式，成效集中']}
+];
+const _ptk=[
+  {icon:'🎯',h:'課程理念',p:'每個孩子的身體條件、學習速度和興趣都不一樣。私人訓練由前香港隊運動員、具運動科學背景的專業教練親自帶領，先了解孩子的強項與弱點，再為他設計專屬路線，讓進步看得見、學得開心。'},
+  {icon:'🧩',h:'訓練方向',list:['花式跳繩：由基本跳法到花式技巧','全面體能：心肺、爆發力、核心穩定','田徑基礎：跑、跳的正確姿勢與技術','體操元素：柔軟度、平衡、身體控制','球類運動敏捷反應：腳步、變向、手眼協調','肌力與協調：適齡、安全地建立力量']},
+  {icon:'🌱',h:'好處與成效',list:['集中火力改善某一項能力，進度比小組更快','一對一即時糾正動作，減少日後運動傷害','內向或未夠投入的孩子能在專注環境重拾信心','由淺入深，建立對運動的興趣與成就感','提升專注力、自律與身體自信']},
+  {icon:'👤',h:'適合對象',list:['想集中改善某項運動能力的兒童及青少年','在小組課堂較難投入、需要更多個別關注的孩子','想為校隊、比賽或升學體育做準備的學生','可選 1 對 2，3 人以上歡迎查詢']},
+  {icon:'⭐',h:'獨家賣點',list:['前香港隊運動員、香港中文大學運動科學背景，理論與實戰兼備','持 NASM 國際認證私人教練及 S&C 體能表現教練資格','罕有同時具備 NKT 神經動能療法 × SCS 拮抗鬆弛術兩項徒手治療資格，可即場評估姿勢不良與動作代償','度身訂造每一堂，不走倒模式教學','一對一全程貼身觀察，把基礎打得紮實']}
+];
+const _pta=[
+  {icon:'🎯',h:'課程理念',p:'無論你是想增肌減脂、提升運動表現，還是想處理長期痛症、舒緩壓力，安全永遠是第一位。由前香港隊運動員、具運動科學背景的專業教練親自跟進，先做完整評估，再為你度身設計訓練與飲食。從年輕上班族到樂齡長者，都能找到適合自己的步伐。'},
+  {icon:'🧩',h:'訓練方向',list:['肌力訓練：科學化的漸進負荷','增肌減脂：結合訓練與飲食指導','運動表現提升：爆發力、敏捷、耐力','痛症處理：針對肩頸、腰背等常見不適','低衝擊體能：對關節友善，適合樂齡','飲食指導：日常飲食建議與配合']},
+  {icon:'🌱',h:'好處與成效',list:['安全有效地建立肌力，改善日常活動與姿勢','改善體態、體組成','從動作根源舒緩肩頸腰背痛症與緊繃','透過規律運動釋放壓力、改善睡眠','樂齡人士提升平衡、肌力與骨骼健康，降低跌倒風險']},
+  {icon:'👤',h:'適合對象',list:['想增肌減脂、改善體態或提升表現的成人','有痛症、姿勢不良或動作代償困擾的人士','久坐少動、想安全重新開始運動的初學者','注重低衝擊、安全訓練的樂齡及長者（可選 1 對 2）']},
+  {icon:'⭐',h:'獨家賣點',list:['前香港隊運動員、香港中文大學運動科學背景','持 NASM 國際認證私人教練及 S&C 體能表現教練資格，評估、訓練到飲食一條龍','罕有同時具備 NKT × SCS 兩項徒手治療資格：NKT 從神經層面找出動作代償根源，SCS 以溫和無痛擺位手法放鬆繃緊肌肉','即場評估並處理姿勢不良、動作代償與簡單痛症','按身體狀況與目標度身訂造，各年齡及樂齡都能安心參與']}
+];
+const _signup={icon:'📲',h:'網上報名',p:'即時名額及網上報名：initiatesports.github.io/SUMMER-COURSE-2026'};
+const _giftStd={icon:'🎁',h:'報名禮品',list:['課程現金券','報兩班或以上加送獨家運動水樽']};
+const COURSE_DETAIL={
+  'cf':{summary:'把握 3–6 歲動作發展黃金期，用遊戲為孩子打好一生受用的運動根基。',sections:[..._fms,{icon:'📋',h:'上課安排',list:['師生比例 1:10，每班限 10 人','附專屬 PRE & POST 數據成長報告','室內外場地交替訓練','時間及班別歡迎 WhatsApp 6331 7403 查詢']}]},
+  'c1':{summary:'由一條繩開始，跳出協調、節奏與自信，讓孩子愛上運動的第一步。',sections:[..._jump,{icon:'📋',h:'上課安排',list:['師生比例 1:12，4 人成班','配合彩虹章別考核計劃，定期評估進度','時間及最新班別歡迎 WhatsApp 6331 7403 查詢']}]},
+  'c2':{summary:'跑、跳、擲，奠定一生運動根基，為孩子打開「運動之母」的大門。',sections:[..._ath,{icon:'📋',h:'上課安排',list:['師生比例 1:10，4 人成班','時間及最新班別歡迎 WhatsApp 6331 7403 查詢']}]},
+  'c3':{summary:'唔屬於任何單一運動，但係孩子玩好所有運動的引擎——打造跨項目體能底子。',sections:[..._af,{icon:'📋',h:'上課安排',list:['小班教學，每班最多 8 人','新學員入學前作簡單能力評估，因材施教','定期能力測試與數據成效分析','時間及班別歡迎 WhatsApp 6331 7403 查詢']}]},
+  'c4':{summary:'一對一度身訂造，讓孩子在最適合自己的節奏中，把每項運動能力練到位。',sections:[..._ptk,{icon:'📋',h:'上課安排',list:['一對一私人訓練；可選 1 對 2 小組','如需 3 人或以上小組歡迎查詢','時間靈活，歡迎 WhatsApp 6331 7403 預約']}]},
+  'c5':{summary:'由評估、訓練到飲食一條龍，安全有效地練出力量、體態與輕鬆無痛的身體。',sections:[..._pta,{icon:'📋',h:'上課安排',list:['一對一私人訓練；可選 1 對 2 小組','由評估、訓練到飲食一條龍跟進','時間靈活，歡迎 WhatsApp 6331 7403 預約']}]},
+  'sum-jump':{summary:'由一條繩開始，跳出協調、節奏與自信，讓孩子愛上運動的第一步。',sections:[..._jump,{icon:'📅',h:'班別（青衣區體育館）',list:['7 月 13 日起，連續 7 個星期','星期一 11:00–12:00','星期二 16:00–17:00','星期三 11:00–12:00','星期四 14:00–15:00']},{icon:'🎁',h:'報名禮品',list:['課程現金券','專業拍子繩連專屬繩袋','報兩班或以上加送獨家運動水樽']},_signup]},
+  'sum-ath':{summary:'跑、跳、擲，奠定一生運動根基，為孩子打開「運動之母」的大門。',sections:[..._ath,{icon:'📅',h:'班別（青衣運動場）',list:['7 月 14 日起，連續 7 個星期','星期二 17:15–18:15','星期四 17:15–18:15','星期六 17:15–18:15']},{icon:'🎁',h:'報名禮品',list:['課程現金券','戶外訓練軟墊連冰巾','報兩班或以上加送獨家運動水樽']},_signup]},
+  'sum-gym':{summary:'從翻滾到一字馬，打好身體底子，在安全環境中認識自己的身體。',sections:[..._gym,{icon:'📅',h:'班別（青衣區體育館）',list:['7 月 13 日起，連續 7 個星期','星期一 14:00–15:00','星期四 15:00–16:00','師生比例 1:6（小班教學）']},_giftStd,_signup]},
+  'sum-fit':{summary:'一個暑假，以運動科學打好體能底子，為新學年同各項運動全面預備。',sections:[..._cond,{icon:'📅',h:'班別（青衣體育館／運動場・室內外交替）',list:['7 月 13 日起，連續 7 個星期','星期一 15:00–16:00','星期五 15:00–16:00']},{icon:'🎁',h:'全包及禮品',list:['7 節專業課程 + 專屬 PRE & POST 數據成長報告','報名即送課程現金券 + 戶外訓練軟墊連冰巾','報兩班或以上加送獨家運動水樽']},_signup]},
+  'sum-bad':{summary:'由握拍到實戰對打，在快節奏中練出敏捷反應與專注力。',sections:[..._bad,{icon:'📅',h:'班別（青衣區體育館・兩小時班）',list:['7 月 14 日起，連續 7 個星期','星期二 13:00–15:00','星期四 10:00–12:00','師生比例 1:6（小班教學）']},_giftStd,_signup]},
+  'sum-tt':{summary:'毫秒之間的較量，練就飛快反應、專注與精準手感。',sections:[..._tt,{icon:'📅',h:'班別（青衣區體育館）',list:['7 月 15 日起，連續 7 個星期','星期三 15:00–16:00','星期五 16:00–17:00','師生比例 1:6（小班教學）']},_giftStd,_signup]},
+  'sum-pick':{summary:'近年全球增長最快的運動之一，結合羽毛球、乒乓與網球，簡單易上手。',sections:[..._pick,{icon:'📅',h:'班別（翠怡花園會所）',list:['7 月 14 日起，連續 7 個星期','星期二 10:00–11:00（一小時班）','星期五 13:00–15:00（兩小時班）','師生比例 1:6（小班教學）']},_giftStd,_signup]},
+  'sum-bball':{summary:'由運球到入樽夢，學的不只是技術，更是團隊、信心與永不放棄。',sections:[..._bball,{icon:'📅',h:'班別（青衣體育館附近籃球場）',list:['7 月 17 日起，連續 7 個星期','星期三 09:00–10:00（高小班）','星期五 09:00–10:00（低小班）','師生比例 1:10']},_giftStd,_signup]}
+};
 /* ═══════════ 學生成就（比賽獎項）═══════════ */
 let ACHIEVEMENTS=[
   {comp:'獅子會盃全港跳繩挑戰賽 2026',sub:'新界區初賽',items:[
@@ -1533,36 +1672,52 @@ function renderNewsPanel(){
 function renderCoursesPanel(){
   const el=document.getElementById('courses-list');
   if(!COURSE_ITEMS.length){el.innerHTML='<div class="lb-empty">暫無課程資料</div>';return;}
-  const WA='https://wa.me/85263317403';
-  el.innerHTML=COURSE_ITEMS.map(co=>{
-    const unit = co.priceUnit || '月';
-    const imgHtml = co.image ? `<img src="${co.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px">` : '';
-    const showPrice = co.price && !co.hidePrice;
-    const priceHtml = showPrice
-      ? `<div class="card-price" style="margin-top:10px">HK$${co.price}<span style="font-size:12px;font-weight:400;color:var(--muted)">/${unit}</span>${co.priceNote ? ` <span style="font-size:12px;font-weight:400;color:var(--amber)">${co.priceNote}</span>` : ''}</div>`
-      : '';
-    const ctaHtml = co.hidePrice
-      ? `<a href="${WA}" target="_blank" rel="noopener" class="btn-hero-p primary" style="margin-top:14px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;box-sizing:border-box">💬 查詢報名詳情</a>`
-      : '';
-    return `
-    <div class="card" style="margin-bottom:14px;display:flex;flex-direction:column">
+  el.innerHTML=COURSE_ITEMS.map((co,idx)=>{
+    const d=COURSE_DETAIL[co.id]||{};
+    const imgHtml = co.image ? `<img src="${co.image}" class="cc-img" alt="">` : '';
+    return `<div class="course-card" onclick="openCourse(${idx})">
       ${imgHtml}
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <div class="card-title" style="margin:0">${co.name}</div>
-        ${co.tag ? `<span style="font-size:11px;font-weight:800;color:var(--cyan);background:var(--cyan-dim);border:1px solid var(--cyan);border-radius:999px;padding:2px 9px">${co.tag}</span>` : ''}
+      <div class="cc-body">
+        <div class="cc-top"><div class="cc-name">${co.name}</div>${co.tag?`<span class="cc-tag">${co.tag}</span>`:''}</div>
+        <div class="cc-meta">${co.age?`<span>👶 ${co.age}</span>`:''}${co.schedule?`<span>🕒 ${co.schedule}</span>`:''}${co.duration?`<span>⏱ ${co.duration}</span>`:''}</div>
+        ${d.summary?`<div class="cc-sum">${d.summary}</div>`:''}
+        <div class="cc-more">了解更多 <span>→</span></div>
       </div>
-      <div class="card-tags" style="margin-top:8px">
-        ${co.age      ? `<span class="tag">👶 ${co.age}</span>` : ''}
-        ${co.schedule ? `<span class="tag purple">🕒 ${co.schedule}</span>` : ''}
-        ${co.duration ? `<span class="tag amber">⏱ ${co.duration}</span>` : ''}
-      </div>
-      ${priceHtml}
-      ${co.desc    ? `<div class="card-desc" style="margin-top:8px;white-space:pre-line">${co.desc}</div>` : ''}
-      ${co.contact ? `<div style="margin-top:10px;font-size:13px;color:var(--cyan);font-weight:600">📱 ${co.contact}</div>` : ''}
-      ${ctaHtml}
     </div>`;
   }).join('');
 }
+function fmtCourseSections(secs){
+  return (secs||[]).map(s=>{
+    const body = s.list ? `<ul class="cd-ul">${s.list.map(li=>`<li>${li}</li>`).join('')}</ul>` : `<p class="cd-p">${s.p||''}</p>`;
+    return `<div class="cd-sec"><h4 class="cd-h">${s.icon||''} ${s.h}</h4>${body}</div>`;
+  }).join('');
+}
+function openCourse(idx){
+  const co=COURSE_ITEMS[idx]; if(!co) return;
+  const d=COURSE_DETAIL[co.id]||{};
+  const WA='https://wa.me/85263317403';
+  const isSummer = co.tag==='暑期班';
+  const imgHtml = co.image ? `<img src="${co.image}" class="cd-img" alt="">` : '';
+  const ov=document.createElement('div');
+  ov.className='course-ov'; ov.id='course-ov';
+  ov.innerHTML=`<div class="cd-sheet">
+    <button class="cd-close" onclick="closeCourse()" aria-label="關閉">✕</button>
+    ${imgHtml}
+    <div class="cd-head"><div class="cd-title">${co.name}</div>${co.tag?`<span class="cc-tag">${co.tag}</span>`:''}</div>
+    <div class="cc-meta" style="margin:10px 0 2px">${co.age?`<span>👶 ${co.age}</span>`:''}${co.schedule?`<span>🕒 ${co.schedule}</span>`:''}${co.duration?`<span>⏱ ${co.duration}</span>`:''}</div>
+    ${d.summary?`<div class="cd-sum">${d.summary}</div>`:''}
+    <div class="cd-body">${fmtCourseSections(d.sections)}</div>
+    <div class="cd-cta">
+      ${isSummer?`<a class="cd-btn primary" href="https://initiatesports.github.io/SUMMER-COURSE-2026/" target="_blank" rel="noopener">📲 即時名額・網上報名</a>`:''}
+      <a class="cd-btn ${isSummer?'ghost':'primary'}" href="${WA}" target="_blank" rel="noopener">💬 WhatsApp 查詢報名</a>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeCourse(); });
+  document.body.appendChild(ov);
+  document.body.style.overflow='hidden';
+  requestAnimationFrame(()=>ov.classList.add('show'));
+}
+function closeCourse(){ const ov=document.getElementById('course-ov'); if(ov) ov.remove(); document.body.style.overflow=''; }
 
 // ═══════════════════════
 //  GRADE PANEL
