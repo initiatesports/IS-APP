@@ -1834,6 +1834,7 @@ function onOpen(){
     .addSeparator()
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addSeparator()
+    .addItem("🔑 一次性授權上網/寄信（解決健康檢查紅字）","authorizeNow")
     .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
     .addItem("🩺 立即健康檢查（測試）","healthCheckMenu")
     .addSeparator()
@@ -1901,6 +1902,15 @@ function monthlyOffsiteBackupMenu(){
  * 安裝：選單「🩺 安裝每日健康檢查」撳一次（順便授權 UrlFetch + 寄信）。
  * 測試：選單「🩺 立即健康檢查」即時跑一次並彈出結果。 */
 var HEALTH_EMAIL = "initiatesports6331@gmail.com";
+/* 🔑 一次性授權：故意「唔包 try/catch」咁用 UrlFetch + MailApp，
+ * 令 Apps Script 偵測到缺 scope → 彈出授權視窗，批准一次即解決健康檢查/異地備份紅字。
+ * （healthCheck 等function內部 try/catch 接住咗錯誤，所以唔會觸發授權，故另設此function。）*/
+function authorizeNow(){
+  UrlFetchApp.fetch("https://www.google.com");                       // 觸發「連線至外部服務」授權
+  MailApp.sendEmail(HEALTH_EMAIL, "INITIATE 授權成功 ✅",
+    "你收到呢封 email，代表上網同寄信權限已經批准。\n之後「立即健康檢查」應該會顯示全部正常。");
+  return "authorized";
+}
 var HEALTH_BACKENDS = [
   {name:"#4 unified-system",  url:"https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec", expect:"is-unified-v2"},
   {name:"#11 parent-portal",  url:"https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec", expect:null},
