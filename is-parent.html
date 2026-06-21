@@ -163,6 +163,12 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
   background:var(--ink);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;
   opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:9999;box-shadow:0 4px 16px rgba(16,24,40,.2);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* 回歸面板 */
+.ret-opts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0 6px;}
+.ret-opt{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:10px;padding:10px 11px;font-size:13.5px;cursor:pointer;background:var(--surface2);}
+.ret-opt input{width:17px;height:17px;accent-color:#e0a93a;}
+.ret-opt:has(input:checked){border-color:#e0a93a;background:rgba(224,169,58,.1);font-weight:700;}
+.ret-fee{font-size:15px;font-weight:800;color:#a06a10;margin:4px 0 2px;}
 </style>
 </head>
 <body>
@@ -438,7 +444,7 @@ async function doLogin(){
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
+  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||'';
   try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,t:Date.now()})); }catch(e){}
   $('logout-btn').style.display='block';
   renderParent();
@@ -516,10 +522,16 @@ function renderParent(){
     html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px">${kids.map((c,i)=>`<button onclick="setKid(${i})" style="flex:1;min-width:88px;padding:12px 8px;border-radius:12px;border:2px solid ${i===S.kid?'var(--teal,#28B8C8)':'var(--line,#e3e3e3)'};background:${i===S.kid?'var(--teal,#28B8C8)':'#fff'};color:${i===S.kid?'#fff':'var(--ink,#202020)'};font-weight:800;font-size:14.5px;cursor:pointer">${c.name}</button>`).join('')}</div>`;
   }
   const showIdx = multi ? [S.kid] : kids.map((_,i)=>i);
-  // 💳 付款功能區：緊貼月份／小朋友選擇器下面
-  showIdx.forEach(ki=>{ const child=kids[ki]; if(child) html+=paymentCard(child,ki); });
+  // 💳 付款功能區：緊貼月份／小朋友選擇器下面（退出可回歸學生唔顯示，改用回歸面板）
+  showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable) html+=paymentCard(child,ki); });
   showIdx.forEach(ki=>{
     const child=kids[ki]; if(!child) return;
+    // 🔄 退出可回歸學生：中間區換成回歸面板（其餘照常）
+    if(child.returnable){
+      html+=`<div class="child-row"><div class="child-head">${child.name}</div></div>`;
+      html+=returnPanel(child,ki);
+      return;
+    }
     html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
     // #1 補堂限期將到期提醒（14 日內）
     const hsoon=childHistory(child).makeupable.filter(x=>{const dl=daysLeft(x.deadline);return dl>=0&&dl<=14;});
@@ -743,6 +755,50 @@ async function submitAddon(){
   const d=new Date(AD.pick.date+'T00:00:00');
   showReceipt(t('rcAddon'),[`${t('child')}：<b>${AD.name}</b>`,`${t('klass')}：${classLabel(AD.pick.toKey)}・${fmt(d)}${dow(d)}`,`${t('addonSeqL',r.seq)}　·　$${r.price}`,`<span style="color:#c0392b">${t('addonPayLine',S.payNumber||'6709 3390')}</span>`],
     `INITIATE 加操\n小朋友：${AD.name}\n班別：${classLabel(AD.pick.toKey)}\n日期：${AD.pick.date}\n應付：$${r.price}`);
+}
+/* 🔄 退出可回歸學生：回歸面板（揀 1～2 班 → 付款回歸） */
+let RET={ki:null, cids:[], fileData:null};
+function returnPanel(child, ki){
+  const L=(zh,en)=>LANG==='en'?en:zh;
+  const f=S.retFees||{f1:1200,f2:1800};
+  const opts=CLASS_IDS.map(cid=>`<label class="ret-opt"><input type="checkbox" value="${cid}" onchange="retToggle(${ki})"><span>${classLabel(cid)}</span></label>`).join('');
+  return `<div class="card" style="border-color:rgba(224,169,58,.55)">
+    <div class="topline"><span class="dot" style="background:#e0a93a"></span><h3>🔄 ${L('歡迎回歸！','Welcome back!')}</h3></div>
+    <div class="meta">${L('你已暫停。揀返下一期想上嘅班別，付款後即可回歸做正常學生','Paused. Pick next-period class(es) and pay to return')}${S.nextPeriod?'（'+S.nextPeriod+'）':''}</div>
+    <div class="ret-opts" id="ret-opts-${ki}">${opts}</div>
+    <div id="ret-fee-${ki}" class="ret-fee">${L('費用','Fee')}：—</div>
+    <input type="file" id="ret-file-${ki}" accept="image/*" style="display:none" onchange="retFile(${ki},this)">
+    <button class="btn" id="ret-go-${ki}" disabled onclick="document.getElementById('ret-file-${ki}').click()" style="margin-top:10px">📷 ${L('上傳付款截圖回歸','Upload payment to return')}</button>
+    <div id="ret-status-${ki}" style="font-size:12.5px;color:var(--muted);margin-top:9px;line-height:1.5">${L('回歸收費','Return fee')}：1班 $${f.f1}／2班 $${f.f2}（$150/節）<br>${L('付款後待教練核實，核實即回歸','After payment, coach reviews then you’re back')}</div>
+  </div>`;
+}
+function retToggle(ki){
+  const box=document.getElementById('ret-opts-'+ki);
+  let checked=[...box.querySelectorAll('input:checked')];
+  if(checked.length>2){ checked[checked.length-1].checked=false; checked=[...box.querySelectorAll('input:checked')]; }
+  const cids=checked.map(c=>c.value);
+  RET={ki, cids, fileData:RET.fileData};
+  const f=S.retFees||{f1:1200,f2:1800};
+  const fee=cids.length>=2?f.f2:(cids.length===1?f.f1:0);
+  const lbl=cids.length>1?(LANG==='en'?' (2 classes)':'（2班）'):(cids.length===1?(LANG==='en'?' (1 class)':'（1班）'):'');
+  document.getElementById('ret-fee-'+ki).textContent=(LANG==='en'?'Fee':'費用')+'：'+(fee?('$'+fee+lbl):'—');
+  document.getElementById('ret-go-'+ki).disabled=(cids.length===0);
+}
+function retFile(ki,input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  if(f.size>6*1024*1024){ toast(LANG==='en'?'File too big':'檔案太大'); input.value=''; return; }
+  const rd=new FileReader(); rd.onload=()=>{ RET.fileData=rd.result; retSubmit(ki); }; rd.readAsDataURL(f);
+}
+async function retSubmit(ki){
+  if(!RET.cids||!RET.cids.length){ toast(LANG==='en'?'Pick a class first':'請先揀班別'); return; }
+  if(!RET.fileData) return;
+  const st=document.getElementById('ret-status-'+ki); if(st){ st.textContent=LANG==='en'?'Uploading…':'上傳中…'; st.style.color='var(--muted)'; }
+  const child=(S.family&&S.family.children||[])[ki]; if(!child) return;
+  let r; try{ r=await api('returnPay',{name:child.name, classIds:RET.cids, dataUrl:RET.fileData}); }catch(e){ r=null; }
+  if(r&&r.ok){
+    if(st){ st.innerHTML=(LANG==='en'?'✅ Submitted! Coach will review. Fee $':'✅ 已提交，待教練核實。費用 $')+r.fee; st.style.color='var(--green)'; }
+    toast(LANG==='en'?'Return request submitted':'回歸申請已提交 ✅');
+  } else { if(st){ st.textContent=(r&&r.err)||(LANG==='en'?'Submit failed':'提交失敗'); st.style.color='var(--red)'; } RET.fileData=null; }
 }
 let PAY={};
 function openPay(ki,period){
