@@ -1133,13 +1133,26 @@ function genPeriodNet_(label, dry){
       n_new++; lines.push("＋ "+line);
     }
   });
-  Logger.log("【"+label+" 按淨堂計學費】"+(dry?"🔎 試算（未寫入）":"✅ 已寫入")+"　新增 "+n_new+"／更新 "+n_upd+"／略過 "+n_skip+"\n"+lines.join("\n"));
-  return {ok:true, period:label, added:n_new, updated:n_upd, skipped:n_skip, dry:!!dry, lines:lines};
+  // 清理：本期已存在、但學生已無在學班別（暫停／退出）嘅列 → 設豁免 $0，唔再向家長收費
+  var n_void=0;
+  feeRows_().filter(function(x){ return x.period===label; }).forEach(function(x){
+    if(periodFeeDetail_(x.name, label)) return;               // 有在學班別 → 上面已處理
+    if(x.status==="已繳"||x.status==="豁免") return;            // 已繳／已豁免 → 唔郁
+    if(!dry){
+      sh.getRange(x.row,4,1,3).setValues([[0,0,0]]);          // 應繳/折扣/實際應繳 = 0
+      sh.getRange(x.row,8).setValue("豁免");
+      sh.getRange(x.row,12).setValue("暫停／退出學生，本期不收費");
+      sh.getRange(x.row,13,1,2).setValues([[0,""]]);          // 調整/調整說明清零
+    }
+    n_void++; lines.push("🚫 "+x.name+"：無在學班別 → 本期豁免 $0");
+  });
+  Logger.log("【"+label+" 按淨堂計學費】"+(dry?"🔎 試算（未寫入）":"✅ 已寫入")+"　新增 "+n_new+"／更新 "+n_upd+"／略過 "+n_skip+"／豁免暫停 "+n_void+"\n"+lines.join("\n"));
+  return {ok:true, period:label, added:n_new, updated:n_upd, skipped:n_skip, voided:n_void, dry:!!dry, lines:lines};
 }
 function genPeriod78NetDryRun(){ return genPeriodNet_("2026 7-8月", true); }
 function genPeriod78NetApply(){
   var r=genPeriodNet_("2026 7-8月", false);
-  try{ SpreadsheetApp.getUi().alert("✅ 7-8月學費（按淨堂計）已寫入\n新增 "+r.added+"／更新 "+r.updated+"／已繳豁免略過 "+r.skipped+"\n\n（家長端揀 7-8月即見金額同豁免說明）"); }catch(e){}
+  try{ SpreadsheetApp.getUi().alert("✅ 7-8月學費（按淨堂計）已寫入\n新增 "+r.added+"／更新 "+r.updated+"／已繳豁免略過 "+r.skipped+"／暫停學生豁免 "+r.voided+"\n\n（家長端揀 7-8月即見金額同豁免說明）"); }catch(e){}
   return r;
 }
 
@@ -1150,7 +1163,8 @@ function genPeriod_(label){
   var sh=feeSheet(), added=0;
   names.forEach(function(nm){
     if(existing[nm]) return;
-    var wk=weeklySessions_(nm)||1, due=feeAmount_(wk);
+    var wk=weeklySessions_(nm); if(!wk) return;   // 暫停／退出學生（無在學班別）唔建收費列
+    var due=feeAmount_(wk);
     var disc=referralAutoDisc_(nm, due, 0);   // 自動套用推薦優惠（上限 50%）
     var row=sh.getLastRow()+1;
     sh.getRange(row,2).setNumberFormat("@");
