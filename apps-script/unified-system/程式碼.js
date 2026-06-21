@@ -53,6 +53,10 @@ var PERIOD_EXEMPT = {
 var PERIOD_EXTRA = {
   "2026 7-8月": { "鄧幗恩":[{amt:130, note:"5/23 加操"}, {amt:30, note:"膠繩替芯"}] }
 };
+// 本期新加入學生：唔享上期取消課程順延豁免（收全費）。例：梁心朗 2026-07 回歸 c3。
+var PERIOD_NO_CARRY = { "2026 7-8月": ["梁心朗"] };
+// 強制豁免（$0，本期不收費）：暫停／退出學生喺指定期。例：梁心朗 5-6月暫停。
+var PERIOD_VOID = { "2026 5-6月": ["梁心朗"] };
 
 /* ═══════════ 真實班別資料（你 App 真實學生）═══════════ */
 /* cN: { dayZh, wd(1=一..6=六), time, students[] }
@@ -61,7 +65,7 @@ var PERIOD_EXTRA = {
 const CLASSES = {
   c1:{ dayZh:"星期一", wd:1, time:"5–6pm",  students:["余悅","孔善盈","蔡芷彤","羅梓晉","羅君信","羅君浩","陳大文","蘇穎悠"] },
   c2:{ dayZh:"星期一", wd:1, time:"6–7pm",  students:["翟悅廷","郭栩澄","葉宇浩","梁德澤","許思溢","梁正軒","梁正宇"] },
-  c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","陳思允"] },
+  c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","陳思允","梁心朗"] },
   c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁德瑜","陳柏睎"] },
   c5:{ dayZh:"星期五", wd:5, time:"6–7pm",  students:["吳瑋軒","黎柏言","陳曉瑩","梁正宇","郭可昕","黃玥晴","黃朗程","姚心穎","羅靖誼","黎柏希","陳焯棋","梁正軒"] },
   c6:{ dayZh:"星期六", wd:6, time:"11am–12", students:["張爾淳","張雅堯","黃梓昕","王尉鏇","王斯顏","呂洛希","馬仲然","鄧朗森","陳書雅"] },
@@ -91,7 +95,7 @@ const PT_CYCLE = 10;   // 每期堂數；夠數自動開新一期
  * 加返入對應 CLASSES 班別即可。改完要執行一次 ensureRoster_/setup 先生效。
  * 例：梁心朗 2026-06 暫停，7月可能回來 —— 先保留帳號可登入。
  */
-const LOGIN_ONLY = ["陳信澄","陳澔泓","潘洛詩","顧舒然","梁心朗"];  // 退出可回歸：可登入＋排行榜出名＋見回歸面板
+const LOGIN_ONLY = ["陳信澄","陳澔泓","潘洛詩","顧舒然"];  // 退出可回歸：可登入＋排行榜出名＋見回歸面板（梁心朗 2026-07 回歸 c3，已轉正式學生）
 var RETURNABLE = LOGIN_ONLY;              // returner 名單（同 LOGIN_ONLY）
 var RET_FEE_1 = 1200, RET_FEE_2 = 1800;   // 回歸費：1週1堂 $1200 / 1週2堂 $1800（$150/節）
 
@@ -1088,9 +1092,10 @@ function periodFeeDetail_(nm, label){
   if(!cids.length) return null;
   var rate=(cids.length>=2 ? PERIOD_RATE_2 : PERIOD_RATE_1);
   var ex=PERIOD_EXEMPT[label]||{byClass:{},byStudent:{}};
+  var noCarry=((PERIOD_NO_CARRY[label]||[]).indexOf(nm)>=0);   // 本期新加入 → 唔享順延豁免
   var net=0, exemptDates=[];
   cids.forEach(function(cid){
-    var n=sessionsInPeriod_(cid, label), cex=(ex.byClass||{})[cid]||[];
+    var n=sessionsInPeriod_(cid, label), cex=noCarry?[]:((ex.byClass||{})[cid]||[]);
     net += Math.max(0, n - cex.length);
     cex.forEach(function(d){ exemptDates.push({cid:cid, date:d, reason:"課程取消順延"}); });
   });
@@ -1101,7 +1106,7 @@ function periodFeeDetail_(nm, label){
   var base=net*rate;
   var extras=((PERIOD_EXTRA[label]||{})[nm])||[];
   var extraTot=0; extras.forEach(function(e){ extraTot += Number(e.amt)||0; });
-  return {nm:nm, weekly:cids.length, rate:rate, net:net, base:base,
+  return {nm:nm, weekly:cids.length, rate:rate, net:net, base:base, newJoin:noCarry,
           extras:extras, extraTot:extraTot, due:base+extraTot, exemptDates:exemptDates};
 }
 function periodExemptNote_(d){
@@ -1114,12 +1119,24 @@ function genPeriodNet_(label, dry){
   if(!dry) backup();   // 寫入前備份
   var sh=feeSheet(), rowMap={};
   feeRows_().forEach(function(x){ if(x.period===label) rowMap[x.name]={row:x.row, status:x.status}; });
-  var lines=[], n_new=0, n_upd=0, n_skip=0;
+  var lines=[], n_new=0, n_upd=0, n_skip=0, n_void=0;
+  var voidList=PERIOD_VOID[label]||[];
   names.forEach(function(nm){
+    // 強制豁免名單（本期暫停／退出）→ 設 $0，唔收費
+    if(voidList.indexOf(nm)>=0){
+      var hv=rowMap[nm];
+      if(hv && hv.status!=="已繳"){
+        if(!dry){ sh.getRange(hv.row,4,1,3).setValues([[0,0,0]]); sh.getRange(hv.row,8).setValue("豁免");
+                  sh.getRange(hv.row,12).setValue("本期暫停，不收費"); sh.getRange(hv.row,13,1,2).setValues([[0,""]]); }
+        n_void++; lines.push("🚫 "+nm+"：本期強制豁免 $0（暫停）");
+      }
+      return;
+    }
     var d=periodFeeDetail_(nm, label); if(!d) return;   // 無在學班別（如暫停學生）→ 略過
     var disc=referralAutoDisc_(nm, d.base, 0);           // 保留推薦優惠（上限該期 base 50%）
     var net=d.base - disc + d.extraTot;
     var note=periodExemptNote_(d);
+    if(d.newJoin && !note) note="本期新加入（收全費，不適用順延豁免）";
     var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; }).join("；");
     var vals=[nm, label, d.weekly, d.base, disc, net, 0, "未繳", "", "", "", note, d.extraTot, adjNote];
     var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+" = $"+net;
@@ -1134,7 +1151,6 @@ function genPeriodNet_(label, dry){
     }
   });
   // 清理：本期已存在、但學生已無在學班別（暫停／退出）嘅列 → 設豁免 $0，唔再向家長收費
-  var n_void=0;
   feeRows_().filter(function(x){ return x.period===label; }).forEach(function(x){
     if(periodFeeDetail_(x.name, label)) return;               // 有在學班別 → 上面已處理
     if(x.status==="已繳"||x.status==="豁免") return;            // 已繳／已豁免 → 唔郁
@@ -1150,10 +1166,37 @@ function genPeriodNet_(label, dry){
   return {ok:true, period:label, added:n_new, updated:n_upd, skipped:n_skip, voided:n_void, dry:!!dry, lines:lines};
 }
 function genPeriod78NetDryRun(){ return genPeriodNet_("2026 7-8月", true); }
+// 跨期強制豁免：把 PERIOD_VOID 名單（非本次產生嘅期，如 5-6月）設 $0；已繳行唔郁，唔重算其他人
+function applyPeriodVoids_(dry){
+  var sh=feeSheet(), done=[];
+  Object.keys(PERIOD_VOID).forEach(function(label){
+    (PERIOD_VOID[label]||[]).forEach(function(nm){
+      feeRows_().filter(function(x){ return x.period===label && x.name===nm; }).forEach(function(x){
+        if(x.status==="已繳") return;   // 已繳唔郁（避免改歷史）
+        if(!dry){ sh.getRange(x.row,4,1,3).setValues([[0,0,0]]); sh.getRange(x.row,8).setValue("豁免");
+                  sh.getRange(x.row,12).setValue("本期暫停，不收費"); sh.getRange(x.row,13,1,2).setValues([[0,""]]); }
+        done.push(label+"｜"+nm);
+      });
+    });
+  });
+  return done;
+}
+// 把某班 CLASSES const 名單同步去 Settings class_cN_students（只動指定班，唔影響其他班）
+function syncClassSettingFromConst_(cid){
+  if(!CLASSES[cid]) return;
+  try{ upsertSetting_("class_"+cid+"_students", JSON.stringify(CLASSES[cid].students)); }catch(e){}
+}
 function genPeriod78NetApply(){
+  backup();
+  try{ ensureRoster_(SS()); }catch(e){}            // 套用最新 CLASSES（梁心朗 入 c3）→ 名冊
+  try{ buildGrid(SS(),"c3",false); }catch(e){}     // c3 grid 容納新學生（非破壞性）
+  try{ syncClassSettingFromConst_("c3"); }catch(e){} // Settings class_c3_students 對齊 const
+  var v=applyPeriodVoids_(false);                  // 跨期強制豁免（梁心朗 5-6月 $0）
   var r=genPeriodNet_("2026 7-8月", false);
-  try{ SpreadsheetApp.getUi().alert("✅ 7-8月學費（按淨堂計）已寫入\n新增 "+r.added+"／更新 "+r.updated+"／已繳豁免略過 "+r.skipped+"／暫停學生豁免 "+r.voided+"\n\n（家長端揀 7-8月即見金額同豁免說明）"); }catch(e){}
-  return r;
+  try{ SpreadsheetApp.getUi().alert("✅ 7-8月學費（按淨堂計）已寫入\n新增 "+r.added+"／更新 "+r.updated+"／已繳豁免略過 "+r.skipped+"／本期豁免 "+r.voided
+    +"\n跨期豁免（如 5-6月暫停）："+v.length+" 筆"+(v.length?("（"+v.join("、")+"）"):"")
+    +"\n\n（家長端揀對應月份即見金額同說明）"); }catch(e){}
+  return {ok:true, net:r, crossVoid:v};
 }
 
 function genPeriod_(label){
