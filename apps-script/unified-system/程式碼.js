@@ -2472,9 +2472,11 @@ function importParentData(){
     if(an&&ac&&ad) absSet[ac+"|"+ad+"|"+an]=true;
   }
 
-  // (b)「IS App Data」出席：原班原日，官網為準覆蓋
+  // (b)「IS App Data」出席：只補 #4 空格（#4 為準，唔覆蓋 #4 已有點名）
+  //     ⚠️ #4 已係恆常班真相來源。今後再 import 只係「搬清 #11 尾數」，故該格 #4 有值就跳過，
+  //        避免用 #11 舊資料覆蓋 #4 新點名（之前的「#11 覆蓋」只適用於最初 #4 grid 全空嘅一次性遷移）。
   var av=SRC.getSheetByName("attendance").getDataRange().getValues();
-  var attSkip=[];
+  var attSkip=[], attFilled=0, attKept=0;
   for(var i=1;i<av.length;i++){
     var cid=String(av[i][1]||"").trim();
     var date=toIso_(av[i][2]);
@@ -2485,8 +2487,10 @@ function importParentData(){
     // absent：有 absences 記錄 → 請假(可補)；冇 → 缺席。修正 EN2ZH 一律當請假嘅失真。
     if(st==="absent" && !absSet[cid+"|"+date+"|"+name]) zh="缺席";
     if(!marks[cid]){ attSkip.push(cid+"|"+date+"|"+name+"|"+st+"(未知班別)"); continue; }
-    put(cid,name,date,zh);
+    if(marks[cid][name] && marks[cid][name][date]){ attKept++; continue; }   // #4 已有 → 保留 #4，唔覆蓋
+    put(cid,name,date,zh); attFilled++;                                      // #4 空格 → 由 #11 補上
   }
+  Logger.log("import 出席合併：由 #11 補上空格 "+attFilled+" 格，保留 #4 既有 "+attKept+" 格");
 
   // 計算「應寫入」總數（合併後）
   var attTotal=0;
