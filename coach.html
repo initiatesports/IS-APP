@@ -1291,42 +1291,46 @@ function markMakeupDone(id){
 
 /* ═══════════ 十、歷史記錄 ═══════════ */
 /* 逐個學生概覽：已出席 / 可補堂(未過期) / 已過補堂期限 */
-function searchStudentHistory(){
-  const q = (document.getElementById('hist-stu-q').value||'').trim();
-  const box = document.getElementById('hist-stu-summary');
-  if (!q) { box.innerHTML=''; return; }
-  // 配對所有班別名單中含 q 嘅學生
-  const names = [];
-  Object.values(CLASSES).forEach(cls => cls.students.forEach(n => { if (n.includes(q) && names.indexOf(n)<0) names.push(n); }));
-  if (!names.length) { box.innerHTML = `<div class="empty-state" style="padding:20px 0"><p>找不到「${q}」</p></div>`; return; }
+// 計一個學生嘅完整歷史資料（出席/可補/過期/已補）
+function studentHistData(name){
   const now = todayStr();
-  box.innerHTML = names.map(name => {
-    // 已出席：所有點名記錄中 present / makeup
-    let attended = [];
-    Object.entries(ATT_LOG).forEach(([key, sess]) => {
-      const st = sess[name];
-      if (st==='present' || st==='makeup') { const [cid,date]=key.split('|'); attended.push({date,cid,makeup:st==='makeup'}); }
-    });
-    attended.sort((a,b)=>a.date.localeCompare(b.date));
-    const mkable = ABSENCES.filter(a=>a.name===name && !a.madeUpDate && a.deadline && a.deadline>=now).sort((a,b)=>a.deadline.localeCompare(b.deadline));
-    const expired = ABSENCES.filter(a=>a.name===name && !a.madeUpDate && a.deadline && a.deadline<now).sort((a,b)=>a.deadline.localeCompare(b.deadline));
-    const done = ABSENCES.filter(a=>a.name===name && a.madeUpDate).length;
-    const row = (l,r,rc)=>`<div class="history-row"><span>${l}</span><span style="color:${rc};font-weight:700">${r}</span></div>`;
-    const lbl = cid => { const c=CLASSES[cid]; return c?`${c.dayZh} ${c.time}`:cid; };
-    return `<div class="makeup-card" style="display:block;margin-bottom:14px">
-      <div class="makeup-name" style="font-size:17px;margin-bottom:10px">${name}</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div class="stat-card"><div class="num" style="color:var(--green,#34d399)">${attended.length}</div><div class="lbl">已出席</div></div>
-        <div class="stat-card"><div class="num" style="color:var(--cyan)">${mkable.length}</div><div class="lbl">可補堂</div></div>
-        <div class="stat-card"><div class="num ${expired.length?'warn':''}">${expired.length}</div><div class="lbl">已過期</div></div>
-      </div>
-      ${mkable.length?`<div style="font-size:13px;font-weight:700;color:var(--cyan);margin:4px 0 4px">🟡 仍可補堂（未過限期）</div>${mkable.map(a=>row(`${lbl(a.classId)}・${fmtDate(a.absDate)} 請假`,`限期 ${fmtDate(a.deadline)}`,'var(--cyan)')).join('')}`:''}
-      ${expired.length?`<div style="font-size:13px;font-weight:700;color:#f87171;margin:10px 0 4px">🔴 已過補堂期限（不能補堂）</div>${expired.map(a=>row(`${lbl(a.classId)}・${fmtDate(a.absDate)} 請假`,`限期 ${fmtDate(a.deadline)} 已過`,'#f87171')).join('')}`:''}
-      ${done?`<div style="font-size:12px;color:var(--muted);margin-top:10px">✓ 已完成補堂 ${done} 節</div>`:''}
-      ${attended.length?`<div style="font-size:13px;font-weight:700;color:var(--green,#34d399);margin:10px 0 4px">✅ 已出席課堂（${attended.length}）</div>${attended.map(a=>{const d=new Date(a.date+'T00:00:00');return row(`${fmtDate(a.date)}（星期${['日','一','二','三','四','五','六'][d.getDay()]}）`,lbl(a.cid)+(a.makeup?'（補堂）':''),'var(--green,#34d399)');}).join('')}`:''}
-    </div>`;
-  }).join('');
+  let attended = [];
+  Object.entries(ATT_LOG).forEach(([key, sess]) => {
+    const st = sess[name];
+    if (st==='present' || st==='makeup') { const [cid,date]=key.split('|'); attended.push({date,cid,makeup:st==='makeup'}); }
+  });
+  attended.sort((a,b)=>a.date.localeCompare(b.date));
+  const mkable  = ABSENCES.filter(a=>a.name===name && !a.madeUpDate && a.deadline && a.deadline>=now).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  const expired = ABSENCES.filter(a=>a.name===name && !a.madeUpDate && a.deadline && a.deadline<now).sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  const done    = ABSENCES.filter(a=>a.name===name && a.madeUpDate).length;
+  return { attended, mkable, expired, done };
 }
+// 一張可展開嘅學生歷史卡（撳標題展開／收起）
+function studentHistCard(name, openByDefault){
+  const { attended, mkable, expired, done } = studentHistData(name);
+  const row = (l,r,rc)=>`<div class="history-row"><span>${l}</span><span style="color:${rc};font-weight:700">${r}</span></div>`;
+  const lbl = cid => { const c=CLASSES[cid]; return c?`${c.dayZh} ${c.time}`:cid; };
+  if (!attended.length && !mkable.length && !expired.length && !done) {
+    return `<div class="history-session"><div class="history-session-header"><div><h3>${name}</h3><p style="color:var(--muted)">暫無記錄</p></div></div></div>`;
+  }
+  const detail = `
+    ${mkable.length?`<div style="font-size:13px;font-weight:700;color:var(--cyan);margin:8px 14px 2px">🟡 仍可補堂（未過限期）</div>${mkable.map(a=>row(`${lbl(a.classId)}・${fmtDate(a.absDate)} 請假`,`限期 ${fmtDate(a.deadline)}`,'var(--cyan)')).join('')}`:''}
+    ${expired.length?`<div style="font-size:13px;font-weight:700;color:#f87171;margin:8px 14px 2px">🔴 已過補堂期限（不能補堂）</div>${expired.map(a=>row(`${lbl(a.classId)}・${fmtDate(a.absDate)} 請假`,`限期 ${fmtDate(a.deadline)} 已過`,'#f87171')).join('')}`:''}
+    ${done?`<div style="font-size:12px;color:var(--muted);margin:8px 14px 2px">✓ 已完成補堂 ${done} 節</div>`:''}
+    ${attended.length?`<div style="font-size:13px;font-weight:700;color:var(--green,#34d399);margin:8px 14px 2px">✅ 已出席課堂（${attended.length}）</div>${attended.map(a=>{const d=new Date(a.date+'T00:00:00');return row(`${fmtDate(a.date)}（星期${['日','一','二','三','四','五','六'][d.getDay()]}）`,lbl(a.cid)+(a.makeup?'（補堂）':''),'var(--green,#34d399)');}).join('')}`:''}`;
+  return `<div class="history-session${openByDefault?' open':''}" onclick="this.classList.toggle('open')">
+    <div class="history-session-header">
+      <div>
+        <h3>${name}</h3>
+        <p>出席 ${attended.length} · 可補 ${mkable.length} · 過期 ${expired.length}${done?` · 已補 ${done}`:''}</p>
+      </div>
+      <span class="history-toggle">⌄</span>
+    </div>
+    <div class="history-session-body">${detail}</div>
+  </div>`;
+}
+// 搜尋框輸入 → 由 renderHistory 統一處理（會用搜尋字過濾）
+function searchStudentHistory(){ renderHistory(); }
 /* ═══════════ 繳費管理 ═══════════ */
 let FEES_DATA=[]; let FEES_PERIOD=''; let FEES_CLASS='全部';
 function curFeePeriodLabel(){
@@ -1494,45 +1498,23 @@ async function exportCsv(type){
 
 function renderHistory(){
   document.getElementById('header-title-text').textContent = '出席歷史';
-  document.getElementById('header-subtitle-text').textContent = '所有已儲存記錄';
-  const sq = document.getElementById('hist-stu-q'); if (sq && sq.value) searchStudentHistory();
-
-  const entries = Object.entries(ATT_LOG).sort((a,b)=>b[0].localeCompare(a[0]));
+  document.getElementById('header-subtitle-text').textContent = '每位學生完整出席／請假／補堂記錄';
   const list = document.getElementById('history-list');
-  if (!entries.length) {
-    list.innerHTML = `<div class="empty-state" style="padding-top:40px"><div class="icon">📭</div><p>暫無記錄<br>請先進行點名</p></div>`;
+  const summary = document.getElementById('hist-stu-summary'); if (summary) summary.innerHTML='';
+  if (!Object.keys(ATT_LOG).length) {
+    list.innerHTML = `<div class="empty-state" style="padding-top:40px"><div class="icon">📭</div><p>暫無記錄<br>請先點名或從雲端載入</p></div>`;
     return;
   }
-  if (histPeriod==null) histPeriod = currentPeriodIdx();
-  const periods = termPeriods();
-  const bar = `<div class="hist-period-bar">${periods.map(i=>`<button class="hist-period-btn ${i===histPeriod?'on':''}" onclick="setHistPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
-  const filtered = entries.filter(([key])=> biMonthOf(key.split('|')[1])===histPeriod);
-  const stLabel = { present:'出席', absent:'請假', makeup:'補堂', exempt:'豁免', cancelled:'取消' };
-  if (!filtered.length) {
-    list.innerHTML = bar + `<div class="empty-state" style="padding:30px 0"><p>${periodLabel(histPeriod)}暫無點名記錄</p></div>`;
-    return;
-  }
-  list.innerHTML = bar + filtered.map(([key, sess]) => {
-    const [cid, date] = key.split('|');
-    const cls = CLASSES[cid];
-    const absentList = Object.entries(sess).filter(([,s])=>s==='absent').map(([n])=>n);
-    const makeupList = Object.entries(sess).filter(([,s])=>s==='makeup').map(([n])=>n);
-    const presentCnt = Object.values(sess).filter(s=>s==='present').length;
-    return `
-    <div class="history-session" onclick="this.classList.toggle('open')">
-      <div class="history-session-header">
-        <div>
-          <h3>${fmtDate(date)} — ${cls?cls.dayZh:cid} ${cls?cls.time:''}</h3>
-          <p>出席 ${presentCnt} · 請假 ${absentList.length} · 補堂 ${makeupList.length}</p>
-        </div>
-        <span class="history-toggle">⌄</span>
-      </div>
-      <div class="history-session-body">
-        ${Object.entries(sess).map(([name, st]) => `
-          <div class="history-row"><span>${name}</span><span class="st-${st}">${stLabel[st]||st}</span></div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
+  const q = (document.getElementById('hist-stu-q').value||'').trim();
+  // 全部學生（有搜尋字就過濾）
+  let names = [];
+  Object.values(CLASSES).forEach(cls => cls.students.forEach(n => { if (names.indexOf(n)<0) names.push(n); }));
+  if (q) names = names.filter(n => n.includes(q));
+  names.sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+  if (!names.length) { list.innerHTML = `<div class="empty-state" style="padding:20px 0"><p>找不到「${q}」</p></div>`; return; }
+  const hint = q ? `符合「${q}」：${names.length} 位` : `共 ${names.length} 位學生 · 撳名字展開完整出席／請假／補堂記錄`;
+  list.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:2px 4px 10px">${hint}</div>`
+    + names.map(n => studentHistCard(n, names.length===1)).join('');
 }
 
 /* ═══════════ 十一、設定 ═══════════ */
