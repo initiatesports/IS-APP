@@ -1119,14 +1119,19 @@ function addCredit_(nm,label,amt,why){
 }
 /* 內部：為所有在學學生產生某期應繳列（已存在則跳過）；供 setup 與 API 共用 */
 /* ═══════════ 按淨堂計學費（順延豁免 / 個別豁免 / 額外收費）═══════════ */
-// 某班喺指定期（雙月）窗口內嘅實際上課堂數（受 sessionsFor 假期/停課/TERM_END 限制）
-function sessionsInPeriod_(cid, label){
-  var m=String(label).match(/(\d{4})\s*(\d{1,2})-(\d{1,2})/); if(!m) return 0;
+// 期（雙月）窗口 [lo, hi)；hi = 期尾月之後嗰個月 1 號
+function periodWindow_(label){
+  var m=String(label).match(/(\d{4})\s*(\d{1,2})-(\d{1,2})/); if(!m) return null;
   var y=Number(m[1]), m1=Number(m[2]), m2=Number(m[3]);
   var lo=y+"-"+("0"+m1).slice(-2)+"-01";
   var hY=y, hM=m2+1; if(hM>12){ hM=1; hY++; }
-  var hi=hY+"-"+("0"+hM).slice(-2)+"-01";
-  return sessionsFor(cid).filter(function(d){ return d>=lo && d<hi; }).length;
+  return {lo:lo, hi:hY+"-"+("0"+hM).slice(-2)+"-01"};
+}
+function isoInPeriod_(iso, label){ var w=periodWindow_(label); return !!w && iso>=w.lo && iso<w.hi; }
+// 某班喺指定期（雙月）窗口內嘅實際上課堂數（受 sessionsFor 假期/停課/TERM_END 限制）
+function sessionsInPeriod_(cid, label){
+  var w=periodWindow_(label); if(!w) return 0;
+  return sessionsFor(cid).filter(function(d){ return d>=w.lo && d<w.hi; }).length;
 }
 // 某生某期完整收費明細：淨堂 × 單堂價 ＋ 額外收費；附豁免日期供顯示
 function periodFeeDetail_(nm, label){
@@ -1143,6 +1148,11 @@ function periodFeeDetail_(nm, label){
   });
   ((ex.byStudent||{})[nm]||[]).forEach(function(e){
     net -= 1; exemptDates.push({cid:e.cid||cids[0], date:e.date, reason:e.reason||"豁免"});
+  });
+  // 顯示用：本期內「停課（不收費）」日期（已由 sessionsFor 扣咗，唔再影響 net，純粹話畀家長知邊日停咗）
+  cids.forEach(function(cid){
+    var cset=cancelledSet(cid);
+    Object.keys(cset).forEach(function(dd){ if(isoInPeriod_(dd, label)) exemptDates.push({cid:cid, date:dd, reason:"停課不收費"}); });
   });
   if(net<0) net=0;
   var base=net*rate;
