@@ -33,6 +33,27 @@ const CONFIG = {
 };
 const VERSION = "is-unified-v2";
 
+/* ═══════════ 逐期特殊收費設定（按淨堂計；含順延豁免、個別豁免、額外收費）═══════════
+ * 單堂價：一週一堂 $130／節；一週兩堂 $110／節。
+ * 7-8月：5-6月教練取消課程 → 順延豁免（逐班原取消日期，供家長端顯示）。
+ *   星期一(c1,c2) 取消 6/1 → 豁免 1 節；星期三(c3,c4) 取消 5/27、6/3 → 2 節；
+ *   星期五(c5) 取消 5/29、6/5 → 2 節；星期六(c6,c7) 取消 5/30、6/6 → 2 節。
+ * 個別：梁正軒 6/12（星期五 c5）場地問題 → 額外豁免 1 節。
+ * 額外收費：鄧幗恩 5/23 加操 $130 + 膠繩替芯 $30。 */
+var PERIOD_RATE_1 = 130, PERIOD_RATE_2 = 110;   // 單堂價：一週一堂 / 一週兩堂
+var PERIOD_EXEMPT = {
+  "2026 7-8月": {
+    byClass: { c1:["2026-06-01"], c2:["2026-06-01"],
+               c3:["2026-05-27","2026-06-03"], c4:["2026-05-27","2026-06-03"],
+               c5:["2026-05-29","2026-06-05"],
+               c6:["2026-05-30","2026-06-06"], c7:["2026-05-30","2026-06-06"] },
+    byStudent: { "梁正軒":[{date:"2026-06-12", cid:"c5", reason:"場地問題"}] }
+  }
+};
+var PERIOD_EXTRA = {
+  "2026 7-8月": { "鄧幗恩":[{amt:130, note:"5/23 加操"}, {amt:30, note:"膠繩替芯"}] }
+};
+
 /* ═══════════ 真實班別資料（你 App 真實學生）═══════════ */
 /* cN: { dayZh, wd(1=一..6=六), time, students[] }
  * 已併入：顧舒然(c5)、潘洛詩(c7)（出席記錄已有，補回名單）。
@@ -1017,7 +1038,7 @@ function feeAmount_(n){ return n>=2 ? CONFIG.FEE_2 : CONFIG.FEE_1; }
 function feesFor_(nm){
   return feeRows_().filter(function(x){ return x.name===nm; }).map(function(x){
     return {period:x.period, weekly:x.weekly, due:x.due, discount:x.discount, adj:x.adj, adjNote:x.adjNote,
-      net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link,
+      net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link, note:x.note,
       active:(x.status==="已繳"||x.status==="豁免")};
   });
 }
@@ -1051,6 +1072,77 @@ function periodStartIso_(label){
   var y=m[1], mo=("0"+m[2]).slice(-2); return y+"-"+mo+"-01";
 }
 /* 內部：為所有在學學生產生某期應繳列（已存在則跳過）；供 setup 與 API 共用 */
+/* ═══════════ 按淨堂計學費（順延豁免 / 個別豁免 / 額外收費）═══════════ */
+// 某班喺指定期（雙月）窗口內嘅實際上課堂數（受 sessionsFor 假期/停課/TERM_END 限制）
+function sessionsInPeriod_(cid, label){
+  var m=String(label).match(/(\d{4})\s*(\d{1,2})-(\d{1,2})/); if(!m) return 0;
+  var y=Number(m[1]), m1=Number(m[2]), m2=Number(m[3]);
+  var lo=y+"-"+("0"+m1).slice(-2)+"-01";
+  var hY=y, hM=m2+1; if(hM>12){ hM=1; hY++; }
+  var hi=hY+"-"+("0"+hM).slice(-2)+"-01";
+  return sessionsFor(cid).filter(function(d){ return d>=lo && d<hi; }).length;
+}
+// 某生某期完整收費明細：淨堂 × 單堂價 ＋ 額外收費；附豁免日期供顯示
+function periodFeeDetail_(nm, label){
+  var cids=[]; rosterRows().forEach(function(r){ if(r.name===nm && r.cid && cids.indexOf(r.cid)<0) cids.push(r.cid); });
+  if(!cids.length) return null;
+  var rate=(cids.length>=2 ? PERIOD_RATE_2 : PERIOD_RATE_1);
+  var ex=PERIOD_EXEMPT[label]||{byClass:{},byStudent:{}};
+  var net=0, exemptDates=[];
+  cids.forEach(function(cid){
+    var n=sessionsInPeriod_(cid, label), cex=(ex.byClass||{})[cid]||[];
+    net += Math.max(0, n - cex.length);
+    cex.forEach(function(d){ exemptDates.push({cid:cid, date:d, reason:"課程取消順延"}); });
+  });
+  ((ex.byStudent||{})[nm]||[]).forEach(function(e){
+    net -= 1; exemptDates.push({cid:e.cid||cids[0], date:e.date, reason:e.reason||"豁免"});
+  });
+  if(net<0) net=0;
+  var base=net*rate;
+  var extras=((PERIOD_EXTRA[label]||{})[nm])||[];
+  var extraTot=0; extras.forEach(function(e){ extraTot += Number(e.amt)||0; });
+  return {nm:nm, weekly:cids.length, rate:rate, net:net, base:base,
+          extras:extras, extraTot:extraTot, due:base+extraTot, exemptDates:exemptDates};
+}
+function periodExemptNote_(d){
+  return d.exemptDates.map(function(e){ return classLabel_(e.cid)+" "+e.date+"（"+e.reason+"）"; }).join("；");
+}
+// 產生／更新某期「按淨堂計」收費列（已繳／豁免行唔郁）；dry=true 只試算記 log
+function genPeriodNet_(label, dry){
+  label=String(label).trim();
+  var names=[]; rosterRows().forEach(function(r){ if(r.name && names.indexOf(r.name)<0) names.push(r.name); });
+  if(!dry) backup();   // 寫入前備份
+  var sh=feeSheet(), rowMap={};
+  feeRows_().forEach(function(x){ if(x.period===label) rowMap[x.name]={row:x.row, status:x.status}; });
+  var lines=[], n_new=0, n_upd=0, n_skip=0;
+  names.forEach(function(nm){
+    var d=periodFeeDetail_(nm, label); if(!d) return;   // 無在學班別（如暫停學生）→ 略過
+    var disc=referralAutoDisc_(nm, d.base, 0);           // 保留推薦優惠（上限該期 base 50%）
+    var net=d.base - disc + d.extraTot;
+    var note=periodExemptNote_(d);
+    var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; }).join("；");
+    var vals=[nm, label, d.weekly, d.base, disc, net, 0, "未繳", "", "", "", note, d.extraTot, adjNote];
+    var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+" = $"+net;
+    var hit=rowMap[nm];
+    if(hit){
+      if(hit.status==="已繳"||hit.status==="豁免"){ n_skip++; lines.push("⏭ "+line+"（"+hit.status+"，略過）"); return; }
+      if(!dry){ sh.getRange(hit.row,2).setNumberFormat("@"); sh.getRange(hit.row,1,1,14).setValues([vals]); }
+      n_upd++; lines.push("✏ "+line);
+    } else {
+      if(!dry){ var nr=sh.getLastRow()+1; sh.getRange(nr,2).setNumberFormat("@"); sh.getRange(nr,1,1,14).setValues([vals]); }
+      n_new++; lines.push("＋ "+line);
+    }
+  });
+  Logger.log("【"+label+" 按淨堂計學費】"+(dry?"🔎 試算（未寫入）":"✅ 已寫入")+"　新增 "+n_new+"／更新 "+n_upd+"／略過 "+n_skip+"\n"+lines.join("\n"));
+  return {ok:true, period:label, added:n_new, updated:n_upd, skipped:n_skip, dry:!!dry, lines:lines};
+}
+function genPeriod78NetDryRun(){ return genPeriodNet_("2026 7-8月", true); }
+function genPeriod78NetApply(){
+  var r=genPeriodNet_("2026 7-8月", false);
+  try{ SpreadsheetApp.getUi().alert("✅ 7-8月學費（按淨堂計）已寫入\n新增 "+r.added+"／更新 "+r.updated+"／已繳豁免略過 "+r.skipped+"\n\n（家長端揀 7-8月即見金額同豁免說明）"); }catch(e){}
+  return r;
+}
+
 function genPeriod_(label){
   label=String(label).trim();
   var existing={}; feeRows_().forEach(function(x){ if(x.period===label) existing[x.name]=1; });
@@ -1922,6 +2014,8 @@ function onOpen(){
     .addItem("初始化 / 更新（保留資料）","setup")
     .addItem("產生出席報表","buildReport")
     .addItem("產生繳費列（本期＋下期）","genCurrentPeriodFees")
+    .addItem("🧾 7-8月學費試算（按淨堂，不寫入）","genPeriod78NetDryRun")
+    .addItem("💰 7-8月學費寫入（按淨堂＋豁免＋額外收費）","genPeriod78NetApply")
     .addItem("🧪 取消示範帳號豁免（陳大文）","fixDemoUnexempt")
     .addItem("🔄 核實回歸申請（退出學生付款回歸）","reviewReturnsMenu")
     .addItem("立即備份","backup")
