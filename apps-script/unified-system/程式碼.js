@@ -493,11 +493,14 @@ function cfRule(range,txt,bg,fc){
 
 /* ═══════════ 讀寫格仔 ═══════════ */
 function readBlock(cid){
-  var sh=SS().getSheetByName(gridName(cid)), c=CLASSES[cid];
-  var dates=sessionsFor(cid), n=dates.length, students=c.students, map={};
-  if(sh && students.length){
-    var vals=sh.getRange(DATA_START,NAME_COL,students.length,1+n).getValues();
-    for(var i=0;i<students.length;i++) map[String(vals[i][0])]=vals[i].slice(1).map(function(x){return String(x||"");});
+  var m=gridMeta(cid), dates=m.dates, n=m.n, students=m.students, map={};
+  if(m.sh && students.length){
+    var hp=Math.max(m.physN,1);
+    var vals=m.sh.getRange(DATA_START,NAME_COL,students.length,1+hp).getValues();
+    for(var i=0;i<students.length;i++){
+      var dv=vals[i].slice(1);
+      map[String(vals[i][0])]=dates.map(function(d){ var ci=m.colOf[mmdd_(d)]; return ci==null?"":String(dv[ci]||""); });
+    }
   }
   return {dates:dates,n:n,students:students,status:map};
 }
@@ -565,24 +568,40 @@ function readBlockMerged_(cid){
 
 function gridMeta(cid){
   var students=CLASSES[cid].students, dates=sessionsFor(cid);
-  return {sh:SS().getSheetByName(gridName(cid)), dates:dates, n:dates.length,
-    students:students, R:students.length, mkStart:DATA_START+students.length};
+  var sh=SS().getSheetByName(gridName(cid)), colOf={}, physN=0;
+  // 讀實體表頭日期 → date(MM/DD)→欄 index，令讀寫一律按「日期」對齊而非「位置」。
+  // 解決：某日停課後從 sessionsFor 剔走，但 grid 仍留住嗰欄 → 之後全部日期錯位。
+  if(sh){
+    var lastC=sh.getLastColumn();
+    if(lastC>=DATE_COL0){
+      var fh=sh.getRange(HEAD_ROW,DATE_COL0,1,lastC-DATE_COL0+1).getValues()[0].map(String);
+      physN=fh.indexOf("出席"); if(physN<0) physN=fh.length;   // 日期欄去到「出席」總結欄之前
+      for(var h=0;h<physN;h++){ if(fh[h] && colOf[fh[h]]==null) colOf[fh[h]]=h; }
+    }
+  }
+  return {sh:sh, dates:dates, n:dates.length, students:students, R:students.length,
+    mkStart:DATA_START+students.length, colOf:colOf, physN:physN};
 }
-function dateCol(m,dateIso){ var i=m.dates.indexOf(dateIso); return i<0?-1:DATE_COL0+i; }
+function mmdd_(iso){ return String(iso).slice(5).replace("-","/"); }
+function dateCol(m,dateIso){
+  var mmdd=mmdd_(dateIso);
+  if(m.colOf && m.physN>0){ var c=m.colOf[mmdd]; return c==null?-1:DATE_COL0+c; }   // 按表頭對齊
+  var i=m.dates.indexOf(dateIso); return i<0?-1:DATE_COL0+i;                         // 後備（無表頭）
+}
 function findRow(m,name,create){
   var ri=m.students.indexOf(name); if(ri>=0) return DATA_START+ri;
   var names=m.sh.getRange(m.mkStart,NAME_COL,MK_MAX,1).getValues(), empty=-1;
   for(var j=0;j<MK_MAX;j++){ var v=String(names[j][0]||"");
     if(v===name) return m.mkStart+j; if(empty<0&&!v) empty=m.mkStart+j; }
   if(create && empty>=0){
-    var r=empty, c0=colLetter(DATE_COL0), cN=colLetter(DATE_COL0+Math.max(m.n-1,0));
+    // 用實體日期欄數 physN（非 sessionsFor 嘅 m.n），避免 grid 有停課殘留欄時總結欄落錯位
+    var physN=Math.max(m.physN||0, m.n), sumC=DATE_COL0+physN;
+    var r=empty, c0=colLetter(DATE_COL0), cN=colLetter(DATE_COL0+Math.max(physN-1,0));
     m.sh.getRange(r,SEQ_COL).setValue("補"); m.sh.getRange(r,NAME_COL).setValue(name);
-    // 防呆：清除 3 個總結欄（出席/請假/缺席）嘅資料驗證，先寫 COUNTIF 公式。
-    // 若 grid 過時（驗證範圍延伸到總結欄），公式結果(數字)會違反「只准 status」驗證而報錯中斷補堂。
-    try{ m.sh.getRange(r, DATE_COL0+m.n, 1, 3).setDataValidation(null); }catch(e){}
-    m.sh.getRange(r,DATE_COL0+m.n).setValue('=COUNTIF('+c0+r+':'+cN+r+',"出席")+COUNTIF('+c0+r+':'+cN+r+',"補堂")');
-    m.sh.getRange(r,DATE_COL0+m.n+1).setValue('=COUNTIF('+c0+r+':'+cN+r+',"請假")');
-    m.sh.getRange(r,DATE_COL0+m.n+2).setValue('=COUNTIF('+c0+r+':'+cN+r+',"缺席")');
+    try{ m.sh.getRange(r, sumC, 1, 3).setDataValidation(null); }catch(e){}   // 清總結欄驗證，免 COUNTIF 違反「只准 status」
+    m.sh.getRange(r,sumC).setValue('=COUNTIF('+c0+r+':'+cN+r+',"出席")+COUNTIF('+c0+r+':'+cN+r+',"補堂")');
+    m.sh.getRange(r,sumC+1).setValue('=COUNTIF('+c0+r+':'+cN+r+',"請假")');
+    m.sh.getRange(r,sumC+2).setValue('=COUNTIF('+c0+r+':'+cN+r+',"缺席")');
     return r;
   }
   return -1;
@@ -648,12 +667,14 @@ function makeupStatus(cid,name,dateIso){
 function readFull(cid){
   var m=gridMeta(cid), reg={}, mk=[];
   if(!m.sh) return {dates:m.dates,n:m.n,students:m.students,reg:reg,mk:mk};
+  var hp=Math.max(m.physN,1);
+  var align=function(dv){ return m.dates.map(function(d){ var ci=m.colOf[mmdd_(d)]; return ci==null?"":String(dv[ci]||""); }); };
   if(m.R){
-    var rv=m.sh.getRange(DATA_START,NAME_COL,m.R,1+m.n).getValues();
-    for(var i=0;i<m.R;i++) reg[String(rv[i][0])]=rv[i].slice(1).map(function(x){return String(x||"");});
+    var rv=m.sh.getRange(DATA_START,NAME_COL,m.R,1+hp).getValues();
+    for(var i=0;i<m.R;i++) reg[String(rv[i][0])]=align(rv[i].slice(1));
   }
-  var mv=m.sh.getRange(m.mkStart,NAME_COL,MK_MAX,1+m.n).getValues();
-  for(var j=0;j<MK_MAX;j++){ var nm=String(mv[j][0]||""); if(nm) mk.push({name:nm,statuses:mv[j].slice(1).map(function(x){return String(x||"");})}); }
+  var mv=m.sh.getRange(m.mkStart,NAME_COL,MK_MAX,1+hp).getValues();
+  for(var j=0;j<MK_MAX;j++){ var nm=String(mv[j][0]||""); if(nm) mk.push({name:nm,statuses:align(mv[j].slice(1))}); }
   return {dates:m.dates,n:m.n,students:m.students,reg:reg,mk:mk};
 }
 function normalizeMakeupDates_(){
