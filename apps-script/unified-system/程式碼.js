@@ -618,7 +618,19 @@ function cleanupStrayMakeupRows_(){
 function apiCleanupGrids(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   try{ backup(); }catch(e){}
-  return {ok:true, cleaned:cleanupStrayMakeupRows_()};
+  var cleaned=cleanupStrayMakeupRows_();
+  // 清孤兒病假待證明：狀態仍「待證明」但格仔已唔係請假（如已取消病假）→ 刪走，免日後 false 逾期通知
+  var pcCleaned=0;
+  try{ var pc=pendingCertSheet();
+    if(pc.getLastRow()>=2){ var pv=pc.getRange(2,1,pc.getLastRow()-1,5).getValues();
+      for(var i=pv.length-1;i>=0;i--){ if(String(pv[i][4])!=="待證明") continue;
+        var cid=String(pv[i][1]).trim(), nm=String(pv[i][0]).trim(), d=toIso_(pv[i][2]);
+        if(!CLASSES[cid]) continue;
+        var blk=readBlock(cid), st=blk.status[nm]||[], di=blk.dates.indexOf(d);
+        if((di>=0?String(st[di]||""):"")!=="請假"){ pc.deleteRow(i+2); pcCleaned++; }
+      } }
+  }catch(e){}
+  return {ok:true, cleaned:cleaned, pendingCertCleaned:pcCleaned};
 }
 function markCell(cid,name,dateIso,status,create){
   var m=gridMeta(cid); if(!m.sh) return false;
@@ -914,6 +926,7 @@ function apiCancelLeave(p){
   var cur=di>=0?String(st[di]||""):"";
   if(cur!=="請假" && cur!=="缺席") return {ok:false,err:"此堂並非請假狀態，毋須取消"};
   writeStatus_(cid,p.name,p.date,"");
+  try{ removePendingCert_(p.name,cid,p.date); }catch(e){}   // 同時清病假待證明，免日後 false「逾期」通知
   logAppend({name:p.name,key:cid,action:"cancelLeave",date:p.date,status:"取消請假(原:"+cur+")"});
   notify("【取消請假】"+p.name, p.name+"\n班別："+classLabel_(cid)+"\n日期："+p.date+"\n已還原為正常出席（未上）。");
   return {ok:true};
@@ -1008,6 +1021,15 @@ function pendingCertSheet(){
     sh.getRange(1,1,1,5).setValues([["姓名","班別","日期","限期","狀態"]]);
     sh.setFrozenRows(1); }
   return sh;
+}
+// 移除某生某堂「待證明」嘅病假待證明列（取消病假時用，免日後 false「逾期」通知）
+function removePendingCert_(name,cid,dateIso){
+  var sh=pendingCertSheet(); if(sh.getLastRow()<2) return;
+  var vals=sh.getRange(2,1,sh.getLastRow()-1,5).getValues();
+  for(var i=vals.length-1;i>=0;i--){
+    if(String(vals[i][0]).trim()===String(name).trim() && String(vals[i][1]).trim()===String(cid).trim()
+       && toIso_(vals[i][2])===toIso_(dateIso) && String(vals[i][4])==="待證明") sh.deleteRow(i+2);
+  }
 }
 function addPendingCert_(name,cid,dateIso){
   var sh=pendingCertSheet();
