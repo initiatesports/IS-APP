@@ -475,8 +475,9 @@ function apiLogin(p){
   if(!hit.length){ rlBump_("login_"+nm, 300); return {ok:false,err:"搵唔到，請檢查中文全名同手機後4位（如已設定自訂密碼請用自訂密碼）"}; }
   rlClear_("login_"+nm);
   var fam=pad4(hit[0].last4);   // 真正家庭鍵＝電話後4位（即使用自訂密碼登入亦然）
-  // 同一電話後4位 = 一家人，列出所有小朋友（去重）
-  var names=[]; all.forEach(function(r){ if(pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
+  var surn=nm.charAt(0);        // 同姓先當一家：防同一後4位撞唔同家庭時洩漏別人資料（與 #4 一致）
+  // 同一電話後4位＋同姓 = 一家人，列出所有小朋友（去重）
+  var names=[]; all.forEach(function(r){ if(pad4(r.last4)===fam && String(r.name).trim().charAt(0)===surn && names.indexOf(r.name)<0) names.push(r.name); });
   var children=names.map(function(cn){ return {name:cn, classes:classesFor_(cn)}; });
   // 向後兼容：保留 student/classes（第一個小朋友）。一律回傳家庭鍵＝電話後4位（fam），
   // 令前端之後嘅操作（authParent_）用後4位驗證，即使今次用自訂密碼登入亦正常。
