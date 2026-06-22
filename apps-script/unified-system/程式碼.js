@@ -423,6 +423,8 @@ function buildGrid(ss, cid, force){
     // 結構/日期一致 → 只重設下拉/變色（涵蓋補堂區），保留所有資料
     var bk=sh.getRange(DATA_START,DATE_COL0,students.length+MK_MAX,n);
     bk.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(STATUSES,true).setAllowInvalid(false).build());
+    // 清除總結欄（出席/請假/缺席 = 3 欄）及其右側殘留驗證，避免 COUNTIF 公式違反 status 驗證
+    try{ sh.getRange(DATA_START, DATE_COL0+n, students.length+MK_MAX, 5).setDataValidation(null); }catch(e){}
     applyCF(sh,bk);
     return;
   }
@@ -460,6 +462,7 @@ function buildGrid(ss, cid, force){
   var block=sh.getRange(DATA_START,DATE_COL0,students.length+MK_MAX,Math.max(n,1));
   block.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(STATUSES,true).setAllowInvalid(false).build());
   block.setHorizontalAlignment("center");
+  try{ sh.getRange(DATA_START, DATE_COL0+n, students.length+MK_MAX, 5).setDataValidation(null); }catch(e){}
   applyCF(sh,block);
   // 預先標假期/停課日（落喺欄上嘅 → 「停課」）：扣咗就唔會喺欄出現，呢度只標額外加課後又取消嘅情況
 }
@@ -574,6 +577,9 @@ function findRow(m,name,create){
   if(create && empty>=0){
     var r=empty, c0=colLetter(DATE_COL0), cN=colLetter(DATE_COL0+Math.max(m.n-1,0));
     m.sh.getRange(r,SEQ_COL).setValue("補"); m.sh.getRange(r,NAME_COL).setValue(name);
+    // 防呆：清除 3 個總結欄（出席/請假/缺席）嘅資料驗證，先寫 COUNTIF 公式。
+    // 若 grid 過時（驗證範圍延伸到總結欄），公式結果(數字)會違反「只准 status」驗證而報錯中斷補堂。
+    try{ m.sh.getRange(r, DATE_COL0+m.n, 1, 3).setDataValidation(null); }catch(e){}
     m.sh.getRange(r,DATE_COL0+m.n).setValue('=COUNTIF('+c0+r+':'+cN+r+',"出席")+COUNTIF('+c0+r+':'+cN+r+',"補堂")');
     m.sh.getRange(r,DATE_COL0+m.n+1).setValue('=COUNTIF('+c0+r+':'+cN+r+',"請假")');
     m.sh.getRange(r,DATE_COL0+m.n+2).setValue('=COUNTIF('+c0+r+':'+cN+r+',"缺席")');
