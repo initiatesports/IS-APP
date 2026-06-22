@@ -574,9 +574,12 @@ function gridMeta(cid){
   if(sh){
     var lastC=sh.getLastColumn();
     if(lastC>=DATE_COL0){
-      var fh=sh.getRange(HEAD_ROW,DATE_COL0,1,lastC-DATE_COL0+1).getValues()[0].map(String);
-      physN=fh.indexOf("出席"); if(physN<0) physN=fh.length;   // 日期欄去到「出席」總結欄之前
-      for(var h=0;h<physN;h++){ if(fh[h] && colOf[fh[h]]==null) colOf[fh[h]]=h; }
+      var fh=sh.getRange(HEAD_ROW,DATE_COL0,1,lastC-DATE_COL0+1).getValues()[0];
+      physN=0; var found=false;
+      for(var k=0;k<fh.length;k++){ if(String(fh[k])==="出席"){ physN=k; found=true; break; } }
+      if(!found) physN=fh.length;   // 無「出席」總結欄 → 全部當日期欄
+      // 表頭「06/20」可能被 Sheets 自動轉做日期物件 → 統一正規化做 MM/DD 先對照（否則 String() 對唔到）
+      for(var h=0;h<physN;h++){ var key=(fh[h] instanceof Date)?Utilities.formatDate(fh[h],tz(),"MM/dd"):String(fh[h]||""); if(key && colOf[key]==null) colOf[key]=h; }
     }
   }
   return {sh:sh, dates:dates, n:dates.length, students:students, R:students.length,
