@@ -13,10 +13,13 @@ const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk
 
 const TODAY = process.argv[2] || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Hong_Kong" });
 
+import { readFileSync } from "node:fs";
 const pad4 = x => ("0000" + String(x).replace(/\D/g, "")).slice(-4);
 
 // ── 恆常班 #4 名冊（name,last4）+ 自訂密碼override ──
-const R4 = [
+// 以下係內建後備名冊；排程每次會用 MCP 讀 live Roster + 登入密碼 寫入 QA_ROSTER JSON 覆蓋，
+// 確保唔會因加學生／家長改密碼而過時誤報。
+const DEFAULT_R4 = [
   ["余悅","7252"],["孔善盈","0792"],["蔡芷彤","8852"],["羅梓晉","2521"],["羅君信","2224"],["羅君浩","2224"],["陳大文","1234"],["蘇穎悠","5433"],
   ["翟悅廷","2201"],["郭栩澄","1199"],["葉宇浩","7599"],["梁德澤","6607"],["許思溢","9159"],["梁正軒","9339"],["梁正宇","9339"],
   ["鄧可澄","0386"],["鄧幗恩","0886"],["胡苡晨","9126"],["胡汐森","9126"],["文柏升","4410"],["陳曉瑩","9322"],["何梓程","9003"],["陳思允","0266"],["梁心朗","8883"],
@@ -25,10 +28,10 @@ const R4 = [
   ["張爾淳","1272"],["張雅堯","1272"],["黃梓昕","0397"],["王尉鏇","6801"],["王斯顏","6801"],["呂洛希","4917"],["馬仲然","8368"],["鄧朗森","7317"],["陳書雅","9721"],
   ["劉家頤","5352"],["鄭宇喬","6455"],["鍾皓惟","9704"],["周莉晶","5181"],["李灝宏","5190"],["何芯蕾","2984"],
 ];
-const PIN4 = { "1234": "2580", "0792": "0619" };   // 自訂密碼override（last4→pin）
+const DEFAULT_PIN4 = { "1234": "2580", "0792": "0619", "9158": "9608" };   // 自訂密碼override（last4→pin）
 
 // ── 暑期班 #9 名冊（name,last4）──
-const R9 = [
+const DEFAULT_R9 = [
   ["蔡思言","7716"],["梁心朗","8883"],["吳瑋軒","6735"],["黎柏希","2698"],["黎柏言","2698"],["葉天麒","5078"],
   ["王韻喬","9062"],["易晞渝","570"],["蔡芷彤","8852"],["羅芷晴","1331"],["潘洛詩","6171"],["蔣佩琪","2581"],["何諾軒","9613"],
   ["張爾淳","1272"],["張雅堯","1272"],["劉鎮碩","5352"],["劉家頤","5352"],["方鎮浩","162"],["鄧可澄","386"],["陳大文","1234"],
@@ -40,6 +43,18 @@ const R9 = [
   ["黃信晴","1750"],["陳卓琛","9870"],["劉初靜","1040"],["張煦翹","9011"],["陳皓軒","2359"],["汪柏叡","8643"],
   ["鍾皓惟","9704"],["姚心穎","6606"],["黃朗程","9749"],["黃翊雅","5791"],["陳靖朗","623"],
 ];
+
+// ── 用 live 名冊覆蓋（排程每次寫 QA_ROSTER JSON：{R4,R9,PIN4}），避免加生／改密碼後過時 ──
+let R4 = DEFAULT_R4, R9 = DEFAULT_R9, PIN4 = DEFAULT_PIN4, ROSTER_SRC = "內建";
+if (process.env.QA_ROSTER) {
+  try {
+    const j = JSON.parse(readFileSync(process.env.QA_ROSTER, "utf8"));
+    if (Array.isArray(j.R4) && j.R4.length) R4 = j.R4;
+    if (Array.isArray(j.R9) && j.R9.length) R9 = j.R9;
+    if (j.PIN4 && typeof j.PIN4 === "object") PIN4 = j.PIN4;
+    ROSTER_SRC = "live:" + process.env.QA_ROSTER;
+  } catch (e) { console.log("⚠️ 讀 QA_ROSTER 失敗，改用內建名冊：" + e.message); }
+}
 
 // 未來堂只有呢啲狀態先當「誤標」（出席類）；請假/停課/豁免/轉堂屬合法預先安排。
 const FUTURE_BAD = { "出席": 1, "補堂": 1, "加操": 1 };
@@ -111,7 +126,7 @@ async function sweep(label, exec, rows, withPin) {
 }
 
 (async () => {
-  console.log(`# QA 家長登入自動測試  （日期基準 ${TODAY}，香港時區）\n`);
+  console.log(`# QA 家長登入自動測試  （日期基準 ${TODAY}，香港時區；名冊來源 ${ROSTER_SRC}）\n`);
   const s4 = await sweep("恆常#4", EXEC4, R4, true);
   const s9 = await sweep("暑期#9", EXEC9, R9, false);
 
