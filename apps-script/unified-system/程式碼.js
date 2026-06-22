@@ -560,7 +560,8 @@ function readBlockMerged_(cid){
       var g=grid[i]||"";
       if(g) return g;   // #4 grid 有值 → 以 #4 為準（含家長 is-parent 自助請假寫入嘅「請假」）
       // #4 grid 該格為空 → 後備讀 #11（防個別未遷移嘅舊格）
-      return zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet) || "";
+      // attendance tab 有 raw 就用；否則若 absences 有該日請假紀錄（3月匯入歷史只入 absences，無 attendance）→ 顯示「請假」
+      return zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet) || (leaveSet[nm+"|"+dt] ? "請假" : "");
     });
   });
   return {dates:base.dates, n:base.n, students:base.students, status:map};
