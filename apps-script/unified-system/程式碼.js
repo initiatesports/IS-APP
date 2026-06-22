@@ -46,7 +46,7 @@ var PERIOD_EXEMPT = {
     byClass: { c1:["2026-06-01"], c2:["2026-06-01"],
                c3:["2026-05-27","2026-06-03"], c4:["2026-05-27","2026-06-03"],
                c5:["2026-05-29","2026-06-05"],
-               c6:["2026-05-30","2026-06-06"], c7:["2026-05-30","2026-06-06"] },
+               c6:["2026-05-30","2026-06-06"], c7:["2026-05-09","2026-05-30","2026-06-06"] },
     byStudent: { "梁正軒":[{date:"2026-06-12", cid:"c5", reason:"場地問題"}] }
   }
 };
@@ -587,6 +587,39 @@ function findRow(m,name,create){
   }
   return -1;
 }
+// 清補堂區某名嘅殘留空行：若該補堂行喺日期格已無任何標記，整行清走（序號/姓名/公式）
+function clearStrayMakeupRow_(cid,name){
+  var m=gridMeta(cid); if(!m.sh) return;
+  var names=m.sh.getRange(m.mkStart,NAME_COL,MK_MAX,1).getValues();
+  for(var j=0;j<MK_MAX;j++){
+    if(String(names[j][0]||"").trim()!==String(name).trim()) continue;
+    var r=m.mkStart+j, vals=m.sh.getRange(r,DATE_COL0,1,Math.max(m.n,1)).getValues()[0];
+    if(!vals.some(function(v){ return String(v||"").trim()!==""; }))
+      m.sh.getRange(r,SEQ_COL,1,DATE_COL0+m.n+2).clearContent();
+    return;
+  }
+}
+// 清理全部 grid 補堂區嘅殘留空行（無格仔標記 又 無補堂表記錄）
+function cleanupStrayMakeupRows_(){
+  var mk=makeupAll(), cleaned=0;
+  CLASS_IDS.forEach(function(cid){
+    var m=gridMeta(cid); if(!m.sh) return;
+    var names=m.sh.getRange(m.mkStart,NAME_COL,MK_MAX,1).getValues();
+    for(var j=0;j<MK_MAX;j++){
+      var nm=String(names[j][0]||"").trim(); if(!nm) continue;
+      var r=m.mkStart+j, vals=m.sh.getRange(r,DATE_COL0,1,Math.max(m.n,1)).getValues()[0];
+      var hasMark=vals.some(function(v){ return String(v||"").trim()!==""; });
+      var hasRec=mk.some(function(x){ return x.name===nm && x.to===cid; });
+      if(!hasMark && !hasRec){ m.sh.getRange(r,SEQ_COL,1,DATE_COL0+m.n+2).clearContent(); cleaned++; }
+    }
+  });
+  return cleaned;
+}
+function apiCleanupGrids(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  try{ backup(); }catch(e){}
+  return {ok:true, cleaned:cleanupStrayMakeupRows_()};
+}
 function markCell(cid,name,dateIso,status,create){
   var m=gridMeta(cid); if(!m.sh) return false;
   var col=dateCol(m,dateIso); if(col<0) return false;
@@ -711,6 +744,7 @@ function route(p){
     case "markAttendance":  return apiMark(p);
     case "cancelDay":       return apiCancelDay(p);
     case "cancelDayFree":   return apiCancelDayFree(p);
+    case "cleanupGrids":    return apiCleanupGrids(p);
     case "uploadMedNote":   return apiUploadMedNote(p);
     // ── 繳費（Phase 1）──
     case "genPeriod":       return apiGenPeriod(p);
@@ -826,7 +860,10 @@ function apiLogin(p){
   if(!hit.length){ rlBump_("login_"+nm, 300); return {ok:false, err:"搵唔到，請檢查中文全名同登入密碼（首次登入用手機後4位；如已設定自訂密碼請用自訂密碼）"}; }
   rlClear_("login_"+nm);
   var fam=pad4(hit[0].last4);   // 內部家庭鍵＝名冊電話後4位（不變）
-  var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && names.indexOf(r.name)<0) names.push(r.name); });
+  // 防資料洩漏：同一後4位再加「姓氏首字」先當同一家庭。兩個唔同家庭撞同一手機後4位（如黃玥晴/劉家頤同為5352）
+  //            時，淨靠後4位會錯誤把對方小朋友當成自己仔女顯示。兄弟姊妹必同姓同後4位，故加姓氏唔影響正常家庭。
+  var surn=String(hit[0].name).trim().charAt(0);
+  var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && String(r.name).trim().charAt(0)===surn && names.indexOf(r.name)<0) names.push(r.name); });
   var children=names.map(function(cn){ var cl=classesFor_(cn);
     return {name:cn, classes:cl, fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn),
       returnable:(cl.length===0 && RETURNABLE.indexOf(cn)>=0)}; });
@@ -923,7 +960,7 @@ function apiCancelMakeup(p){
   var stt = onGrid ? (makeupStatus(toCid,p.name,date)||"補堂") : (hit.status||"補堂");
   if(stt==="出席"||stt==="缺席") return {ok:false,err:"此補堂已"+stt+"，無法取消"};
   if(String(date)<todayIso()) return {ok:false,err:"補堂日已過，無法取消"};
-  if(onGrid) markCell(toCid,p.name,date,"",false);
+  if(onGrid){ markCell(toCid,p.name,date,"",false); try{ clearStrayMakeupRow_(toCid,p.name); }catch(e){} }
   makeupSheet().deleteRow(hit.row);
   logAppend({name:p.name,key:p.fromKey,action:"cancelMakeup",to:p.toKey,toDate:date,status:"取消補堂"});
   notify("【取消補堂】"+p.name, p.name+"\n原班："+classLabel_(p.fromKey)+"\n原補去："+classLabel_(toCid)+"　"+date+"\n已取消。");
@@ -2419,6 +2456,7 @@ function opsOutstandingMakeups_(){
 
 // ── 每日營運簡報 ──
 function dailyOpsBrief(){
+  return {disabled:true};   // 🛑 已停用：老闆覺得每日簡報太煩（2026-06）。週一催繳／月報仍保留。如要復用，刪此行。
   var today=todayIso(), wd=["日","一","二","三","四","五","六"][new Date().getDay()];
   var cls=opsTodayClasses_(), up=opsUnpaid_(), soon=opsMakeupsDueSoon_(7), outM=opsOutstandingMakeups_();
   var cur=curPeriodLabel_(), curRows=feeRows_().filter(function(x){ return x.period===cur; });
