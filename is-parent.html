@@ -269,6 +269,10 @@ const T={
   sameDayErrT:{zh:'當天不可請事假',en:'Same-day personal leave not allowed'},
   sameDayErrM:{zh:'事假須最少提前一日。當日缺席將照常扣一節課、不設補堂。請改選其他日期；如當日身體不適，可改請<b>病假</b>（須 48 小時內交醫生證明）。',en:'Personal leave needs at least 1 day notice. A same-day absence still deducts one session (no make-up). Please pick another date; if your child is unwell today, choose <b>Sick leave</b> instead (doctor’s note within 48h).'},
   sickCertReminder:{zh:'⚠️ 當日病假：請於 48 小時內上傳醫生證明，否則此堂改計缺席（扣一節課、不設補堂）。',en:'⚠️ Same-day sick leave: upload a doctor’s note within 48 hours, otherwise this session counts as absent (deducts one session, no make-up).'},
+  sickAckTitle:{zh:'🩺 當日病假已提交 · 重要提示',en:'🩺 Sick leave submitted · Important'},
+  sickAckWarn:{zh:d=>`請於 <b>48 小時內${d?`（${d} 前）`:''}</b>上傳醫生證明，否則此堂將自動<b>改計缺席</b>（扣一節課、不設補堂）。<br><span style="color:var(--muted)">你可隨時返呢個請假頁補交醫生紙，或 WhatsApp 教練。</span>`,en:d=>`Please upload a doctor’s note <b>within 48 hours${d?` (before ${d})`:''}</b>, otherwise this session will automatically count as <b>absent</b> (deducts one session, no make-up).<br><span style="color:var(--muted)">You can upload the note here anytime, or WhatsApp the coach.</span>`},
+  sickAckNoteOk:{zh:'✅ 已收到醫生證明，多謝！',en:'✅ Doctor’s note received, thank you!'},
+  sickAckBtn:{zh:'✅ 我知悉並完成',en:'✅ I understand & done'},
   blockedNote:{zh:d=>`註：${d} 為當日事假，未獲提交（當日不可請事假）。`,en:d=>`Note: ${d} is same-day personal leave and was not submitted (not allowed).`},
   none:{zh:'未揀任何堂',en:'None selected'},picked:{zh:n=>`已揀 ${n} 堂`,en:n=>`${n} selected`},
   codePh:{zh:'輸入手機後 4 位確認',en:'Enter last 4 digits to confirm'},submitLeave:{zh:'提交請假',en:'Submit leave'},submitting:{zh:'提交中…',en:'Submitting…'},
@@ -922,7 +926,18 @@ function showReceipt(title,lines,waText){
     <button class="close" onclick="closeReceipt()">${t('done')}</button>`;
   $('receipt-scrim').classList.add('show');
 }
-function closeReceipt(){ $('receipt-scrim').classList.remove('show'); }
+let RECEIPT_LOCKED=false;
+function closeReceipt(){ if(RECEIPT_LOCKED) return; $('receipt-scrim').classList.remove('show'); }
+// 必認窗（當日病假）：鎖住背景，只可撳「我知悉並完成」先關閉
+function showSickAck(lines, deadline, hasNote){
+  RECEIPT_LOCKED=true;
+  const box = hasNote
+    ? `<div class="notice" style="margin-top:8px;background:rgba(46,158,107,.12);border:1px solid rgba(46,158,107,.4);color:#1f7a52;line-height:1.6">${t('sickAckNoteOk')}</div>`
+    : `<div class="notice warn" style="margin-top:8px;line-height:1.65">${t('sickAckWarn',deadline||'')}</div>`;
+  $('receipt-box').innerHTML=`<h3>${t('sickAckTitle')}</h3>${lines.map(l=>`<div class="line">${l}</div>`).join('')}${box}
+    <button class="close" onclick="RECEIPT_LOCKED=false;closeReceipt()">${t('sickAckBtn')}</button>`;
+  $('receipt-scrim').classList.add('show');
+}
 
 /* ═══════════ 請假 ═══════════ */
 let LF={};
@@ -975,10 +990,10 @@ async function submitLeave(){
     if(!LF.dates.length){ return alertSheet(t('sameDayErrT'), t('sameDayErrM')); }
   }
   const btn=$('lf-go'); if(btn){btn.disabled=true; btn.textContent=t('submitting');}
-  let fail=0,err='';
+  let fail=0,err='',certDeadline='';
   for(const date of LF.dates){
     try{ const r=await api('applyLeave',{name:child.name,key:classKey(c),date,leaveType:LF.type});
-      if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
+      if(!r||!r.ok){fail++;err=(r&&r.err)||'';} else if(date===today0 && r.certDeadline) certDeadline=r.certDeadline; }catch(e){fail++;err=String(e);}
   }
   closeSheet();
   // 醫生紙：只在「當日病假」時上傳，連到當日；提前病假已按事假處理，不需醫生紙
@@ -990,11 +1005,13 @@ async function submitLeave(){
   await refresh();
   if(fail) return toast(t('failN',fail,err));
   const ds=LF.dates.map(d=>fmtDate(d)).join('、');
+  const baseLines=[`${t('child')}：<b>${child.name}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,`${t('dateK')}：${ds}`,`${t('leaveTypeK')}：${LF.type==='病假'?t('sickLeave'):t('errLeave')}${medMsg}`];
+  // 當日病假 → 強制「知悉並完成」窗（須撳掣先可離開）
+  if(sickToday){ showSickAck(baseLines, certDeadline, !!LF.fileData); return; }
   const extra=[];
-  if(sickToday){ extra.push(`<span style="color:#c0392b">${t('sickCertReminder')}</span>`); }
   if(LF.type==='病假' && future.length){ extra.push(`<span style="color:var(--muted)">${t('advSickNote',future.map(fmtDate).join('、'))}</span>`); }
   if(blocked.length){ extra.push(`<span style="color:#c0392b">${t('blockedNote',blocked.map(fmtDate).join('、'))}</span>`); }
-  showReceipt(t('rcLeave'),[`${t('child')}：<b>${child.name}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,`${t('dateK')}：${ds}`,`${t('leaveTypeK')}：${LF.type==='病假'?t('sickLeave'):t('errLeave')}${medMsg}`,...extra],
+  showReceipt(t('rcLeave'),[...baseLines,...extra],
     `INITIATE 請假申請\n小朋友：${child.name}\n班別：${classLabel(c.key||c.sport)}\n日期：${ds}\n假別：${LF.type}`);
 }
 
