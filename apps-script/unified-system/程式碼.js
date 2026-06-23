@@ -855,8 +855,15 @@ function classesFor_(nm){
     var abs11=abs11all.filter(function(a){ return a.name===nm && a.cid===cid; });
     var done11=abs11.filter(function(a){ return a.madeUpDate; });
     var mk4=mk.filter(function(m){ return m.from===cid; });   // mk 已由 makeupUniq_ 去重
+    // 剔走遷移自 #11「已補」嘅重複列（importParentData 寫入，補去班 to 可能=本班/留空/原班）：
+    // 同一筆已補堂喺 done11 已表示一次，唔可以再喺 mk4 顯示／計多一次，否則家長補堂清單重複、出席多計、owed 被多扣。
+    var done11Dates={}; done11.forEach(function(a){ done11Dates[a.madeUpDate]=true; });
+    var mk4real=mk4.filter(function(m){
+      var migratedDone = done11Dates[m.date] && (!m.to || m.to===cid || m.to===m.from);
+      return !migratedDone;
+    });
     var mkInfo=done11.map(function(a){ return {to:cid, date:a.madeUpDate, status:"出席"}; })
-      .concat(mk4.map(function(m){
+      .concat(mk4real.map(function(m){
         var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
         var stt = onGrid ? (makeupStatus(m.to,nm,m.date)||"補堂") : (m.status||"補堂");
         return {to:m.to, date:m.date, status:stt};
@@ -887,19 +894,9 @@ function classesFor_(nm){
     }).length;
     var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
     var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]]) extraLeaves++; });
-    // booked4：真正由本班「新預約」出去嘅補堂（不論已出席或待出席，各抵銷一節待補）。
-    //   ⚠️ done11（#11 已補）已喺 pendingAbs11 用 madeUpDate 扣除咗；而 importParentData 遷移時
-    //   又會把每筆 done11 寫入補堂表（from=to=本班、status 出席）。若直接 mk4.length 會把佢哋
-    //   再扣一次 → 遷移家庭待補被低估。故剔走「to===本班 且日期=某 done11 madeUpDate」嘅遷移重複行。
-    var done11Dates={}; done11.forEach(function(a){ done11Dates[a.madeUpDate]=true; });
-    // 遷移自 #11 嘅「已補」列（importParentData 寫入）：補去班可能 =本班 cid、留空("")、或 =原班，
-    // 三種形態都代表「已用 madeUpDate 喺 pendingAbs11 扣除過」嘅同一筆，唔可以再當新預約扣多次 owed。
-    // ⚠️ 舊版只剔 to===cid，漏咗 to="" 嗰批 → 家長日後自助請假時，新請假被殘留行抵銷，
-    //    令 owed 永遠 0、補堂掣禁用（羅靖誼個案）。真正 is-parent 新預約 to 必為另一班，不受影響。
-    var booked4=mk4.filter(function(m){
-      var migratedDone = done11Dates[m.date] && (!m.to || m.to===cid || m.to===m.from);
-      return !migratedDone;
-    }).length;
+    // booked4：真正由本班「新預約」出去嘅補堂（已用 mk4real 剔走遷移重複列，不論已/待出席各抵銷一節待補）。
+    //   真正 is-parent 新預約 to 必為另一班，不受 migratedDone 剔除影響（羅靖誼個案已修：唔再被殘留 to="" 列抵銷）。
+    var booked4=mk4real.length;
     var owed=Math.max(0, pendingAbs11 + extraLeaves - booked4);
     return {key:cid, sport:cid, wd:r.dayZh, dayZh:r.dayZh, time:r.time,
       total:blk.dates.length, attended:att+mkAtt, leave:lv, absent:ab,
