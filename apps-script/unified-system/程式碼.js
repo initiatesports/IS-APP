@@ -886,14 +886,18 @@ function classesFor_(nm){
     // #4 grid 空白（純 #11 歷史）或仍標「請假」嘅，照當未補堂計。
     var stByDate={}; blk.dates.forEach(function(d,i){ stByDate[d]=st[i]||""; });
     var RESOLVED11_={"出席":1,"補堂":1,"豁免":1,"停課":1};
+    var today_=todayIso();
+    // 該請假日嘅有效補堂限期（優先：自訂延長 dlMap > #11 原限期 > 缺席日+MAKEUP_MONTHS）；< 今日 = 已過期。
+    var effDl_=function(d, stored){ return dlMap[nm+"|"+cid+"|"+d] || stored || addMonthsIso(d, CONFIG.MAKEUP_MONTHS); };
     var pendingAbs11=abs11.filter(function(a){
       if(a.madeUpDate) return false;                          // #11 已補
       var g=stByDate[a.absDate];                              // 該缺席日喺 #4 本班 grid 嘅真相狀態
       if(g!==undefined && RESOLVED11_[g]) return false;       // #4 顯示已出席/豁免等 → 已解決，唔計待補
+      if(effDl_(a.absDate, a.deadline) < today_) return false; // 限期已過 → 唔再當待補（老闆定：過期 owed 歸 0）
       return true;
     }).length;
     var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
-    var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]]) extraLeaves++; });
+    var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]] && effDl_(blk.dates[i])>=today_) extraLeaves++; });
     // booked4：真正由本班「新預約」出去嘅補堂（已用 mk4real 剔走遷移重複列，不論已/待出席各抵銷一節待補）。
     //   真正 is-parent 新預約 to 必為另一班，不受 migratedDone 剔除影響（羅靖誼個案已修：唔再被殘留 to="" 列抵銷）。
     var booked4=mk4real.length;
