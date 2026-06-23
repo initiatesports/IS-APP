@@ -874,7 +874,17 @@ function classesFor_(nm){
     //          ＋ #4 grid 顯示「請假」但 #11 未有對應 absences 紀錄嘅堂（日後 #4-only 新請假，避免重複）
     //          － 經 is-parent 預約嘅 #4 補堂（mk4），不論已出席或待出席都各抵銷一節待補。
     //            （done11 已出席嘅 #11 補堂唔再減，因為佢哋已喺 pendingAbs11 用 madeUpDate 扣除咗，避免重複。）
-    var pendingAbs11=abs11.filter(function(a){ return !a.madeUpDate; }).length;
+    // 對賬 #4 真相：#11 標「未補缺席」但 #4 本班 grid 該堂顯示已出席/補堂/豁免/停課 → 該筆已解決
+    // （教練後來改咗、或學生實際有上／獲豁免），唔可以再當待補，否則家長 owed 偏高、見到唔存在嘅待補堂。
+    // #4 grid 空白（純 #11 歷史）或仍標「請假」嘅，照當未補堂計。
+    var stByDate={}; blk.dates.forEach(function(d,i){ stByDate[d]=st[i]||""; });
+    var RESOLVED11_={"出席":1,"補堂":1,"豁免":1,"停課":1};
+    var pendingAbs11=abs11.filter(function(a){
+      if(a.madeUpDate) return false;                          // #11 已補
+      var g=stByDate[a.absDate];                              // 該缺席日喺 #4 本班 grid 嘅真相狀態
+      if(g!==undefined && RESOLVED11_[g]) return false;       // #4 顯示已出席/豁免等 → 已解決，唔計待補
+      return true;
+    }).length;
     var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
     var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]]) extraLeaves++; });
     // booked4：真正由本班「新預約」出去嘅補堂（不論已出席或待出席，各抵銷一節待補）。
