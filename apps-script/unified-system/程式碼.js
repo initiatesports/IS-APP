@@ -550,14 +550,12 @@ function zhStatus11_(nm, d, raw, leaveSet){
 // 家長顯示用：#4 grid 為主、#11 為後備
 // （遷移後 #11 出席/缺席已搬入 #4 grid，且日後教練改用 #4 點名 → #4 grid 即恆常班出席真相；
 //   #11 只作後備，補返個別未遷移嘅舊格，避免教練停用 #11 後家長見到舊資料。）
+// 老闆確認(2026-06-22)：此日期之前嘅空白上課堂一律當「出席」（數碼系統上線前歷史補完）。
+// 用固定日期、非「今日」：確保將來教練未點名嘅堂仍會顯示空白，唔會被自動當出席而遮蔽問題。
+var INFER_PRESENT_BEFORE = "2026-06-16";
 function readBlockMerged_(cid){
   var base=readBlock(cid), c=CLASSES[cid], d=is11_();
   var leaveSet={}; d.abs.forEach(function(a){ if(a.cid===cid) leaveSet[a.name+"|"+a.absDate]=true; });
-  // 推斷出席用：① firstAtt = 該班 attendance tab 最早有記錄嗰日（＝數碼系統上線日）；
-  //              ② metAbs = 該班「確有上堂」嘅舊日子（當日有人請假＝有開班）。
-  var firstAtt=null, metAbs={};
-  Object.keys(d.att).forEach(function(k){ var p=k.split("|"); if(p[0]===cid){ if(firstAtt===null||p[1]<firstAtt) firstAtt=p[1]; } });
-  d.abs.forEach(function(a){ if(a.cid===cid) metAbs[a.absDate]=true; });
   var map={};
   c.students.forEach(function(nm){
     var grid=base.status[nm]||[];
@@ -568,9 +566,8 @@ function readBlockMerged_(cid){
       // attendance tab 有 raw 就用；否則若 absences 有該日請假紀錄（3月匯入歷史只入 absences，無 attendance）→ 顯示「請假」
       var s=zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet) || (leaveSet[nm+"|"+dt] ? "請假" : "");
       if(s) return s;
-      // 推斷出席：僅限「數碼系統上線前(dt < firstAtt)」且「當日確有上堂(metAbs[dt])」嘅舊日子，
-      // 非請假同學當「出席」。今日/近期(dt >= firstAtt)一律唔推斷，免影響未點名嘅堂。
-      if(firstAtt && dt<firstAtt && metAbs[dt]) return "出席";
+      // 歷史補完：截止日之前嘅空白堂（已扣除假期/停課，剩低都係真實上課日）→ 非請假同學當「出席」。
+      if(dt < INFER_PRESENT_BEFORE) return "出席";
       return "";
     });
   });
