@@ -553,6 +553,11 @@ function zhStatus11_(nm, d, raw, leaveSet){
 function readBlockMerged_(cid){
   var base=readBlock(cid), c=CLASSES[cid], d=is11_();
   var leaveSet={}; d.abs.forEach(function(a){ if(a.cid===cid) leaveSet[a.name+"|"+a.absDate]=true; });
+  // 推斷出席用：① firstAtt = 該班 attendance tab 最早有記錄嗰日（＝數碼系統上線日）；
+  //              ② metAbs = 該班「確有上堂」嘅舊日子（當日有人請假＝有開班）。
+  var firstAtt=null, metAbs={};
+  Object.keys(d.att).forEach(function(k){ var p=k.split("|"); if(p[0]===cid){ if(firstAtt===null||p[1]<firstAtt) firstAtt=p[1]; } });
+  d.abs.forEach(function(a){ if(a.cid===cid) metAbs[a.absDate]=true; });
   var map={};
   c.students.forEach(function(nm){
     var grid=base.status[nm]||[];
@@ -561,7 +566,12 @@ function readBlockMerged_(cid){
       if(g) return g;   // #4 grid 有值 → 以 #4 為準（含家長 is-parent 自助請假寫入嘅「請假」）
       // #4 grid 該格為空 → 後備讀 #11（防個別未遷移嘅舊格）
       // attendance tab 有 raw 就用；否則若 absences 有該日請假紀錄（3月匯入歷史只入 absences，無 attendance）→ 顯示「請假」
-      return zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet) || (leaveSet[nm+"|"+dt] ? "請假" : "");
+      var s=zhStatus11_(nm, dt, d.att[cid+"|"+dt+"|"+nm], leaveSet) || (leaveSet[nm+"|"+dt] ? "請假" : "");
+      if(s) return s;
+      // 推斷出席：僅限「數碼系統上線前(dt < firstAtt)」且「當日確有上堂(metAbs[dt])」嘅舊日子，
+      // 非請假同學當「出席」。今日/近期(dt >= firstAtt)一律唔推斷，免影響未點名嘅堂。
+      if(firstAtt && dt<firstAtt && metAbs[dt]) return "出席";
+      return "";
     });
   });
   return {dates:base.dates, n:base.n, students:base.students, status:map};
