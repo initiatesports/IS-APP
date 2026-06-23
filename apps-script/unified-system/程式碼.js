@@ -2315,6 +2315,7 @@ function onOpen(){
     .addItem("⬇️ 匯入家長資料（IS App Data）","importParentDataMenu")
     .addItem("⬇️ 匯入繳費標記（IS App Data）","importFeesMenu")
     .addItem("🔄 重建學生名冊（只顯示現時班別）","rebuildRosterMenu")
+    .addItem("🔧 修正 c5 名單（顧舒然→梁正軒）","fixC5GuToLeung")
     .addItem("✅ 標記 5-6月 全部已繳","markFiveSixPaidMenu")
     .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
     .addSeparator()
@@ -2855,6 +2856,27 @@ function rebuildRosterMenu(){
   try{ ensureRoster_(SS()); }
   catch(e){ ui.alert("重建失敗：\n"+(e&&e.message||e)); return; }
   ui.alert("名冊已重建 ✅","家長頁現只顯示現時班別。",ui.ButtonSet.OK);
+}
+
+/* 🔧 一次性：c5 名單對位修正 — 出席表 c5 正式名單區嘅「顧舒然」(已退出)改名做「梁正軒」(現役)。
+ * 老闆確認該行 5-6 月出席係梁正軒（顧舒然 5 月起已無參加），故改名保留出席即可。
+ * 先自動備份；只動 c5 正式名單區；冪等（搵唔到顧舒然就唔郁）。改名後 readBlock 按姓名讀格，
+ * 梁正軒即接返自己出席，#11「c5 06-12 缺席」被 grid 已出席推翻 → 待補(owed) 自動歸 0。*/
+function fixC5GuToLeung(){
+  var ui=SpreadsheetApp.getUi(), cid="c5", oldNm="顧舒然", newNm="梁正軒";
+  var c=ui.alert("修正 c5 名單",
+    "會把出席表「"+gridName(cid)+"」正式名單嘅「"+oldNm+"」改名做「"+newNm+"」，保留該行出席。\n執行前會自動備份。\n\n確定？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  try{ backup(); }catch(e){}
+  var sh=SS().getSheetByName(gridName(cid));
+  if(!sh){ ui.alert("搵唔到分頁："+gridName(cid)); return; }
+  var R=CLASSES[cid].students.length, names=sh.getRange(DATA_START,NAME_COL,R,1).getValues(), at=-1;
+  for(var i=0;i<R;i++){ if(String(names[i][0]||"").trim()===oldNm){ at=i; break; } }
+  if(at<0){ ui.alert("ℹ️ c5 正式名單冇搵到「"+oldNm+"」，可能已修正過，無改動。"); return; }
+  sh.getRange(DATA_START+at,NAME_COL).setValue(newNm);
+  try{ logAppend({name:newNm,key:cid,action:"fixRoster",date:"",status:"c5 "+oldNm+"→"+newNm}); }catch(e){}
+  ui.alert("✅ 已修正","c5 第 "+(at+1)+" 行 "+oldNm+" → "+newNm+"（出席保留，已備份）。\n家長頁待補(owed) 會自動正常。",ui.ButtonSet.OK);
 }
 
 /* ✅ 一鍵：標記某期（預設 5-6月）全部已繳 → 已繳=實際應繳、狀態=已繳；家長頁付款區自動消失 */
