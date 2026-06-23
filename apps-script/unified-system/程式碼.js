@@ -882,7 +882,14 @@ function classesFor_(nm){
     //   又會把每筆 done11 寫入補堂表（from=to=本班、status 出席）。若直接 mk4.length 會把佢哋
     //   再扣一次 → 遷移家庭待補被低估。故剔走「to===本班 且日期=某 done11 madeUpDate」嘅遷移重複行。
     var done11Dates={}; done11.forEach(function(a){ done11Dates[a.madeUpDate]=true; });
-    var booked4=mk4.filter(function(m){ return !(m.to===cid && done11Dates[m.date]); }).length;
+    // 遷移自 #11 嘅「已補」列（importParentData 寫入）：補去班可能 =本班 cid、留空("")、或 =原班，
+    // 三種形態都代表「已用 madeUpDate 喺 pendingAbs11 扣除過」嘅同一筆，唔可以再當新預約扣多次 owed。
+    // ⚠️ 舊版只剔 to===cid，漏咗 to="" 嗰批 → 家長日後自助請假時，新請假被殘留行抵銷，
+    //    令 owed 永遠 0、補堂掣禁用（羅靖誼個案）。真正 is-parent 新預約 to 必為另一班，不受影響。
+    var booked4=mk4.filter(function(m){
+      var migratedDone = done11Dates[m.date] && (!m.to || m.to===cid || m.to===m.from);
+      return !migratedDone;
+    }).length;
     var owed=Math.max(0, pendingAbs11 + extraLeaves - booked4);
     return {key:cid, sport:cid, wd:r.dayZh, dayZh:r.dayZh, time:r.time,
       total:blk.dates.length, attended:att+mkAtt, leave:lv, absent:ab,
