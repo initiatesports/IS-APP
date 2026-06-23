@@ -58,6 +58,8 @@ if (process.env.QA_ROSTER) {
 
 // 未來堂只有呢啲狀態先當「誤標」（出席類）；請假/停課/豁免/轉堂屬合法預先安排。
 const FUTURE_BAD = { "出席": 1, "補堂": 1, "加操": 1 };
+// 歷史補完截止日（同後端 INFER_PRESENT_BEFORE 一致）：此日期前嘅過往堂唔應再有空白。
+const HIST_CUTOFF = "2026-06-16";
 
 async function callLogin(exec, name, cred) {
   let lastErr = "";
@@ -112,6 +114,11 @@ async function sweep(label, exec, rows, withPin) {
         // 3) 學費負數
         const net = cls.net != null ? cls.net : (cls.owed != null ? cls.owed : null);
         if (net != null && Number(net) < 0) add("FEE", label, c.name, `${cls.cid || cls.key} 應繳負數 ${net}`);
+        // 4) 歷史補完（只恆常#4）：截止日前嘅過往堂應已補完，唔應再有空白
+        if (label === "恆常#4") {
+          const gaps = (cls.sessions || []).filter(s => s.date < HIST_CUTOFF && s.date <= TODAY && !s.status).map(s => s.date);
+          if (gaps.length) add("HISTGAP", label, c.name, `${cls.cid || cls.key} 截止日前仍空白：${gaps.join(" ")}`);
+        }
       }
     }
     // nextPeriod 學費負數（#4）
@@ -135,8 +142,8 @@ async function sweep(label, exec, rows, withPin) {
 
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
-  const order = ["LEAK", "FUTURE", "FEE", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", ERR: "⚪ 登入/請求問題" };
+  const order = ["LEAK", "FUTURE", "FEE", "HISTGAP", "ERR"];
+  const names = { LEAK: "🔴 資料洩漏", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   for (const sev of order) {
     if (!bySev[sev]) continue;
@@ -147,7 +154,7 @@ async function sweep(label, exec, rows, withPin) {
   console.log(JSON.stringify({
     date: TODAY,
     tested: { c4: s4, c9: s9 },
-    counts: { LEAK: (bySev.LEAK || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, ERR: (bySev.ERR || []).length },
+    counts: { LEAK: (bySev.LEAK || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
   }));
 })();
