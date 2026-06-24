@@ -3145,6 +3145,10 @@ function applyMarksBulk_(cid, marksByName){
   var wrote=0, skip=[]; marksByName=marksByName||{};
   if(!sh){ Object.keys(marksByName).forEach(function(nm){ skip.push(cid+"|"+nm+"|(無班表)"); }); return {wrote:0,skip:skip}; }
   var dcol={}; for(var i=0;i<n;i++) dcol[dates[i]]=i;
+  // 寫入前清晒驗證：避免個別舊值（如遷移殘留「格」/非標準字）觸發 status 驗證錯誤而令整個匯入中斷。
+  // 寫完喺函數尾再重設返驗證（日期欄 status 下拉、總結欄清驗證）。
+  var vBlockR=students.length+MK_MAX, vBlock=sh.getRange(DATA_START,DATE_COL0,vBlockR,Math.max(n,1));
+  try{ vBlock.setDataValidation(null); }catch(e){}
 
   // ① 正規學生：R×n 矩陣，一次過 setValues
   var R=students.length;
@@ -3187,6 +3191,9 @@ function applyMarksBulk_(cid, marksByName){
       Object.keys(om).forEach(function(iso){ skip.push(cid+"|"+on+"|"+iso+"|"+om[iso]+"(補堂區滿"+MK_MAX+")"); });
     }
   }
+  // 重設驗證：日期欄 status 下拉；總結欄(出席/請假/缺席及右側)清驗證，免 COUNTIF 公式違反驗證。
+  try{ vBlock.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(STATUSES,true).setAllowInvalid(false).build()); }catch(e){}
+  try{ sh.getRange(DATA_START, DATE_COL0+n, vBlockR, 5).setDataValidation(null); }catch(e){}
   return {wrote:wrote, skip:skip};
 }
 
