@@ -293,10 +293,12 @@ function settingsMap(){
   });
   return map;
 }
+// 程式碼層額外假期：喺 Settings public_holidays 之外「再加」（唔覆蓋 Settings，避免改錯其他日子）。
+var EXTRA_HOLIDAYS = ["2026-07-01"];   // 2026-07-01（三）全校暫停課堂 → c3/c4 該堂自動唔計學費
 function holidaysSet(){
   var m=settingsMap(), h=m["public_holidays"];
   var arr=(Array.isArray(h)&&h.length)?h:DEFAULT_HOLIDAYS;
-  var s={}; arr.forEach(function(d){ s[toIso_(d)]=1; }); return s;
+  var s={}; arr.concat(EXTRA_HOLIDAYS).forEach(function(d){ s[toIso_(d)]=1; }); return s;
 }
 function listFromSettings(prefix,cid){
   var m=settingsMap(), v=m[prefix+cid];
@@ -1225,12 +1227,23 @@ function creditRows_(){
       amt:Number(r[2])||0, why:String(r[3]||""), at:String(r[4]||"")};
   }).filter(function(x){ return x.name && x.period; });
 }
+// 程式碼層額外抵扣：喺 學費抵扣 ledger 之外「再加」（特別課程退款等）。金額正數=要扣。
+var EXTRA_CREDITS = {
+  "2026 7-8月": [
+    {name:"黃朗程", amt:900, why:"6-7月特別課程退款"},
+    {name:"鄭宇喬", amt:280, why:"6-7月特別課程退款"}
+  ]
+};
 function creditsFor_(nm,label){
-  var t=0; creditRows_().forEach(function(x){ if(x.name===nm && x.period===label) t+=x.amt; }); return t;
+  var t=0; creditRows_().forEach(function(x){ if(x.name===nm && x.period===label) t+=x.amt; });
+  (EXTRA_CREDITS[label]||[]).forEach(function(e){ if(e.name===nm) t+=e.amt; });
+  return t;
 }
 function creditNotesFor_(nm,label){
-  return creditRows_().filter(function(x){ return x.name===nm && x.period===label; })
-    .map(function(x){ return x.why+" -$"+x.amt; }).join("；");
+  var a=creditRows_().filter(function(x){ return x.name===nm && x.period===label; })
+    .map(function(x){ return x.why+" -$"+x.amt; });
+  (EXTRA_CREDITS[label]||[]).forEach(function(e){ if(e.name===nm) a.push(e.why+" -$"+e.amt); });
+  return a.join("；");
 }
 // 加一筆抵扣（idempotent：同學生/期/原因已存在就唔重覆加）
 function addCredit_(nm,label,amt,why){
