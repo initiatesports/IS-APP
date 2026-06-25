@@ -2367,7 +2367,6 @@ function onOpen(){
   var maint=ui.createMenu("⚙️ 安裝 / 維護（少用）")
     .addItem("🔑 一次性授權上網/寄信","authorizeNow")
     .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
-    .addItem("🩺 立即健康檢查（測試）","healthCheckMenu")
     .addItem("📦 安裝每月異地備份（email xlsx）","installMonthlyBackup")
     .addItem("📦 立即寄一份異地備份（測試）","monthlyOffsiteBackupMenu")
     .addItem("📊 安裝營運簡報（逢一催繳＋月報）","installOpsReports")
@@ -2394,6 +2393,8 @@ function onOpen(){
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
     .addItem("🔧 修復格仔姓名（誤刪還原）","repairGridNamesMenu")
+    .addSeparator()
+    .addItem("🩺 全面健康檢查（立即跑，掃所有資料）","healthCheckMenu")
     .addItem("💸 立即寄催繳名單","weeklyUnpaidReportMenu")
     .addSeparator()
     .addSubMenu(maint)
@@ -2496,6 +2497,44 @@ function probeOk_(url, expect){
   }
   return {ok:false, why:lastBad};
 }
+// ═══════ 全面資料完整性檢查（直接掃 Sheet，唔靠登入）═══════
+// 覆蓋：grid 姓名(空白/對唔上名冊/重複)、補堂區不明姓名、缺日期欄、非法狀態、未來誤標出席、
+//       #11/補堂表別字、學費負數、私訓超期/未來。回傳問題陣列。
+function dataIntegrityCheck_(){
+  var P=[], today=todayIso(), STAT={}, FUT={"出席":1,"補堂":1,"加操":1};
+  STATUSES.forEach(function(s){ STAT[s]=1; });
+  var known={};
+  CLASS_IDS.forEach(function(cid){ CLASSES[cid].students.forEach(function(nm){ known[nm]=1; }); });
+  PT_STUDENTS.forEach(function(s){ known[s.name]=1; known[s.family]=1; });
+  try{ (RETURNABLE||[]).forEach(function(nm){ known[nm]=1; }); }catch(e){}
+  CLASS_IDS.forEach(function(cid){
+    var m=gridMeta(cid); if(!m.sh){ P.push("出席格 "+cid+" 唔見咗分頁"); return; }
+    var sh=m.sh, studs=CLASSES[cid].students, n=studs.length;
+    var allNames=sh.getRange(DATA_START,NAME_COL,n+MK_MAX,1).getValues().map(function(r){ return String(r[0]||"").trim(); });
+    var seen={};
+    for(var i=0;i<n;i++){ var nm=allNames[i];
+      if(!nm){ P.push(cid+" 第"+(i+1)+"行姓名空白（應為 "+studs[i]+"）"); }
+      else { if(nm!==studs[i]) P.push(cid+" 第"+(i+1)+"行姓名「"+nm+"」對唔上名冊「"+studs[i]+"」");
+             if(seen[nm]) P.push(cid+" 規則名單姓名重複："+nm); seen[nm]=1; } }
+    for(var j=0;j<MK_MAX;j++){ var mn=allNames[n+j]; if(mn && !known[mn]) P.push(cid+" 補堂區有不明姓名（疑別字）："+mn); }
+    if(m.physN>0){
+      sessionsFor(cid).forEach(function(d){ if(d<today && m.colOf[mmdd_(d)]==null) P.push(cid+" 缺過往上課日欄："+d); });
+      var nR=n+MK_MAX, blk=sh.getRange(DATA_START,DATE_COL0,nR,m.physN).getValues(), offIso={};
+      m.dates.forEach(function(d){ var o=m.colOf[mmdd_(d)]; if(o!=null) offIso[o]=d; });
+      for(var r2=0;r2<nR;r2++){ var who=allNames[r2]||("#"+(r2+1)); for(var off=0;off<m.physN;off++){
+        var v=String(blk[r2][off]||""); if(!v) continue;
+        if(!STAT[v]){ P.push(cid+" "+who+" 有非法狀態「"+v+"」"); continue; }
+        var iso=offIso[off]; if(iso && iso>today && FUT[v]) P.push(cid+" "+who+" "+iso+" 未到但標咗「"+v+"」"); } }
+    }
+  });
+  try{ var sA={}; is11_().abs.forEach(function(a){ if(a.name && !known[a.name] && !sA[a.name]){ sA[a.name]=1; P.push("#11 請假紀錄有不明姓名（疑別字）："+a.name); } }); }catch(e){}
+  try{ var sM={}; makeupAll().forEach(function(x){ if(x.name && !known[x.name] && !sM[x.name]){ sM[x.name]=1; P.push("補堂表有不明姓名（疑別字）："+x.name); } }); }catch(e){}
+  try{ feeRows_().forEach(function(f){ if(Number(f.net)<0) P.push("學費負數："+f.name+" "+f.period+" = $"+f.net); }); }catch(e){}
+  try{ PT_STUDENTS.forEach(function(s){ var sum=ptSummary_(s.name); if(!sum) return;
+    if(Number(sum.done)>Number(sum.cap)) P.push("私訓 "+s.name+" 本期堂數 "+sum.done+" 超上限 "+sum.cap);
+    (sum.sessions||[]).forEach(function(x){ if(x.date>today) P.push("私訓 "+s.name+" 有未來日期："+x.date); }); }); }catch(e){}
+  return P;
+}
 function healthCheck(){
   var problems=[];
   HEALTH_BACKENDS.forEach(function(e){
@@ -2506,15 +2545,9 @@ function healthCheck(){
     var p=probeOk_(u, null);
     if(!p.ok) problems.push("前端 "+u+" → "+p.why);
   });
-  // grid 姓名完整性：規則學生行姓名空白 → 影響點名/請假/補堂（多數係人手誤刪 A:B 欄）
-  CLASS_IDS.forEach(function(cid){
-    try{
-      var sh=SS().getSheetByName(gridName(cid)); if(!sh) return;
-      var n=CLASSES[cid].students.length, nm=sh.getRange(DATA_START,NAME_COL,n,1).getValues(), blank=0;
-      for(var i=0;i<n;i++){ if(!String(nm[i][0]||"").trim()) blank++; }
-      if(blank) problems.push("出席格 "+cid+" 有 "+blank+" 個學生姓名空白（影響請假/補堂，請用 INITIATE 選單『🔧 修復格仔姓名』）");
-    }catch(e){}
-  });
+  // 全面資料完整性（grid 姓名/對齊/狀態、別字、學費、私訓…）
+  try{ dataIntegrityCheck_().forEach(function(x){ problems.push(x); }); }
+  catch(e){ problems.push("資料完整性檢查出錯："+e); }
   if(problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
