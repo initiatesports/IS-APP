@@ -886,6 +886,7 @@ function route(p){
     case "returnsAll":      return apiReturnsAll(p);
     // ── 老闆控制台營運快照（教練密碼）──
     case "opsSnapshot":     return apiOpsSnapshot(p);
+    case "health":          return apiHealth(p);   // 教練密碼保護：即場全面健康檢查，回問題清單
     default:                return {ok:false, err:"unknown action"};
   }
 }
@@ -2608,7 +2609,13 @@ function opsHealthCheck_(){
   }catch(e){}
   return P;
 }
-function healthCheck(){
+function healthCheck(){ return runHealthChecks_(true); }   // 每日 trigger：有問題就 email
+// coachPass 保護：即場觸發成個健康檢查並回傳問題清單（唔寄 email，畀教練端/驗證用）
+function apiHealth(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, problems:runHealthChecks_(false)};
+}
+function runHealthChecks_(sendEmail){
   var problems=[];
   HEALTH_BACKENDS.forEach(function(e){
     var p=probeOk_(e.url, e.expect);
@@ -2637,7 +2644,7 @@ function healthCheck(){
   // 系統運維（觸發器 / 備份新鮮度）
   try{ opsHealthCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("運維檢查出錯："+e); }
-  if(problems.length){
+  if(sendEmail && problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
         "⚠️ INITIATE 系統健康警示（"+problems.length+" 項異常）",
