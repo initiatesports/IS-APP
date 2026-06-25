@@ -663,7 +663,8 @@ function apiCleanupGrids(p){
       } }
   }catch(e){}
   var futCleared=0; try{ futCleared=cleanFutureAttendance_(); }catch(e){}
-  return {ok:true, cleaned:cleaned, pendingCertCleaned:pcCleaned, futureCleared:futCleared};
+  var nameFixed=0; try{ nameFixed=repairGridNames_(); }catch(e){}
+  return {ok:true, cleaned:cleaned, pendingCertCleaned:pcCleaned, futureCleared:futCleared, nameFixed:nameFixed};
 }
 // 防呆：清走「未來上課日但標咗出席/補堂/加操」嘅格（未來請假/停課/豁免/轉堂屬合法預約 → 保留）。
 // 批次寫入（逐班一讀一寫），只清未來上課日欄，唔掂過往同總結欄。
@@ -685,6 +686,27 @@ function cleanFutureAttendanceMenu(){
   try{ backup(); }catch(e){}
   var n=cleanFutureAttendance_();
   try{ SpreadsheetApp.getUi().alert("已清走未來誤標出席："+n+" 格\n（保留未來請假/停課/豁免；已先自動備份）"); }catch(e){}
+}
+// 修復誤刪嘅格仔姓名：規則學生行（DATA_START 起）姓名空白 → 按 CLASSES 名單順序補返序號＋姓名（唔郁出席資料、唔覆蓋非空姓名）。
+function repairGridNames_(){
+  var fixed=0;
+  CLASS_IDS.forEach(function(cid){
+    var sh=SS().getSheetByName(gridName(cid)); if(!sh) return;
+    var studs=CLASSES[cid].students, n=studs.length;
+    var cur=sh.getRange(DATA_START,SEQ_COL,n,2).getValues(), out=[], changed=false;
+    for(var i=0;i<n;i++){
+      var seq=String(cur[i][0]||""), nm=String(cur[i][1]||"").trim();
+      if(!nm){ out.push([String(i+1), studs[i]]); changed=true; fixed++; }   // 姓名空白 → 補返
+      else out.push([seq||String(i+1), nm]);
+    }
+    if(changed) sh.getRange(DATA_START,SEQ_COL,n,2).setValues(out);
+  });
+  return fixed;
+}
+function repairGridNamesMenu(){
+  try{ backup(); }catch(e){}
+  var n=repairGridNames_();
+  try{ SpreadsheetApp.getUi().alert("已修復空白姓名格："+n+" 個（已先自動備份）。"); }catch(e){}
 }
 function markCell(cid,name,dateIso,status,create){
   var m=gridMeta(cid); if(!m.sh) return false;
@@ -2371,6 +2393,7 @@ function onOpen(){
     .addSeparator()
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
+    .addItem("🔧 修復格仔姓名（誤刪還原）","repairGridNamesMenu")
     .addItem("💸 立即寄催繳名單","weeklyUnpaidReportMenu")
     .addSeparator()
     .addSubMenu(maint)
@@ -2482,6 +2505,15 @@ function healthCheck(){
   HEALTH_PAGES.forEach(function(u){
     var p=probeOk_(u, null);
     if(!p.ok) problems.push("前端 "+u+" → "+p.why);
+  });
+  // grid 姓名完整性：規則學生行姓名空白 → 影響點名/請假/補堂（多數係人手誤刪 A:B 欄）
+  CLASS_IDS.forEach(function(cid){
+    try{
+      var sh=SS().getSheetByName(gridName(cid)); if(!sh) return;
+      var n=CLASSES[cid].students.length, nm=sh.getRange(DATA_START,NAME_COL,n,1).getValues(), blank=0;
+      for(var i=0;i<n;i++){ if(!String(nm[i][0]||"").trim()) blank++; }
+      if(blank) problems.push("出席格 "+cid+" 有 "+blank+" 個學生姓名空白（影響請假/補堂，請用 INITIATE 選單『🔧 修復格仔姓名』）");
+    }catch(e){}
   });
   if(problems.length){
     try{
