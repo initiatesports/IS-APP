@@ -951,8 +951,15 @@ function apiLogin(p){
   var surn=String(hit[0].name).trim().charAt(0);
   var names=[]; all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && String(r.name).trim().charAt(0)===surn && names.indexOf(r.name)<0) names.push(r.name); });
   var children=names.map(function(cn){ var cl=classesFor_(cn);
-    return {name:cn, classes:cl, fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:ptForFamily_(cn),
+    return {name:cn, classes:cl, fees:feesFor_(cn), addons:addonsFor_(cn), referralBalance:referralBalance_(cn), transfers:transfersFor_(cn), pt:null,
       returnable:(cl.length===0 && RETURNABLE.indexOf(cn)>=0)}; });
+  // 私人訓練：當成可揀嘅獨立「學生」加入 children（家長可喺頂部揀）。同名加「⭐私訓」標籤以資識別。
+  PT_STUDENTS.forEach(function(s){
+    if(names.indexOf(s.family)<0) return;          // 該家庭名下冇此私訓學員
+    var sum=ptSummary_(s.name); if(!sum) return;
+    var dispName=(s.name===s.family)?(s.name+" ⭐私訓"):s.name;
+    children.push({name:dispName, classes:[], fees:[], addons:[], referralBalance:0, transfers:[], pt:sum, ptOnly:true, returnable:false});
+  });
   return {ok:true, family:{last4:fam, hasPin:!!pinFor_(fam)}, children:children,
     student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[],
     payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6), summerBridge:summerBridgeOn_(),
@@ -2334,13 +2341,23 @@ function buildReport(){
 
 /* ═══════════ 選單 ═══════════ */
 function onOpen(){
-  SpreadsheetApp.getUi().createMenu("INITIATE")
+  var ui=SpreadsheetApp.getUi();
+  var maint=ui.createMenu("⚙️ 安裝 / 維護（少用）")
+    .addItem("🔑 一次性授權上網/寄信","authorizeNow")
+    .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
+    .addItem("🩺 立即健康檢查（測試）","healthCheckMenu")
+    .addItem("📦 安裝每月異地備份（email xlsx）","installMonthlyBackup")
+    .addItem("📦 立即寄一份異地備份（測試）","monthlyOffsiteBackupMenu")
+    .addItem("📊 安裝營運簡報（逢一催繳＋月報）","installOpsReports")
+    .addItem("📈 立即寄月度營運報表（測試）","monthlyOpsReportMenu");
+  ui.createMenu("INITIATE")
     .addItem("初始化 / 更新（保留資料）","setup")
     .addItem("產生出席報表","buildReport")
     .addItem("產生繳費列（本期＋下期）","genCurrentPeriodFees")
     .addItem("🧾 7-8月學費試算（按淨堂，不寫入）","genPeriod78NetDryRun")
     .addItem("💰 7-8月學費寫入（按淨堂＋豁免＋額外收費）","genPeriod78NetApply")
     .addItem("🔄 核實回歸申請（退出學生付款回歸）","reviewReturnsMenu")
+    .addSeparator()
     .addItem("立即備份","backup")
     .addItem("備份到 Drive（整份複製）","backupToDrive")
     .addItem("備份清單","listBackups")
@@ -2350,22 +2367,13 @@ function onOpen(){
     .addItem("⬇️ 匯入家長資料（IS App Data）","importParentDataMenu")
     .addItem("⬇️ 匯入繳費標記（IS App Data）","importFeesMenu")
     .addItem("🔄 重建學生名冊（只顯示現時班別）","rebuildRosterMenu")
-    .addItem("🔧 修正張家 c6 06/20（還原移位）","fixZhangC6Jun20")
     .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
     .addSeparator()
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
+    .addItem("💸 立即寄催繳名單","weeklyUnpaidReportMenu")
     .addSeparator()
-    .addItem("🔑 一次性授權上網/寄信（解決健康檢查紅字）","authorizeNow")
-    .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
-    .addItem("🩺 立即健康檢查（測試）","healthCheckMenu")
-    .addSeparator()
-    .addItem("📦 安裝每月異地備份（email xlsx）","installMonthlyBackup")
-    .addItem("📦 立即寄一份異地備份（測試）","monthlyOffsiteBackupMenu")
-    .addSeparator()
-    .addItem("📊 安裝營運簡報（逢一催繳＋月報）","installOpsReports")
-    .addItem("💸 立即寄催繳名單（測試）","weeklyUnpaidReportMenu")
-    .addItem("📈 立即寄月度營運報表（測試）","monthlyOpsReportMenu")
+    .addSubMenu(maint)
     .addToUi();
 }
 
