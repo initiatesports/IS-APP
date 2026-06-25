@@ -2428,21 +2428,32 @@ var HEALTH_PAGES = [
   "https://initiatesports.github.io/IS-APP/initiate-sports-booking.html",
   "https://initiatesports.github.io/SUMMER-COURSE-2026/index.html"
 ];
+// 探測一個 URL，最多試 3 次：任何一次成功即放行；連續失敗先當異常。
+// 避免 Apps Script /exec 或 GitHub Pages 偶發短暫 blip（如 404/500）造成假警報。
+function probeOk_(url, expect){
+  var lastBad="連線失敗";
+  for(var a=0; a<3; a++){
+    try{
+      var r=UrlFetchApp.fetch(url,{muteHttpExceptions:true,followRedirects:true});
+      var code=r.getResponseCode();
+      if(code===200){
+        if(expect && r.getContentText().indexOf(expect)<0){ lastBad="回應異常（缺「"+expect+"」）"; }
+        else return {ok:true};
+      } else { lastBad="HTTP "+code; }
+    }catch(err){ lastBad="連線失敗："+err; }
+    if(a<2) Utilities.sleep(2500);   // 等 2.5 秒再試
+  }
+  return {ok:false, why:lastBad};
+}
 function healthCheck(){
   var problems=[];
   HEALTH_BACKENDS.forEach(function(e){
-    try{
-      var r=UrlFetchApp.fetch(e.url,{muteHttpExceptions:true,followRedirects:true});
-      var code=r.getResponseCode();
-      if(code!==200) problems.push("後端 "+e.name+" → HTTP "+code);
-      else if(e.expect && r.getContentText().indexOf(e.expect)<0) problems.push("後端 "+e.name+" → 回應異常（缺「"+e.expect+"」）");
-    }catch(err){ problems.push("後端 "+e.name+" → 連線失敗："+err); }
+    var p=probeOk_(e.url, e.expect);
+    if(!p.ok) problems.push("後端 "+e.name+" → "+p.why);
   });
   HEALTH_PAGES.forEach(function(u){
-    try{
-      var r=UrlFetchApp.fetch(u,{muteHttpExceptions:true,followRedirects:true});
-      if(r.getResponseCode()!==200) problems.push("前端 "+u+" → HTTP "+r.getResponseCode());
-    }catch(err){ problems.push("前端 "+u+" → 連線失敗："+err); }
+    var p=probeOk_(u, null);
+    if(!p.ok) problems.push("前端 "+u+" → "+p.why);
   });
   if(problems.length){
     try{
