@@ -65,6 +65,7 @@ function uniqByName(rows) {
 
 const anomalies = [];
 const add = (sev, sys, who, msg) => anomalies.push({ sev, sys, who, msg });
+const clsDate = {};   // 恆常#4 班別×日期點名覆蓋：偵測整班漏點
 
 async function sweep(label, exec, rows, withPin) {
   const students = uniqByName(rows);
@@ -76,8 +77,8 @@ async function sweep(label, exec, rows, withPin) {
     okCount++;
     const surn = name.trim().charAt(0);
 
-    // 1) 資料洩漏：children 含唔同姓（非真兄弟姊妹）
-    const kids = (r.children || []).map(c => c.name);
+    // 1) 資料洩漏：children 含唔同姓（非真兄弟姊妹）；私訓 pseudo-student（如 Keith & Elaine）唔計
+    const kids = (r.children || []).filter(c => !c.ptOnly).map(c => c.name);
     const foreign = kids.filter(k => k.trim().charAt(0) !== surn);
     if (foreign.length) add("LEAK", label, name, "登入後見到唔同姓學生：" + foreign.join("、"));
 
@@ -96,7 +97,21 @@ async function sweep(label, exec, rows, withPin) {
         if (label === "恆常#4") {
           const gaps = (cls.sessions || []).filter(s => s.date < HIST_CUTOFF && s.date <= TODAY && !s.status).map(s => s.date);
           if (gaps.length) add("HISTGAP", label, c.name, `${cls.cid || cls.key} 截止日前仍空白：${gaps.join(" ")}`);
+          // 5) 整班漏點：統計截止日後、今日之前嘅上課日空白（逐班逐日匯總，全班空白＝漏點）
+          for (const s of (cls.sessions || [])) {
+            if (s.date >= HIST_CUTOFF && s.date < TODAY) {
+              const k = (cls.cid || cls.key) + "|" + s.date;
+              const o = clsDate[k] || (clsDate[k] = { seen: 0, blank: 0 });
+              o.seen++; if (!s.status) o.blank++;
+            }
+          }
         }
+      }
+      // 6) 私訓「學生」完整性：堂數唔可超上限、唔可有未來日期
+      if (c.ptOnly && c.pt) {
+        if (Number(c.pt.done) > Number(c.pt.cap)) add("PT", label, c.name, `私訓堂數 ${c.pt.done} 超上限 ${c.pt.cap}`);
+        const futs = [...new Set([...(c.pt.curSessions || []), ...(c.pt.sessions || [])].filter(x => x.date > TODAY).map(x => x.date))];
+        if (futs.length) add("PT", label, c.name, `私訓有未來日期：${futs.join(" ")}`);
       }
     }
     // nextPeriod 學費負數（#4）
@@ -118,10 +133,19 @@ async function sweep(label, exec, rows, withPin) {
   console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}`);
   console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}\n`);
 
+  // 整班漏點：某班某上課日全班都係空白（seen>0 且全部 blank）→ 教練可能漏咗點名
+  for (const k of Object.keys(clsDate)) {
+    const o = clsDate[k];
+    if (o.seen > 0 && o.blank === o.seen) {
+      const [cid, date] = k.split("|");
+      add("UNPOINTED", "恆常#4", cid, `${date} 全班 ${o.seen} 人都未點名（可能漏咗點名）`);
+    }
+  }
+
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
-  const order = ["LEAK", "FUTURE", "FEE", "HISTGAP", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", ERR: "⚪ 登入/請求問題" };
+  const order = ["LEAK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "PT", "ERR"];
+  const names = { LEAK: "🔴 資料洩漏", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   for (const sev of order) {
     if (!bySev[sev]) continue;
@@ -132,7 +156,7 @@ async function sweep(label, exec, rows, withPin) {
   console.log(JSON.stringify({
     date: TODAY,
     tested: { c4: s4, c9: s9 },
-    counts: { LEAK: (bySev.LEAK || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, ERR: (bySev.ERR || []).length },
+    counts: { LEAK: (bySev.LEAK || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
   }));
 })();
