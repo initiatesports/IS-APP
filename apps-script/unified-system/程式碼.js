@@ -2306,7 +2306,9 @@ function apiSaveSettings(p){
 }
 
 /* ═══════════ 通知 / 提醒 ═══════════ */
+var _SUPPRESS_NOTIFY=false;   // 寫入自我測試期間設 true，免發測試 email 騷擾老闆
 function notify(subject, body){
+  if(_SUPPRESS_NOTIFY) return;
   // 用 MailApp（窄權限：只「以你身份寄信」）取代 GmailApp（要求闊 Gmail 讀寫權限）
   try{ MailApp.sendEmail(CONFIG.COACH_EMAIL, "INITIATE SPORTS · "+subject, body); }catch(e){}
 }
@@ -2470,15 +2472,16 @@ var HEALTH_BACKENDS = [
   {name:"#9 attendance-grid", url:"https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec", expect:"v2-grid"},
   {name:"#1 booking",         url:"https://script.google.com/macros/s/AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj/exec", expect:"\"ok\":true"}
 ];
+// {url, expect}：expect = 頁面 HTML 應含嘅關鍵字（確認唔係 404/空白/錯版本；非 null 先檢查）
 var HEALTH_PAGES = [
-  "https://initiatesports.github.io/IS-APP/is-home.html",
-  "https://initiatesports.github.io/IS-APP/is-hub.html",
-  "https://initiatesports.github.io/IS-APP/is-parent.html",
-  "https://initiatesports.github.io/IS-APP/is-coach.html",
-  "https://initiatesports.github.io/IS-APP/is-leave-makeup.html",
-  "https://initiatesports.github.io/IS-APP/is-attendance-app.html",
-  "https://initiatesports.github.io/IS-APP/initiate-sports-booking.html",
-  "https://initiatesports.github.io/SUMMER-COURSE-2026/index.html"
+  {url:"https://initiatesports.github.io/IS-APP/is-home.html",                expect:"Initiate Sports"},
+  {url:"https://initiatesports.github.io/IS-APP/is-hub.html",                 expect:"INITIATE 控制台"},
+  {url:"https://initiatesports.github.io/IS-APP/is-parent.html",              expect:"請假補堂"},
+  {url:"https://initiatesports.github.io/IS-APP/is-coach.html",               expect:"教練點名"},
+  {url:"https://initiatesports.github.io/IS-APP/is-leave-makeup.html",        expect:"請假補堂系統"},
+  {url:"https://initiatesports.github.io/IS-APP/is-attendance-app.html",      expect:"IS 出席系統"},
+  {url:"https://initiatesports.github.io/IS-APP/initiate-sports-booking.html",expect:null},
+  {url:"https://initiatesports.github.io/SUMMER-COURSE-2026/index.html",      expect:"暑期運動班"}
 ];
 // 探測一個 URL，最多試 3 次：任何一次成功即放行；連續失敗先當異常。
 // 避免 Apps Script /exec 或 GitHub Pages 偶發短暫 blip（如 404/500）造成假警報。
@@ -2553,15 +2556,38 @@ function functionalCheck_(){
   chk("教練端 私訓載入(pt_coach_load)", function(){ return apiPtCoachLoad({coachPass:cp}); });
   return P;
 }
+// ═══════ 寫入鏈自我測試：用示範帳號 陳大文 行真實「請假→讀寫驗證→取消→驗證清乾淨」round-trip ═══════
+// 抑制 email；讀寫驗證，唔受 demo 舊資料影響（apiMakeup 揀最舊請假，狀態依賴，故唔放入自動測試）。
+function rbStatus_(cid,nm,date){ var b=readBlock(cid), st=b.status[nm]||[], di=b.dates.indexOf(date); return di>=0?String(st[di]||""):""; }
+function writePathCheck_(){
+  var P=[], nm="陳大文", cid="c1", today=todayIso();
+  if(!CLASSES[cid] || CLASSES[cid].students.indexOf(nm)<0) return P;
+  var code=effectiveCred_(pad4(PHONE[nm]||"1234"));
+  var futs=sessionsFor(cid).filter(function(d){ return d>today; });
+  if(!futs.length) return P;                               // 冇未來上課日就跳過
+  var d=futs[0];
+  _SUPPRESS_NOTIFY=true;
+  try{
+    try{ markCell(cid,nm,d,"",false); }catch(e){}          // 開始前清乾淨
+    var r1=apiLeave({key:cid, name:nm, code:code, date:d, leaveType:"事假"});
+    if(!r1||!r1.ok){ P.push("寫入測試・請假寫入失敗："+((r1&&r1.err)||"?")); }
+    else if(rbStatus_(cid,nm,d)!=="請假"){ P.push("寫入測試・請假寫咗但讀返唔係請假（讀寫鏈異常）"); }
+    var r2=apiCancelLeave({key:cid, name:nm, code:code, date:d});
+    if(!r2||!r2.ok){ P.push("寫入測試・取消請假失敗："+((r2&&r2.err)||"?")); }
+    else if(rbStatus_(cid,nm,d)!==""){ P.push("寫入測試・取消後仍殘留："+rbStatus_(cid,nm,d)); }
+  }catch(e){ P.push("寫入測試・出錯："+e); }
+  finally{ try{ markCell(cid,nm,d,"",false); }catch(e){} _SUPPRESS_NOTIFY=false; }
+  return P;
+}
 function healthCheck(){
   var problems=[];
   HEALTH_BACKENDS.forEach(function(e){
     var p=probeOk_(e.url, e.expect);
     if(!p.ok) problems.push("後端 "+e.name+" → "+p.why);
   });
-  HEALTH_PAGES.forEach(function(u){
-    var p=probeOk_(u, null);
-    if(!p.ok) problems.push("前端 "+u+" → "+p.why);
+  HEALTH_PAGES.forEach(function(pg){
+    var p=probeOk_(pg.url, pg.expect);
+    if(!p.ok) problems.push("前端 "+pg.url+" → "+p.why);
   });
   // 全面資料完整性（grid 姓名/對齊/狀態、別字、學費、私訓…）
   try{ dataIntegrityCheck_().forEach(function(x){ problems.push(x); }); }
@@ -2569,6 +2595,9 @@ function healthCheck(){
   // 功能層 smoke test（後端核心 / 家長端 / 教練端）
   try{ functionalCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("功能檢查出錯："+e); }
+  // 寫入鏈自我測試（示範帳號全流程，抑制 email、完成即清）
+  try{ writePathCheck_().forEach(function(x){ problems.push(x); }); }
+  catch(e){ problems.push("寫入測試出錯："+e); }
   if(problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
