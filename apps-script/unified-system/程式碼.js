@@ -2589,6 +2589,13 @@ function healthCheck(){
     var p=probeOk_(pg.url, pg.expect);
     if(!p.ok) problems.push("前端 "+pg.url+" → "+p.why);
   });
+  // 暑期 #9 深層資料完整性（跨後端匯總；#9 health 只回摘要、無學生姓名）
+  try{
+    var IS9="https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
+    var r9=UrlFetchApp.fetch(IS9,{method:"post",contentType:"text/plain;charset=utf-8",payload:JSON.stringify({action:"health"}),muteHttpExceptions:true,followRedirects:true});
+    var j9=JSON.parse(r9.getContentText());
+    (j9.problems||[]).forEach(function(x){ problems.push(x); });
+  }catch(e){}
   // 全面資料完整性（grid 姓名/對齊/狀態、別字、學費、私訓…）
   try{ dataIntegrityCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("資料完整性檢查出錯："+e); }
