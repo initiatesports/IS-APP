@@ -2818,13 +2818,54 @@ function snapshots_(){
 }
 function applySnapshot_(rows){
   var ss=SS(), M=ss.getSheetByName("補堂");
+  // 1) 補堂表（已批次，快）
   if(M && M.getLastRow()>1) M.getRange(2,1,M.getLastRow()-1,5).clearContent();
   var mkr=[], seen={};
   rows.forEach(function(r){ if(r[1]!=="補") return;
     var key=r[3]+"|"+r[2]+"|"+r[6]+"|"+toIso_(r[4]); if(seen[key]) return; seen[key]=1;
     mkr.push([r[3],r[2],r[6],toIso_(r[4]),r[5]]); });
   if(mkr.length && M){ M.getRange(2,4,mkr.length,1).setNumberFormat("@"); M.getRange(2,1,mkr.length,5).setValues(mkr); }
-  rows.forEach(function(r){ if(r[1]==="格"){ markCell(r[2], r[3], toIso_(r[4]), r[5], true); } });
+  // 2) 格仔：按班分組，逐班一次過批次寫入（取代逐格 markCell，避免幾千次寫入超時）
+  var byCid={};
+  rows.forEach(function(r){ if(r[1]==="格"){ (byCid[r[2]]=byCid[r[2]]||[]).push(r); } });
+  Object.keys(byCid).forEach(function(cid){ try{ restoreGridBatch_(cid, byCid[cid]); }catch(e){ Logger.log("restoreGridBatch_ "+cid+" 失敗："+e); } });
+}
+// 把某班快照「格」資料一次過 overlay 寫入 grid：只覆蓋備份有值嘅格，唔清空其他（保留原 markCell 安全特性）。
+function restoreGridBatch_(cid, gridRows){
+  var m=gridMeta(cid); if(!m.sh) return;
+  var sh=m.sh, physN=m.physN||0; if(physN<=0) return;
+  var colOf=m.colOf||{};
+  var rowOf={}; m.students.forEach(function(nm,i){ rowOf[nm]=DATA_START+i; });
+  // 現有補堂區名單 → 行號；空行備用
+  var mkNames=sh.getRange(m.mkStart,NAME_COL,MK_MAX,1).getValues(), mkRowByName={}, emptyMkRows=[];
+  for(var j=0;j<MK_MAX;j++){ var v=String(mkNames[j][0]||"").trim();
+    if(v) mkRowByName[v]=m.mkStart+j; else emptyMkRows.push(m.mkStart+j); }
+  var writes=[], newMk=[];
+  gridRows.forEach(function(r){
+    var nm=String(r[3]).trim(), st=String(r[5]||""); if(!st) return;
+    var off=colOf[mmdd_(toIso_(r[4]))]; if(off==null) return;   // 該日期唔喺 grid 表頭 → 跳過
+    var row=rowOf[nm]; if(row==null) row=mkRowByName[nm];
+    if(row==null){ if(!emptyMkRows.length) return; row=emptyMkRows.shift(); mkRowByName[nm]=row; newMk.push({row:row,name:nm}); }
+    writes.push({row:row, off:off, val:st});
+  });
+  // 新補堂行：序號/姓名/總結公式（清總結欄驗證，免 COUNTIF 撞驗證）
+  if(newMk.length){
+    var c0=colLetter(DATE_COL0), cN=colLetter(DATE_COL0+physN-1), sumC=DATE_COL0+physN;
+    newMk.forEach(function(x){
+      sh.getRange(x.row,SEQ_COL).setValue("補"); sh.getRange(x.row,NAME_COL).setValue(x.name);
+      try{ sh.getRange(x.row,sumC,1,3).setDataValidation(null); }catch(e){}
+      sh.getRange(x.row,sumC).setValue('=COUNTIF('+c0+x.row+':'+cN+x.row+',"出席")+COUNTIF('+c0+x.row+':'+cN+x.row+',"補堂")');
+      sh.getRange(x.row,sumC+1).setValue('=COUNTIF('+c0+x.row+':'+cN+x.row+',"請假")');
+      sh.getRange(x.row,sumC+2).setValue('=COUNTIF('+c0+x.row+':'+cN+x.row+',"缺席")');
+    });
+  }
+  if(!writes.length) return;
+  // 一次過讀 min..max 行嘅日期 block，overlay 備份值，再一次過寫返（只動日期欄，唔掂總結欄）
+  var minRow=writes[0].row, maxRow=writes[0].row;
+  writes.forEach(function(w){ if(w.row<minRow)minRow=w.row; if(w.row>maxRow)maxRow=w.row; });
+  var block=sh.getRange(minRow,DATE_COL0,maxRow-minRow+1,physN).getValues();
+  writes.forEach(function(w){ block[w.row-minRow][w.off]=w.val; });
+  sh.getRange(minRow,DATE_COL0,maxRow-minRow+1,physN).setValues(block);
 }
 function restoreLatest(){
   var map=snapshots_(), keys=Object.keys(map);
