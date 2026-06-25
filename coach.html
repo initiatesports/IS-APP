@@ -726,7 +726,7 @@ async function renderPt(){
   if (!r || !r.ok) { box.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">載入失敗，請重試</div>`; return; }
   const cap = r.cap || 10, today = r.today || '';
   let h = `<div style="font-size:13px;color:var(--muted);margin:12px 4px 16px;line-height:1.65">⭐ 私人訓練自成一格，與恆常班分開。每位學員各自 ${cap} 堂一個週期，夠數自動開新一期。上完堂即撳「今日上咗堂」。</div>`;
-  (r.students || []).forEach(s => {
+  (r.students || []).forEach((s, i) => {
     const done = s.done || 0, pct = Math.min(100, Math.round(done / cap * 100));
     const markedToday = (s.sessions || []).some(x => x.date === today);
     const cur = (s.curSessions || []).slice().sort((a,b) => a.date < b.date ? 1 : -1);  // 最新喺上
@@ -744,18 +744,25 @@ async function renderPt(){
         <div style="flex:1;height:10px;border-radius:6px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
         <div style="font-weight:800;color:#e0a93a;white-space:nowrap">${done} / ${cap} 堂</div>
       </div>
-      <button onclick="ptMark('${nm}')" ${markedToday ? 'disabled' : ''} style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:15px;cursor:${markedToday?'default':'pointer'};font-family:inherit;background:${markedToday ? 'var(--surface2)' : 'linear-gradient(135deg,#e0a93a,#a06a10)'};color:${markedToday ? 'var(--muted)' : '#fff'}">${markedToday ? '✓ 今日已記錄' : '✅ 今日上咗堂'}</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="ptd-${i}" value="${today}" max="${today}" style="flex:0 0 auto;padding:13px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">
+        <button onclick="ptMark('${nm}', ${i})" style="flex:1;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff">✅ 標記呢日上咗堂</button>
+      </div>
+      ${markedToday ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);text-align:center">今日已記錄；如補其他日子，揀返日期再撳</div>` : ''}
       ${hasRec ? `<button onclick="ptUndo('${nm}')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit">↩ 撤銷最近一堂</button>` : ''}
       <div style="margin-top:12px">${rows}</div>
     </div>`;
   });
   box.innerHTML = h;
 }
-async function ptMark(name){
-  let r; try { r = await apiPost({ action:'pt_mark', name }); } catch(e) { r=null; }
+async function ptMark(name, i){
+  const di = document.getElementById('ptd-' + i);
+  const date = di ? di.value : '';
+  if (!date) { toast('請揀日期', '⚠'); return; }
+  let r; try { r = await apiPost({ action:'pt_mark', name, date }); } catch(e) { r=null; }
   if (!r) { toast('網絡問題，請重試', '⚠'); return; }
   if (!r.ok) { toast(r.err || '記錄失敗', '⚠'); renderPt(); return; }
-  toast(r.newCycle ? `已記錄；${name} 已夠一期，自動開新第 ${r.cycle} 期` : `已記錄 ${name} 第 ${r.no} 堂`, '✓');
+  toast(r.newCycle ? `已記錄 ${date}；${name} 已夠一期，自動開新第 ${r.cycle} 期` : `已記錄 ${name} ${date} 第 ${r.no} 堂`, '✓');
   renderPt();
 }
 async function ptUndo(name){

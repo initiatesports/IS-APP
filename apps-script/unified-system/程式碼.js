@@ -2164,7 +2164,7 @@ function apiPtMark(p){
   var date=p.date? toIso_(p.date) : todayIso();
   var rows=ptRows_().filter(function(r){ return r.name===name; });
   if(rows.some(function(r){ return r.date===date; }))
-    return {ok:false, dup:true, err:"今日已記錄此學員", summary:ptSummary_(name)};
+    return {ok:false, dup:true, err:date+" 已記錄此學員", summary:ptSummary_(name)};
   var maxCycle=1; rows.forEach(function(r){ if(r.cycle>maxCycle) maxCycle=r.cycle; });
   var inCur=rows.filter(function(r){ return r.cycle===maxCycle; }).length;
   var cycle, no;
