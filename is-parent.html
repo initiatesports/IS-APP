@@ -527,9 +527,15 @@ function renderParent(){
   }
   const showIdx = multi ? [S.kid] : kids.map((_,i)=>i);
   // 💳 付款功能區：緊貼月份／小朋友選擇器下面（退出可回歸學生唔顯示，改用回歸面板）
-  showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable) html+=paymentCard(child,ki); });
+  showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable && !child.ptOnly) html+=paymentCard(child,ki); });
   showIdx.forEach(ki=>{
     const child=kids[ki]; if(!child) return;
+    // ⭐ 私人訓練「學生」：只顯示私訓卡（無班別/繳費/請假補堂）
+    if(child.ptOnly){
+      html+=`<div class="child-row"><div class="child-head">${child.name}</div></div>`;
+      html+=`<div class="cards-grid">${ptCard(child)}</div>`;
+      return;
+    }
     // 🔄 退出可回歸學生：中間區換成回歸面板（其餘照常）
     if(child.returnable){
       html+=`<div class="child-row"><div class="child-head">${child.name}</div></div>`;
