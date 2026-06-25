@@ -2394,7 +2394,7 @@ function onOpen(){
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
     .addItem("🔧 修復格仔姓名（誤刪還原）","repairGridNamesMenu")
     .addSeparator()
-    .addItem("🩺 全面健康檢查（立即跑，掃所有資料）","healthCheckMenu")
+    .addItem("🩺 全面健康檢查（前端/後端/家長/教練/資料）","healthCheckMenu")
     .addItem("💸 立即寄催繳名單","weeklyUnpaidReportMenu")
     .addSeparator()
     .addSubMenu(maint)
@@ -2535,6 +2535,24 @@ function dataIntegrityCheck_(){
     (sum.sessions||[]).forEach(function(x){ if(x.date>today) P.push("私訓 "+s.name+" 有未來日期："+x.date); }); }); }catch(e){}
   return P;
 }
+// ═══════ 功能層 smoke test：後端直接行四端核心函數，捉 throw / 壞 return ═══════
+function functionalCheck_(){
+  var P=[], today=todayIso(), cp=CONFIG.COACH_PASS;
+  function chk(label, fn){ try{ var r=fn(); if(r && r.ok===false) P.push(label+" 回傳失敗："+(r.err||"?")); }catch(e){ P.push(label+" 出錯："+e); } }
+  CLASS_IDS.forEach(function(cid){
+    chk("後端 sessionsFor("+cid+")", function(){ var s=sessionsFor(cid); return {ok:!!(s&&s.length)}; });
+    chk("後端 readBlockMerged_("+cid+")", function(){ readBlockMerged_(cid); });
+    var nm=CLASSES[cid].students[0]; if(nm){
+      chk("家長端 classesFor_("+nm+")", function(){ return {ok:Array.isArray(classesFor_(nm))}; });
+      chk("家長端 feesFor_("+nm+")", function(){ feesFor_(nm); });
+    }
+  });
+  chk("教練端 今日點名表(dailyList)", function(){ return apiDaily({date:today, coachPass:cp}); });
+  chk("教練端 全校載入(load)", function(){ return apiLoad({coachPass:cp}); });
+  chk("教練端 學費總覽(feesAll)", function(){ return apiFeesAll({coachPass:cp}); });
+  chk("教練端 私訓載入(pt_coach_load)", function(){ return apiPtCoachLoad({coachPass:cp}); });
+  return P;
+}
 function healthCheck(){
   var problems=[];
   HEALTH_BACKENDS.forEach(function(e){
@@ -2548,6 +2566,9 @@ function healthCheck(){
   // 全面資料完整性（grid 姓名/對齊/狀態、別字、學費、私訓…）
   try{ dataIntegrityCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("資料完整性檢查出錯："+e); }
+  // 功能層 smoke test（後端核心 / 家長端 / 教練端）
+  try{ functionalCheck_().forEach(function(x){ problems.push(x); }); }
+  catch(e){ problems.push("功能檢查出錯："+e); }
   if(problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
