@@ -2581,11 +2581,11 @@ function writePathCheck_(){
   if(!CLASSES[cid] || CLASSES[cid].students.indexOf(nm)<0) return P;
   var code=effectiveCred_(pad4(PHONE[nm]||"1234"));
   var futs=sessionsFor(cid).filter(function(d){ return d>today; });
-  if(!futs.length) return P;                               // 冇未來上課日就跳過
-  var d=futs[0];
+  // 只揀「現時空白」嘅未來上課日 → 絕不覆蓋示範帳號現有資料
+  var d=null; for(var i=0;i<futs.length;i++){ if(rbStatus_(cid,nm,futs[i])===""){ d=futs[i]; break; } }
+  if(!d) return P;
   _SUPPRESS_NOTIFY=true;
   try{
-    try{ markCell(cid,nm,d,"",false); }catch(e){}          // 開始前清乾淨
     var r1=apiLeave({key:cid, name:nm, code:code, date:d, leaveType:"事假"});
     if(!r1||!r1.ok){ P.push("寫入測試・請假寫入失敗："+((r1&&r1.err)||"?")); }
     else if(rbStatus_(cid,nm,d)!=="請假"){ P.push("寫入測試・請假寫咗但讀返唔係請假（讀寫鏈異常）"); }
