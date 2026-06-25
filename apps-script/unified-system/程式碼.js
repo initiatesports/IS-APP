@@ -2352,6 +2352,7 @@ function onOpen(){
     .addItem("⬇️ 匯入繳費標記（IS App Data）","importFeesMenu")
     .addItem("🔄 重建學生名冊（只顯示現時班別）","rebuildRosterMenu")
     .addItem("🔧 修正 c5 名單（顧舒然→梁正軒）","fixC5GuToLeung")
+    .addItem("🔧 修正張家 c6 06/20（還原移位）","fixZhangC6Jun20")
     .addItem("✅ 標記 5-6月 全部已繳","markFiveSixPaidMenu")
     .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
     .addSeparator()
@@ -2951,6 +2952,23 @@ function rebuildRosterMenu(){
  * 老闆確認該行 5-6 月出席係梁正軒（顧舒然 5 月起已無參加），故改名保留出席即可。
  * 先自動備份；只動 c5 正式名單區；冪等（搵唔到顧舒然就唔郁）。改名後 readBlock 按姓名讀格，
  * 梁正軒即接返自己出席，#11「c5 06-12 缺席」被 grid 已出席推翻 → 待補(owed) 自動歸 0。*/
+// 一次性修正：張爾淳/張雅堯 c6 06/20 出席被還原移位（06/20 變豁免、06/27 變出席）→ 改返 06/20=出席、06/27=清空。
+function fixZhangC6Jun20(){
+  var ui=SpreadsheetApp.getUi(), cid="c6", names=["張爾淳","張雅堯"];
+  var c=ui.alert("修正張家 c6 06/20",
+    "會將 張爾淳、張雅堯 嘅 06/20 改返「出席」、06/27 清空（修正還原移位）。\n執行前會自動備份。\n\n確定？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  try{ backup(); }catch(e){}
+  var m=gridMeta(cid), c27=dateCol(m,"2026-06-27"), fixed=0;
+  names.forEach(function(nm){
+    if(markCell(cid, nm, "2026-06-20", "出席", false)) fixed++;          // 06/20 → 出席（按表頭對齊寫）
+    var ri=m.students.indexOf(nm);
+    if(c27>0 && ri>=0) m.sh.getRange(DATA_START+ri, c27).setValue("");    // 06/27 → 清空
+  });
+  try{ logAppend({name:names.join("/"),key:cid,action:"fixShift",date:"2026-06-20",status:"06/20→出席,06/27清空"}); }catch(e){}
+  ui.alert("已修正 ✅\n張爾淳、張雅堯：06/20→出席、06/27→清空（已先備份）。");
+}
 function fixC5GuToLeung(){
   var ui=SpreadsheetApp.getUi(), cid="c5", oldNm="顧舒然", newNm="梁正軒";
   var c=ui.alert("修正 c5 名單",
