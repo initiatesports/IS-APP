@@ -516,6 +516,9 @@ function readBlock(cid){
  * ⚠️ 只影響「家長顯示」(classesFor_)，唔碰任何寫入/點名/驗證邏輯，零寫入風險。
  */
 var DATA_SS_ID = "1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo";  // IS App Data (#11)
+// 已知別字校正：#11 來源打錯、MCP 改唔到，喺讀入時校正（令該生歷史完整、唔再誤報「不明姓名」）
+var NAME_FIX = { "陳柏晞":"陳柏睎" };
+function fixName_(nm){ return NAME_FIX[nm] || nm; }
 var _is11Cache = null;   // 每次執行只讀一次（Apps Script 全域於每次 doGet/doPost 重置）
 function is11_(){
   if(_is11Cache) return _is11Cache;
@@ -525,14 +528,14 @@ function is11_(){
     var aSh=ss.getSheetByName("attendance");   // key,classId,date,name,status
     if(aSh && aSh.getLastRow()>1){
       aSh.getRange(2,1,aSh.getLastRow()-1,5).getValues().forEach(function(r){
-        var cid=String(r[1]||"").trim(), d=toIso_(r[2]), nm=String(r[3]||"").trim(), s=String(r[4]||"").trim();
+        var cid=String(r[1]||"").trim(), d=toIso_(r[2]), nm=fixName_(String(r[3]||"").trim()), s=String(r[4]||"").trim();
         if(cid&&d&&nm&&s) out.att[cid+"|"+d+"|"+nm]=s;
       });
     }
     var bSh=ss.getSheetByName("absences");      // id,name,classId,absDate,deadline,madeUpDate
     if(bSh && bSh.getLastRow()>1){
       bSh.getRange(2,1,bSh.getLastRow()-1,6).getValues().forEach(function(r){
-        var nm=String(r[1]||"").trim(), cid=String(r[2]||"").trim(), ad=toIso_(r[3]);
+        var nm=fixName_(String(r[1]||"").trim()), cid=String(r[2]||"").trim(), ad=toIso_(r[3]);
         if(nm&&cid&&ad) out.abs.push({name:nm, cid:cid, absDate:ad,
           deadline:(r[4]?toIso_(r[4]):""), madeUpDate:(r[5]?toIso_(r[5]):"")});
       });
@@ -2536,6 +2539,20 @@ function dataIntegrityCheck_(){
   try{ PT_STUDENTS.forEach(function(s){ var sum=ptSummary_(s.name); if(!sum) return;
     if(Number(sum.done)>Number(sum.cap)) P.push("私訓 "+s.name+" 本期堂數 "+sum.done+" 超上限 "+sum.cap);
     (sum.sessions||[]).forEach(function(x){ if(x.date>today) P.push("私訓 "+s.name+" 有未來日期："+x.date); }); }); }catch(e){}
+  // 登入憑證 + 名冊一致：班別學生冇手機後4位（登入唔到）/ 名冊缺學生
+  try{
+    var rr=rosterRows(), rByCid={};
+    rr.forEach(function(r){ if(!r.cid) return; (rByCid[r.cid]=rByCid[r.cid]||[]).push(r.name);
+      if(CLASSES[r.cid] && CLASSES[r.cid].students.indexOf(r.name)>=0 && String(r.last4||"").replace(/\D/g,"")==="")
+        P.push("名冊 "+r.name+"("+r.cid+") 冇手機後4位，家長登入唔到"); });
+    CLASS_IDS.forEach(function(cid){ var rs=rByCid[cid]||[]; CLASSES[cid].students.forEach(function(nm){ if(rs.indexOf(nm)<0) P.push("名冊缺 "+cid+" 學生："+nm); }); });
+  }catch(e){}
+  // 學費行自洽：實收 = max(0, 應繳 − 折扣 + 調整)（豁免除外）
+  try{ feeRows_().forEach(function(f){ if(f.status==="豁免") return; var exp=Math.max(0, f.due - f.discount + f.adj);
+    if(Number(f.net)!==exp) P.push("學費不自洽："+f.name+" "+f.period+"：實收$"+f.net+" ≠ 計$"+exp); }); }catch(e){}
+  // 補堂表重複
+  try{ var mkS={}; makeupAll().forEach(function(m){ var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
+    if(mkS[k]) P.push("補堂表重複："+m.name+" "+m.from+"→"+m.to+" "+m.date); mkS[k]=1; }); }catch(e){}
   return P;
 }
 // ═══════ 功能層 smoke test：後端直接行四端核心函數，捉 throw / 壞 return ═══════
@@ -2579,6 +2596,18 @@ function writePathCheck_(){
   finally{ try{ markCell(cid,nm,d,"",false); }catch(e){} _SUPPRESS_NOTIFY=false; }
   return P;
 }
+// ═══════ 系統運維健康：關鍵觸發器存在 + 備份新鮮度 ═══════
+function opsHealthCheck_(){
+  var P=[], today=todayIso(), trigs={};
+  try{ ScriptApp.getProjectTriggers().forEach(function(t){ trigs[t.getHandlerFunction()]=1; }); }catch(e){ P.push("讀觸發器失敗："+e); }
+  if(!trigs["healthCheck"]) P.push("觸發器缺失：每日健康檢查(healthCheck) 未安裝 → 監察會停");
+  if(!trigs["backup"]) P.push("觸發器缺失：每日自動備份(backup) 未安裝 → 冇自動備份");
+  try{ var snaps=snapshots_(), keys=Object.keys(snaps).sort();
+    if(!keys.length) P.push("冇任何備份紀錄");
+    else { var latest=String(keys[keys.length-1]); if(latest.slice(0,10) < addDaysIso(today,-2)) P.push("自動備份似乎停咗（最近一次 "+latest+"）"); }
+  }catch(e){}
+  return P;
+}
 function healthCheck(){
   var problems=[];
   HEALTH_BACKENDS.forEach(function(e){
@@ -2605,6 +2634,9 @@ function healthCheck(){
   // 寫入鏈自我測試（示範帳號全流程，抑制 email、完成即清）
   try{ writePathCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("寫入測試出錯："+e); }
+  // 系統運維（觸發器 / 備份新鮮度）
+  try{ opsHealthCheck_().forEach(function(x){ problems.push(x); }); }
+  catch(e){ problems.push("運維檢查出錯："+e); }
   if(problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
