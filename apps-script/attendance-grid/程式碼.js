@@ -424,6 +424,7 @@ function route(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
+    case "health": return {ok:true, version:VERSION, problems:dataIntegrityCheck9_()};  // 只回問題摘要(數量+格名,無學生姓名)，畀 #4 健康檢查匯總
     case "verifyCoach": return apiVerifyCoach(p);  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
     case "dailyList": return apiDaily(p);
     case "markAttendance": return apiMark(p);
@@ -432,6 +433,25 @@ function route(p){
   }
 }
 
+// 暑期 #9 資料完整性檢查：逐個(運動×星期)格掃姓名空白 / 補堂區不明姓名 / readBlock 出錯。
+// 只回「數量＋格名」摘要，唔含學生姓名，可安全經 health 端點開放畀 #4 匯總。
+function dataIntegrityCheck9_(){
+  var P=[], known={}, groups={};
+  rosterRows().forEach(function(r){ if(!r.name) return; known[r.name]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
+  Object.keys(groups).forEach(function(k){
+    var pp=k.split("|"), sport=pp[0], wd=pp[1], studs=groups[k];
+    var nm=(SPORT[sport]&&SPORT[sport].name)||sport, sh=SS().getSheetByName(gridName(sport,wd));
+    if(!sh){ P.push("暑期 "+nm+"("+wd+") 出席格唔見"); return; }
+    var col=sh.getRange(DATA_START,NAME_COL,studs.length,1).getValues(), blank=0;
+    for(var i=0;i<studs.length;i++){ if(!String(col[i][0]||"").trim()) blank++; }
+    if(blank) P.push("暑期 "+nm+"("+wd+") 有 "+blank+" 個學生姓名空白");
+    var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=0;
+    for(var j=0;j<MK_MAX;j++){ var v=String(mk[j][0]||"").trim(); if(v && !known[v]) bad++; }
+    if(bad) P.push("暑期 "+nm+"("+wd+") 補堂區有 "+bad+" 個不明姓名");
+    try{ readBlock(sport,wd); }catch(e){ P.push("暑期 "+nm+"("+wd+") readBlock 出錯"); }
+  });
+  return P;
+}
 // 計一個小朋友嘅所有班別資料（含補堂限期 deadline）
 function classesFor_(nm){
   var rows=rosterRows().filter(function(r){return r.name===nm;});
