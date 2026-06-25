@@ -662,7 +662,29 @@ function apiCleanupGrids(p){
         if((di>=0?String(st[di]||""):"")!=="請假"){ pc.deleteRow(i+2); pcCleaned++; }
       } }
   }catch(e){}
-  return {ok:true, cleaned:cleaned, pendingCertCleaned:pcCleaned};
+  var futCleared=0; try{ futCleared=cleanFutureAttendance_(); }catch(e){}
+  return {ok:true, cleaned:cleaned, pendingCertCleaned:pcCleaned, futureCleared:futCleared};
+}
+// 防呆：清走「未來上課日但標咗出席/補堂/加操」嘅格（未來請假/停課/豁免/轉堂屬合法預約 → 保留）。
+// 批次寫入（逐班一讀一寫），只清未來上課日欄，唔掂過往同總結欄。
+function cleanFutureAttendance_(){
+  var today=todayIso(), FUT={"出席":1,"補堂":1,"加操":1}, cleared=0;
+  CLASS_IDS.forEach(function(cid){
+    var m=gridMeta(cid); if(!m.sh || m.physN<=0) return;
+    var futOffs=[]; m.dates.forEach(function(d){ if(d>today){ var off=m.colOf[mmdd_(d)]; if(off!=null) futOffs.push(off); } });
+    if(!futOffs.length) return;
+    var firstRow=DATA_START, nR=m.mkStart+MK_MAX-firstRow;   // 正規學生 + 補堂區
+    var block=m.sh.getRange(firstRow,DATE_COL0,nR,m.physN).getValues(), changed=false;
+    for(var ri=0; ri<nR; ri++){ for(var fi=0; fi<futOffs.length; fi++){ var off=futOffs[fi];
+      if(FUT[String(block[ri][off]||"")]){ block[ri][off]=""; changed=true; cleared++; } } }
+    if(changed) m.sh.getRange(firstRow,DATE_COL0,nR,m.physN).setValues(block);
+  });
+  return cleared;
+}
+function cleanFutureAttendanceMenu(){
+  try{ backup(); }catch(e){}
+  var n=cleanFutureAttendance_();
+  try{ SpreadsheetApp.getUi().alert("已清走未來誤標出席："+n+" 格\n（保留未來請假/停課/豁免；已先自動備份）"); }catch(e){}
 }
 function markCell(cid,name,dateIso,status,create){
   var m=gridMeta(cid); if(!m.sh) return false;
@@ -2334,6 +2356,7 @@ function onOpen(){
     .addItem("🔧 校正繳費每週堂數（以名冊為準）","syncFeesFromRosterMenu")
     .addSeparator()
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
+    .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
     .addSeparator()
     .addItem("🔑 一次性授權上網/寄信（解決健康檢查紅字）","authorizeNow")
     .addItem("🩺 安裝每日健康檢查（約 08:00）","installHealthCheck")
