@@ -432,6 +432,10 @@ function buildGrid(ss, cid, force){
   }
   sh = sh || ss.insertSheet(nm);
   sh.clear(); sh.setConditionalFormatRules([]);
+  // ⚠️ sh.clear() 唔會清走資料驗證。若舊 grid 欄數多過新 n（例如曾有 07/01 欄、
+  // 後來 07-01 變假期被 sessionsFor 剔走），殘留嘅「狀態」驗證會落喺新總結欄位置，
+  // 令下面寫 COUNTIF 公式撞驗證規則而 throw。故 rebuild 前先清晒全表驗證（下面會重新套用日期欄驗證）。
+  try{ sh.getRange(1,1,Math.max(sh.getMaxRows(),1),Math.max(sh.getMaxColumns(),1)).clearDataValidations(); }catch(e){}
   var lastCol=2+n+3;
   sh.getRange(1,1,1,lastCol).merge().setValue("INITIATE SPORTS　"+c.dayZh+" "+c.time)
     .setFontSize(14).setFontWeight("bold").setHorizontalAlignment("center");
