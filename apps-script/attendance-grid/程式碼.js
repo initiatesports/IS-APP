@@ -424,7 +424,7 @@ function route(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
-    case "health": return {ok:true, version:VERSION, problems:dataIntegrityCheck9_()};  // 只回問題摘要(數量+格名,無學生姓名)，畀 #4 健康檢查匯總
+    case "health": return {ok:true, version:VERSION, problems:dataIntegrityCheck9_().concat(functionalCheck9_()).concat(writePathCheck9_())};  // 資料完整性+功能+寫入測試摘要(無學生姓名)，畀 #4 匯總
     case "verifyCoach": return apiVerifyCoach(p);  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
     case "dailyList": return apiDaily(p);
     case "markAttendance": return apiMark(p);
@@ -445,11 +445,36 @@ function dataIntegrityCheck9_(){
     var col=sh.getRange(DATA_START,NAME_COL,studs.length,1).getValues(), blank=0;
     for(var i=0;i<studs.length;i++){ if(!String(col[i][0]||"").trim()) blank++; }
     if(blank) P.push("暑期 "+nm+"("+wd+") 有 "+blank+" 個學生姓名空白");
+    var seq=sh.getRange(DATA_START,SEQ_COL,studs.length,1).getValues();   // 序號連續性
+    for(var s2=0;s2<studs.length;s2++){ if(String(seq[s2][0]||"").replace(/\D/g,"")!==String(s2+1)){ P.push("暑期 "+nm+"("+wd+") 序號錯位（疑插/刪行）"); break; } }
     var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=0;
     for(var j=0;j<MK_MAX;j++){ var v=String(mk[j][0]||"").trim(); if(v && !known[v]) bad++; }
     if(bad) P.push("暑期 "+nm+"("+wd+") 補堂區有 "+bad+" 個不明姓名");
     try{ readBlock(sport,wd); }catch(e){ P.push("暑期 "+nm+"("+wd+") readBlock 出錯"); }
   });
+  return P;
+}
+// 暑期 #9 功能 smoke：今日點名表行得通
+function functionalCheck9_(){
+  var P=[], today=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd");
+  try{ var r=apiDaily({date:today, coachPass:CONFIG.COACH_PASS}); if(r&&r.ok===false) P.push("暑期 今日點名表 回傳失敗："+(r.err||"?")); }catch(e){ P.push("暑期 今日點名表 出錯："+e); }
+  return P;
+}
+// 暑期 #9 寫入鏈 round-trip：示範帳號(陳大文 羽毛球四)空白未來格 寫請假→驗→清→驗
+function writePathCheck9_(){
+  var P=[], nm="陳大文", sport="badminton", wd="四";
+  if(!ROSTER[sport]||!ROSTER[sport][wd]||ROSTER[sport][wd].indexOf(nm)<0) return P;
+  var today=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd");
+  var blk=readBlock(sport,wd), futs=sessionsFor(wd).filter(function(d){ return d>today; }), d=null;
+  for(var i=0;i<futs.length;i++){ var di=blk.dates.indexOf(futs[i]); if((di>=0?String((blk.status[nm]||[])[di]||""):"")===""){ d=futs[i]; break; } }
+  if(!d) return P;
+  try{
+    writeStatus(sport,wd,nm,d,"請假");
+    var b1=readBlock(sport,wd); if(String((b1.status[nm]||[])[b1.dates.indexOf(d)]||"")!=="請假") P.push("暑期寫入測試・寫請假後讀返唔係請假");
+    writeStatus(sport,wd,nm,d,"");
+    var b2=readBlock(sport,wd); if(String((b2.status[nm]||[])[b2.dates.indexOf(d)]||"")!=="") P.push("暑期寫入測試・清除後仍殘留");
+  }catch(e){ P.push("暑期寫入測試・出錯："+e); }
+  finally{ try{ writeStatus(sport,wd,nm,d,""); }catch(e){} }
   return P;
 }
 // 計一個小朋友嘅所有班別資料（含補堂限期 deadline）
