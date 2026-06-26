@@ -2518,6 +2518,9 @@ function dataIntegrityCheck_(){
     var m=gridMeta(cid); if(!m.sh){ P.push("出席格 "+cid+" 唔見咗分頁"); return; }
     var sh=m.sh, studs=CLASSES[cid].students, n=studs.length;
     var allNames=sh.getRange(DATA_START,NAME_COL,n+MK_MAX,1).getValues().map(function(r){ return String(r[0]||"").trim(); });
+    // 序號連續性：規則行序號應為 1..N（捉人手插/刪整行致全班錯位）
+    var seq=sh.getRange(DATA_START,SEQ_COL,n,1).getValues();
+    for(var si=0;si<n;si++){ if(String(seq[si][0]||"").replace(/\D/g,"")!==String(si+1)){ P.push(cid+" 序號錯位（第"+(si+1)+"行序號應為 "+(si+1)+"，疑插/刪咗行）"); break; } }
     var seen={};
     for(var i=0;i<n;i++){ var nm=allNames[i];
       if(!nm){ P.push(cid+" 第"+(i+1)+"行姓名空白（應為 "+studs[i]+"）"); }
@@ -2554,6 +2557,15 @@ function dataIntegrityCheck_(){
   // 補堂表重複
   try{ var mkS={}; makeupAll().forEach(function(m){ var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
     if(mkS[k]) P.push("補堂表重複："+m.name+" "+m.from+"→"+m.to+" "+m.date); mkS[k]=1; }); }catch(e){}
+  // 期數切換守護：本期＋下期學費列要為每個在學學生生成（轉期時最易漏；漏咗家長見唔到要交幾多）
+  try{
+    var fr=feeRows_(), have={};
+    fr.forEach(function(f){ have[f.name+"|"+f.period]=1; });
+    var actives={}; rosterRows().forEach(function(r){ if(r.cid && CLASSES[r.cid] && CLASSES[r.cid].students.indexOf(r.name)>=0) actives[r.name]=1; });
+    [curPeriodLabel_(), nextPeriodLabel_()].forEach(function(lab){
+      Object.keys(actives).forEach(function(nm){ if(!have[nm+"|"+lab]) P.push("學費列未生成："+nm+" "+lab+"（轉期漏咗，請『產生繳費列』）"); });
+    });
+  }catch(e){}
   return P;
 }
 // ═══════ 功能層 smoke test：後端直接行四端核心函數，捉 throw / 壞 return ═══════
@@ -2607,6 +2619,8 @@ function opsHealthCheck_(){
     if(!keys.length) P.push("冇任何備份紀錄");
     else { var latest=String(keys[keys.length-1]); if(latest.slice(0,10) < addDaysIso(today,-2)) P.push("自動備份似乎停咗（最近一次 "+latest+"）"); }
   }catch(e){}
+  // 資料量：Log / 備份 sheet 過大 → readBlock/load 變慢、超時風險（提早警示，可清舊）
+  try{ [["Log",8000],["備份",20000]].forEach(function(t){ var sh=SS().getSheetByName(t[0]); if(sh && sh.getLastRow()>t[1]) P.push(t[0]+" 分頁過大（"+sh.getLastRow()+" 行 > "+t[1]+"），建議清舊防超時"); }); }catch(e){}
   return P;
 }
 function healthCheck(){ return runHealthChecks_(true); }   // 每日 trigger：有問題就 email
@@ -2616,7 +2630,7 @@ function apiHealth(p){
   return {ok:true, problems:runHealthChecks_(false)};
 }
 function runHealthChecks_(sendEmail){
-  var problems=[];
+  var problems=[], _t0=new Date();
   HEALTH_BACKENDS.forEach(function(e){
     var p=probeOk_(e.url, e.expect);
     if(!p.ok) problems.push("後端 "+e.name+" → "+p.why);
@@ -2641,9 +2655,11 @@ function runHealthChecks_(sendEmail){
   // 寫入鏈自我測試（示範帳號全流程，抑制 email、完成即清）
   try{ writePathCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("寫入測試出錯："+e); }
-  // 系統運維（觸發器 / 備份新鮮度）
+  // 系統運維（觸發器 / 備份新鮮度 / 資料量）
   try{ opsHealthCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("運維檢查出錯："+e); }
+  // 執行時間守護：健康檢查本身太慢 → 接近 Apps Script 6 分鐘上限，trigger 隨時靜靜超時
+  try{ var secs=Math.round((new Date()-_t0)/1000); if(secs>240) problems.push("健康檢查耗時 "+secs+" 秒（接近超時上限），需精簡/分拆"); }catch(e){}
   if(sendEmail && problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
