@@ -558,13 +558,19 @@ function zhStatus11_(nm, d, raw, leaveSet){
 // 老闆確認(2026-06-22)：此日期之前嘅空白上課堂一律當「出席」（數碼系統上線前歷史補完）。
 // 用固定日期、非「今日」：確保將來教練未點名嘅堂仍會顯示空白，唔會被自動當出席而遮蔽問題。
 var INFER_PRESENT_BEFORE = "2026-06-16";
+// 學生實際入班日（ISO）：此日之前嘅堂一律唔屬於佢 —— 唔顯示、唔推斷出席、唔計待補。
+// 用於回歸／插班生：佢哋本來唔喺班，今期先加入 CLASSES，grid 卻有舊日期欄。
+// 例：梁心朗 2026-07 回歸 c3（5-6月暫停、之前根本未上過堂）。
+var STUDENT_JOIN = { "梁心朗":"2026-07-01" };
+function joinIso_(nm){ return STUDENT_JOIN[String(nm).trim()]||""; }
 function readBlockMerged_(cid){
   var base=readBlock(cid), c=CLASSES[cid], d=is11_();
   var leaveSet={}; d.abs.forEach(function(a){ if(a.cid===cid) leaveSet[a.name+"|"+a.absDate]=true; });
   var map={};
   c.students.forEach(function(nm){
-    var grid=base.status[nm]||[];
+    var grid=base.status[nm]||[], ji=joinIso_(nm);
     map[nm]=base.dates.map(function(dt,i){
+      if(ji && dt < ji) return "";   // 入班日之前：呢個學生根本未入班 → 唔顯示任何狀態
       var g=grid[i]||"";
       if(g) return g;   // #4 grid 有值 → 以 #4 為準（含家長 is-parent 自助請假寫入嘅「請假」）
       // #4 grid 該格為空 → 後備讀 #11（防個別未遷移嘅舊格）
@@ -899,6 +905,16 @@ function classesFor_(nm){
   var abs11all=is11_().abs;
   return rows.map(function(r){
     var cid=r.cid, blk=readBlockMerged_(cid), st=blk.status[nm]||[];
+    // 回歸／插班生：入班日之前嘅堂唔屬於佢 → 由 dates+status 一齊剔走，
+    // 令出席統計、待補、限期、補堂全部由入班日起計（家長端完全唔會見到入班前嘅堂）。
+    var _ji=joinIso_(nm);
+    if(_ji){
+      var _keep=[]; blk.dates.forEach(function(d,i){ if(d>=_ji) _keep.push(i); });
+      var _dates=_keep.map(function(i){ return blk.dates[i]; });
+      var _status={}; Object.keys(blk.status).forEach(function(k){ var s=blk.status[k]||[]; _status[k]=_keep.map(function(i){ return s[i]; }); });
+      blk={dates:_dates, n:_dates.length, students:blk.students, status:_status};
+      st=blk.status[nm]||[];
+    }
     var att=0,lv=0,ab=0;
     st.forEach(function(s){ if(s==="出席"||s==="補堂")att++; else if(s==="請假")lv++; else if(s==="缺席")ab++; });
     // 補堂來源：#11 absences 已補（madeUpDate）+ 家長經 is-parent 預約嘅 #4 補堂
