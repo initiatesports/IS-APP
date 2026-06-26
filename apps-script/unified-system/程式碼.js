@@ -2474,7 +2474,8 @@ var HEALTH_BACKENDS = [
   {name:"#4 unified-system",  url:"https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec", expect:"is-unified-v2"},
   {name:"#11 parent-portal",  url:"https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec", expect:null},
   {name:"#9 attendance-grid", url:"https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec", expect:"v2-grid"},
-  {name:"#1 booking",         url:"https://script.google.com/macros/s/AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj/exec", expect:"\"ok\":true"}
+  {name:"#1 booking",         url:"https://script.google.com/macros/s/AKfycbyQQoDyXnXB5vFNlUYUW-FU56zOkOhGgwIyRzGMNQ-IX0e5jigwFpqyJDsWNFx4hilj/exec", expect:"\"ok\":true"},
+  {name:"#10 暑期報名",       url:"https://script.google.com/macros/s/AKfycbwRW3PBA6GA0I7AvHOdPVPkpsAl-Qi2vvmz-MDUtLGX4Vw0mI9whfkwXb6ddMgGZOU/exec", expect:"quota"}
 ];
 // {url, expect}：expect = 頁面 HTML 應含嘅關鍵字（確認唔係 404/空白/錯版本；非 null 先檢查）
 var HEALTH_PAGES = [
@@ -2554,9 +2555,24 @@ function dataIntegrityCheck_(){
   // 學費行自洽：實收 = max(0, 應繳 − 折扣 + 調整)（豁免除外）
   try{ feeRows_().forEach(function(f){ if(f.status==="豁免") return; var exp=Math.max(0, f.due - f.discount + f.adj);
     if(Number(f.net)!==exp) P.push("學費不自洽："+f.name+" "+f.period+"：實收$"+f.net+" ≠ 計$"+exp); }); }catch(e){}
+  // 學費獨立重算對賬：未繳行重新計一次淨額同儲存值對賬（捉計錯/堂數變/漏重算）
+  try{ var curL=curPeriodLabel_(), nextL=nextPeriodLabel_();
+    feeRows_().forEach(function(f){
+      if(f.status==="已繳"||f.status==="豁免") return;            // 已繳/豁免唔郁
+      if(f.period!==curL && f.period!==nextL) return;             // 只查本期＋下期
+      var dd=periodFeeDetail_(f.name, f.period); if(!dd) return;
+      var disc=referralAutoDisc_(f.name, dd.base, 0), credit=creditsFor_(f.name, f.period);
+      var expNet=Math.max(0, dd.base - disc + (dd.extraTot - credit));
+      if(Number(f.net)!==expNet) P.push("學費需重算："+f.name+" "+f.period+"：儲存$"+f.net+" ≠ 重算$"+expNet);
+    }); }catch(e){}
   // 補堂表重複
   try{ var mkS={}; makeupAll().forEach(function(m){ var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
     if(mkS[k]) P.push("補堂表重複："+m.name+" "+m.from+"→"+m.to+" "+m.date); mkS[k]=1; }); }catch(e){}
+  // #11 IS App Data 內容驗證：官網成績/出席來源；核心分頁要存在兼有內容（防被清空/壞）
+  try{ var d11=SpreadsheetApp.openById(DATA_SS_ID);
+    [["attendance",2],["performance",2],["settings",2]].forEach(function(t){
+      var sh=d11.getSheetByName(t[0]); if(!sh) P.push("#11 缺分頁："+t[0]); else if(sh.getLastRow()<t[1]) P.push("#11 "+t[0]+" 空（疑被清空）"); });
+  }catch(e){ P.push("#11 IS App Data 讀取失敗："+e); }
   // 期數切換守護：本期＋下期學費列要為每個在學學生生成（轉期時最易漏；漏咗家長見唔到要交幾多）
   try{
     var fr=feeRows_(), have={};
@@ -2605,6 +2621,11 @@ function writePathCheck_(){
     var r2=apiCancelLeave({key:cid, name:nm, code:code, date:d});
     if(!r2||!r2.ok){ P.push("寫入測試・取消請假失敗："+((r2&&r2.err)||"?")); }
     else if(rbStatus_(cid,nm,d)!==""){ P.push("寫入測試・取消後仍殘留："+rbStatus_(cid,nm,d)); }
+    // 教練點名儲存（save_attendance）：標出席 → 驗 → 清
+    var sess={}; sess[nm]="present";
+    var r3=apiSaveAttendance({coachPass:CONFIG.COACH_PASS, data:{key:cid+"|"+d, session:sess}});
+    if(!r3||!r3.ok){ P.push("寫入測試・教練點名儲存失敗："+((r3&&r3.err)||"?")); }
+    else if(rbStatus_(cid,nm,d)!=="出席"){ P.push("寫入測試・點名儲存後讀返唔係出席"); }
   }catch(e){ P.push("寫入測試・出錯："+e); }
   finally{ try{ markCell(cid,nm,d,"",false); }catch(e){} _SUPPRESS_NOTIFY=false; }
   return P;
