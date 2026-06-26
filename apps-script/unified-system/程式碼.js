@@ -1203,6 +1203,40 @@ function ensureSickCertTrigger(){
     if(!has) ScriptApp.newTrigger("enforceSickCert").timeBased().everyHours(1).create();
   }catch(e){}
 }
+/* 教練／管理：確認「離線」收到某生某堂病假紙（家長私下交、冇上傳系統）。
+ * → 該堂改回「請假」(可補)；「病假待證明」標「已收證明（教練離線確認）」，
+ *   令 enforceSickCert 唔再當逾期、唔再扣堂。先自動備份。*/
+function markSickCertReceived_(name, cid, dateIso){
+  name=String(name).trim(); cid=String(cid).trim(); dateIso=toIso_(dateIso);
+  backup();
+  var cur="";
+  try{ var b=readBlock(cid), st=b.status[name]||[], di=b.dates.indexOf(dateIso); cur=di>=0?String(st[di]||""):""; }catch(e){}
+  writeStatus_(cid, name, dateIso, "請假");                 // 缺席/空白 → 請假（可補）
+  var sh=pendingCertSheet(), flipped=false;
+  if(sh.getLastRow()>=2){
+    var rng=sh.getRange(2,1,sh.getLastRow()-1,5), vals=rng.getValues();
+    for(var i=0;i<vals.length;i++){
+      if(String(vals[i][0]).trim()===name && String(vals[i][1]).trim()===cid && toIso_(vals[i][2])===dateIso){
+        vals[i][4]="已收證明（教練離線確認）"; flipped=true;
+      }
+    }
+    if(flipped) rng.setValues(vals);
+  }
+  try{ logAppend({name:name,key:cid,action:"sickCertOffline",date:dateIso,status:"教練離線確認收病假紙→請假"}); }catch(e){}
+  return {ok:true, from:cur, flipped:flipped};
+}
+function markSickCertReceivedMenu(){
+  var ui=SpreadsheetApp.getUi();
+  var r1=ui.prompt("確認已收病假紙（離線）","學生中文全名：",ui.ButtonSet.OK_CANCEL); if(r1.getSelectedButton()!==ui.Button.OK) return;
+  var nm=r1.getResponseText().trim(); if(!nm) return;
+  var r2=ui.prompt("班別代碼（如 c4）","",ui.ButtonSet.OK_CANCEL); if(r2.getSelectedButton()!==ui.Button.OK) return;
+  var cid=r2.getResponseText().trim();
+  var r3=ui.prompt("堂日期（YYYY-MM-DD）","",ui.ButtonSet.OK_CANCEL); if(r3.getSelectedButton()!==ui.Button.OK) return;
+  var d=r3.getResponseText().trim();
+  if(!CLASSES[cid]){ ui.alert("搵唔到班別："+cid); return; }
+  var res=markSickCertReceived_(nm,cid,d);
+  ui.alert("✅ "+nm+"｜"+cid+"｜"+d+"\n該堂已改回「請假」(可補)、病假待證明標「已收證明」。\n原狀態："+(res.from||"空白")+(res.flipped?"":"\n（注意：病假待證明搵唔到對應列，但格已改請假）")+"\n已先備份，可還原。");
+}
 
 /* ═══════════ 繳費（Phase 1：每期預繳、上傳截圖、教練核實）═══════════ */
 function feeSheet(){
@@ -2451,6 +2485,7 @@ function onOpen(){
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
     .addItem("🔧 修復格仔姓名（誤刪還原）","repairGridNamesMenu")
+    .addItem("🩹 確認已收病假紙（離線）→ 改回請假","markSickCertReceivedMenu")
     .addItem("🔁 套用班別/堂數更正（梁心朗 c4＋c1c2 8/31）","migrateLeungC3toC4Menu")
     .addSeparator()
     .addItem("🩺 全面健康檢查（前端/後端/家長/教練/資料）","healthCheckMenu")
