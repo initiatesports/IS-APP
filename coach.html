@@ -1906,7 +1906,7 @@ function installManifest(){
     document.head.appendChild(l);
   }catch(e){}
 }
-let COACH_PASS_RT = (function(){ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
+let COACH_PASS_RT = (function(){ try{ return localStorage.getItem('is_cpass')||sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
 function cpass(){ return COACH_PASS_RT; }
 async function coachGateSubmit(){
   const v=document.getElementById('cg-pass').value.trim();
@@ -1915,13 +1915,13 @@ async function coachGateSubmit(){
   let r; try{ r=await apiPost({action:'coachLogin', coachPass:v}); }catch(e){ r=null; }
   btn.disabled=false; btn.textContent='登入';
   if(!r||!r.ok){ document.getElementById('cg-err').textContent='密碼錯誤'; return; }
-  COACH_PASS_RT=v; try{ sessionStorage.setItem('is_cpass',v); }catch(e){}
+  COACH_PASS_RT=v; try{ localStorage.setItem('is_cpass',v); sessionStorage.removeItem('is_cpass'); }catch(e){}
   document.getElementById('cg-err').textContent='';
   document.getElementById('coach-gate').style.display='none';
   showScreen('home', false); await loadFromSheets(); checkHealth();
 }
 function coachLogout(){
-  COACH_PASS_RT=''; try{ sessionStorage.removeItem('is_cpass'); }catch(e){}
+  COACH_PASS_RT=''; try{ localStorage.removeItem('is_cpass'); sessionStorage.removeItem('is_cpass'); }catch(e){}
   const g=document.getElementById('coach-gate'); g.style.display='flex';
   document.getElementById('cg-pass').value='';
 }
