@@ -53,7 +53,7 @@ var PERIOD_EXEMPT = {
 var PERIOD_EXTRA = {
   "2026 7-8月": { "鄧幗恩":[{amt:130, note:"5/23 加操"}, {amt:30, note:"膠繩替芯"}] }
 };
-// 本期新加入學生：唔享上期取消課程順延豁免（收全費）。例：梁心朗 2026-07 回歸 c3。
+// 本期新加入學生：唔享上期取消課程順延豁免（收全費）。例：梁心朗 2026-07 回歸 c4。
 var PERIOD_NO_CARRY = { "2026 7-8月": ["梁心朗"] };
 // 強制豁免（$0，本期不收費）：暫停／退出學生喺指定期。例：梁心朗 5-6月暫停。
 var PERIOD_VOID = { "2026 5-6月": ["梁心朗"] };
@@ -65,8 +65,8 @@ var PERIOD_VOID = { "2026 5-6月": ["梁心朗"] };
 const CLASSES = {
   c1:{ dayZh:"星期一", wd:1, time:"5–6pm",  students:["余悅","孔善盈","蔡芷彤","羅梓晉","羅君信","羅君浩","陳大文","蘇穎悠"] },
   c2:{ dayZh:"星期一", wd:1, time:"6–7pm",  students:["翟悅廷","郭栩澄","葉宇浩","梁德澤","許思溢","梁正軒","梁正宇"] },
-  c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","陳思允","梁心朗"] },
-  c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁德瑜","陳柏睎"] },
+  c3:{ dayZh:"星期三", wd:3, time:"5–6pm",  students:["鄧可澄","鄧幗恩","胡苡晨","胡汐森","文柏升","陳曉瑩","何梓程","陳思允"] },
+  c4:{ dayZh:"星期三", wd:3, time:"6–7pm",  students:["陳卓楠","曾愛斯","王一言","王一心","古詩詠","古卓謙","梁德瑜","陳柏睎","梁心朗"] },
   c5:{ dayZh:"星期五", wd:5, time:"6–7pm",  students:["吳瑋軒","黎柏言","陳曉瑩","梁正宇","郭可昕","黃玥晴","黃朗程","姚心穎","羅靖誼","黎柏希","陳焯棋","梁正軒"] },
   c6:{ dayZh:"星期六", wd:6, time:"11am–12", students:["張爾淳","張雅堯","黃梓昕","王尉鏇","王斯顏","呂洛希","馬仲然","鄧朗森","陳書雅"] },
   c7:{ dayZh:"星期六", wd:6, time:"3–4pm",  students:["劉家頤","鄭宇喬","鍾皓惟","周莉晶","李灝宏","何芯蕾"] },
@@ -95,7 +95,7 @@ const PT_CYCLE = 10;   // 每期堂數；夠數自動開新一期
  * 加返入對應 CLASSES 班別即可。改完要執行一次 ensureRoster_/setup 先生效。
  * 例：梁心朗 2026-06 暫停，7月可能回來 —— 先保留帳號可登入。
  */
-const LOGIN_ONLY = ["陳信澄","陳澔泓","潘洛詩","顧舒然"];  // 退出可回歸：可登入＋排行榜出名＋見回歸面板（梁心朗 2026-07 回歸 c3，已轉正式學生）
+const LOGIN_ONLY = ["陳信澄","陳澔泓","潘洛詩","顧舒然"];  // 退出可回歸：可登入＋排行榜出名＋見回歸面板（梁心朗 2026-07 回歸 c4，已轉正式學生）
 var RETURNABLE = LOGIN_ONLY;              // returner 名單（同 LOGIN_ONLY）
 var RET_FEE_1 = 1200, RET_FEE_2 = 1800;   // 回歸費：1週1堂 $1200 / 1週2堂 $1800（$150/節）
 
@@ -560,7 +560,7 @@ function zhStatus11_(nm, d, raw, leaveSet){
 var INFER_PRESENT_BEFORE = "2026-06-16";
 // 學生實際入班日（ISO）：此日之前嘅堂一律唔屬於佢 —— 唔顯示、唔推斷出席、唔計待補。
 // 用於回歸／插班生：佢哋本來唔喺班，今期先加入 CLASSES，grid 卻有舊日期欄。
-// 例：梁心朗 2026-07 回歸 c3（5-6月暫停、之前根本未上過堂）。
+// 例：梁心朗 2026-07 回歸 c4（5-6月暫停、之前根本未上過堂）。
 var STUDENT_JOIN = { "梁心朗":"2026-07-01" };
 function joinIso_(nm){ return STUDENT_JOIN[String(nm).trim()]||""; }
 function readBlockMerged_(cid){
@@ -1453,15 +1453,51 @@ function syncClassSettingFromConst_(cid){
 }
 function genPeriod78NetApply(){
   backup();
-  try{ ensureRoster_(SS()); }catch(e){}            // 套用最新 CLASSES（梁心朗 入 c3）→ 名冊
-  try{ buildGrid(SS(),"c3",false); }catch(e){}     // c3 grid 容納新學生（非破壞性）
-  try{ syncClassSettingFromConst_("c3"); }catch(e){} // Settings class_c3_students 對齊 const
+  try{ ensureRoster_(SS()); }catch(e){}            // 套用最新 CLASSES（梁心朗 入 c4）→ 名冊
+  try{ buildGrid(SS(),"c4",false); }catch(e){}     // c4 grid 容納新學生（非破壞性）
+  try{ syncClassSettingFromConst_("c4"); }catch(e){} // Settings class_c4_students 對齊 const
   var v=applyPeriodVoids_(false);                  // 跨期強制豁免（梁心朗 5-6月 $0）
   var r=genPeriodNet_("2026 7-8月", false);
   try{ SpreadsheetApp.getUi().alert("✅ 7-8月學費（按淨堂計）已寫入\n新增 "+r.added+"／更新 "+r.updated+"／已繳豁免略過 "+r.skipped+"／本期豁免 "+r.voided
     +"\n跨期豁免（如 5-6月暫停）："+v.length+" 筆"+(v.length?("（"+v.join("、")+"）"):"")
     +"\n\n（家長端揀對應月份即見金額同說明）"); }catch(e){}
   return {ok:true, net:r, crossVoid:v};
+}
+
+/* 🔁 一次性：梁心朗 由 c3 移去 c4（佢一直都係 c4 學生，之前 setup 放錯 c3）。
+ * 做法：用 production 嘅 backup→force 重建→按姓名還原（applySnapshot_）機制：
+ *   1) backup() 先快照現況（c3/c4 全部學生＋補堂，按姓名）。
+ *   2) buildGrid(c3,true)/buildGrid(c4,true) force 重建：c3 變 8 人、c4 變 9 人（含梁心朗空白行）。
+ *   3) applySnapshot_ 按姓名還原全部資料 —— 蘇穎悠/梁正宇照入 c4 補堂區；
+ *      梁心朗本身零出席資料，自然唔會出現喺 c3、c4 只得空白行（正確：佢未上過堂）。
+ *   4) ensureRoster_/syncClassSetting 令 Roster + Settings 對齊 const（家長端即見 c4）。
+ *   5) 重算 7-8月學費（c4 同樣 8 堂 → 仍 $1040）。
+ * 冪等：再跑都安全（已對齊就無變化）。出事可用「還原至最近備份」。 */
+function migrateLeungC3toC4(){
+  var ui; try{ ui=SpreadsheetApp.getUi(); }catch(e){}
+  backup();                                              // 1) 安全網＋快照（按姓名）
+  var map=snapshots_(), keys=Object.keys(map);
+  if(!keys.length){ if(ui) ui.alert("❌ 備份失敗，已中止遷移。"); return {ok:false, err:"no backup"}; }
+  var best=keys[0]; keys.forEach(function(t){ if(map[t].total>map[best].total) best=t; });
+  var rows=map[best].rows;
+  buildGrid(SS(),"c3",true);                             // 2) force 重建（c3=8 人）
+  buildGrid(SS(),"c4",true);                             //    force 重建（c4=9 人，含梁心朗空白行）
+  applySnapshot_(rows);                                  // 3) 按姓名還原全部人資料
+  try{ ensureRoster_(SS()); }catch(e){}                  // 4) Roster cid → c4
+  try{ syncClassSettingFromConst_("c3"); }catch(e){}
+  try{ syncClassSettingFromConst_("c4"); }catch(e){}
+  var fee=genPeriodNet_("2026 7-8月", false, true);      // 5) 重算學費（已備份→skipBackup）
+  if(ui) ui.alert("✅ 梁心朗 已由 c3 移去 c4\n\n已先備份（"+best+"）＋按姓名還原全部學生資料。\n學費已重算（更新 "+fee.updated+" 筆，梁心朗 c4 仍 $1040）。\n\n如有任何異樣可用「還原至最近備份」即時復原。");
+  return {ok:true, fee:fee, backup:best};
+}
+function migrateLeungC3toC4Menu(){
+  var ui=SpreadsheetApp.getUi();
+  var c=ui.alert("梁心朗 c3 → c4 班別遷移",
+    "梁心朗一直係 c4（星期三 6–7pm）學生，之前被誤放 c3。\n會 force 重建 c3/c4 出席表並按姓名還原全部學生資料（其他人不受影響），再對齊名冊同學費。\n執行前自動備份，可隨時還原。\n\n確定執行？",
+    ui.ButtonSet.OK_CANCEL);
+  if(c!==ui.Button.OK) return;
+  try{ migrateLeungC3toC4(); }
+  catch(e){ ui.alert("❌ 遷移失敗：\n"+(e&&e.message||e)+"\n\n可用「還原至最近備份」復原。"); }
 }
 
 // 產生某期繳費列：改用「按實際堂數×每堂價」（接 sessionsFor／點名停課），取代固定 $1040/$1760。
@@ -2415,6 +2451,7 @@ function onOpen(){
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
     .addItem("🔧 修復格仔姓名（誤刪還原）","repairGridNamesMenu")
+    .addItem("🔁 梁心朗 c3→c4 班別遷移（一次性）","migrateLeungC3toC4Menu")
     .addSeparator()
     .addItem("🩺 全面健康檢查（前端/後端/家長/教練/資料）","healthCheckMenu")
     .addItem("💸 立即寄催繳名單","weeklyUnpaidReportMenu")
