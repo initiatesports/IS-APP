@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import vm from 'node:vm';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => readFileSync(join(ROOT, f), 'utf8');
@@ -86,6 +87,27 @@ console.log('\n[5] is-home.html 器材清單核心項目存在');
   for (const name of ['拍子繩', '鋼絲繩', '膠繩', '跳繩袋']) {
     if (t.includes(`name:'${name}'`)) ok(`器材「${name}」存在`);
     else bad(`器材「${name}」遺失`);
+  }
+}
+
+// ── 6) 前端各頁 inline JS 語法（任何頁面 JS 語法錯 → 部署前攔截，防白屏/按鈕死）────
+console.log('\n[6] 前端各頁 JS 語法');
+{
+  const pages = ['is-home.html','is-hub.html','is-parent.html','is-coach.html','is-leave-makeup.html',
+    'is-attendance-app.html','is-pay.html','parent.html','coach.html','is-parent-tour.html','initiate-sports-booking.html'];
+  for (const f of pages) {
+    let t; try { t = read(f); } catch { continue; }
+    const re = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
+    let m, err = null;
+    while ((m = re.exec(t))) {
+      const attrs = m[1] || '', body = m[2];
+      if (/\bsrc\s*=/.test(attrs)) continue;   // 外部 script
+      if (/\btype\s*=\s*["'](?!text\/javascript|module|application\/javascript)/i.test(attrs)) continue; // 非 JS (json-ld 等)
+      if (!body.trim()) continue;
+      try { new vm.Script(body); } catch (e) { err = e.message; break; }
+    }
+    if (err) bad(`${f} JS 語法錯誤：${err}`);
+    else ok(`${f} JS 語法正常`);
   }
 }
 
