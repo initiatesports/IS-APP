@@ -1464,40 +1464,40 @@ function genPeriod78NetApply(){
   return {ok:true, net:r, crossVoid:v};
 }
 
-/* 🔁 一次性：梁心朗 由 c3 移去 c4（佢一直都係 c4 學生，之前 setup 放錯 c3）。
- * 做法：用 production 嘅 backup→force 重建→按姓名還原（applySnapshot_）機制：
- *   1) backup() 先快照現況（c3/c4 全部學生＋補堂，按姓名）。
- *   2) buildGrid(c3,true)/buildGrid(c4,true) force 重建：c3 變 8 人、c4 變 9 人（含梁心朗空白行）。
- *   3) applySnapshot_ 按姓名還原全部資料 —— 蘇穎悠/梁正宇照入 c4 補堂區；
- *      梁心朗本身零出席資料，自然唔會出現喺 c3、c4 只得空白行（正確：佢未上過堂）。
+/* 🔁 一次性：套用兩項班別/堂數更正，再對齊名冊同學費。
+ *   (A) 梁心朗 由 c3 移去 c4（佢一直都係 c4，之前 setup 放錯 c3）。
+ *   (B) TERM_END 08-29→08-31 後，c1/c2 星期一班多咗 8/31 一堂 → grid 要加返該欄。
+ * 兩者都唔可以淨改 const／普通 buildGrid（前者位置錯位、後者 header 一變就清空重建洗走資料），
+ * 所以一律用 production 嘅 backup→force 重建→按姓名還原（applySnapshot_）機制：
+ *   1) backup() 先快照現況（全部班學生＋補堂，按姓名）。
+ *   2) buildGrid(c1/c2/c3/c4, true) force 重建：c1/c2 加返 8/31 空白欄；c3 變 8 人、c4 變 9 人（含梁心朗空白行）。
+ *   3) applySnapshot_ 按姓名還原全部資料 —— 各班舊出席原位還原；8/31／梁心朗 屬未來/無資料 → 留空（正確）。
  *   4) ensureRoster_/syncClassSetting 令 Roster + Settings 對齊 const（家長端即見 c4）。
- *   5) 重算 7-8月學費（c4 同樣 8 堂 → 仍 $1040）。
+ *   5) 重算 7-8月學費（用新 TERM_END：c1/c2 變 9 堂淨 8→$1040；梁心朗 c4 仍 $1040）。
  * 冪等：再跑都安全（已對齊就無變化）。出事可用「還原至最近備份」。 */
 function migrateLeungC3toC4(){
   var ui; try{ ui=SpreadsheetApp.getUi(); }catch(e){}
   backup();                                              // 1) 安全網＋快照（按姓名）
   var map=snapshots_(), keys=Object.keys(map);
-  if(!keys.length){ if(ui) ui.alert("❌ 備份失敗，已中止遷移。"); return {ok:false, err:"no backup"}; }
+  if(!keys.length){ if(ui) ui.alert("❌ 備份失敗，已中止。"); return {ok:false, err:"no backup"}; }
   var best=keys[0]; keys.forEach(function(t){ if(map[t].total>map[best].total) best=t; });
   var rows=map[best].rows;
-  buildGrid(SS(),"c3",true);                             // 2) force 重建（c3=8 人）
-  buildGrid(SS(),"c4",true);                             //    force 重建（c4=9 人，含梁心朗空白行）
+  ["c1","c2","c3","c4"].forEach(function(cid){ buildGrid(SS(),cid,true); }); // 2) force 重建受影響班別
   applySnapshot_(rows);                                  // 3) 按姓名還原全部人資料
   try{ ensureRoster_(SS()); }catch(e){}                  // 4) Roster cid → c4
-  try{ syncClassSettingFromConst_("c3"); }catch(e){}
-  try{ syncClassSettingFromConst_("c4"); }catch(e){}
+  ["c1","c2","c3","c4"].forEach(function(cid){ try{ syncClassSettingFromConst_(cid); }catch(e){} });
   var fee=genPeriodNet_("2026 7-8月", false, true);      // 5) 重算學費（已備份→skipBackup）
-  if(ui) ui.alert("✅ 梁心朗 已由 c3 移去 c4\n\n已先備份（"+best+"）＋按姓名還原全部學生資料。\n學費已重算（更新 "+fee.updated+" 筆，梁心朗 c4 仍 $1040）。\n\n如有任何異樣可用「還原至最近備份」即時復原。");
+  if(ui) ui.alert("✅ 班別/堂數更正已套用\n\n• 梁心朗 c3→c4（c4 已加空白行）\n• c1/c2 已加 8/31 欄（9 堂）\n已先備份（"+best+"）＋按姓名還原全部學生資料。\n學費已重算（更新 "+fee.updated+" 筆）。\n\n如有任何異樣可用「還原至最近備份」即時復原。");
   return {ok:true, fee:fee, backup:best};
 }
 function migrateLeungC3toC4Menu(){
   var ui=SpreadsheetApp.getUi();
-  var c=ui.alert("梁心朗 c3 → c4 班別遷移",
-    "梁心朗一直係 c4（星期三 6–7pm）學生，之前被誤放 c3。\n會 force 重建 c3/c4 出席表並按姓名還原全部學生資料（其他人不受影響），再對齊名冊同學費。\n執行前自動備份，可隨時還原。\n\n確定執行？",
+  var c=ui.alert("套用班別/堂數更正（一次性）",
+    "會套用：①梁心朗 c3→c4（佢一直係 c4，之前誤放 c3）；②c1/c2 加返 8/31 一堂（星期一班 7-8月應 9 堂）。\n做法：force 重建 c1–c4 出席表並按姓名還原全部學生資料（其他人不受影響），再對齊名冊同重算學費。\n執行前自動備份，可隨時還原。\n\n確定執行？",
     ui.ButtonSet.OK_CANCEL);
   if(c!==ui.Button.OK) return;
   try{ migrateLeungC3toC4(); }
-  catch(e){ ui.alert("❌ 遷移失敗：\n"+(e&&e.message||e)+"\n\n可用「還原至最近備份」復原。"); }
+  catch(e){ ui.alert("❌ 更正失敗：\n"+(e&&e.message||e)+"\n\n可用「還原至最近備份」復原。"); }
 }
 
 // 產生某期繳費列：改用「按實際堂數×每堂價」（接 sessionsFor／點名停課），取代固定 $1040/$1760。
@@ -2451,7 +2451,7 @@ function onOpen(){
     .addItem("🧹 清理重複補堂行（先自動備份）","cleanupDupMakeupMenu")
     .addItem("🧹 清走未來誤標出席（保留未來請假/停課）","cleanFutureAttendanceMenu")
     .addItem("🔧 修復格仔姓名（誤刪還原）","repairGridNamesMenu")
-    .addItem("🔁 梁心朗 c3→c4 班別遷移（一次性）","migrateLeungC3toC4Menu")
+    .addItem("🔁 套用班別/堂數更正（梁心朗 c4＋c1c2 8/31）","migrateLeungC3toC4Menu")
     .addSeparator()
     .addItem("🩺 全面健康檢查（前端/後端/家長/教練/資料）","healthCheckMenu")
     .addItem("💸 立即寄催繳名單","weeklyUnpaidReportMenu")
