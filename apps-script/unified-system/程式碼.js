@@ -1072,6 +1072,7 @@ function apiMakeup(p){
   var toCid=p.toKey, date=toIso_(p.toDate);
   if(!CLASSES[toCid]) return {ok:false,err:"目標班別不存在"};
   if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
+  if(holidaysSet()[date]) return {ok:false,err:"該日為假期／停課日（如 7/1），不能補堂，請另揀日期"};
   // 註：補堂係補返「已付款嘅缺席」，2個月限期由下面 effDeadline_ 把關，
   //     故唔再用補堂目標日期所屬期嘅學費作閘（即使補去未繳費嘅下一期都照畀預約）。
   var dup=makeupAll().some(function(m){ return m.name===p.name && m.from===p.fromKey && m.to===p.toKey && m.date===date; });
@@ -2312,6 +2313,8 @@ function apiHolidays(p){
   settingsRows_().forEach(function(r){
     if(r.key==="public_holidays"){ try{ var a=JSON.parse(r.value); if(Array.isArray(a)) holidays=a; }catch(e){} }
   });
+  // 併入 EXTRA_HOLIDAYS（如 2026-07-01 全校停課）→ 前端補堂日期會自動排除呢啲日
+  EXTRA_HOLIDAYS.forEach(function(d){ var iso=toIso_(d); if(holidays.indexOf(iso)<0) holidays.push(iso); });
   return {ok:true, holidays:holidays};
 }
 /* ═══════════════════════════════════════════════
