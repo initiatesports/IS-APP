@@ -856,6 +856,7 @@ function route(p){
     case "uploadMedNote":   return apiUploadMedNote(p);
     // ── 繳費（Phase 1）──
     case "genPeriod":       return apiGenPeriod(p);
+    case "applyRosterChanges": return apiApplyRosterChanges(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
@@ -1547,6 +1548,12 @@ function migrateLeungC3toC4Menu(){
 // 已繳／豁免行唔郁；未繳行會跟最新排程重算（停課自動少計、抵扣 ledger 自動套用）。
 function genPeriod_(label){
   return genPeriodNet_(String(label).trim(), false, true);   // skipBackup：通常由 setup/呼叫方自行備份
+}
+/* 遠端觸發「套用名單改動」（重建全部 grid＋還原＋重算學費），coachPass 守護。
+   等同選單按鈕，方便老闆唔喺電腦時遠端套用 CLASSES 改動。先自動備份，可還原。*/
+function apiApplyRosterChanges(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return applyRosterChangesMigrate_();
 }
 function apiGenPeriod(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
