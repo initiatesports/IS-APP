@@ -68,7 +68,7 @@ a{color:var(--teal)}
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec';
-let PAYNUM='6709 3390', NAME='', FILES={};
+let PAYNUM='6709 3390', STUDENTS=[], ITEMS=[], FILE=null;
 const $=id=>document.getElementById(id);
 async function api(action,body){
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action},body))});
@@ -82,10 +82,11 @@ async function lookup(){
   let r; try{ r=await api('payLookup',{name:nm}); }catch(e){ r=null; }
   btn.disabled=false; btn.textContent='🔍 查睇學費';
   if(!r||!r.ok){ $('err').textContent=(r&&r.err)||'查詢失敗，請稍後再試'; $('result').innerHTML=''; return; }
-  NAME=r.name; PAYNUM=r.payNumber||'6709 3390';
-  render(r.fees||[]);
+  STUDENTS=r.students||[]; PAYNUM=r.payNumber||'6709 3390';
+  render();
 }
-function feeCard(f,i){
+// 單一學費明細卡（唯讀，上傳統一喺頂部「一次過繳交」）
+function feeCard(name,f){
   const unit=Number(f.unitPrice)||(f.weekly>=2?110:130);
   const sess=(f.sessions!=null)?f.sessions:((f.due>0&&f.due%unit===0)?f.due/unit:null);
   const ded=Number(f.deducted)||0;
@@ -104,8 +105,8 @@ function feeCard(f,i){
   const note=f.note?`<div class="note">📌 已扣減以下取消／停課課堂（唔收費）：<br>${esc(f.note).replace(/；/g,'<br>')}</div>`:'';
   const pending=f.status==='待核實'||f.hasScreenshot;
   return `<div class="card">
-    <h3>💳 ${esc(f.period)} 學費</h3>
-    <div class="lbl">${NAME}　·　每週 ${f.weekly||1} 節</div>
+    <h3>💳 ${esc(name)}　·　${esc(f.period)}</h3>
+    <div class="lbl">每週 ${f.weekly||1} 節${pending?'　·　<span style="color:var(--teal)">待核實</span>':''}</div>
     <div class="stats">
       <div class="stat"><div class="n">$${f.net}</div><div class="k">應繳</div></div>
       <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">已繳</div></div>
@@ -113,36 +114,48 @@ function feeCard(f,i){
     </div>
     <div class="calc"><div class="h">🧮 學費明細</div>${rows}<div class="r tot"><span>應繳</span><span>$${f.net}</span></div></div>
     ${note}
-    <div class="pay-to">💰 付款方式：FPS / PayMe　<b>${esc(PAYNUM)}</b><br><span class="muted">轉數後請喺下面上傳付款截圖</span></div>
-    <div class="up-row">
-      <input type="file" id="file-${i}" accept="image/*,application/pdf" onchange="onFile(${i},this)">
-      <div class="muted" id="fst-${i}" style="margin-top:4px">${pending?'已有截圖，如重新付款可再上傳':'請揀選付款截圖（相片或 PDF）'}</div>
-      <button class="btn" id="upb-${i}" onclick="upload(${i},'${esc(f.period)}')">${pending?'🔁 重新上傳截圖':'📷 上傳付款截圖'}</button>
-    </div>
-    <div class="ok-box hide" id="ok-${i}"></div>
   </div>`;
 }
-function render(fees){
-  $('lookup').querySelector('h3').textContent=NAME+' 的學費';
-  if(!fees.length){
-    $('result').innerHTML=`<div class="card"><div class="ok-box" style="display:block">✅ ${NAME} 暫時冇未繳學費，多謝支持！</div></div>`;
+function render(){
+  if(!STUDENTS.length){
+    $('result').innerHTML=`<div class="card"><div class="ok-box" style="display:block">✅ 呢個家庭暫時冇未繳學費，多謝支持！</div></div>`;
     return;
   }
-  $('result').innerHTML=fees.map((f,i)=>feeCard(f,i)).join('');
+  // 攤平所有小朋友嘅未繳項目，計總額 + 上傳清單
+  ITEMS=[]; let total=0, cards='';
+  STUDENTS.forEach(s=>{ (s.fees||[]).forEach(f=>{
+    ITEMS.push({name:s.name, period:f.period});
+    total += Math.max(0,(Number(f.net)||0)-(Number(f.paid)||0));
+    cards += feeCard(s.name, f);
+  }); });
+  const n=STUDENTS.length, multi=n>1;
+  const banner=`<div class="card">
+    <h3>💳 ${multi?('👨‍👩‍👧 '+n+' 位小朋友 · '):''}合共應繳 <b style="color:var(--teal)">$${total}</b></h3>
+    ${multi?`<div class="lbl">${STUDENTS.map(s=>esc(s.name)).join('、')} —— 可一次過繳交</div>`:''}
+    <div class="pay-to">💰 付款方式：FPS / PayMe　<b>${esc(PAYNUM)}</b><br><span class="muted">一次過轉賬總額後，上傳一張截圖即可（cover 晒下面全部）</span></div>
+    <div class="up-row">
+      <input type="file" id="famfile" accept="image/*,application/pdf" onchange="onFile(this)">
+      <div class="muted" id="fst" style="margin-top:4px">請揀選付款截圖（相片或 PDF）</div>
+      <button class="btn" id="upb" onclick="uploadAll()">📷 上傳付款截圖</button>
+    </div>
+    <div class="ok-box hide" id="okall"></div>
+  </div>`;
+  $('result').innerHTML=banner+cards;
 }
-function onFile(i,input){
-  const f=input.files&&input.files[0]; const st=$('fst-'+i);
-  if(!f){FILES[i]=null;return;}
+function onFile(input){
+  const f=input.files&&input.files[0]; const st=$('fst');
+  if(!f){FILE=null;return;}
   if(f.size>6*1024*1024){ st.textContent='檔案太大（上限 6MB），請另揀'; st.style.color='var(--red)'; input.value=''; return; }
-  const rd=new FileReader(); rd.onload=()=>{FILES[i]=rd.result; st.textContent='已揀：'+f.name; st.style.color='var(--green)';}; rd.readAsDataURL(f);
+  const rd=new FileReader(); rd.onload=()=>{FILE=rd.result; st.textContent='已揀：'+f.name; st.style.color='var(--green)';}; rd.readAsDataURL(f);
 }
-async function upload(i,period){
-  if(!FILES[i]){ const st=$('fst-'+i); st.textContent='請先揀選付款截圖'; st.style.color='var(--red)'; return; }
-  const btn=$('upb-'+i); btn.disabled=true; btn.textContent='上傳中…';
-  let r; try{ r=await api('payUploadOpen',{name:NAME,period,dataUrl:FILES[i]}); }catch(e){ r=null; }
-  if(!r||!r.ok){ btn.disabled=false; btn.textContent='📷 上傳付款截圖'; const st=$('fst-'+i); st.textContent=(r&&r.err)||'上傳失敗，請再試'; st.style.color='var(--red)'; return; }
-  const ok=$('ok-'+i); ok.textContent='✅ 已收到付款截圖！教練核實後會更新狀態。多謝支持 🙏'; ok.classList.remove('hide');
-  btn.classList.add('hide');
+async function uploadAll(){
+  if(!FILE){ const st=$('fst'); st.textContent='請先揀選付款截圖'; st.style.color='var(--red)'; return; }
+  if(!ITEMS.length){ return; }
+  const btn=$('upb'); btn.disabled=true; btn.textContent='上傳中…';
+  let r; try{ r=await api('payUploadFamily',{items:ITEMS,dataUrl:FILE}); }catch(e){ r=null; }
+  if(!r||!r.ok){ btn.disabled=false; btn.textContent='📷 上傳付款截圖'; const st=$('fst'); st.textContent=(r&&r.err)||'上傳失敗，請再試'; st.style.color='var(--red)'; return; }
+  const ok=$('okall'); ok.textContent=`✅ 已收到付款截圖（${(r.done||[]).length} 項）！教練核實後會更新狀態。多謝支持 🙏`; ok.classList.remove('hide');
+  btn.classList.add('hide'); $('famfile').disabled=true;
 }
 $('name').addEventListener('keydown',e=>{ if(e.key==='Enter') lookup(); });
 $('name').focus();
