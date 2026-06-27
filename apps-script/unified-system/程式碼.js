@@ -857,6 +857,7 @@ function route(p){
     // ── 繳費（Phase 1）──
     case "genPeriod":       return apiGenPeriod(p);
     case "applyRosterChanges": return apiApplyRosterChanges(p);
+    case "recoverPayments": return apiRecoverPayments(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
@@ -1452,7 +1453,15 @@ function genPeriodNet_(label, dry, skipBackup){
     var hit=rowMap[nm];
     if(hit){
       if(hit.status==="已繳"||hit.status==="豁免"){ n_skip++; lines.push("⏭ "+line+"（"+hit.status+"，略過）"); return; }
-      if(!dry){ sh.getRange(hit.row,2).setNumberFormat("@"); sh.getRange(hit.row,1,1,14).setValues([vals]); }
+      if(!dry){
+        sh.getRange(hit.row,2).setNumberFormat("@");
+        // ⚠️ 保留付款進度欄（7已繳/8狀態/9截圖/10核實教練/11核實時間）：家長已上傳截圖＝待核實，
+        // 重算學費唔可以清走佢，否則教練端見唔到要核實（曾因此漏咗家長已交嘅截圖）。
+        var pay=sh.getRange(hit.row,7,1,5).getValues()[0];
+        var hasPay=(String(pay[1]||"")==="待核實"||String(pay[1]||"")==="部分"||(Number(pay[0])||0)>0||String(pay[2]||"")!=="");
+        if(hasPay){ vals[6]=pay[0]; vals[7]=pay[1]; vals[8]=pay[2]; vals[9]=pay[3]; vals[10]=pay[4]; }
+        sh.getRange(hit.row,1,1,14).setValues([vals]);
+      }
       n_upd++; lines.push("✏ "+line);
     } else {
       if(d.base<=0){ return; }   // 該期未排堂（如超出學期窗）→ 唔建空列（抵扣留喺 ledger，排堂後先套用）
@@ -1736,6 +1745,33 @@ function apiPayUpload(p){
   if(!authParent_(p.name,p.code)) return {ok:false,err:"登入碼不正確，無法操作"};
   try{ return payUploadCore_(String(p.name).trim(), String(p.period).trim(), p.dataUrl); }
   catch(e){ return {ok:false, err:"上載失敗："+(e&&e.message||e)}; }
+}
+/* 復原：由 Drive「IS 付款截圖」掃返全部已上傳截圖，重新連結去對應繳費行＋標「待核實」。
+   用於：截圖連結／待核實狀態被學費重算誤清（檔案仍在 Drive）。冪等；已繳/豁免行唔郁。*/
+function recoverPendingPayments_(){
+  var folders=DriveApp.getFoldersByName("IS 付款截圖");
+  if(!folders.hasNext()) return {ok:true, count:0, recovered:[], note:"無付款截圖資料夾"};
+  var folder=folders.next(), it=folder.getFiles();
+  var sh=feeSheet(), idx={}; feeRows_().forEach(function(x){ idx[x.name+"|"+x.period]=x; });
+  var recovered=[], skipped=[];
+  while(it.hasNext()){
+    var f=it.next(), name=String(f.getName()||"");
+    var p=name.lastIndexOf("_付款."); if(p<0) continue;
+    var parts=name.slice(0,p).split("_"); if(parts.length<2) continue;
+    var nm=parts[0], label=parts.slice(1).join("_"), hit=idx[nm+"|"+label];
+    if(!hit){ skipped.push(name); continue; }
+    if(hit.status==="已繳"||hit.status==="豁免") continue;     // 已核實／豁免 → 唔郁
+    try{ f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }catch(e){}
+    if(!String(sh.getRange(hit.row,9).getValue()||"")) sh.getRange(hit.row,9).setValue(f.getUrl());
+    if(hit.status!=="待核實") sh.getRange(hit.row,8).setValue("待核實");
+    recovered.push(nm+"｜"+label);
+  }
+  logAppend({name:"(系統)",key:"-",action:"recoverPay",status:"復原待核實 "+recovered.length+" 筆"});
+  return {ok:true, count:recovered.length, recovered:recovered, skipped:skipped};
+}
+function apiRecoverPayments(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return recoverPendingPayments_();
 }
 
 /* ═══════════ 免登入「一鍵繳費」（只憑姓名，供 is-pay.html）═══════════
