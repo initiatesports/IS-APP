@@ -856,6 +856,7 @@ function route(p){
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
+    case "payUploadFamily": return apiPayUploadFamily(p);
     case "verifyPay":       return apiVerifyPay(p);
     case "setFeeAdj":       return apiSetFeeAdj(p);
     case "feesAll":         return apiFeesAll(p);
@@ -1731,15 +1732,46 @@ function apiPayUpload(p){
 /* ═══════════ 免登入「一鍵繳費」（只憑姓名，供 is-pay.html）═══════════
    只暴露應繳金額同明細；上載只標「待核實」，要教練核實先當收到。 */
 function rosterHasName_(nm){ return rosterRows().some(function(r){ return r.name===nm && r.cid; }); }
+function unpaidFeesFor_(nm){
+  return feesFor_(nm).filter(function(f){ return f.net>0 && f.status!=="已繳" && f.status!=="豁免"; })
+    .sort(function(a,b){ return periodOrder_(a.period)-periodOrder_(b.period); });
+}
+// 同一家庭（電話後4位＋姓氏首字，同 apiLogin 防洩漏邏輯）名下嘅兄弟姊妹姓名
+function familySiblings_(nm){
+  var all=rosterRows(), self=all.filter(function(r){ return r.name===nm && r.last4!==""; })[0];
+  if(!self) return [nm];
+  var fam=pad4(self.last4), surn=String(nm).trim().charAt(0), names=[];
+  all.forEach(function(r){ if(r.last4!=="" && pad4(r.last4)===fam && String(r.name).trim().charAt(0)===surn && names.indexOf(r.name)<0) names.push(r.name); });
+  return names.length?names:[nm];
+}
 function apiPayLookup(p){
   var nm=String(p.name||"").trim();
   if(!nm) return {ok:false, err:"請輸入小朋友中文全名"};
   if(rlBlocked_("paylk_"+nm, 20)) return {ok:false, err:"嘗試太多次，請稍後再試"};
   if(!rosterHasName_(nm)){ rlBump_("paylk_"+nm, 300); return {ok:false, err:"搵唔到呢位小朋友，請確認中文全名（如有疑問請 WhatsApp 教練 6331 7403）"}; }
   rlClear_("paylk_"+nm);
-  var fees=feesFor_(nm).filter(function(f){ return f.net>0 && f.status!=="已繳" && f.status!=="豁免"; })
-    .sort(function(a,b){ return periodOrder_(a.period)-periodOrder_(b.period); });
-  return {ok:true, name:nm, payNumber:CONFIG.PAY_NUMBER, fees:fees};
+  // 兄弟姊妹（同電話＋同姓）一齊顯示，可一次過繳交
+  var students=familySiblings_(nm).map(function(cn){ return {name:cn, fees:unpaidFeesFor_(cn)}; })
+    .filter(function(s){ return s.fees.length; });
+  var total=0; students.forEach(function(s){ s.fees.forEach(function(f){ total += Math.max(0,(Number(f.net)||0)-(Number(f.paid)||0)); }); });
+  return {ok:true, name:nm, payNumber:CONFIG.PAY_NUMBER, students:students, total:total,
+          fees: students.length ? (students.filter(function(s){return s.name===nm;})[0]||students[0]).fees : []};  // 向後相容
+}
+// 一次過上傳一張截圖 cover 多位小朋友／多期（每個 名+期 各自標「待核實」供教練逐筆核實）
+function apiPayUploadFamily(p){
+  var items = Array.isArray(p.items) ? p.items : [];
+  if(!items.length) return {ok:false, err:"冇學費項目"};
+  var key="payupf_"+String(items[0].name||"");
+  if(rlBlocked_(key, 12)) return {ok:false, err:"嘗試太多次，請稍後再試"};
+  rlBump_(key, 600);
+  var done=[], failed=[];
+  items.forEach(function(it){
+    var cn=String(it.name||"").trim(), label=String(it.period||"").trim();
+    if(!cn || !rosterHasName_(cn)){ failed.push(cn+"｜"+label); return; }
+    try{ var r=payUploadCore_(cn, label, p.dataUrl); if(r&&r.ok) done.push(cn+"｜"+label); else failed.push(cn+"｜"+label); }
+    catch(e){ failed.push(cn+"｜"+label); }
+  });
+  return {ok:done.length>0, done:done, failed:failed};
 }
 function apiPayUploadOpen(p){
   var nm=String(p.name||"").trim(), label=String(p.period||"").trim();
