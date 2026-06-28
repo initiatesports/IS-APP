@@ -193,13 +193,8 @@ input:focus,select:focus{border-color:var(--accent)}
     <span>📣 6–7月平日特別課程・接受報名中</span><span style="font-size:18px">→</span>
   </a>
   <script>
-    /* 6–7月特別課程報名按鈕:7月11號 00:00(香港時間)之後自動隱藏 */
-    (function(){
-      try{
-        var hideFrom = new Date('2026-07-11T00:00:00+08:00');
-        if(new Date() < hideFrom){ document.getElementById('bookingPromo').style.display='flex'; }
-      }catch(e){}
-    })();
+    /* 6–7月特別課程已提前暫停（2026-06-27）→ 報名按鈕一律隱藏，唔再顯示 */
+    (function(){ /* 已暫停：不顯示 bookingPromo */ })();
   </script>
   <div id="view"></div>
   <div class="foot">INITIATE SPORTS · 查詢 WhatsApp 6331 7403 張 Sir<br>

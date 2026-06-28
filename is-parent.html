@@ -494,14 +494,11 @@ function renderParent(){
   let html=`<div class="wrap">`;
   // 🌐 官網入口（登入後置頂）
   html+=`<a class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;box-shadow:0 6px 18px rgba(27,141,155,.25)" href="is-home.html">🌐 ${LANG==='en'?'INITIATE SPORTS Website':'INITIATE SPORTS 官網'}　›</a>`;
-  // 限時推廣按鈕是否仍在生效（6–7月特別課程未過期 或 暑期班補堂橋接仍開）
-  const promoActive = (new Date() < new Date('2026-07-11T00:00:00+08:00')) || !!S.summerBridge;
+  // 限時推廣按鈕是否仍在生效（6–7月特別課程已提前暫停 → 只剩暑期班補堂橋接）
+  const promoActive = !!S.summerBridge;
   // 推廣按鈕都過期後，三個功能按鈕自動升上頂部
   if(!promoActive) html+=featureLinks();
-  // 📣 6–7月特別課程報名（2026-07-11 00:00 HKT 後自動消失）
-  if(new Date() < new Date('2026-07-11T00:00:00+08:00')){
-    html+=`<a class="btn" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#7c5cff,#5b3fd6);color:#fff;box-shadow:0 6px 18px rgba(91,63,214,.25)" href="initiate-sports-booking.html" target="_blank" rel="noopener"><span>📣 ${LANG==='en'?'June–July special courses · Sign up now':'6–7月平日特別課程・接受報名中'}</span><span style="font-size:18px">›</span></a>`;
-  }
+  // 📣 6–7月特別課程已提前暫停（2026-06-27），報名按鈕已移除
   // ☀️ 暑期班請假補堂橋接（後端 summerBridge 控制；2026-09-01 起自動消失）
   if(S.summerBridge){
     html+=`<div class="card" style="border:0;margin:0 0 12px;padding:14px 16px;background:linear-gradient(135deg,#ffb347,#ff8c42);color:#fff;box-shadow:0 6px 18px rgba(255,140,66,.3)">
