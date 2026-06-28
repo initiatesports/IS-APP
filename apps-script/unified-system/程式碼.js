@@ -1303,6 +1303,8 @@ function periodOrder_(label){
 }
 /* 某生某期是否已啟用：本期及之前（系統外已繳清）自動啟用；未來期則需已繳/豁免 */
 function periodPaid_(nm, label){
+  // 示範帳號（陳大文）：永遠當已繳，令每日健康檢查嘅寫入測試（請假/取消）唔會被學費閘攔住。
+  try{ if(PT_STUDENTS.some(function(s){ return s.demo && (s.name===nm||s.family===nm); })) return true; }catch(e){}
   if(periodOrder_(label) <= periodOrder_(curPeriodLabel_())) return true;  // 3-6 月等本期及之前：自動啟用
   var rows=feeRows_().filter(function(x){ return x.name===nm && x.period===label; });
   if(!rows.length) return false;
@@ -2689,6 +2691,8 @@ function probeOk_(url, expect){
 function dataIntegrityCheck_(){
   var P=[], today=todayIso(), STAT={}, FUT={"出席":1,"補堂":1,"加操":1};
   STATUSES.forEach(function(s){ STAT[s]=1; });
+  // 合法嘅未來補堂預約（補去班+日期）：未來格標「補堂」若有對應預約 → 正常，唔當誤報。
+  var mkBooked={}; try{ makeupUniq_().forEach(function(m){ mkBooked[m.name+"|"+m.to+"|"+m.date]=1; }); }catch(e){}
   var known={};
   CLASS_IDS.forEach(function(cid){ CLASSES[cid].students.forEach(function(nm){ known[nm]=1; }); });
   PT_STUDENTS.forEach(function(s){ known[s.name]=1; known[s.family]=1; });
@@ -2713,7 +2717,9 @@ function dataIntegrityCheck_(){
       for(var r2=0;r2<nR;r2++){ var who=allNames[r2]||("#"+(r2+1)); for(var off=0;off<m.physN;off++){
         var v=String(blk[r2][off]||""); if(!v) continue;
         if(!STAT[v]){ P.push(cid+" "+who+" 有非法狀態「"+v+"」"); continue; }
-        var iso=offIso[off]; if(iso && iso>today && FUT[v]) P.push(cid+" "+who+" "+iso+" 未到但標咗「"+v+"」"); } }
+        var iso=offIso[off];
+        // 未來格標出席類 → 誤報；但「補堂」若有對應預約屬合法（家長預約咗未來補堂），唔當異常。
+        if(iso && iso>today && FUT[v] && !(v==="補堂" && mkBooked[who+"|"+cid+"|"+iso])) P.push(cid+" "+who+" "+iso+" 未到但標咗「"+v+"」"); } }
     }
   });
   try{ var sA={}; is11_().abs.forEach(function(a){ if(a.name && !known[a.name] && !sA[a.name]){ sA[a.name]=1; P.push("#11 請假紀錄有不明姓名（疑別字）："+a.name); } }); }catch(e){}
