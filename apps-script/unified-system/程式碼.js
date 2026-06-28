@@ -69,6 +69,19 @@ var PERIOD_VOID = { "2026 5-6月": ["梁心朗"],
   // 等佢哋 7 月頭返嚟上返 5-6月被取消順延嗰幾堂；不退款，用堂抵）。
   "2026 7-8月": ["何梓程","馬仲然"] };
 
+/* 特別安排固定學費：跨班／固定堂數，唔跟標準班別自動計（自動計會計錯）。
+   設固定 due（應繳），記 paid（已繳，由其他來源轉抵）；genPeriodNet_ 會直接寫呢個數、
+   唔行標準自動計，亦會保留家長已上傳嘅付款進度／截圖。weekly 只作顯示。 */
+var CUSTOM_FEE = {
+  "2026 7-8月": {
+    // 周莉晶：暑期「運動體能」班取消 → 轉恆常 c7（7/4、7/11）+ c3（7/15、7/22、7/29、8/12、8/19、8/26）共 8 堂。
+    // 8 堂 × $130 = $1040；已繳 $909（由暑期運動體能轉抵）→ 待繳 $131。
+    "周莉晶": { weekly:1, due:1040, paid:909,
+      note:"暑期運動體能取消→轉恆常：c7(7/4、7/11)+c3(7/15、7/22、7/29、8/12、8/19、8/26) 共8堂",
+      adjNote:"已繳 $909 由暑期運動體能轉抵，待繳 $131" }
+  }
+};
+
 /* ═══════════ 真實班別資料（你 App 真實學生）═══════════ */
 /* cN: { dayZh, wd(1=一..6=六), time, students[] }
  * 已併入：顧舒然(c5)、潘洛詩(c7)（出席記錄已有，補回名單）。
@@ -1470,6 +1483,25 @@ function genPeriodNet_(label, dry, skipBackup){
                   sh.getRange(hv.row,12).setValue("本期暫停，不收費"); sh.getRange(hv.row,13,1,2).setValues([[0,""]]); }
         n_void++; lines.push("🚫 "+nm+"：本期強制豁免 $0（暫停）");
       }
+      return;
+    }
+    // 特別安排固定學費（跨班／固定堂數）→ 用固定 due，唔行標準自動計，保留已上傳付款進度
+    var cf=(CUSTOM_FEE[label]||{})[nm];
+    if(cf){
+      var due=Number(cf.due)||0, hc=rowMap[nm], paid=Number(cf.paid)||0, scr="", vBy="", vAt="";
+      if(hc){
+        if(hc.status==="已繳"){ n_skip++; lines.push("⏭ "+nm+"（特別安排固定學費，已繳，略過）"); return; }
+        var pc=sh.getRange(hc.row,7,1,5).getValues()[0];  // 7已繳/8狀態/9截圖/10核實/11時間
+        if((Number(pc[0])||0)>paid || String(pc[2]||"")!==""){ paid=Number(pc[0])||paid; scr=pc[2]||""; vBy=pc[3]||""; vAt=pc[4]||""; }
+      }
+      var st = paid<=0 ? (scr?"待核實":"未繳") : (paid>=due ? "已繳" : (scr?"待核實":"部分"));
+      var cv=[nm,label,cf.weekly||1,due,0,due,paid,st,scr,vBy,vAt,cf.note||"特別安排固定學費",0,cf.adjNote||""];
+      if(!dry){
+        if(hc){ sh.getRange(hc.row,2).setNumberFormat("@"); sh.getRange(hc.row,1,1,14).setValues([cv]); }
+        else { var nrc=sh.getLastRow()+1; sh.getRange(nrc,2).setNumberFormat("@"); sh.getRange(nrc,1,1,14).setValues([cv]); }
+      }
+      if(hc) n_upd++; else n_new++;
+      lines.push("⭐ "+nm+"：特別安排固定學費 $"+due+"（已繳 $"+paid+(paid<due?("，待繳 $"+(due-paid)):"")+"）");
       return;
     }
     var d=periodFeeDetail_(nm, label); if(!d) return;   // 無在學班別（如暫停學生）→ 略過
