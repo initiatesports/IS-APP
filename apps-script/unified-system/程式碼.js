@@ -249,6 +249,17 @@ function effDeadline_(name, cid, absDate){
   var ov=dlExtMap_()[name+"|"+cid+"|"+toIso_(absDate)];
   return ov || addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS);
 }
+/* 教練：手動設定／延長某生某缺席日嘅補堂限期（寫入「限期延長」覆寫表）。coachPass 守護。*/
+function apiSetMakeupDeadline(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name||"").trim(), cid=String(p.cid||"").trim(), absDate=toIso_(p.absDate||""), newDl=toIso_(p.newDl||"");
+  if(!nm||!cid||!absDate||!newDl) return {ok:false,err:"參數不全（name/cid/absDate/newDl）"};
+  var oldDl=addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS), sh=dlExtSheet(), row=sh.getLastRow()+1;
+  sh.getRange(row,1,1,6).setNumberFormat("@");
+  sh.getRange(row,1,1,6).setValues([[nm,cid,absDate,oldDl,newDl,nowStamp_()]]);
+  try{ logAppend({name:nm,key:cid,action:"extendDl",date:absDate,status:"限期 "+oldDl+"→"+newDl}); }catch(e){}
+  return {ok:true, name:nm, cid:cid, absDate:absDate, oldDl:oldDl, newDl:newDl};
+}
 /* 一次性：把「已過期、未補堂」嘅請假節數限期 +21 日。
    規則：新限期 = 原限期(缺席日+MAKEUP_MONTHS) + 21 日；
    只處理 (a) 屬「請假」可補節數、(b) 原限期已過今日、(c) 加 21 日後 ≥ 今日。
@@ -865,6 +876,7 @@ function route(p){
     case "genPeriod":       return apiGenPeriod(p);
     case "applyRosterChanges": return apiApplyRosterChanges(p);
     case "recoverPayments": return apiRecoverPayments(p);
+    case "setMakeupDeadline": return apiSetMakeupDeadline(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
