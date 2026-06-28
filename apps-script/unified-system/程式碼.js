@@ -249,13 +249,24 @@ function effDeadline_(name, cid, absDate){
   var ov=dlExtMap_()[name+"|"+cid+"|"+toIso_(absDate)];
   return ov || addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS);
 }
-/* 教練：手動設定／延長某生某缺席日嘅補堂限期（寫入「限期延長」覆寫表）。coachPass 守護。*/
+/* 教練：手動設定／延長／回復某生某缺席日嘅補堂限期。coachPass 守護。
+   newDl 留空 / "remove" / 等於原限期 → 只清走覆寫（回復原本限期，不延長）。*/
 function apiSetMakeupDeadline(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  var nm=String(p.name||"").trim(), cid=String(p.cid||"").trim(), absDate=toIso_(p.absDate||""), newDl=toIso_(p.newDl||"");
-  if(!nm||!cid||!absDate||!newDl) return {ok:false,err:"參數不全（name/cid/absDate/newDl）"};
-  var oldDl=addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS), sh=dlExtSheet(), row=sh.getLastRow()+1;
-  sh.getRange(row,1,1,6).setNumberFormat("@");
+  var nm=String(p.name||"").trim(), cid=String(p.cid||"").trim(), absDate=toIso_(p.absDate||"");
+  var rawNew=String(p.newDl||"").trim(), newDl=(rawNew && rawNew.toLowerCase()!=="remove")?toIso_(rawNew):"";
+  if(!nm||!cid||!absDate) return {ok:false,err:"參數不全（name/cid/absDate）"};
+  var oldDl=addMonthsIso(absDate, CONFIG.MAKEUP_MONTHS), sh=dlExtSheet();
+  // 先清走同一缺席日嘅舊覆寫，避免累積／重複
+  if(sh.getLastRow()>=2){
+    var v=sh.getRange(2,1,sh.getLastRow()-1,6).getValues();
+    for(var i=v.length-1;i>=0;i--){ if(String(v[i][0]).trim()===nm && String(v[i][1]).trim()===cid && toIso_(v[i][2])===absDate) sh.deleteRow(i+2); }
+  }
+  if(!newDl || newDl===oldDl){   // 回復原限期：只清走，唔加新覆寫
+    try{ logAppend({name:nm,key:cid,action:"resetDl",date:absDate,status:"回復原限期 "+oldDl}); }catch(e){}
+    return {ok:true, removed:true, name:nm, cid:cid, absDate:absDate, restoredTo:oldDl};
+  }
+  var row=sh.getLastRow()+1; sh.getRange(row,1,1,6).setNumberFormat("@");
   sh.getRange(row,1,1,6).setValues([[nm,cid,absDate,oldDl,newDl,nowStamp_()]]);
   try{ logAppend({name:nm,key:cid,action:"extendDl",date:absDate,status:"限期 "+oldDl+"→"+newDl}); }catch(e){}
   return {ok:true, name:nm, cid:cid, absDate:absDate, oldDl:oldDl, newDl:newDl};
