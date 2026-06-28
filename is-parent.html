@@ -245,6 +245,10 @@ const T={
   cancelLeave:{zh:n=>`取消請假（${n}）`,en:n=>`Cancel leave (${n})`},
   cancelMk:{zh:n=>`取消補堂（${n}）`,en:n=>`Cancel make-up (${n})`},
   booked:{zh:'已約補堂',en:'Booked make-ups'},
+  mkToShort:{zh:'補去',en:'To'},reschedMk:{zh:'改期',en:'Reschedule'},cancelOne:{zh:'取消',en:'Cancel'},
+  reschedQ:{zh:x=>`改期：會先取消「${x}」嘅補堂，再畀你揀新一日。確認？`,en:x=>`Reschedule: this cancels "${x}" then lets you pick a new day. Confirm?`},
+  cancelOneQ:{zh:x=>`確認取消補堂「${x}」？取消後待補堂數會回復。`,en:x=>`Cancel make-up "${x}"? Your owed count will be restored.`},
+  failGeneric:{zh:'操作失敗，請再試一次',en:'Action failed, please try again'},
   attendedS:{zh:'已出席',en:'Attended'},absentS:{zh:'缺席',en:'Absent'},pendingS:{zh:'待出席',en:'Upcoming'},
   noClass:{zh:p=>`${p}暫無即將上課（已過課堂見「歷史記錄」）`,en:p=>`No upcoming classes in ${p} (see History for past classes)`},
   noRec:{zh:p=>`${p}暫無課堂記錄`,en:p=>`No class records in ${p}`},
@@ -599,12 +603,22 @@ function classCard(child,ki,c,ci){
       return `<div style="margin-top:10px">${list.map(sessRow).join('')}</div>`;
     })()}
     ${(function(){
-      const up=(c.makeups||[]).filter(m=>biMonthOf(m.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
+      const today=todayStr();
+      // 已約補堂：所有「未來」預約一律顯示（唔再淨係當前期，避免跨期補堂喺缺席嗰期睇唔到）＋本期歷史
+      const up=(c.makeups||[]).filter(m=> m.date>=today || biMonthOf(m.date)===S.period ).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
-        ${up.map(m=>{const d=new Date(m.date+'T00:00:00');const done=m.status==='出席';const lbl=done?t('attendedS'):(m.status==='缺席'?t('absentS'):t('pendingS'));
-        return `<div class="row"><span>${classLabel(m.to)}・${fmt(d)}${dow(d)}</span><span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700">${lbl}</span></div>`;}).join('')}
-        ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">${t('cancelMk',cancellableMakeups(c).length)}</button>`:''}
+        ${up.map(m=>{
+          const d=new Date(m.date+'T00:00:00');
+          const done=m.status==='出席';
+          const canEdit=(m.date>=today && m.status!=='出席' && m.status!=='缺席');
+          const lbl=done?t('attendedS'):(m.status==='缺席'?t('absentS'):t('pendingS'));
+          return `<div class="row"><span>${t('mkToShort')} ${classLabel(m.to)}・${fmt(d)}${dow(d)}</span><span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700">${lbl}</span></div>`
+            + (canEdit?`<div style="display:flex;gap:8px;margin:2px 0 6px">
+                <button class="btn ghost sm" style="flex:1" onclick="rescheduleMakeup(${ki},${ci},'${m.to}','${m.date}')">🔁 ${t('reschedMk')}</button>
+                <button class="btn ghost sm" style="flex:1" onclick="cancelOneMakeup(${ki},${ci},'${m.to}','${m.date}')">✕ ${t('cancelOne')}</button>
+              </div>`:'');
+        }).join('')}
       </div>`;
     })()}
   </div>`;
@@ -1136,6 +1150,25 @@ async function submitCancelMakeup(){
   if(fail) return toast(t('failN',fail,err));
   showReceipt(t('rcCancelMk'),[`${t('child')}：<b>${child.name}</b>`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...done.map(x=>t('cancelled',x))],
     `INITIATE 取消補堂\n小朋友：${child.name}\n原班：${classLabel(c.key||c.sport)}\n${done.map(x=>'已取消：'+x).join('\n')}`);
+}
+// 單筆取消補堂（喺「已約補堂」每筆內聯掣）
+async function cancelOneMakeup(ki,ci,toKey,toDate){
+  const child=S.family.children[ki], c=child.classes[ci], fromKey=classKey(c);
+  const d=new Date(toDate+'T00:00:00');
+  if(!confirm(t('cancelOneQ',`${classLabel(toKey)}・${fmt(d)}`))) return;
+  let r; try{ r=await api('cancelMakeup',{name:child.name,fromKey,toKey,toDate}); }catch(e){ return toast(String(e)); }
+  if(!r||!r.ok) return toast((r&&r.err)||t('failGeneric'));
+  await refresh(); toast(t('rcCancelMk'));
+}
+// 改期：先取消嗰筆補堂（待補數回復），再即時打開申請補堂畀家長揀新一日
+async function rescheduleMakeup(ki,ci,toKey,toDate){
+  const child=S.family.children[ki], c=child.classes[ci], fromKey=classKey(c);
+  const d=new Date(toDate+'T00:00:00');
+  if(!confirm(t('reschedQ',`${classLabel(toKey)}・${fmt(d)}`))) return;
+  let r; try{ r=await api('cancelMakeup',{name:child.name,fromKey,toKey,toDate}); }catch(e){ return toast(String(e)); }
+  if(!r||!r.ok) return toast((r&&r.err)||t('failGeneric'));
+  await refresh();
+  openMakeup(ki,ci);   // owed 已回復 → 直接揀新一日重約
 }
 
 /* ═══════════ 健康檢查 ═══════════ */
