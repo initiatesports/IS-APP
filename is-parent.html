@@ -700,7 +700,7 @@ function paymentCard(child,ki){
     ${rows.join('')}
     <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line,#e6ebee);margin-top:4px;padding-top:4px;font-weight:900"><span>${L('應繳','Total due')}</span><span>$${f.net}</span></div></div>`;
   // 順延豁免／停課說明：列出被取消／豁免／停課嘅課堂日期（已從本期學費扣減）
-  const noteLine=f.note?`<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(27,141,155,.07);border:1px solid rgba(27,141,155,.25);font-size:12.5px;line-height:1.6;color:var(--teal-dark)">📌 ${L('已扣減以下取消／停課課堂（唔收費）：','Deducted these cancelled sessions (not charged):')}<br>${f.note.replace(/；/g,'<br>')}</div>`:'';
+  const noteLine=f.note?`<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(27,141,155,.07);border:1px solid rgba(27,141,155,.25);font-size:12.5px;line-height:1.6;color:var(--teal-dark)">📌 ${f.custom?L('收費安排：','Fee arrangement:'):L('已扣減以下取消／停課課堂（唔收費）：','Deducted these cancelled sessions (not charged):')}<br>${f.note.replace(/；/g,'<br>')}</div>`:'';
   // 上一期／累積未補堂 + 補堂限期
   const os=owedSummary(child);
   let owedLine;

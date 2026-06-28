@@ -1324,14 +1324,17 @@ function feesFor_(nm){
   return feeRows_().filter(function(x){ return x.name===nm; }).map(function(x){
     var unit=(x.weekly>=2 ? PERIOD_RATE_2 : PERIOD_RATE_1);          // 每堂價：$130(一週一堂)/$110(一週兩堂)
     var sess=(x.due>0 && x.due%unit===0) ? x.due/unit : null;        // 實收堂數（應繳÷每堂價）
+    // 特別安排固定學費（跨班／固定堂數，如周莉晶 c7+c3 共 8 堂）：只按指定堂數計，
+    // 唔套標準班別順延豁免；否則會把名冊班別（c7）嘅 3 堂順延誤加成「原定 11」。
+    var isCustom=!!((CUSTOM_FEE[x.period]||{})[x.name]);
     // 扣減（停課/順延）堂數 + 原定堂數：原定 = 實收 + 扣減（即扣減前本期應上幾多堂）
-    var det=null; try{ det=periodFeeDetail_(x.name, x.period); }catch(e){}
+    var det=null; if(!isCustom){ try{ det=periodFeeDetail_(x.name, x.period); }catch(e){} }
     var deducted=det ? det.exemptDates.length : 0;
     var dnote=det ? periodExemptNote_(det) : x.note;
     var sched=(sess!=null) ? sess+deducted : null;
     return {period:x.period, weekly:x.weekly, due:x.due, discount:x.discount, adj:x.adj, adjNote:x.adjNote,
       net:x.net, paid:x.paid, status:x.status, hasScreenshot:!!x.link, note:dnote,
-      unitPrice:unit, sessions:sess, deducted:deducted, scheduled:sched,
+      unitPrice:unit, sessions:sess, deducted:deducted, scheduled:sched, custom:isCustom,
       active:(x.status==="已繳"||x.status==="豁免")};
   });
 }
