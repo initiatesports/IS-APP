@@ -1125,7 +1125,14 @@ function apiMakeup(p){
     var fb=readBlock(p.fromKey), fst=fb.status[p.name]||[], fd=fb.dates, lv=[];
     fst.forEach(function(s,i){ if(s==="請假") lv.push(fd[i]); });
     lv.sort();
-    var madeUp=makeupUniq_().filter(function(m){ return m.name===p.name && m.from===p.fromKey; }).length;
+    // madeUp 要同前端 owed(mk4real) 一致：剔走由 #11 遷移嘅「已補」歷史補堂（madeUpDate 對應 #11 absence、
+    // to 為本班/空）。否則歷史補堂會誤當佔咗本班待補額，令真正待補（如新一次請假）申請被拒（羅靖誼個案）。
+    var done11D={}; is11_().abs.forEach(function(a){ if(a.name===p.name && a.cid===p.fromKey && a.madeUpDate) done11D[a.madeUpDate]=true; });
+    var madeUp=makeupUniq_().filter(function(m){
+      if(m.name!==p.name || m.from!==p.fromKey) return false;
+      var migratedDone = done11D[m.date] && (!m.to || m.to===p.fromKey || m.to===m.from);
+      return !migratedDone;
+    }).length;
     if(madeUp>=lv.length) return {ok:false,err:"此班暫無待補堂節數"};
     var absDate=lv[madeUp], dl=effDeadline_(p.name, p.fromKey, absDate);
     if(date>dl) return {ok:false,err:"已超過補堂限期：須於 "+dl+" 或之前補堂"};
