@@ -983,12 +983,20 @@ function classesFor_(nm){
       var migratedDone = done11Dates[m.date] && (!m.to || m.to===cid || m.to===m.from);
       return !migratedDone;
     });
-    var mkInfo=done11.map(function(a){ return {to:cid, date:a.madeUpDate, status:"出席"}; })
+    var mkInfo=done11.map(function(a){ return {to:cid, date:a.madeUpDate, status:"出席", from:a.absDate}; })   // #11 已補：確實知道原請假日
       .concat(mk4real.map(function(m){
         var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
         var stt = onGrid ? (makeupStatus(m.to,nm,m.date)||"補堂") : (m.status||"補堂");
-        return {to:m.to, date:m.date, status:stt};
+        return {to:m.to, date:m.date, status:stt, from:""};   // 下面按順序配對原請假日
       }));
+    // 為新預約補堂(mk4real)配對原請假日：本班未被 #11 已補佔用嘅請假，按時間最舊先補（與 apiMakeup 一致）
+    var doneAbsSet={}; done11.forEach(function(a){ doneAbsSet[a.absDate]=true; });
+    var leaveDates=[];
+    abs11.forEach(function(a){ if(!a.madeUpDate && !doneAbsSet[a.absDate] && leaveDates.indexOf(a.absDate)<0) leaveDates.push(a.absDate); });
+    st.forEach(function(s,i){ if(s==="請假"){ var dd=blk.dates[i]; if(!doneAbsSet[dd] && leaveDates.indexOf(dd)<0) leaveDates.push(dd); } });
+    leaveDates.sort();
+    mkInfo.filter(function(x){ return !x.from; }).sort(function(a,b){ return a.date<b.date?-1:1; })
+      .forEach(function(x,i){ x.from=leaveDates[i]||""; });
     var mkAtt=mkInfo.filter(function(x){ return x.status==="出席"; }).length;
     var sessions=blk.dates.map(function(d,i){ return {date:d, status:st[i]||""}; });
     var deadline=blk.dates.length? blk.dates[blk.dates.length-1] : "";
