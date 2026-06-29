@@ -2817,6 +2817,7 @@ function dataIntegrityCheck_(){
     feeRows_().forEach(function(f){
       if(f.status==="已繳"||f.status==="豁免") return;            // 已繳/豁免唔郁
       if(f.period!==curL && f.period!==nextL) return;             // 只查本期＋下期
+      if((CUSTOM_FEE[f.period]||{})[f.name]) return;             // 特別安排固定學費（CUSTOM_FEE）→ 唔用標準重算對賬（如周莉晶跨班 $1040）
       var dd=periodFeeDetail_(f.name, f.period); if(!dd) return;
       var disc=referralAutoDisc_(f.name, dd.base, 0), credit=creditsFor_(f.name, f.period);
       var expNet=Math.max(0, dd.base - disc + (dd.extraTot - credit));
