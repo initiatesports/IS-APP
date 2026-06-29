@@ -280,8 +280,9 @@ function cfRule(range,txt,bg,fc){
 
 /* ---------- 讀寫格仔 ---------- */
 function readBlock(sport,wd){
-  var sh=SS().getSheetByName(gridName(sport,wd));
-  var dates=sessionsFor(wd), n=dates.length, students=ROSTER[sport][wd];
+  var dates=sessionsFor(wd), n=dates.length, students=(ROSTER[sport]&&ROSTER[sport][wd])||null;
+  var sh=(SPORT[sport])?SS().getSheetByName(gridName(sport,wd)):null;
+  if(!students || !sh) return {dates:dates,n:n,students:students||[],status:{}};   // 班已由 ROSTER 移除／格已刪 → 回空 block，唔再 throw
   var vals=sh.getRange(DATA_START,NAME_COL,students.length,1+n).getValues();
   var map={};
   for(var i=0;i<students.length;i++){ map[String(vals[i][0])]=vals[i].slice(1).map(function(x){return String(x||"");}); }
@@ -363,7 +364,7 @@ function rosterRows(){ var sh=SS().getSheetByName("Roster");
   if(sh.getLastRow()<2) return [];
   return sh.getRange(2,1,sh.getLastRow()-1,5).getValues()
     .map(function(r){return {name:String(r[0]).trim(),last4:String(r[1]),sport:r[2],wd:String(r[3]),time:r[4]};})
-    .filter(function(r){return r.name;}); }
+    .filter(function(r){return r.name && ROSTER[r.sport] && ROSTER[r.sport][r.wd];}); }   // 只認 ROSTER const 仍有嘅班；已移除嘅班（如運動體能）舊 Roster 行自動忽略，login/檢查/readBlock 全部唔再撞
 function makeupSheet(){ return SS().getSheetByName("補堂"); }
 // 把任何日期值(Date 物件 / 文字 / 帶時間)一律正規化成 yyyy-MM-dd 文字
 function toIso_(v){
