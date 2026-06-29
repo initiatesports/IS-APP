@@ -617,8 +617,15 @@ function classCard(child,ki,c,ci){
           const done=m.status==='出席';
           const canEdit=(m.date>=today && m.status!=='出席' && m.status!=='缺席');
           const lbl=done?t('attendedS'):(m.status==='缺席'?t('absentS'):t('pendingS'));
-          return `<div class="row"><span>${t('mkToShort')} ${classLabel(m.to)}・${fmt(d)}${dow(d)}</span><span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700">${lbl}</span></div>`
-            + (canEdit?`<div style="display:flex;gap:8px;margin:2px 0 6px">
+          const fromD=m.from?new Date(m.from+'T00:00:00'):null;   // 原請假嗰節
+          return `<div style="padding:4px 0">
+              ${fromD?`<div style="font-size:12px;color:var(--amber);font-weight:600">📅 ${fmt(fromD)}${dow(fromD)} ${t('leaveTag')}</div>`:''}
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2)">
+                <span>${fromD?'↳ ':''}${t('mkToShort')} ${classLabel(m.to)}・${fmt(d)}${dow(d)}</span>
+                <span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700;white-space:nowrap;margin-left:8px">${lbl}</span>
+              </div>
+            </div>`
+            + (canEdit?`<div style="display:flex;gap:8px;margin:0 0 6px">
                 <button class="btn ghost sm" style="flex:1" onclick="rescheduleMakeup(${ki},${ci},'${m.to}','${m.date}')">🔁 ${t('reschedMk')}</button>
                 <button class="btn ghost sm" style="flex:1" onclick="cancelOneMakeup(${ki},${ci},'${m.to}','${m.date}')">✕ ${t('cancelOne')}</button>
               </div>`:'');
