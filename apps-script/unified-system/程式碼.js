@@ -2273,7 +2273,10 @@ function apiDaily(p){
     if(sessionsFor(cid).indexOf(date)<0) return;
     var full=readFull(cid), di=full.dates.indexOf(date), c=CLASSES[cid];
     var g={c:{sport:cid, key:cid, wd:c.dayZh, dayZh:c.dayZh, time:c.time}, rows:[]};
-    full.students.forEach(function(nm){ g.rows.push({name:nm, makeup:false, status:(full.reg[nm]||[])[di]||""}); });
+    full.students.forEach(function(nm){
+      var ji=joinIso_(nm); if(ji && String(date)<ji) return;   // 未到入班日（STUDENT_JOIN）→ 唔喺點名表出現（如黃玥晴 7/1 前唔顯示喺 c1）
+      g.rows.push({name:nm, makeup:false, status:(full.reg[nm]||[])[di]||""});
+    });
     full.mk.forEach(function(x){ if(x.statuses[di]) g.rows.push({name:x.name, makeup:true, status:x.statuses[di]}); });
     groups[cid]=g;
   });
