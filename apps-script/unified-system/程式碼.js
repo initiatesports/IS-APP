@@ -920,6 +920,7 @@ function route(p){
     // ── 上課地點 ──
     case "setVenue":        return apiSetVenue(p);
     case "venuesAdmin":     return apiVenuesAdmin(p);
+    case "weeklyText":      return apiWeeklyText(p);
     // ── 匯出 ──
     case "export":          return apiExport(p);
     // ── 加操 ──
@@ -1787,6 +1788,34 @@ function apiSetVenue(p){
   if(hit){ sh.getRange(hit.row,1,1,4).setValues([[date,centre,room,nowStamp_()]]); }
   else { var nr=sh.getLastRow()+1; sh.getRange(nr,1).setNumberFormat("@"); sh.getRange(nr,1,1,4).setValues([[date,centre,room,nowStamp_()]]); }
   return {ok:true};
+}
+function addDaysIso_(iso,n){ var d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return Utilities.formatDate(d, tz(), "yyyy-MM-dd"); }
+function timeStartHour_(s){ s=String(s||""); var m=s.match(/(\d+)\s*(am|pm)?/i); if(!m) return 0; var h=Number(m[1]), ap=(m[2]||"").toLowerCase();
+  if(ap==="pm"&&h<12) h+=12; else if(ap==="am"&&h===12) h=0; else if(!ap && /pm/i.test(s) && h<8) h+=12; return h; }
+// 一鍵生成 WhatsApp 文案：列出未來 days 日內每個上課日（日期＋地點＋場地＋各班時間），假期標取消。
+function apiWeeklyText(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var days=Number(p.days)||10, today=todayIso(), end=addDaysIso_(today,days), vmap=venueMap_(), hol=holidaysSet();
+  var WDZH=["日","一","二","三","四","五","六"], byDate={};
+  CLASS_IDS.forEach(function(cid){
+    sessionsFor(cid).forEach(function(d){ if(d>=today && d<=end){ (byDate[d]=byDate[d]||[]).push({time:CLASSES[cid].time, h:timeStartHour_(CLASSES[cid].time)}); } });
+  });
+  var holDates={};
+  Object.keys(hol).forEach(function(d){
+    if(d<today || d>end) return;
+    var wd=new Date(d+"T00:00:00").getDay();
+    if(CLASS_IDS.some(function(cid){return CLASSES[cid].wd===wd;}) && d>=CONFIG.TERM_START && d<=CONFIG.TERM_END) holDates[d]=1;
+  });
+  var all={}; Object.keys(byDate).forEach(function(d){all[d]=1;}); Object.keys(holDates).forEach(function(d){all[d]=1;});
+  var out=Object.keys(all).sort().map(function(d){
+    var dt=new Date(d+"T00:00:00"), head=dt.getDate()+"/"+(dt.getMonth()+1)+"（"+WDZH[dt.getDay()]+"）";
+    if(holDates[d] && !byDate[d]) return head+"\n❗公眾假期，所有課堂取消❗";
+    var v=vmap[d], times=(byDate[d]||[]).sort(function(a,b){return a.h-b.h;}).map(function(x){return x.time;}).join(" & ");
+    var centreLine = (v&&v.centre) ? (v.centre==="青衣體育館"?v.centre:("❗"+v.centre+"❗")) : "（地點待定）";
+    var roomLine = (v&&v.room) ? (v.room+"："+times) : times;
+    return head+"\n"+centreLine+"\n"+roomLine;
+  });
+  return {ok:true, text: out.join("\n\n"), count: out.length};
 }
 function apiVenuesAdmin(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
