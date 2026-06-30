@@ -431,6 +431,9 @@ function route(p){
     case "dailyList": return apiDaily(p);
     case "markAttendance": return apiMark(p);
     case "cancelDay": return apiCancelDay(p);
+    case "setVenue": return apiSetVenue(p);
+    case "venuesAdmin": return apiVenuesAdmin(p);
+    case "weeklyText": return apiWeeklyText(p);
     default: return {ok:false,err:"unknown action"};
   }
 }
@@ -529,7 +532,57 @@ function apiLogin(p){
   // 向後兼容：保留 student/classes（第一個小朋友）。一律回傳家庭鍵＝電話後4位（fam），
   // 令前端之後嘅操作（authParent_）用後4位驗證，即使今次用自訂密碼登入亦正常。
   return {ok:true, family:{last4:fam}, children:children,
+    venues:venueMap_(),
     student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[]};
+}
+/* ═══════════ 上課地點（場地）：教練設定，家長端每節顯示；一鍵生成 WhatsApp 文案 ═══════════ */
+function venueSheet_(){
+  var sh=SS().getSheetByName("場地");
+  if(!sh){ sh=SS().insertSheet("場地"); sh.appendRow(["日期","體育館","場地","更新時間"]); sh.getRange("A:A").setNumberFormat("@"); }
+  return sh;
+}
+function venueRows_(){
+  var sh=venueSheet_(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,4).getValues().map(function(r,i){
+    return {row:i+2, date:toIso_(r[0]), centre:String(r[1]||"").trim(), room:String(r[2]||"").trim(), at:String(r[3]||"")};
+  }).filter(function(x){ return x.date; });
+}
+function venueMap_(){ var m={}; venueRows_().forEach(function(v){ if(v.centre||v.room) m[v.date]={centre:v.centre, room:v.room}; }); return m; }
+function nowStamp9_(){ return Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm"); }
+function todayIso9_(){ return Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
+function addDaysIso9_(isoStr,n){ var d=new Date(isoStr+"T00:00:00"); d.setDate(d.getDate()+n); return Utilities.formatDate(d, SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
+function apiSetVenue(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var date=toIso_(p.date); if(!date) return {ok:false,err:"請揀日期"};
+  var centre=String(p.centre||"").trim(), room=String(p.room||"").trim();
+  var sh=venueSheet_(), hit=null;
+  venueRows_().forEach(function(v){ if(v.date===date) hit=v; });
+  if(!centre && !room){ if(hit) sh.deleteRow(hit.row); return {ok:true, cleared:true}; }
+  if(hit){ sh.getRange(hit.row,1,1,4).setValues([[date,centre,room,nowStamp9_()]]); }
+  else { var nr=sh.getLastRow()+1; sh.getRange(nr,1).setNumberFormat("@"); sh.getRange(nr,1,1,4).setValues([[date,centre,room,nowStamp9_()]]); }
+  return {ok:true};
+}
+function apiVenuesAdmin(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, venues:venueRows_().filter(function(v){return v.centre||v.room;}).sort(function(a,b){return a.date<b.date?1:-1;})};
+}
+// 一鍵生成 WhatsApp 文案：未來 days 日內每個暑期上課日（日期＋地點＋場地＋各運動時間）
+function apiWeeklyText(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var days=Number(p.days)||10, today=todayIso9_(), end=addDaysIso9_(today,days), vmap=venueMap_();
+  var WDZH=["日","一","二","三","四","五","六"], byDate={};
+  Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
+    var time=TIMES[sp+"|"+wd]||"";
+    sessionsFor(wd).forEach(function(d){ if(d>=today && d<=end){ (byDate[d]=byDate[d]||[]).push({sport:(SPORT[sp]&&SPORT[sp].name)||sp, time:time}); } });
+  });});
+  var out=Object.keys(byDate).sort().map(function(d){
+    var dt=new Date(d+"T00:00:00"), head=dt.getDate()+"/"+(dt.getMonth()+1)+"（"+WDZH[dt.getDay()]+"）";
+    var v=vmap[d];
+    var lines=byDate[d].sort(function(a,b){return (a.time||"")<(b.time||"")?-1:1;}).map(function(x){ return x.sport+"："+x.time; });
+    var centreLine = (v&&v.centre) ? (v.centre==="青衣體育館"?v.centre:("❗"+v.centre+"❗")) : "（地點待定）";
+    return head+"\n"+centreLine+(v&&v.room?("\n"+v.room):"")+"\n"+lines.join("\n");
+  });
+  return {ok:true, text: out.join("\n\n"), count: out.length};
 }
 
 // 家長操作權限：須附家庭登入碼（手機後4位 或 恆常班自訂密碼），且該學生屬於該家庭，方可操作（防冒名）
