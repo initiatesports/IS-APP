@@ -426,6 +426,18 @@ function showReceipt(title, lines, waText){
     <div style="height:10px"></div>
     <button class="btn ghost" onclick="closeSheet()">完成</button>`);
 }
+// 請假成功 receipt：附「即刻揀補堂 / 稍後再決定」兩個掣，慳家長一步
+function showLeaveReceipt(title, lines, waText, ki, ci){
+  openSheet(`<h2>${title}</h2>
+    <div class="receipt">${lines.map(l=>`<div class="rc-row">${l}</div>`).join("")}</div>
+    <div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(27,141,155,.09)">
+      <div style="font-weight:700;text-align:center;color:#1b8d9b;font-size:14px">要而家就約補堂嗎？</div>
+      <div style="font-size:12.5px;text-align:center;color:#667;margin:5px 0 11px">呢堂可以補返。你可以即刻揀時間，或者遲啲先約。</div>
+      <button class="btn" style="width:100%;margin-bottom:8px" onclick="closeSheet();openMakeup(${ki},${ci})">🗓️ 即刻揀補堂時間</button>
+      <button class="btn ghost" style="width:100%" onclick="closeSheet()">稍後再決定</button>
+    </div>
+    <a class="btn wa" href="${waLink(waText)}" target="_blank" rel="noopener" style="margin-top:8px">📲 WhatsApp 通知張 Sir</a>`);
+}
 
 /* ---------- 系統健康檢查（用 POST ping，最可靠） ---------- */
 function setHealth(txt,color){ S.health={txt,color};
@@ -721,12 +733,12 @@ async function submitLeave(){
   closeSheet(); await refresh();
   if(fail){ toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
   const ds=LF.dates.map(d=>fmt(new Date(d+"T00:00:00"))).join("、");
-  showReceipt("✅ 已提交請假", [
+  showLeaveReceipt("✅ 已提交請假", [
     `小朋友：<b>${child.name}</b>`,
     `班別：${SPORT[c.sport].name}（星期${c.wd}）`,
     `日期：${ds}（${LF.dates.length} 堂）`,
     `假別：${LF.type}`
-  ], `INITIATE 請假申請\n小朋友：${child.name}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`);
+  ], `INITIATE 請假申請\n小朋友：${child.name}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
 }
 
 /* ---------- 取消請假 ---------- */
