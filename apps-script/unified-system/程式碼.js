@@ -917,6 +917,9 @@ function route(p){
     case "addNotice":       return apiAddNotice(p);
     case "notices":         return apiNotices(p);
     case "deleteNotice":    return apiDeleteNotice(p);
+    // ── 上課地點 ──
+    case "setVenue":        return apiSetVenue(p);
+    case "venuesAdmin":     return apiVenuesAdmin(p);
     // ── 匯出 ──
     case "export":          return apiExport(p);
     // ── 加操 ──
@@ -1069,6 +1072,7 @@ function apiLogin(p){
   return {ok:true, family:{last4:fam, hasPin:!!pinFor_(fam)}, children:children,
     student:{name:nm,last4:fam}, classes:children.length?children[0].classes:[],
     payNumber:CONFIG.PAY_NUMBER, notices:noticesRecent_(6), summerBridge:summerBridgeOn_(),
+    venues:venueMap_(),
     retFees:{f1:RET_FEE_1, f2:RET_FEE_2}, nextPeriod:nextPeriodLabel_()};
 }
 
@@ -1757,6 +1761,36 @@ function noticesRecent_(n){
   }).filter(function(x){ return x.text; });
   all.reverse();   // 最新喺前
   return n?all.slice(0,n):all;
+}
+/* ═══════════ 上課地點（場地）：教練按日期設定，家長端每節顯示 ═══════════ */
+function venueSheet_(){
+  var sh=SS().getSheetByName("場地");
+  if(!sh){ sh=SS().insertSheet("場地"); sh.appendRow(["日期","體育館","場地","更新時間"]); sh.getRange("A:A").setNumberFormat("@"); }
+  return sh;
+}
+function venueRows_(){
+  var sh=venueSheet_(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,4).getValues().map(function(r,i){
+    return {row:i+2, date:toIso_(r[0]), centre:String(r[1]||"").trim(), room:String(r[2]||"").trim(), at:String(r[3]||"")};
+  }).filter(function(x){ return x.date; });
+}
+function venueMap_(){
+  var m={}; venueRows_().forEach(function(v){ if(v.centre||v.room) m[v.date]={centre:v.centre, room:v.room}; }); return m;
+}
+function apiSetVenue(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var date=toIso_(p.date); if(!date) return {ok:false,err:"請揀日期"};
+  var centre=String(p.centre||"").trim(), room=String(p.room||"").trim();
+  var sh=venueSheet_(), hit=null;
+  venueRows_().forEach(function(v){ if(v.date===date) hit=v; });
+  if(!centre && !room){ if(hit) sh.deleteRow(hit.row); return {ok:true, cleared:true}; }   // 兩個都空＝清除該日
+  if(hit){ sh.getRange(hit.row,1,1,4).setValues([[date,centre,room,nowStamp_()]]); }
+  else { var nr=sh.getLastRow()+1; sh.getRange(nr,1).setNumberFormat("@"); sh.getRange(nr,1,1,4).setValues([[date,centre,room,nowStamp_()]]); }
+  return {ok:true};
+}
+function apiVenuesAdmin(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, venues:venueRows_().filter(function(v){return v.centre||v.room;}).sort(function(a,b){return a.date<b.date?1:-1;})};
 }
 function apiAddNotice(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};

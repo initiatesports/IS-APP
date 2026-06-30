@@ -93,7 +93,9 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .rowbtns{display:flex;gap:8px;}
 .sess{display:flex;justify-content:space-between;align-items:center;padding:7px 2px;font-size:13px;border-bottom:1px solid var(--border);}
 .sess:last-child{border-bottom:none;}
+.sess{align-items:flex-start;}
 .sess .d{color:var(--ink2);} .sess .dow{color:var(--muted);font-size:11px;}
+.sess .vn{font-size:11.5px;color:var(--teal-dark);font-weight:600;margin-top:2px;}
 .pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;}
 .p-up{background:var(--surface2);color:var(--muted);}
 .p-leave{background:var(--amber-dim);color:var(--amber);}
@@ -460,7 +462,7 @@ async function doLogin(){
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||'';
+  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{};
   try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,t:Date.now()})); }catch(e){}
   $('logout-btn').style.display='block';
   renderParent();
@@ -478,7 +480,7 @@ function openSummer(){
 async function refresh(){
   if(!S.family) return;
   const r=await api('login',{name:S.family.authName,last4:S.family.last4});
-  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; if(r.payNumber)S.payNumber=r.payNumber; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; renderParent(); }
+  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; if(r.payNumber)S.payNumber=r.payNumber; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.venues=r.venues||S.venues||{}; renderParent(); }
 }
 
 /* ═══════════ 家長主頁 ═══════════ */
@@ -668,7 +670,9 @@ function sessRow(s){
   else if(s.status==='停課')pill=`<span class="pill p-cancel">${L('停課','Cancelled')}</span>`;
   else if(s.status==='豁免')pill=`<span class="pill p-cancel">${L('豁免','Exempt')}</span>`;
   else if(d<today)pill=`<span class="pill p-up">${L('已過','Past')}</span>`;
-  return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span></span>${pill}</div>`;
+  const v=(S.venues||{})[s.date];
+  const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
+  return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span>${vLine}</span>${pill}</div>`;
 }
 function socialCard(){
   const ig='https://www.instagram.com/initiate_sports.2023';
