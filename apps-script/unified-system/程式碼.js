@@ -901,6 +901,7 @@ function route(p){
     case "applyRosterChanges": return apiApplyRosterChanges(p);
     case "recoverPayments": return apiRecoverPayments(p);
     case "setMakeupDeadline": return apiSetMakeupDeadline(p);
+    case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
@@ -2776,6 +2777,29 @@ function probeOk_(url, expect){
   }
   return {ok:false, why:lastBad};
 }
+// 並行探測多個 URL（fetchAll 一次過併發），失敗者隔 2.5 秒再批量重試一次（避開偶發 blip）。
+// 取代逐個 probeOk_ 順序等待，把 13 個探測由「逐個累加」變「兩輪併發」，大幅減省健康檢查時間。
+function probeJudge_(r, expect){
+  if(!r) return "連線失敗";
+  var code; try{ code=r.getResponseCode(); }catch(e){ return "連線失敗"; }
+  if(code!==200) return "HTTP "+code;
+  if(expect){ try{ if(r.getContentText().indexOf(expect)<0) return "回應異常（缺「"+expect+"」）"; }catch(e){ return "讀內容失敗"; } }
+  return null;
+}
+function probeBatch_(items){
+  var out=[];
+  function run(list){
+    var reqs=list.map(function(it){ return {url:it.url, muteHttpExceptions:true, followRedirects:true}; });
+    var res; try{ res=UrlFetchApp.fetchAll(reqs); }catch(e){ res=[]; }
+    var fail=[];
+    list.forEach(function(it,i){ var bad=probeJudge_(res[i], it.expect); if(bad){ it._bad=bad; fail.push(it); } });
+    return fail;
+  }
+  var fail=run(items);
+  if(fail.length){ Utilities.sleep(2500); fail=run(fail); }   // 失敗者再批量重試一次
+  fail.forEach(function(it){ out.push(it.name+" → "+it._bad); });
+  return out;
+}
 // ═══════ 全面資料完整性檢查（直接掃 Sheet，唔靠登入）═══════
 // 覆蓋：grid 姓名(空白/對唔上名冊/重複)、補堂區不明姓名、缺日期欄、非法狀態、未來誤標出席、
 //       #11/補堂表別字、學費負數、私訓超期/未來。回傳問題陣列。
@@ -2928,14 +2952,11 @@ function apiHealth(p){
 }
 function runHealthChecks_(sendEmail){
   var problems=[], _t0=new Date();
-  HEALTH_BACKENDS.forEach(function(e){
-    var p=probeOk_(e.url, e.expect);
-    if(!p.ok) problems.push("後端 "+e.name+" → "+p.why);
-  });
-  HEALTH_PAGES.forEach(function(pg){
-    var p=probeOk_(pg.url, pg.expect);
-    if(!p.ok) problems.push("前端 "+pg.url+" → "+p.why);
-  });
+  // 並行探測所有後端 /exec + 前端頁（fetchAll 併發，取代逐個順序等待）
+  probeBatch_(
+    HEALTH_BACKENDS.map(function(e){ return {name:"後端 "+e.name, url:e.url, expect:e.expect}; })
+    .concat(HEALTH_PAGES.map(function(pg){ return {name:"前端 "+pg.url, url:pg.url, expect:pg.expect}; }))
+  ).forEach(function(x){ problems.push(x); });
   // 暑期 #9 深層資料完整性（跨後端匯總；#9 health 只回摘要、無學生姓名）
   try{
     var IS9="https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
@@ -2949,8 +2970,11 @@ function runHealthChecks_(sendEmail){
   // 功能層 smoke test（後端核心 / 家長端 / 教練端）
   try{ functionalCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("功能檢查出錯："+e); }
-  // 寫入鏈自我測試（示範帳號全流程，抑制 email、完成即清）
-  try{ writePathCheck_().forEach(function(x){ problems.push(x); }); }
+  // 寫入鏈自我測試（示範帳號全流程，抑制 email、完成即清）；最重，若前面已耗時過多就今次略過免超時
+  try{
+    if((new Date()-_t0)/1000 < 210){ writePathCheck_().forEach(function(x){ problems.push(x); }); }
+    else { Logger.log("健康檢查：已耗時過多，本次略過寫入鏈自我測試（防超時）"); }
+  }
   catch(e){ problems.push("寫入測試出錯："+e); }
   // 系統運維（觸發器 / 備份新鮮度 / 資料量）
   try{ opsHealthCheck_().forEach(function(x){ problems.push(x); }); }
@@ -3213,6 +3237,11 @@ function cleanupDupMakeup(){
   dupRows.forEach(function(r){ M.deleteRow(r); });
   Logger.log("清理重複補堂行：刪除 "+dupRows.length+" 行，保留 "+kept+" 筆唯一補堂");
   return {removed:dupRows.length, kept:kept};
+}
+// 遠端觸發補堂表去重（coachPass 守護，內部已先備份到 Drive＋sheet）
+function apiCleanupDupMakeup(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, result:cleanupDupMakeup()};
 }
 function cleanupDupMakeupMenu(){
   var r=cleanupDupMakeup();
