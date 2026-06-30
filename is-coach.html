@@ -176,10 +176,64 @@ function renderMain(){
       <button class="mini" onclick="load()">↻</button>
     </div>
     <button class="wxbtn" onclick="weatherCancel()">🌧 天氣停課（當日全部）</button>
+    <div id="venuePanel" style="margin:0 0 14px"></div>
     <div class="daysum" id="sum"></div>
     <div id="list"></div></div>`;
   $("#d").addEventListener("change",e=>{S.date=e.target.value;load();});
-  load();
+  load(); renderVenuePanel();
+}
+const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所'];
+const VN_ROOMS=['活動室','舞蹈室','壁球室','羽毛球場','主場館'];
+function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
+async function renderVenuePanel(){
+  const host=$("#venuePanel"); if(!host) return;
+  let r; try{ r=await api("venuesAdmin"); }catch(e){ r=null; }
+  const vs=(r&&r.ok&&r.venues)?r.venues:[];
+  const inS='width:100%;padding:10px;border-radius:9px;border:1px solid var(--line,#ddd);font-size:14px;margin-bottom:8px;font-family:inherit';
+  const cOpts=VN_CENTRES.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="__other">其他（自己填）</option>`;
+  const rOpts=VN_ROOMS.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="__other">其他（自己填）</option>`;
+  let html=`<div style="border:1px solid var(--line,#e3e3e3);border-radius:14px;padding:13px;background:var(--card,#fff)">
+    <div style="font-weight:700;font-size:15px;margin-bottom:9px">📍 上課地點（家長端會見到）</div>
+    <input type="date" id="vn-date" value="${S.date}" style="${inS}">
+    <select id="vn-centre" onchange="vnToggle('centre')" style="${inS}">${cOpts}</select>
+    <input id="vn-centre-o" placeholder="體育館名" style="display:none;${inS}">
+    <select id="vn-room" onchange="vnToggle('room')" style="${inS}">${rOpts}</select>
+    <input id="vn-room-o" placeholder="場地名" style="display:none;${inS}">
+    <button class="mini" style="width:100%;padding:11px" onclick="postVenue()">設定地點</button>
+    <button class="mini" style="width:100%;padding:11px;margin-top:8px;background:#25D366;color:#053b22;font-weight:700" onclick="genWhatsApp()">📋 一鍵生成 WhatsApp 文案</button>
+    <textarea id="vn-wa" readonly placeholder="撳上面個掣生成，跟住複製去 WhatsApp group" style="display:none;${inS};min-height:170px;margin-top:8px;white-space:pre-wrap;line-height:1.5"></textarea>
+    <button id="vn-wa-copy" style="display:none;width:100%;margin-top:6px;padding:11px;border-radius:9px;border:1px solid #bbb;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" onclick="copyWa()">📄 複製文案</button>`;
+  if(vs.length){
+    html+=`<div style="margin-top:10px;border-top:1px solid var(--line,#eee);padding-top:8px">`+vs.map(v=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:4px 0">
+        <span>📍 <b>${vnEsc(v.centre)}</b>${v.room?'・'+vnEsc(v.room):''} <span style="color:#888">${v.date}</span></span>
+        <button class="mini" style="padding:5px 9px;font-size:12px" onclick="delVenue('${v.date}')">清除</button></div>`).join('')+`</div>`;
+  }
+  host.innerHTML=html+`</div>`;
+}
+function vnToggle(which){ const sel=$("#vn-"+which), o=$("#vn-"+which+"-o"); if(o) o.style.display=sel.value==='__other'?'block':'none'; }
+function vnVal(which){ const sel=$("#vn-"+which); return sel.value==='__other'?($("#vn-"+which+"-o").value||'').trim():sel.value; }
+async function postVenue(){
+  const date=$("#vn-date").value; if(!date){ alert('請揀日期'); return; }
+  let r; try{ r=await api("setVenue",{date,centre:vnVal('centre'),room:vnVal('room')}); }catch(e){ r=null; }
+  if(r&&r.ok){ renderVenuePanel(); } else alert((r&&r.err)||'設定失敗');
+}
+async function delVenue(date){
+  if(!confirm('清除 '+date+' 嘅地點？')) return;
+  let r; try{ r=await api("setVenue",{date,centre:'',room:''}); }catch(e){ r=null; }
+  if(r&&r.ok) renderVenuePanel();
+}
+async function genWhatsApp(){
+  let r; try{ r=await api("weeklyText",{days:10}); }catch(e){ r=null; }
+  if(!(r&&r.ok)){ alert('生成失敗'); return; }
+  const ta=$("#vn-wa"); ta.value=(r.text&&r.text.trim())?r.text:'未來 10 日內暫無排定課堂'; ta.style.display='block';
+  const cp=$("#vn-wa-copy"); if(cp) cp.style.display='block';
+}
+function copyWa(){
+  const ta=$("#vn-wa"); if(!ta) return; ta.focus(); ta.select();
+  const ok=()=>{ const b=$("#vn-wa-copy"); if(b){ const o=b.textContent; b.textContent='✓ 已複製'; setTimeout(()=>b.textContent=o,1500);} };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(ok).catch(()=>{try{document.execCommand('copy');ok();}catch(e){}});
+  else { try{document.execCommand('copy');ok();}catch(e){} }
 }
 function setToday(){S.date=todayIso();$("#d").value=S.date;load();}
 async function load(){

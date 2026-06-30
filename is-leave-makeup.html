@@ -105,6 +105,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .sess{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--line)}
 .sess:first-of-type{border-top:none}
 .sess .d{font-weight:500;font-size:15px;min-width:74px}
+.sess .vn{font-size:11.5px;color:var(--accent,#1b8d9b);font-weight:600;margin-top:3px;font-family:inherit}
 .sess .dow{color:var(--muted);font-weight:400;font-size:12.5px}
 .pill{margin-left:auto;font-size:12px;font-weight:500;padding:4px 10px;border-radius:99px;white-space:nowrap}
 .p-up{background:#EEF1F4;color:var(--ink2)} .p-go{background:var(--ok-bg);color:var(--ok)}
@@ -498,6 +499,7 @@ async function doLogin(){
   const kids = (r.children&&r.children.length) ? r.children
     : [{name:(r.student&&r.student.name)||name, classes:r.classes||[]}];
   S.family={ authName:name, last4, children:kids };
+  S.venues=r.venues||{};
   S.session={name, last4};            // 保留俾確認碼用
   S.mode="parent"; renderNav(); routeMain();
 }
@@ -659,7 +661,9 @@ function sessRow(s){
   else if(s.status==="缺席") pill=`<span class="pill p-absent">缺席</span>`;
   else if(s.status==="停課") pill=`<span class="pill p-cancel">停課</span>`;
   else if(d<today) pill=`<span class="pill p-up">已過</span>`;
-  return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span></span>${pill}</div>`;
+  const v=(S.venues||{})[s.date];
+  const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
+  return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span>${vLine}</span>${pill}</div>`;
 }
 async function refresh(){
   if(!S.family) return;
