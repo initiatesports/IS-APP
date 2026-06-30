@@ -829,7 +829,7 @@ function renderHome(){
   renderVenueAdmin();
 }
 let VENUES_CACHE=[];
-const VN_CENTRES=['青衣體育館','翠怡花園會所'];
+const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所'];
 const VN_ROOMS=['活動室','舞蹈室','壁球室'];
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
 async function renderVenueAdmin(){
@@ -849,6 +849,9 @@ async function renderVenueAdmin(){
       <select id="vn-room" onchange="vnToggle('room')" style="${inS}">${rOpts}</select>
       <input id="vn-room-o" placeholder="場地名" style="display:none;${inS}">
       <button class="btn-makeup-done" style="width:100%" onclick="postVenue()">設定地點</button>
+      <button class="btn-makeup-done" style="width:100%;margin-top:8px;background:#25D366;border-color:#1da851;color:#053b22" onclick="genWhatsApp()">📋 一鍵生成 WhatsApp 文案</button>
+      <textarea id="vn-wa" readonly placeholder="撳上面個掣生成，跟住複製去 WhatsApp group" style="display:none;${inS};min-height:170px;margin-top:8px;white-space:pre-wrap;line-height:1.5"></textarea>
+      <button id="vn-wa-copy" style="display:none;width:100%;margin-top:6px;padding:11px;border-radius:9px;background:#2b2b2b;color:#eee;border:1px solid #444;font-size:14px;font-weight:700;cursor:pointer" onclick="copyWa()">📄 複製文案</button>
     </div>`;
   if(VENUES_CACHE.length){
     html+=`<div class="class-list">`+VENUES_CACHE.map(v=>`
@@ -874,6 +877,22 @@ async function postVenue(){
   const centre=vnVal('centre'), room=vnVal('room');
   let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, centre, room}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已設定','✓'); renderVenueAdmin(); } else toast((r&&r.err)||'設定失敗','⚠');
+}
+async function genWhatsApp(){
+  let r; try{ r=await apiPost({action:'weeklyText', coachPass:cpass(), days:10}); }catch(e){ r=null; }
+  if(!(r&&r.ok)){ toast('生成失敗','⚠'); return; }
+  const ta=document.getElementById('vn-wa'); if(!ta) return;
+  ta.value=(r.text&&r.text.trim())?r.text:'未來 10 日內暫無排定課堂';
+  ta.style.display='block';
+  const cp=document.getElementById('vn-wa-copy'); if(cp) cp.style.display='block';
+  toast('已生成','✓');
+}
+function copyWa(){
+  const ta=document.getElementById('vn-wa'); if(!ta) return;
+  ta.focus(); ta.select();
+  const done=()=>toast('已複製，貼去 WhatsApp 就得','✓');
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(done).catch(()=>{ try{document.execCommand('copy');done();}catch(e){toast('請長按文字手動複製','⚠');} }); }
+  else { try{document.execCommand('copy');done();}catch(e){toast('請長按文字手動複製','⚠');} }
 }
 async function delVenue(date){
   if(!confirm('清除 '+date+' 嘅地點？')) return;
