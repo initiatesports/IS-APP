@@ -394,6 +394,19 @@ function makeupSlotsFor(sport,wd){
   }
   return [];
 }
+// 某時段字串（"13:00–15:00"）嘅小時數
+function hoursOfTime_(t){
+  var m=String(t||"").match(/(\d+):(\d+)\D+(\d+):(\d+)/); if(!m) return 1;
+  return Math.max(1, Math.round(((Number(m[3])*60+Number(m[4]))-(Number(m[1])*60+Number(m[2])))/60));
+}
+// 每次請假可補嘅「補堂堂數」＝原班時數 ÷ 補堂時段時數。
+// 例：匹克球 五(2小時)→二(1小時)＝2（一次請假可補兩堂）；其餘班同時數 → 1。
+function makeupUnits_(sport,wd){
+  var fromH=hoursOfTime_(TIMES[sport+"|"+wd]);
+  var slots=makeupSlotsFor(sport,wd); if(!slots||!slots.length) return 1;
+  var slotH=hoursOfTime_(slots[0].time||TIMES[slots[0].sport+"|"+slots[0].wd]);
+  return Math.max(1, Math.round(fromH/slotH));
+}
 
 /* ---------- Web App ---------- */
 function doGet(){ return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK"); }
@@ -500,7 +513,7 @@ function classesFor_(nm){
     var deadline=blk.dates.length? blk.dates[blk.dates.length-1] : "";  // 補堂限期＝本班最後一堂
     return {sport:r.sport,wd:r.wd,time:r.time,total:blk.dates.length,
       attended:att+mkAtt, leave:lv, absent:ab,
-      owed:Math.max(0, lv-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline};
+      owed:Math.max(0, lv*makeupUnits_(r.sport,r.wd)-myMk.length), sessions:sessions, makeups:mkInfo, deadline:deadline};
   });
 }
 
@@ -639,7 +652,7 @@ function apiMakeup(p){
   var fblk=readBlock(from.sport,from.wd), fst=fblk.status[p.name]||[], lv=0;
   fst.forEach(function(s){ if(s==="請假") lv++; });
   var booked=makeupAll().filter(function(m){ return m.name===p.name && m.from===p.fromKey; }).length;
-  if(lv-booked<=0) return {ok:false,err:"冇待補堂數，無法補堂"};
+  if(lv*makeupUnits_(from.sport,from.wd)-booked<=0) return {ok:false,err:"冇待補堂數，無法補堂"};
   // (c) 補堂目標必須係此原班嘅合法時段（同項目、指定星期）
   var slots=makeupSlotsFor(from.sport, from.wd), slot=null;
   for(var si=0; si<slots.length; si++){ if(slots[si].sport===to.sport && slots[si].wd===to.wd){ slot=slots[si]; break; } }
