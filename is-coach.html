@@ -120,7 +120,7 @@ async function api(action,p={}){
 }
 /* ---- demo ---- */
 const DEMO_DAY={ "2026-07-16":[
-  {c:{sport:"badminton",wd:"四",time:"10:00–12:00"},rows:[{name:"陳大文"},{name:"王小強"},{name:"李曉晴",makeup:true}]},
+  {c:{sport:"badminton",wd:"四",time:"10:00–12:00"},rows:[{name:"示範學員"},{name:"王小強"},{name:"李曉晴",makeup:true}]},
   {c:{sport:"rope",wd:"四",time:"14:00–15:00"},rows:[{name:"林大明"},{name:"黃小花"},{name:"周小傑"}]},
 ]};
 function demoLog(){try{return JSON.parse(localStorage.getItem("coach_demo")||"[]")}catch(e){return[]}}
