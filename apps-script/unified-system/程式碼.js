@@ -637,6 +637,7 @@ function readBlockMerged_(cid){
 }
 
 function gridMeta(cid){
+  if(!CLASSES[cid]) return {sh:null, dates:[], n:0, students:[], colOf:{}, physN:0, R:0, mkStart:0, physN2:0};   // 防護：無效 cid（如 login-only 空 cid）唔好爆
   var students=CLASSES[cid].students, dates=sessionsFor(cid);
   var sh=SS().getSheetByName(gridName(cid)), colOf={}, physN=0;
   // 讀實體表頭日期 → date(MM/DD)→欄 index，令讀寫一律按「日期」對齊而非「位置」。
@@ -962,7 +963,8 @@ function route(p){
 
 /* ═══════════ 家長：一個小朋友全部班別資料 ═══════════ */
 function classesFor_(nm){
-  var rows=rosterRows().filter(function(r){ return r.name===nm; });
+  // 只處理有效班別嘅名冊行；login-only／可回歸學生 cid 為空 → 跳過（避免 gridMeta("") 爆 undefined.students）
+  var rows=rosterRows().filter(function(r){ return r.name===nm && r.cid && CLASSES[r.cid]; });
   var mk=makeupUniq_().filter(function(m){ return m.name===nm; });
   var dlMap=dlExtMap_();
   var abs11all=is11_().abs;
