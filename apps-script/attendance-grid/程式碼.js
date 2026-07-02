@@ -426,8 +426,16 @@ function purgeStudentData9_(nm){
   out.log    = delRowsByCol_(ss.getSheetByName("Log"),    1, nm);   // 學生 = B欄
   out.makeup = delRowsByCol_(ss.getSheetByName("補堂"),   0, nm);   // 學生 = A欄
   out.roster = delRowsByCol_(ss.getSheetByName("Roster"), 0, nm);   // 姓名 = A欄
+  // 清各班 grid 補堂區殘留（ensureRosterRows_ 只重建缺人嘅班,其餘班嘅 orphan makeup 名唔會清）
+  out.gridMk=0;
+  Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
+    var sh=ss.getSheetByName(gridName(sp,wd)); if(!sh) return;
+    var mkStart=DATA_START+ROSTER[sp][wd].length, lc=sh.getLastColumn();
+    var names=sh.getRange(mkStart,NAME_COL,MK_MAX,1).getValues();
+    for(var j=0;j<MK_MAX;j++){ if(String(names[j][0]||"").trim()===nm){ sh.getRange(mkStart+j,1,1,lc).clearContent(); out.gridMk++; } }
+  });});
   try{ ensureRosterRows_(); }catch(e){}   // 令新 fixture 進 grid、殘留名經 force 重建移走
-  Logger.log("purgeStudentData9_ "+nm+"：Log "+out.log+"、補堂 "+out.makeup+"、Roster "+out.roster+" 行已清");
+  Logger.log("purgeStudentData9_ "+nm+"：Log "+out.log+"、補堂 "+out.makeup+"、Roster "+out.roster+"、grid補堂區 "+out.gridMk+" 行已清");
   return {ok:true, name:nm, removed:out};
 }
 function apiPurgeStudent(p){
