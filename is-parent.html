@@ -199,7 +199,7 @@ const CONFIG = {
   // 注意:此檔為純家長端,沒有教練功能(教練功能喺 coach.html)。不再保留任何寫死密碼。
   EXPECTED_VERSION: 'is-unified-v2',
   WHATSAPP: '85263317403',
-  TERM_START: '2026-02-23', TERM_END: '2026-08-29', MAKEUP_MONTHS: 2,
+  TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
@@ -376,6 +376,11 @@ function termPeriods(){const a=biMonthOf(CONFIG.TERM_START),b=biMonthOf(CONFIG.T
 function currentPeriodIdx(){const t=todayStr();const cp=biMonthOf(t);const ps=termPeriods();return Math.min(Math.max(cp,ps[0]),ps[ps.length-1]);}
 /* 只顯示半年：當前期段 + 前一段 + 後一段（共 3 段 = 6 個月），夾喺學期範圍內 */
 function visiblePeriods(){const ps=termPeriods();if(ps.length<=3)return ps;const cur=currentPeriodIdx();let start=cur-1;const lo=ps[0],hi=ps[ps.length-1];if(start<lo)start=lo;if(start>hi-2)start=hi-2;return [start,start+1,start+2];}
+// 未來期付款開放日＝該期首月前一個月「倒數第二個星期日」（如 9-10月 → 8月倒數第2個禮拜日 2026-08-23）
+function penultSundayISO(y,m){const last=new Date(y,m,0).getDate();const sun=[];for(let d=1;d<=last;d++)if(new Date(y,m-1,d).getDay()===0)sun.push(d);const dd=sun[sun.length-2]||sun[sun.length-1]||1;return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}
+function payOpenDate(idx){const y=Number(CONFIG.TERM_START.slice(0,4));const firstMonth=idx*2+1;const pm=firstMonth-1;if(pm<1)return `${y}-01-01`;return penultSundayISO(y,pm);}
+// 該期付款是否已開放：現期及之前一律開放；未來期要到 payOpenDate 先開放
+function payOpen(idx){return idx<=currentPeriodIdx() ? true : todayStr()>=payOpenDate(idx);}
 /* 小朋友歷史：已出席 / 可補堂(未過期) / 已過期不能補堂 */
 function childHistory(child){
   const t=todayStr(), out={attended:[],makeupable:[],expired:[]};
@@ -602,7 +607,9 @@ function classCard(child,ki,c,ci){
     </div>
     <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}
-    ` : `<div class="banner cancel" style="margin-top:8px">${t('feeLock',periodLabel(S.period))}</div>` }
+    ` : (S.period>currentPeriodIdx() && !payOpen(S.period)
+        ? `<div class="banner" style="margin-top:8px;background:#eef7f8;border-color:#bfe3e7;color:#0a6b74">🗓️ ${periodLabel(S.period)}${LANG==='en'?' schedule ready; payment opens '+fmtDate(payOpenDate(S.period)):' 課堂表已排定；付款將於 '+fmtDate(payOpenDate(S.period))+' 開放'}</div>`
+        : `<div class="banner cancel" style="margin-top:8px">${t('feeLock',periodLabel(S.period))}</div>`) }
     ${(function(){
       const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
@@ -704,6 +711,7 @@ function owedSummary(child){
 function paymentCard(child,ki){
   const L=(zh,en)=>LANG==='en'?en:zh;
   const lbl=periodLabel(S.period);
+  if(!payOpen(S.period)) return '';   // 未來期未到付款開放日（如 9-10月 8/23 前）→ 唔顯示付款功能區
   const f=feeForPeriod(child,S.period);
   if(!f || f.status==='已繳' || f.status==='豁免') return '';   // 已付款／豁免 → 唔顯示付款功能區
   const stMap={'未繳':t('stUnpaid'),'待核實':t('stPending'),'已繳':t('stPaid'),'部分':t('stPartial'),'豁免':t('stExempt')};
