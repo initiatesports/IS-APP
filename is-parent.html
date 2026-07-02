@@ -606,7 +606,8 @@ function classCard(child,ki,c,ci){
     ${(function(){
       const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
-      return `<div style="margin-top:10px">${list.map(s=>sessRow(s,c.key)).join('')}</div>`;
+      const madeUp=new Set((c.makeups||[]).filter(m=>m.status==='出席'&&m.from).map(m=>m.from));
+      return `<div style="margin-top:10px">${list.map(s=>sessRow(s,c.key,madeUp)).join('')}</div>`;
     })()}
     ${(function(){
       const today=todayStr();
@@ -660,11 +661,13 @@ function ptCard(child){
   </div>`;
 }
 function venueAt(date,cid){ const day=(S.venues||{})[date]; if(!day) return null; if(day.centre||day.room) return day; return day[cid]||day._all||null; }
-function sessRow(s,cid){
+function sessRow(s,cid,madeUp){
   const d=new Date(s.date+'T00:00:00'), today=new Date(); today.setHours(0,0,0,0);
   const L=(zh,en)=>LANG==='en'?en:zh;
   let pill=`<span class="pill p-up">${L('未上','Upcoming')}</span>`;
-  if(s.status==='請假')pill=`<span class="pill p-leave">${L('請假','Leave')}</span>`;
+  // 該日已完成補堂（原請假日）→ 一律顯示「已補堂」，統一 grid 誤標（出席/請假）嘅顯示
+  if(madeUp && madeUp.has(s.date))pill=`<span class="pill p-makeup">${L('已補堂','Made up')}</span>`;
+  else if(s.status==='請假')pill=`<span class="pill p-leave">${L('請假','Leave')}</span>`;
   else if(s.status==='補堂')pill=`<span class="pill p-makeup">${L('補堂','Make-up')}</span>`;
   else if(s.status==='出席')pill=`<span class="pill p-go">${L('出席','Present')}</span>`;
   else if(s.status==='缺席')pill=`<span class="pill p-absent">${L('缺席','Absent')}</span>`;
