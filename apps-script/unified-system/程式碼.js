@@ -24,7 +24,7 @@ const CONFIG = {
   COACH_PASS:  PropertiesService.getScriptProperties().getProperty('COACH_PASS') || Utilities.getUuid(),  // 教練密碼:存 Script Properties(key=COACH_PASS),未設定則退回隨機值(fail-closed)
   WHATSAPP:    "85263317403",                   // 家長確認 WhatsApp
   TERM_START:  "2026-02-23",   // 學期窗（週一）；涵蓋現有 3 月資料
-  TERM_END:    "2026-08-31",   // 學期窗結束（含暑期）；08-31 確保星期一班最後一堂(8/31)計入 7-8月（原 08-29 會截走 → c1/c2 少計一堂）
+  TERM_END:    "2026-10-31",   // 學期窗（含暑期+秋季9-10月）；9-10月各班照原星期自動排堂（未設校本假期）；付款區由前端 gate 到 8月倒數第2個禮拜日(2026-08-23)先開放
   MAKEUP_MONTHS: 2,            // 補堂限期 = 缺席日 + N 個月（B 規則）
   REMIND_HOUR: 20,            // 每晚幾點檢查「未完成點名」
   FEE_1: 1040,                // 每週 1 節 / 期（$130×8）
