@@ -824,9 +824,9 @@ function renderHome(){
   document.getElementById('all-classes').innerHTML =
     Object.entries(CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');
 
-  renderDashboard();
-  renderNoticesAdmin();
-  renderVenueAdmin();
+  try{ renderDashboard(); }catch(e){ console.error('renderDashboard',e); }
+  try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }
+  try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
 }
 let VENUES_CACHE=[];
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所'];
@@ -938,6 +938,8 @@ async function delNotice(row){
   if(r&&r.ok){ toast('已刪除','✓'); renderNoticesAdmin(); } else toast('刪除失敗','⚠');
 }
 function daysUntil(d){ if(!d) return 999; const t=new Date(); t.setHours(0,0,0,0); const[y,m,dd]=d.split('-').map(Number); return Math.ceil((new Date(y,m-1,dd)-t)/86400000); }
+// 儀表板字詞（原本用 tx() 但從未定義 → renderDashboard 一直拋錯，令緊接嘅通知／地點面板 render 唔到）
+function tx(k){ return ({dashSoon:'即將到期補堂', daySuffix:'日', dlBy:'限期', dashPerClass:'每班摘要', students:'人', owed:'待補', expiredW:'已過期'})[k]||k; }
 function renderDashboard(){
   const wrap=document.getElementById('home-dashboard'); if(!wrap) return;
   const now=todayStr();
