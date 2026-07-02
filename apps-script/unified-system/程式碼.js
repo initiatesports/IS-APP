@@ -3440,9 +3440,23 @@ function purgeStudentData_(nm){
     var fr=[]; feeRows_().forEach(function(x){ if(x.name===nm) fr.push(x.row); });
     fr.sort(function(a,b){return b-a;}).forEach(function(r){ F.deleteRow(r); }); out.fee=fr.length;
   }
-  Logger.log("purgeStudentData_ "+nm+"：補堂 "+out.makeup+" 行、繳費 "+out.fee+" 行已清");
+  // 清各班 grid 補堂區殘留（applyRosterChanges 曾由舊 snapshot 還原 → 補堂表清咗但 grid 補堂區仲有）
+  out.gridMk=0;
+  CLASS_IDS.forEach(function(cid){
+    var m=gridMeta(cid); if(!m.sh) return;
+    var names=m.sh.getRange(m.mkStart,NAME_COL,MK_MAX,1).getValues();
+    for(var j=0;j<MK_MAX;j++){
+      if(String(names[j][0]||"").trim()===nm){
+        m.sh.getRange(m.mkStart+j, SEQ_COL, 1, 2+m.physN+3).clearContent();   // 清整行(序號+姓名+日期+總結)
+        out.gridMk++;
+      }
+    }
+  });
+  Logger.log("purgeStudentData_ "+nm+"：補堂 "+out.makeup+" 行、繳費 "+out.fee+" 行、grid補堂區 "+out.gridMk+" 行已清");
   return {ok:true, name:nm, removed:out};
 }
+// 全部 CLASSES 名冊學生 → {name:1}（用嚟判斷補堂區殘留/非正式名）
+function allKnownStudents_(){ var k={}; CLASS_IDS.forEach(function(cid){ CLASSES[cid].students.forEach(function(nm){ k[nm]=1; }); }); return k; }
 function apiPurgeStudent(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   return purgeStudentData_(p.name);
@@ -3573,12 +3587,14 @@ function restoreGridBatch_(cid, gridRows){
   var mkNames=sh.getRange(m.mkStart,NAME_COL,MK_MAX,1).getValues(), mkRowByName={}, emptyMkRows=[];
   for(var j=0;j<MK_MAX;j++){ var v=String(mkNames[j][0]||"").trim();
     if(v) mkRowByName[v]=m.mkStart+j; else emptyMkRows.push(m.mkStart+j); }
+  var KNOWN=allKnownStudents_();
   var writes=[], newMk=[];
   gridRows.forEach(function(r){
     var nm=String(r[3]).trim(), st=String(r[5]||""); if(!st) return;
     var off=colOf[mmdd_(toIso_(r[4]))]; if(off==null) return;   // 該日期唔喺 grid 表頭 → 跳過
     var row=rowOf[nm]; if(row==null) row=mkRowByName[nm];
-    if(row==null){ if(!emptyMkRows.length) return; row=emptyMkRows.shift(); mkRowByName[nm]=row; newMk.push({row:row,name:nm}); }
+    if(row==null){ if(!KNOWN[nm]) return;   // 非名冊學生（如已移除嘅陳大文）→ 唔還原到補堂區,防死人復活
+      if(!emptyMkRows.length) return; row=emptyMkRows.shift(); mkRowByName[nm]=row; newMk.push({row:row,name:nm}); }
     writes.push({row:row, off:off, val:st});
   });
   // 新補堂行：序號/姓名/總結公式（清總結欄驗證，免 COUNTIF 撞驗證）
