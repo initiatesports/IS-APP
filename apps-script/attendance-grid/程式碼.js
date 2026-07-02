@@ -36,7 +36,7 @@ const SCHED_OVR = { "六":{start:"2026-07-04", n:9} };
 const ROSTER = {
   badminton:{ "二":["蔡思言","梁心朗","吳瑋軒","黎柏希","黎柏言","葉天麒"],
               "三":["王韻喬","易晞渝","蔡芷彤","羅芷晴","潘洛詩","蔣佩琪","何諾軒"],
-              "四":["張爾淳","張雅堯","劉鎮碩","劉家頤","方鎮浩","鄧可澄","陳大文"] },
+              "四":["張爾淳","張雅堯","劉鎮碩","劉家頤","方鎮浩","鄧可澄","示範學員"] },
   basketball:{"三":["張爾淳","張雅堯","甘卓熹","羅天佑","方鎮浩","曾衍霖","黃梓昕","方鎂恩"]},
   gym:{ "一":["曾愛斯","陳卓楠","王尉鏇","王斯顏","古詩詠"],
         "四":["黃樂悠","方鎂恩","劉家頤","張雅堯","盧文懿","呂洛希","周莉晶"] },
@@ -49,7 +49,7 @@ const ROSTER = {
   // 周莉晶 仍報體操(四)不受影響；陳靖朗 只報此班 → 完全退出暑期。
 };
 
-const PHONE = {"黃梓昕":"0397","曾衍霖":"0035","曾愛斯":"7058","曾喬烽":"7058","葉芯怡":"6759","葉芯淇":"6759","張爾淳":"1272","方鎮浩":"0162","胡汐森":"9126","胡苡晨":"9126","盧文懿":"5122","許思溢":"9159","古詩詠":"9158","古卓謙":"9158","張雅堯":"1272","蔡思言":"7716","梁心朗":"8883","劉鎮碩":"5352","劉家頤":"5352","鄧可澄":"0386","吳瑋軒":"6735","黎柏希":"2698","黎柏言":"2698","葉天麒":"5078","王韻喬":"9062","易晞渝":"0570","蔡芷彤":"8852","羅芷晴":"1331","潘洛詩":"6171","蔣佩琪":"2581","黃信晴":"1750","羅天佑":"9275","甘卓熹":"6736","陳卓琛":"9870","劉初靜":"1040","呂洛希":"4917","姚心穎":"6606","黃朗程":"9749","鍾皓惟":"9704","黃翊雅":"5791","陳卓楠":"9870","黃樂悠":"8345","方鎂恩":"0162","王尉鏇":"6801","王斯顏":"6801","周莉晶":"5181","何諾軒":"9613","陳柏謙":"3488","徐翊之":"3705","張煦翹":"9011","陳皓軒":"2359","汪柏叡":"8643","陳靖朗":"0623","陳大文":"1234"};
+const PHONE = {"黃梓昕":"0397","曾衍霖":"0035","曾愛斯":"7058","曾喬烽":"7058","葉芯怡":"6759","葉芯淇":"6759","張爾淳":"1272","方鎮浩":"0162","胡汐森":"9126","胡苡晨":"9126","盧文懿":"5122","許思溢":"9159","古詩詠":"9158","古卓謙":"9158","張雅堯":"1272","蔡思言":"7716","梁心朗":"8883","劉鎮碩":"5352","劉家頤":"5352","鄧可澄":"0386","吳瑋軒":"6735","黎柏希":"2698","黎柏言":"2698","葉天麒":"5078","王韻喬":"9062","易晞渝":"0570","蔡芷彤":"8852","羅芷晴":"1331","潘洛詩":"6171","蔣佩琪":"2581","黃信晴":"1750","羅天佑":"9275","甘卓熹":"6736","陳卓琛":"9870","劉初靜":"1040","呂洛希":"4917","姚心穎":"6606","黃朗程":"9749","鍾皓惟":"9704","黃翊雅":"5791","陳卓楠":"9870","黃樂悠":"8345","方鎂恩":"0162","王尉鏇":"6801","王斯顏":"6801","周莉晶":"5181","何諾軒":"9613","陳柏謙":"3488","徐翊之":"3705","張煦翹":"9011","陳皓軒":"2359","汪柏叡":"8643","陳靖朗":"0623","示範學員":"1234"};
 
 /* 版面常數 */
 const ROPE_SLOTS = [   // 花式跳繩補堂可選時段（一/三/四/六）；六15:00–16:00 已改為正規班，不再作補堂時段
@@ -123,7 +123,7 @@ function setup(){
   normalizeMakeupDates_();     // 把補堂索引日期修正成 yyyy-MM-dd 文字（兼修舊資料）
   try{ ensureRosterRows_(); }catch(e){}  // 自癒：ROSTER 新增但 grid 未有嘅學生，安全補回（保留現有狀態）
   syncMakeupsToGrid();         // 把補堂索引嘅每筆，確保寫返入目標班格仔
-  try{ seedDemo_(); }catch(e){}  // 示範帳號（陳大文）種一個請假，等暑期補堂都 demo 到
+  try{ seedDemo_(); }catch(e){}  // 示範帳號（示範學員）種一個請假，等暑期補堂都 demo 到
   cleanupStray(ss);
   ensureAutoBackup();          // 確保每日自動備份排程存在
   ensureReminders();           // 確保每晚「點名未完成提醒」排程存在
@@ -156,17 +156,17 @@ function ensureRosterRows_(){
   });});
 }
 
-// 示範用：為 陳大文（羽毛球·四）種一個請假，令暑期補堂示範到「待補 1 堂 + 可揀補堂時段」。
+// 示範用：為 示範學員（羽毛球·四）種一個請假，令暑期補堂示範到「待補 1 堂 + 可揀補堂時段」。
 // 冪等：佢已有任何格仔狀態就唔覆蓋；只係示範，唔影響真實學生。
 function seedDemo_(){
-  var sp="badminton", wd="四", nm="陳大文";
+  var sp="badminton", wd="四", nm="示範學員";
   if(!ROSTER[sp] || !ROSTER[sp][wd] || ROSTER[sp][wd].indexOf(nm)<0) return;
   var blk=readBlock(sp,wd), st=blk.status[nm]||[];
   if(st.some(function(x){ return x; })) return;              // 已有資料 → 唔重複種
   var dates=blk.dates; if(!dates.length) return;
   writeStatus(sp,wd,nm,dates[0],"請假");                     // 第一堂請假（可補堂）
   logAppend({name:nm,key:sp+"|"+wd,action:"leave",date:dates[0],status:"請假(示範)",eligible:true});
-  Logger.log("示範帳號 陳大文 已種一個請假（"+dates[0]+"）。");
+  Logger.log("示範帳號 示範學員 已種一個請假（"+dates[0]+"）。");
 }
 
 // 只刪明顯舊版殘留 / 預設空白分頁，唔會誤刪資料表
@@ -408,6 +408,33 @@ function makeupUnits_(sport,wd){
   return Math.max(1, Math.round(fromH/slotH));
 }
 
+/* 清除某學生殘留：Log(B欄)、補堂(A欄)、Roster(A欄) 列；grid 由 ensureRosterRows_ force 重建處理。
+   🔒 安全閘：仍喺 ROSTER const 嘅學生一律拒絕（防誤清在讀學生）。先備份。*/
+function delRowsByCol_(sh, col0, nm){
+  if(!sh || sh.getLastRow()<2) return 0;
+  var vals=sh.getRange(2,col0+1,sh.getLastRow()-1,1).getValues(), rows=[];
+  for(var i=0;i<vals.length;i++){ if(String(vals[i][0]||"").trim()===nm) rows.push(i+2); }
+  rows.sort(function(a,b){return b-a;}).forEach(function(r){ sh.deleteRow(r); });
+  return rows.length;
+}
+function purgeStudentData9_(nm){
+  nm=String(nm||"").trim(); if(!nm) return {ok:false, err:"缺姓名"};
+  var inRoster=Object.keys(ROSTER).some(function(sp){ return Object.keys(ROSTER[sp]).some(function(wd){ return ROSTER[sp][wd].indexOf(nm)>=0; }); });
+  if(inRoster) return {ok:false, err:"「"+nm+"」仍喺 ROSTER，拒絕清除（請先由 ROSTER 移除）"};
+  try{ backup(); }catch(e){}
+  var ss=SS(), out={log:0, makeup:0, roster:0};
+  out.log    = delRowsByCol_(ss.getSheetByName("Log"),    1, nm);   // 學生 = B欄
+  out.makeup = delRowsByCol_(ss.getSheetByName("補堂"),   0, nm);   // 學生 = A欄
+  out.roster = delRowsByCol_(ss.getSheetByName("Roster"), 0, nm);   // 姓名 = A欄
+  try{ ensureRosterRows_(); }catch(e){}   // 令新 fixture 進 grid、殘留名經 force 重建移走
+  Logger.log("purgeStudentData9_ "+nm+"：Log "+out.log+"、補堂 "+out.makeup+"、Roster "+out.roster+" 行已清");
+  return {ok:true, name:nm, removed:out};
+}
+function apiPurgeStudent(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return purgeStudentData9_(p.name);
+}
+
 /* ---------- Web App ---------- */
 function doGet(){ return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK"); }
 function doPost(e){
@@ -447,6 +474,7 @@ function route(p){
     case "setVenue": return apiSetVenue(p);
     case "venuesAdmin": return apiVenuesAdmin(p);
     case "weeklyText": return apiWeeklyText(p);
+    case "purgeStudent": return apiPurgeStudent(p);
     default: return {ok:false,err:"unknown action"};
   }
 }
@@ -478,9 +506,9 @@ function functionalCheck9_(){
   try{ var r=apiDaily({date:today, coachPass:CONFIG.COACH_PASS}); if(r&&r.ok===false) P.push("暑期 今日點名表 回傳失敗："+(r.err||"?")); }catch(e){ P.push("暑期 今日點名表 出錯："+e); }
   return P;
 }
-// 暑期 #9 寫入鏈 round-trip：示範帳號(陳大文 羽毛球四)空白未來格 寫請假→驗→清→驗
+// 暑期 #9 寫入鏈 round-trip：示範帳號(示範學員 羽毛球四)空白未來格 寫請假→驗→清→驗
 function writePathCheck9_(){
-  var P=[], nm="陳大文", sport="badminton", wd="四";
+  var P=[], nm="示範學員", sport="badminton", wd="四";
   if(!ROSTER[sport]||!ROSTER[sport][wd]||ROSTER[sport][wd].indexOf(nm)<0) return P;
   var today=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd");
   var blk=readBlock(sport,wd), futs=sessionsFor(wd).filter(function(d){ return d>today; }), d=null;

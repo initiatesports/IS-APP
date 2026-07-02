@@ -390,7 +390,7 @@
       rows+='<div class="sumrow"><div><div class="si">'+c.emoji+' '+esc(c.name)+'</div><div class="st">'+esc(c.date)+' · '+esc(c.time)+'</div></div><div style="text-align:right"><div class="si">'+money(c.price)+'</div><span class="badge '+(willWait?"wl":"ok")+'">'+(willWait?"候補":"有位")+'</span></div></div>'; });
     var body=rows+'<div class="totline"><span>合計</span><span>'+money(cartTotal())+'</span></div>'
       +'<label class="fld"><span class="lt">家長姓名 <s>*</s></span><input class="inp" id="fParent" placeholder="例:陳太"></label>'
-      +'<label class="fld"><span class="lt">學生姓名(中文全名) <s>*</s></span><input class="inp" id="fStudent" placeholder="請填中文全名,例:陳大文"><div class="err" id="eStudent">請輸入中文全名(請勿用英文)</div></label>'
+      +'<label class="fld"><span class="lt">學生姓名(中文全名) <s>*</s></span><input class="inp" id="fStudent" placeholder="請填中文全名,例:示範學員"><div class="err" id="eStudent">請輸入中文全名(請勿用英文)</div></label>'
       +'<label class="fld"><span class="lt">聯絡電話 <s>*</s></span><input class="inp" id="fPhone" inputmode="numeric" placeholder="8 位數字手提電話"><div class="err" id="ePhone">請輸入有效的 8 位數字電話</div></label>'
       +'<button class="submit" id="doReg">確認報名</button>'
       +'<p class="small" style="text-align:center">報名後會顯示付款方法,並可上傳付款截圖。名額以付款先後及人數上限為準。</p>';

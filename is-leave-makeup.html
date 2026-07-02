@@ -258,7 +258,7 @@ const ROPE_SLOTS = [
    ============================================================ */
 const DEMO = {
   students:{
-    "陳大文|1234":{ name:"陳大文", classes:[
+    "示範學員|1234":{ name:"示範學員", classes:[
         {sport:"badminton", wd:"四", time:"10:00–12:00"},
         {sport:"basketball",wd:"三", time:"09:00–10:00"} ]},
     "李曉晴|7890":{ name:"李曉晴", classes:[
@@ -480,7 +480,7 @@ function renderLogin(){
     <div class="hero" style="text-align:center;font-size:24px">家長<em>請假補堂</em>申請</div>
     <p class="lede" style="text-align:center">輸入小朋友嘅中文全名同你嘅手機後 4 位數登入。</p>
     <label class="fld"><span class="lbl">小朋友中文全名</span>
-      <input id="li-name" inputmode="text" placeholder="例如：陳大文" autocomplete="off"></label>
+      <input id="li-name" inputmode="text" placeholder="例如：示範學員" autocomplete="off"></label>
     <label class="fld"><span class="lbl">家長手機號碼後 4 位</span>
       <input id="li-last4" inputmode="text" maxlength="12" class="codein" placeholder="••••"></label>
     <button class="btn" id="li-go" onclick="doLogin()">登入</button>
@@ -491,7 +491,7 @@ function renderLogin(){
     <a class="ig-btn" style="margin-top:10px" href="https://www.facebook.com/share/1FcXaarDc1/?mibextid=wwXIfr" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.5V12h2.7l-.4 2.9h-2.3v7A10 10 0 0022 12z"/></svg>
       追蹤我哋 Facebook</a>
-    ${isDemo?`<p class="hint">示範帳號：<b>陳大文 / 1234</b>、<b>李曉晴 / 7890</b>、<b>黃浩然 / 1122</b></p>`:""}
+    ${isDemo?`<p class="hint">示範帳號：<b>示範學員 / 1234</b>、<b>李曉晴 / 7890</b>、<b>黃浩然 / 1122</b></p>`:""}
     <div class="health" onclick="checkHealth()"><span class="healthtxt" style="color:#8A94A6">● 檢查連線中…</span></div>
   </div>`;
   if(S.health) setHealth(S.health.txt,S.health.color);
