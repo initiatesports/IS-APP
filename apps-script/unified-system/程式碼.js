@@ -903,6 +903,7 @@ function route(p){
     case "setMakeupDeadline": return apiSetMakeupDeadline(p);
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "purgeStudent":    return apiPurgeStudent(p);
+    case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
@@ -2338,6 +2339,21 @@ function setPin_(last4, pin){
     sh.getRange(i+2,1,1,3).setValues([[pad4(last4),pad4(pin),nowStamp_()]]); return; } }
   var row=sh.getLastRow()+1; sh.getRange(row,1).setNumberFormat("@"); sh.getRange(row,2).setNumberFormat("@");
   sh.getRange(row,1,1,3).setValues([[pad4(last4),pad4(pin),nowStamp_()]]);
+}
+/* 教練/管理：清除某家庭殘留自訂密碼（回復用電話後4位登入）。coachPass 守護，先備份。
+   用途：家長忘記自己設過嘅自訂密碼、或示範帳號要回復預設。*/
+function clearFamilyPin_(last4){
+  var sh=pinSheet(); if(sh.getLastRow()<2) return {cleared:0};
+  var vals=sh.getRange(2,1,sh.getLastRow()-1,1).getValues(), rows=[];
+  for(var i=0;i<vals.length;i++){ if(pad4(vals[i][0])===pad4(last4)) rows.push(i+2); }
+  rows.sort(function(a,b){return b-a;}).forEach(function(r){ sh.deleteRow(r); });
+  return {cleared:rows.length};
+}
+function apiClearFamilyPin(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var f=pad4(p.family||p.last4||""); if(!f || f==="0000" && !(p.family||p.last4)) return {ok:false,err:"缺家庭後4位"};
+  try{ backup(); }catch(e){}
+  return {ok:true, family:f, result:clearFamilyPin_(f)};
 }
 /* 家長：設定/修改自訂密碼（須先以現有憑證驗證）*/
 function apiSetPin(p){
