@@ -832,6 +832,15 @@ let VENUES_CACHE=[];
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所'];
 const VN_ROOMS=['活動室','舞蹈室','壁球室'];
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
+function vnDayZh(dateStr){ const WZ=['日','一','二','三','四','五','六']; if(!dateStr) return ''; return '星期'+WZ[new Date(dateStr+'T00:00:00').getDay()]; }
+function vnClassOpts(dateStr){
+  const day=vnDayZh(dateStr);
+  let o='<option value="">全部（該日所有班）</option>';
+  Object.keys(CLASSES).forEach(cid=>{ const c=CLASSES[cid]; if(day && c.dayZh && c.dayZh!==day) return; o+=`<option value="${cid}">${vnEsc(c.label||cid)}</option>`; });
+  return o;
+}
+function vnRebuildCls(){ const d=document.getElementById('vn-date'), s=document.getElementById('vn-cid'); if(d&&s) s.innerHTML=vnClassOpts(d.value); }
+function vnCidLabel(cid){ return cid?((CLASSES[cid]&&CLASSES[cid].label)||cid):'全部'; }
 async function renderVenueAdmin(){
   let host=document.getElementById('home-venues');
   if(!host){ const nt=document.getElementById('home-notices'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
@@ -843,7 +852,8 @@ async function renderVenueAdmin(){
   const rOpts=VN_ROOMS.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="__other">其他（自己填）</option>`;
   let html=`<div class="section-header">📍 上課地點（家長端會見到）</div>
     <div style="margin:0 4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
-      <input type="date" id="vn-date" value="${todayStr()}" style="${inS}">
+      <input type="date" id="vn-date" value="${todayStr()}" onchange="vnRebuildCls()" style="${inS}">
+      <select id="vn-cid" style="${inS}">${vnClassOpts(todayStr())}</select>
       <select id="vn-centre" onchange="vnToggle('centre')" style="${inS}">${cOpts}</select>
       <input id="vn-centre-o" placeholder="體育館名（如 楓樹窩體育館）" style="display:none;${inS}">
       <select id="vn-room" onchange="vnToggle('room')" style="${inS}">${rOpts}</select>
@@ -857,8 +867,8 @@ async function renderVenueAdmin(){
     html+=`<div class="class-list">`+VENUES_CACHE.map(v=>`
       <div class="class-row" style="align-items:flex-start">
         <div class="class-row-info"><h3 style="font-size:14px;font-weight:600;white-space:normal">📍 ${vnEsc(v.centre)}${v.room?'・'+vnEsc(v.room):''}</h3>
-          <p>${v.date}</p></div>
-        <button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="delVenue('${v.date}')">清除</button>
+          <p>${v.date}・${vnEsc(vnCidLabel(v.cid))}</p></div>
+        <button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="delVenue('${v.date}','${v.cid||''}')">清除</button>
       </div>`).join('')+`</div>`;
   } else { html+=`<div style="padding:4px 4px 10px;font-size:13px;color:var(--muted)">未設定。設定後家長喺請假補堂端嘅每節旁邊會見到地點；你照舊喺 group 出都得。</div>`; }
   host.innerHTML=html;
@@ -874,8 +884,9 @@ function vnVal(which){
 async function postVenue(){
   const date=document.getElementById('vn-date').value;
   if(!date){ toast('請揀日期','⚠'); return; }
+  const cidEl=document.getElementById('vn-cid'), cid=cidEl?cidEl.value:'';
   const centre=vnVal('centre'), room=vnVal('room');
-  let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, centre, room}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, cid, centre, room}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已設定','✓'); renderVenueAdmin(); } else toast((r&&r.err)||'設定失敗','⚠');
 }
 async function genWhatsApp(){
@@ -894,9 +905,9 @@ function copyWa(){
   if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(done).catch(()=>{ try{document.execCommand('copy');done();}catch(e){toast('請長按文字手動複製','⚠');} }); }
   else { try{document.execCommand('copy');done();}catch(e){toast('請長按文字手動複製','⚠');} }
 }
-async function delVenue(date){
-  if(!confirm('清除 '+date+' 嘅地點？')) return;
-  let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, centre:'', room:''}); }catch(e){ r=null; }
+async function delVenue(date,cid){
+  if(!confirm('清除 '+date+'（'+vnCidLabel(cid||'')+'）嘅地點？')) return;
+  let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, cid:cid||'', centre:'', room:''}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已清除','✓'); renderVenueAdmin(); } else toast('清除失敗','⚠');
 }
 let NOTICES_CACHE=[];

@@ -606,7 +606,7 @@ function classCard(child,ki,c,ci){
     ${(function(){
       const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
-      return `<div style="margin-top:10px">${list.map(sessRow).join('')}</div>`;
+      return `<div style="margin-top:10px">${list.map(s=>sessRow(s,c.key)).join('')}</div>`;
     })()}
     ${(function(){
       const today=todayStr();
@@ -659,7 +659,8 @@ function ptCard(child){
     <div style="margin-top:10px">${rows}</div>
   </div>`;
 }
-function sessRow(s){
+function venueAt(date,cid){ const day=(S.venues||{})[date]; if(!day) return null; if(day.centre||day.room) return day; return day[cid]||day._all||null; }
+function sessRow(s,cid){
   const d=new Date(s.date+'T00:00:00'), today=new Date(); today.setHours(0,0,0,0);
   const L=(zh,en)=>LANG==='en'?en:zh;
   let pill=`<span class="pill p-up">${L('未上','Upcoming')}</span>`;
@@ -670,7 +671,7 @@ function sessRow(s){
   else if(s.status==='停課')pill=`<span class="pill p-cancel">${L('停課','Cancelled')}</span>`;
   else if(s.status==='豁免')pill=`<span class="pill p-cancel">${L('豁免','Exempt')}</span>`;
   else if(d<today)pill=`<span class="pill p-up">${L('已過','Past')}</span>`;
-  const v=(S.venues||{})[s.date];
+  const v=venueAt(s.date,cid);
   const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
   return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span>${vLine}</span>${pill}</div>`;
 }
