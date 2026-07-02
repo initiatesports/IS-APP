@@ -906,6 +906,7 @@ function route(p){
     case "purgeStudent":    return apiPurgeStudent(p);
     case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "cleanupStorage":  return apiCleanupStorage(p);
+    case "resetFeePayment": return apiResetFeePayment(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
@@ -1905,6 +1906,22 @@ function apiSetFeeAdj(p){
   logAppend({name:nm,key:label,action:"feeAdj",status:"調整 $"+adj+"（"+note+"）→ 淨額 $"+r.net});
   return {ok:true, net:r.net, status:r.status};
 }
+/* 某期繳費開放日＝該期首月前一個月「倒數第二個星期日」（如 9-10月 → 8月倒數第2個禮拜日 2026-08-23）。
+   現期及之前一律開放；未來期到開放日先可交（同 is-parent payOpen 一致，防提前交未來期學費）。*/
+function periodPayOpenIso_(label){
+  var m=String(label).match(/(\d{4})\s*(\d{1,2})-/); if(!m) return "";
+  var y=Number(m[1]), firstMonth=Number(m[2]), pm=firstMonth-1, py=y;
+  if(pm<1){ pm=12; py=y-1; }
+  var last=new Date(py, pm, 0).getDate(), sundays=[];
+  for(var d=1; d<=last; d++){ if(new Date(py, pm-1, d).getDay()===0) sundays.push(d); }
+  var dd=sundays.length>=2?sundays[sundays.length-2]:(sundays[sundays.length-1]||1);
+  return py+"-"+("0"+pm).slice(-2)+"-"+("0"+dd).slice(-2);
+}
+function periodPayOpen_(label){
+  if(periodOrder_(label) <= periodOrder_(curPeriodLabel_())) return true;
+  var iso=periodPayOpenIso_(label); if(!iso) return true;
+  return todayIso() >= iso;
+}
 /* 家長：上傳付款截圖（存 Drive，狀態→待核實）*/
 // 上載付款截圖核心（已驗身或已核名後呼叫）：寫入截圖連結 + 標待核實 + 通知
 function payUploadCore_(nm, label, dataUrl){
@@ -1912,6 +1929,7 @@ function payUploadCore_(nm, label, dataUrl){
   for(var i=0;i<rows.length;i++){ if(rows[i].name===nm && rows[i].period===label){ hit=rows[i]; break; } }
   if(!hit) return {ok:false,err:"搵唔到該期繳費紀錄，請聯絡張 Sir"};
   if(hit.status==="豁免") return {ok:false,err:"此期為豁免，無須繳費"};
+  if(!periodPayOpen_(label)) return {ok:false,err:label+" 繳費將於 "+periodPayOpenIso_(label)+" 開放，暫未接受繳費"};  // 硬擋提前交未來期
   dataUrl=String(dataUrl||""); var comma=dataUrl.indexOf(",");
   if(comma<0) return {ok:false,err:"檔案格式不正確"};
   var meta=dataUrl.slice(0,comma), b64=dataUrl.slice(comma+1);
@@ -1984,7 +2002,8 @@ function apiPayLookup(p){
   if(!rosterHasName_(nm)){ rlBump_("paylk_"+nm, 300); return {ok:false, err:"搵唔到呢位小朋友，請確認中文全名（如有疑問請 WhatsApp 教練 6331 7403）"}; }
   rlClear_("paylk_"+nm);
   // 兄弟姊妹（同電話＋同姓）一齊顯示，可一次過繳交
-  var students=familySiblings_(nm).map(function(cn){ return {name:cn, fees:unpaidFeesFor_(cn)}; })
+  // 只列已開放繳費嘅期（隱藏未來未開放期如 9-10月，避免家長一次過繳時誤交/被貼截圖）
+  var students=familySiblings_(nm).map(function(cn){ return {name:cn, fees:unpaidFeesFor_(cn).filter(function(f){ return periodPayOpen_(f.period); })}; })
     .filter(function(s){ return s.fees.length; });
   var total=0; students.forEach(function(s){ s.fees.forEach(function(f){ total += Math.max(0,(Number(f.net)||0)-(Number(f.paid)||0)); }); });
   return {ok:true, name:nm, payNumber:CONFIG.PAY_NUMBER, students:students, total:total,
@@ -2372,6 +2391,23 @@ function apiCleanupStorage(p){
   var after=bk?bk.getLastRow():0;
   var drv=pruneDriveBackups_(keepDrive);
   return {ok:true, backupSheet:{before:before, after:after, removedRows:Math.max(0,before-after)}, drive:drv};
+}
+/* 清除某生某期嘅付款進度（截圖+待核實）→ 還原未繳。coachPass 守護，先備份，trash 對應截圖檔。
+   用於：家長經 is-pay 一次過交時，截圖被誤貼上未開放期（如 9-10月）。*/
+function apiResetFeePayment(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name||"").trim(), label=String(p.period||"").trim();
+  if(!nm||!label) return {ok:false,err:"缺姓名或期數"};
+  var sh=feeSheet(), hit=null;
+  feeRows_().forEach(function(x){ if(x.name===nm && x.period===label) hit=x; });
+  if(!hit) return {ok:false,err:"搵唔到 "+nm+" "+label+" 繳費列"};
+  if(hit.status==="已繳") return {ok:false,err:"該期已核實已繳，拒絕清除（請先人手處理）"};
+  try{ backup(); }catch(e){}
+  var link=hit.link, trashed=false;
+  try{ if(link){ var id=(String(link).match(/[-\w]{25,}/)||[])[0]; if(id){ DriveApp.getFileById(id).setTrashed(true); trashed=true; } } }catch(e){}
+  sh.getRange(hit.row,7,1,5).setValues([[0,"未繳","","",""]]);   // 7已繳 8狀態 9截圖 10核實教練 11時間
+  logAppend({name:nm,key:label,action:"resetFeePayment",status:"清除誤貼付款進度→未繳"});
+  return {ok:true, name:nm, period:label, screenshotTrashed:trashed};
 }
 function apiClearFamilyPin(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
