@@ -1459,6 +1459,8 @@ function periodWindow_(label){
   return {lo:lo, hi:hY+"-"+("0"+hM).slice(-2)+"-01"};
 }
 function isoInPeriod_(iso, label){ var w=periodWindow_(label); return !!w && iso>=w.lo && iso<w.hi; }
+// 該期有冇任何班已排堂（超出學期窗 TERM_END 嘅期會冇 → 唔應期望有學費列）
+function periodHasSessions_(label){ return CLASS_IDS.some(function(cid){ return sessionsFor(cid).some(function(d){ return isoInPeriod_(d, label); }); }); }
 // 某班喺指定期（雙月）窗口內嘅實際上課堂數（受 sessionsFor 假期/停課/TERM_END 限制）
 function sessionsInPeriod_(cid, label){
   var w=periodWindow_(label); if(!w) return 0;
@@ -2612,7 +2614,9 @@ function apiSaveAttendance(p){
 function apiSaveAbsences(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   // B 推送 ABSENCES：確保缺席格已標、已補嘅寫入 ledger（非破壞，去重）
-  var arr=p.data||[]; var existing=makeupAll();
+  var arr=p.data||[];
+  // 去重 key 同時涵蓋「已存在列」＋「本次 call 內剛寫嘅列」，否則 p.data 有重複條目就會重複寫入補堂表
+  var seen={}; makeupAll().forEach(function(m){ seen[m.name+"|"+m.from+"|"+m.date]=1; });
   arr.forEach(function(a){
     if(!a||!a.classId||!CLASSES[a.classId]) return;
     if(a.absDate && sessionsFor(a.classId).indexOf(a.absDate)>=0){
@@ -2621,8 +2625,8 @@ function apiSaveAbsences(p){
       if(!cur) markCell(a.classId, a.name, a.absDate, "請假", false);  // 未標先補標請假
     }
     if(a.madeUpDate){ // 已補 → 記入 ledger（去重）；目標班未知 → 記特殊日
-      var dup=existing.some(function(m){ return m.name===a.name && m.from===a.classId && m.date===toIso_(a.madeUpDate); });
-      if(!dup){ var M=makeupSheet(), row=M.getLastRow()+1; M.getRange(row,4).setNumberFormat("@");
+      var k=a.name+"|"+a.classId+"|"+toIso_(a.madeUpDate);
+      if(!seen[k]){ seen[k]=1; var M=makeupSheet(), row=M.getLastRow()+1; M.getRange(row,4).setNumberFormat("@");
         M.getRange(row,1,1,5).setValues([[a.name, a.classId, a.classId, toIso_(a.madeUpDate), "出席"]]); }
     }
   });
@@ -2942,6 +2946,7 @@ function dataIntegrityCheck_(){
     fr.forEach(function(f){ have[f.name+"|"+f.period]=1; });
     var actives={}; rosterRows().forEach(function(r){ if(r.cid && CLASSES[r.cid] && CLASSES[r.cid].students.indexOf(r.name)>=0) actives[r.name]=1; });
     [curPeriodLabel_(), nextPeriodLabel_()].forEach(function(lab){
+      if(!periodHasSessions_(lab)) return;   // 該期未排堂（如 9-10月超出學期窗 8/31）→ 根本生成唔到學費列，唔當漏
       Object.keys(actives).forEach(function(nm){ if(!have[nm+"|"+lab]) P.push("學費列未生成："+nm+" "+lab+"（轉期漏咗，請『產生繳費列』）"); });
     });
   }catch(e){}
