@@ -906,6 +906,7 @@ function route(p){
     case "purgeStudent":    return apiPurgeStudent(p);
     case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "cleanupStorage":  return apiCleanupStorage(p);
+    case "runHealthLog":    return apiRunHealthLog(p);
     case "resetFeePayment": return apiResetFeePayment(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
@@ -3163,8 +3164,27 @@ function runHealthChecks_(sendEmail){
         "\n\n—— 每日自動健康檢查（"+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm")+"）");
     }catch(e){ Logger.log("健康警示 email 寄送失敗："+e); }
   }
+  try{ logHealthResult_(problems, _t0); }catch(e){ Logger.log("寫入健康檢查記錄失敗："+e); }
   Logger.log("健康檢查完成："+(problems.length?problems.length+" 項異常":"全部正常"));
   return problems;
+}
+/* 把健康檢查結果寫入「健康檢查」分頁，令 Claude 可用 MCP 直接讀（免每日貼 email screenshot）。保留最近 60 次。*/
+function logHealthResult_(problems, t0){
+  var sh=SS().getSheetByName("健康檢查");
+  if(!sh){ sh=SS().insertSheet("健康檢查"); sh.appendRow(["時間","狀態","問題數","耗時秒","問題清單"]); sh.getRange("A:A").setNumberFormat("@"); }
+  var secs=t0?Math.round((new Date()-t0)/1000):"";
+  sh.getRange(sh.getLastRow()+1,1,1,5).setValues([[
+    Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm"),
+    problems.length?("⚠️ "+problems.length+" 項"):"✅ 正常",
+    problems.length, secs, problems.join(" ｜ ")
+  ]]);
+  var last=sh.getLastRow(); if(last>61) sh.deleteRows(2, last-61);   // 保留 header + 最近 60 次
+}
+/* 遠端：即時跑健康檢查並寫入分頁（畀 Claude 用 MCP 讀）。coachPass 守護。*/
+function apiRunHealthLog(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var probs=runHealthChecks_(false);
+  return {ok:true, count:probs.length, problems:probs};
 }
 function installHealthCheck(){
   ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==="healthCheck") ScriptApp.deleteTrigger(t); });
