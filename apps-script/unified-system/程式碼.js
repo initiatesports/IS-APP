@@ -3113,9 +3113,16 @@ function opsHealthCheck_(){
 }
 function healthCheck(){ return runHealthChecks_(true); }   // 每日 trigger：有問題就 email
 // coachPass 保護：即場觸發成個健康檢查並回傳問題清單（唔寄 email，畀教練端/驗證用）
+// email=1：跑完即 email 結果（連「全部正常」都寄），畀老闆按需觸發；fire-and-forget，唔使等 HTTP 回應
 function apiHealth(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  return {ok:true, problems:runHealthChecks_(false)};
+  var doEmail = String(p.email||"")==="1" || p.email===true;
+  var probs = runHealthChecks_(false);   // 唔靠內建 email（佢淨係有問題先寄）；下面自己寄，連正常都報
+  if(doEmail){ try{ MailApp.sendEmail(HEALTH_EMAIL,
+    "🩺 INITIATE 手動全面健康檢查（"+(probs.length||0)+" 項）",
+    (probs.length ? ("以下項目需注意：\n\n• "+probs.join("\n• ")) : "✅ 全部檢查通過，系統運作正常。")
+    +"\n\n—— 手動觸發 "+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm")); }catch(e){} }
+  return {ok:true, problems:probs};
 }
 function runHealthChecks_(sendEmail){
   var problems=[], _t0=new Date();
