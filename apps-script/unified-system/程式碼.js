@@ -3022,10 +3022,12 @@ function dataIntegrityCheck_(){
   try{ feeRows_().forEach(function(f){ if(f.status==="豁免") return; var exp=Math.max(0, f.due - f.discount + f.adj);
     if(Number(f.net)!==exp) P.push("學費不自洽："+f.name+" "+f.period+"：實收$"+f.net+" ≠ 計$"+exp); }); }catch(e){}
   // 學費獨立重算對賬：未繳行重新計一次淨額同儲存值對賬（捉計錯/堂數變/漏重算）
-  try{ var curL=curPeriodLabel_(), nextL=nextPeriodLabel_();
+  // 只查本期：下期(如 9-10月)fees 啱由 genPeriodNet 生成、又 gate 未開放,重算必然一致=浪費時間
+  // （健康檢查耗時逼近 Apps Script 6分鐘上限,呢步係最大 sink → 收窄至本期,提速兼防超時殺死寫入分頁）
+  try{ var curL=curPeriodLabel_();
     feeRows_().forEach(function(f){
       if(f.status==="已繳"||f.status==="豁免") return;            // 已繳/豁免唔郁
-      if(f.period!==curL && f.period!==nextL) return;             // 只查本期＋下期
+      if(f.period!==curL) return;                                 // 只查本期（下期啱生成免重算）
       if((CUSTOM_FEE[f.period]||{})[f.name]) return;             // 特別安排固定學費（CUSTOM_FEE）→ 唔用標準重算對賬（如周莉晶跨班 $1040）
       var dd=periodFeeDetail_(f.name, f.period); if(!dd) return;
       var disc=referralAutoDisc_(f.name, dd.base, 0), credit=creditsFor_(f.name, f.period);
