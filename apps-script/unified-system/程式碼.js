@@ -904,6 +904,7 @@ function route(p){
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "purgeStudent":    return apiPurgeStudent(p);
     case "clearFamilyPin":  return apiClearFamilyPin(p);
+    case "cleanupStorage":  return apiCleanupStorage(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
     case "payUploadOpen":   return apiPayUploadOpen(p);
@@ -2349,6 +2350,27 @@ function clearFamilyPin_(last4){
   rows.sort(function(a,b){return b-a;}).forEach(function(r){ sh.deleteRow(r); });
   return {cleared:rows.length};
 }
+/* 提速清理：收細「備份」分頁 snapshot + 清 Drive 舊備份（先做一份新鮮完整備份）。coachPass 守護。
+   trash（可還原），非永久刪。*/
+function pruneDriveBackups_(keepN){
+  var uniq=[], seen={};
+  var push=function(f){ var id=f.getId(); if(!seen[id]){ seen[id]=1; uniq.push(f); } };
+  try{ var it=DriveApp.getFoldersByName("IS 系統備份"); if(it.hasNext()){ var fit=it.next().getFiles(); while(fit.hasNext()){ var f=fit.next(); if(f.getName().indexOf("IS 備份 ")===0) push(f); } } }catch(e){}
+  try{ var sf=DriveApp.searchFiles('title contains "IS 備份 " and trashed = false'); while(sf.hasNext()){ var g=sf.next(); if(g.getName().indexOf("IS 備份 ")===0) push(g); } }catch(e){}
+  uniq.sort(function(a,b){ return b.getDateCreated()-a.getDateCreated(); });
+  var trashed=0; uniq.slice(keepN).forEach(function(f){ try{ f.setTrashed(true); trashed++; }catch(e){} });
+  return {trashed:trashed, kept:Math.min(uniq.length,keepN), total:uniq.length};
+}
+function apiCleanupStorage(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var keepSnap=Number(p.keepSnap)||12, keepDrive=Number(p.keepDrive)||10;
+  backupToDrive();                                   // 先做一份新鮮完整 Drive 備份（安全網）
+  var bk=SS().getSheetByName("備份"), before=bk?bk.getLastRow():0;
+  if(bk) pruneBackups_(bk, keepSnap);
+  var after=bk?bk.getLastRow():0;
+  var drv=pruneDriveBackups_(keepDrive);
+  return {ok:true, backupSheet:{before:before, after:after, removedRows:Math.max(0,before-after)}, drive:drv};
+}
 function apiClearFamilyPin(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var f=pad4(p.family||p.last4||""); if(!f || f==="0000" && !(p.family||p.last4)) return {ok:false,err:"缺家庭後4位"};
@@ -3453,7 +3475,7 @@ function backup(){
   });
   makeupAll().forEach(function(m){ rows.push([stamp,"補",m.from,m.name,toIso_(m.date),m.status||"",m.to]); });
   if(rows.length) bk.getRange(bk.getLastRow()+1,1,rows.length,7).setValues(rows);
-  pruneBackups_(bk,30);
+  pruneBackups_(bk,12);   // 保留最近 12 個 snapshot（原 30 → 收細「備份」分頁,減少每次寫入掃描負擔、提速）
   Logger.log("備份完成："+rows.length+" 筆 @ "+stamp);
   return rows.length;
 }

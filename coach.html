@@ -1373,7 +1373,7 @@ function studentHistCard(name, openByDefault){
 // 搜尋框輸入 → 由 renderHistory 統一處理（會用搜尋字過濾）
 function searchStudentHistory(){ renderHistory(); }
 /* ═══════════ 繳費管理 ═══════════ */
-let FEES_DATA=[]; let FEES_PERIOD=''; let FEES_CLASS='全部';
+let FEES_DATA=[]; let FEES_PERIOD=''; let FEES_CLASS='全部'; let FEE_SHOW_PAST=false;
 function curFeePeriodLabel(){
   const t=todayStr(); const y=t.slice(0,4); const mo=Number(t.slice(5,7)); const idx=Math.floor((mo-1)/2);
   return y+' '+(idx*2+1)+'-'+(idx*2+2)+'月';
@@ -1387,8 +1387,13 @@ async function renderFees(){
   let r; try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
   if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
   FEES_DATA=r.fees||[];
-  const periods=[...new Set(FEES_DATA.map(f=>f.period))].sort();
-  if(periods.length && periods.indexOf(FEES_PERIOD)<0) FEES_PERIOD=periods[periods.length-1];
+  // 只顯示現期及之後（隱藏 5-6月 等過去期，教練頁清爽）；FEE_SHOW_PAST=true 可顯示全部
+  const feeOrd=l=>{const m=String(l).match(/(\d{4})\s*(\d+)-/);return m?Number(m[1])*100+Number(m[2]):0;};
+  const curOrd=feeOrd(curFeePeriodLabel());
+  let periods=[...new Set(FEES_DATA.map(f=>f.period))];
+  if(!FEE_SHOW_PAST) periods=periods.filter(p=>feeOrd(p)>=curOrd);
+  periods=periods.sort((a,b)=>feeOrd(a)-feeOrd(b));
+  if(periods.length && periods.indexOf(FEES_PERIOD)<0) FEES_PERIOD=periods.indexOf(curFeePeriodLabel())>=0?curFeePeriodLabel():periods[0];
   let rows=FEES_DATA.filter(f=>f.period===FEES_PERIOD);
   if(FEES_CLASS!=='全部') rows=rows.filter(f=>CLASSES[FEES_CLASS]&&CLASSES[FEES_CLASS].students.indexOf(f.name)>=0);
   const paid=rows.filter(f=>f.status==='已繳').length;
