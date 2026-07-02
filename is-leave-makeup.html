@@ -588,7 +588,7 @@ function classCard(child,ki,c,ci){
       <button class="btn sm" onclick="openMakeup(${ki},${ci})" ${owed<=0?'disabled':''}>申請補堂${owed>0?` (${owed})`:''}</button>
     </div>
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">取消請假（${cancellableLeaves(c).length}）</button>`:''}
-    <div style="margin-top:6px">${(c.sessions||[]).map(sessRow).join("")}</div>
+    <div style="margin-top:6px">${(c.sessions||[]).map(s=>sessRow(s,classKey(c))).join("")}</div>
     ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
       <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
       ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
@@ -664,7 +664,8 @@ function downloadICS(ki){
   toast("已產生行事曆檔，揀「加入行事曆／日曆」即可");
 }
 function classLabel(key){ const a=key.split("|"); return (SPORT[a[0]]?SPORT[a[0]].name:a[0])+"("+a[1]+")"; }
-function sessRow(s){
+function venueAt(date,cid){ const day=(S.venues||{})[date]; if(!day) return null; if(day.centre||day.room) return day; return day[cid]||day._all||null; }
+function sessRow(s,cid){
   const d=new Date(s.date+"T00:00:00"), today=new Date(); today.setHours(0,0,0,0);
   let pill=`<span class="pill p-up">未上</span>`;
   if(s.status==="請假") pill=`<span class="pill p-leave">請假</span>`;
@@ -673,7 +674,7 @@ function sessRow(s){
   else if(s.status==="缺席") pill=`<span class="pill p-absent">缺席</span>`;
   else if(s.status==="停課") pill=`<span class="pill p-cancel">停課</span>`;
   else if(d<today) pill=`<span class="pill p-up">已過</span>`;
-  const v=(S.venues||{})[s.date];
+  const v=venueAt(s.date,cid);
   const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
   return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span>${vLine}</span>${pill}</div>`;
 }

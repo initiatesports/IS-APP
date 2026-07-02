@@ -551,28 +551,40 @@ function apiLogin(p){
 /* ═══════════ 上課地點（場地）：教練設定，家長端每節顯示；一鍵生成 WhatsApp 文案 ═══════════ */
 function venueSheet_(){
   var sh=SS().getSheetByName("場地");
-  if(!sh){ sh=SS().insertSheet("場地"); sh.appendRow(["日期","體育館","場地","更新時間"]); sh.getRange("A:A").setNumberFormat("@"); }
+  if(!sh){ sh=SS().insertSheet("場地"); sh.appendRow(["日期","班別","體育館","場地","更新時間"]); sh.getRange("A:A").setNumberFormat("@"); return sh; }
+  // 舊格式（無「班別」欄）遷移：喺 A 之後插入「班別」欄；舊列班別留空＝該日全部班
+  var lc=Math.max(1,sh.getLastColumn()), hdr=sh.getRange(1,1,1,lc).getValues()[0];
+  if(String(hdr[1]||"")!=="班別"){ sh.insertColumnAfter(1); sh.getRange(1,2).setValue("班別"); }
   return sh;
 }
 function venueRows_(){
   var sh=venueSheet_(); if(sh.getLastRow()<2) return [];
-  return sh.getRange(2,1,sh.getLastRow()-1,4).getValues().map(function(r,i){
-    return {row:i+2, date:toIso_(r[0]), centre:String(r[1]||"").trim(), room:String(r[2]||"").trim(), at:String(r[3]||"")};
+  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(function(r,i){
+    return {row:i+2, date:toIso_(r[0]), cid:String(r[1]||"").trim(), centre:String(r[2]||"").trim(), room:String(r[3]||"").trim(), at:String(r[4]||"")};
   }).filter(function(x){ return x.date; });
 }
-function venueMap_(){ var m={}; venueRows_().forEach(function(v){ if(v.centre||v.room) m[v.date]={centre:v.centre, room:v.room}; }); return m; }
+// nested：{ date: { "_all":{centre,room}, "sport|wd":{centre,room}, ... } }；班別空＝_all（該日全部班）
+function venueMap_(){
+  var m={};
+  venueRows_().forEach(function(v){ if(!(v.centre||v.room)) return;
+    (m[v.date]=m[v.date]||{})[v.cid||"_all"]={centre:v.centre, room:v.room};
+  });
+  return m;
+}
+function venueFor_(vmap,date,cid){ var d=vmap[date]; if(!d) return null; return d[cid]||d["_all"]||null; }
 function nowStamp9_(){ return Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm"); }
 function todayIso9_(){ return Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
 function addDaysIso9_(isoStr,n){ var d=new Date(isoStr+"T00:00:00"); d.setDate(d.getDate()+n); return Utilities.formatDate(d, SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
 function apiSetVenue(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var date=toIso_(p.date); if(!date) return {ok:false,err:"請揀日期"};
+  var cid=String(p.cid||"").trim();   // 空＝該日全部班；否則 "sport|wd"
   var centre=String(p.centre||"").trim(), room=String(p.room||"").trim();
   var sh=venueSheet_(), hit=null;
-  venueRows_().forEach(function(v){ if(v.date===date) hit=v; });
+  venueRows_().forEach(function(v){ if(v.date===date && (v.cid||"")===cid) hit=v; });
   if(!centre && !room){ if(hit) sh.deleteRow(hit.row); return {ok:true, cleared:true}; }
-  if(hit){ sh.getRange(hit.row,1,1,4).setValues([[date,centre,room,nowStamp9_()]]); }
-  else { var nr=sh.getLastRow()+1; sh.getRange(nr,1).setNumberFormat("@"); sh.getRange(nr,1,1,4).setValues([[date,centre,room,nowStamp9_()]]); }
+  if(hit){ sh.getRange(hit.row,1,1,5).setValues([[date,cid,centre,room,nowStamp9_()]]); }
+  else { var nr=sh.getLastRow()+1; sh.getRange(nr,1).setNumberFormat("@"); sh.getRange(nr,1,1,5).setValues([[date,cid,centre,room,nowStamp9_()]]); }
   return {ok:true};
 }
 function apiVenuesAdmin(p){
@@ -585,15 +597,24 @@ function apiWeeklyText(p){
   var days=Number(p.days)||10, today=todayIso9_(), end=addDaysIso9_(today,days), vmap=venueMap_();
   var WDZH=["日","一","二","三","四","五","六"], byDate={};
   Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
-    var time=TIMES[sp+"|"+wd]||"";
-    sessionsFor(wd).forEach(function(d){ if(d>=today && d<=end){ (byDate[d]=byDate[d]||[]).push({sport:(SPORT[sp]&&SPORT[sp].name)||sp, time:time}); } });
+    var time=TIMES[sp+"|"+wd]||"", cid=sp+"|"+wd;
+    sessionsFor(wd).forEach(function(d){ if(d>=today && d<=end){ (byDate[d]=byDate[d]||[]).push({cid:cid, sport:(SPORT[sp]&&SPORT[sp].name)||sp, time:time}); } });
   });});
   var out=Object.keys(byDate).sort().map(function(d){
     var dt=new Date(d+"T00:00:00"), head=dt.getDate()+"/"+(dt.getMonth()+1)+"（"+WDZH[dt.getDay()]+"）";
-    var v=vmap[d];
-    var lines=byDate[d].sort(function(a,b){return (a.time||"")<(b.time||"")?-1:1;}).map(function(x){ return x.sport+"："+x.time; });
-    var centreLine = (v&&v.centre) ? (v.centre==="青衣體育館"?v.centre:("❗"+v.centre+"❗")) : "（地點待定）";
-    return head+"\n"+centreLine+(v&&v.room?("\n"+v.room):"")+"\n"+lines.join("\n");
+    var sess=byDate[d].slice().sort(function(a,b){return (a.time||"")<(b.time||"")?-1:1;});
+    // 按場地分組：同場地嘅運動合併一段；唔同場地各自一段
+    var groups=[], gkey={};
+    sess.forEach(function(s){
+      var v=venueFor_(vmap,d,s.cid)||{centre:"",room:""}, k=(v.centre||"")+"|"+(v.room||"");
+      if(gkey[k]==null){ gkey[k]=groups.length; groups.push({v:v, lines:[]}); }
+      groups[gkey[k]].lines.push(s.sport+"："+s.time);
+    });
+    var body=groups.map(function(g){
+      var v=g.v, centreLine = v.centre ? (v.centre==="青衣體育館"?v.centre:("❗"+v.centre+"❗")) : "（地點待定）";
+      return centreLine+(v.room?("\n"+v.room):"")+"\n"+g.lines.join("\n");
+    }).join("\n");
+    return head+"\n"+body;
   });
   return {ok:true, text: out.join("\n\n"), count: out.length};
 }

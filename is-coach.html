@@ -194,7 +194,8 @@ async function renderVenuePanel(){
   const rOpts=VN_ROOMS.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="__other">其他（自己填）</option>`;
   let html=`<div style="border:1px solid var(--line,#e3e3e3);border-radius:14px;padding:13px;background:var(--card,#fff)">
     <div style="font-weight:700;font-size:15px;margin-bottom:9px">📍 上課地點（家長端會見到）</div>
-    <input type="date" id="vn-date" value="${S.date}" style="${inS}">
+    <input type="date" id="vn-date" value="${S.date}" onchange="vnRebuildCls()" style="${inS}">
+    <select id="vn-cid" style="${inS}"><option value="">全部（該日所有班）</option></select>
     <select id="vn-centre" onchange="vnToggle('centre')" style="${inS}">${cOpts}</select>
     <input id="vn-centre-o" placeholder="體育館名" style="display:none;${inS}">
     <select id="vn-room" onchange="vnToggle('room')" style="${inS}">${rOpts}</select>
@@ -206,21 +207,31 @@ async function renderVenuePanel(){
   if(vs.length){
     html+=`<div style="margin-top:10px;border-top:1px solid var(--line,#eee);padding-top:8px">`+vs.map(v=>`
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:4px 0">
-        <span>📍 <b>${vnEsc(v.centre)}</b>${v.room?'・'+vnEsc(v.room):''} <span style="color:#888">${v.date}</span></span>
-        <button class="mini" style="padding:5px 9px;font-size:12px" onclick="delVenue('${v.date}')">清除</button></div>`).join('')+`</div>`;
+        <span>📍 <b>${vnEsc(v.centre)}</b>${v.room?'・'+vnEsc(v.room):''} <span style="color:#888">${v.date}・${vnEsc(vnCidLabel(v.cid))}</span></span>
+        <button class="mini" style="padding:5px 9px;font-size:12px" onclick="delVenue('${v.date}','${v.cid||''}')">清除</button></div>`).join('')+`</div>`;
   }
   host.innerHTML=html+`</div>`;
+  vnRebuildCls();
+}
+function vnCidLabel(cid){ if(!cid) return '全部'; const a=String(cid).split('|'); const sp=SPORT[a[0]]; return (sp?sp.name:a[0])+'・星期'+(a[1]||''); }
+async function vnRebuildCls(){
+  const s=$("#vn-cid"), d=$("#vn-date"); if(!s||!d) return;
+  let r; try{ r=await api("dailyList",{date:d.value}); }catch(e){ r=null; }
+  let o='<option value="">全部（該日所有班）</option>';
+  if(r&&r.ok&&r.list) r.list.forEach(g=>{ const k=g.c.sport+'|'+g.c.wd, sp=SPORT[g.c.sport]; o+=`<option value="${k}">${(sp?sp.name:g.c.sport)}・星期${g.c.wd} ${g.c.time||''}</option>`; });
+  s.innerHTML=o;
 }
 function vnToggle(which){ const sel=$("#vn-"+which), o=$("#vn-"+which+"-o"); if(o) o.style.display=sel.value==='__other'?'block':'none'; }
 function vnVal(which){ const sel=$("#vn-"+which); return sel.value==='__other'?($("#vn-"+which+"-o").value||'').trim():sel.value; }
 async function postVenue(){
   const date=$("#vn-date").value; if(!date){ alert('請揀日期'); return; }
-  let r; try{ r=await api("setVenue",{date,centre:vnVal('centre'),room:vnVal('room')}); }catch(e){ r=null; }
+  const cidEl=$("#vn-cid"), cid=cidEl?cidEl.value:'';
+  let r; try{ r=await api("setVenue",{date,cid,centre:vnVal('centre'),room:vnVal('room')}); }catch(e){ r=null; }
   if(r&&r.ok){ renderVenuePanel(); } else alert((r&&r.err)||'設定失敗');
 }
-async function delVenue(date){
-  if(!confirm('清除 '+date+' 嘅地點？')) return;
-  let r; try{ r=await api("setVenue",{date,centre:'',room:''}); }catch(e){ r=null; }
+async function delVenue(date,cid){
+  if(!confirm('清除 '+date+'（'+vnCidLabel(cid||'')+'）嘅地點？')) return;
+  let r; try{ r=await api("setVenue",{date,cid:cid||'',centre:'',room:''}); }catch(e){ r=null; }
   if(r&&r.ok) renderVenuePanel();
 }
 async function genWhatsApp(){
