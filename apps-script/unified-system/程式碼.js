@@ -907,6 +907,7 @@ function route(p){
     case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "cleanupStorage":  return apiCleanupStorage(p);
     case "runHealthLog":    return apiRunHealthLog(p);
+    case "reinstallHealth": return apiReinstallHealth(p);
     case "resetFeePayment": return apiResetFeePayment(p);
     case "payUpload":       return apiPayUpload(p);
     case "payLookup":       return apiPayLookup(p);
@@ -3190,9 +3191,16 @@ function apiRunHealthLog(p){
 }
 function installHealthCheck(){
   ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==="healthCheck") ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger("healthCheck").timeBased().everyDays(1).atHour(8).create();   // 每日約 08:00
-  try{ SpreadsheetApp.getUi().alert("✅ 每日健康檢查已設定（約 08:00）。\n有異常先會 email 你，正常唔會騷擾。"); }catch(e){}
-  return "每日健康檢查已設定";
+  ScriptApp.newTrigger("healthCheck").timeBased().everyDays(1).atHour(5).create();   // 每日約 05:00（搬離 08:00 家長早上高峰：健康檢查重操作+真寫入,同時段家長操作會 hang/無反應）
+  try{ SpreadsheetApp.getUi().alert("✅ 每日健康檢查已設定（約 05:00）。\n有異常先會 email 你，正常唔會騷擾。"); }catch(e){}
+  return "每日健康檢查已設定（05:00）";
+}
+/* 遠端重裝健康檢查 trigger（coachPass）：把時間由 08:00 搬到 05:00，免佔用早上家長高峰 */
+function apiReinstallHealth(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var msg=installHealthCheck();
+  var n=ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==="healthCheck";}).length;
+  return {ok:true, msg:msg, healthTriggers:n};
 }
 function healthCheckMenu(){
   var p=healthCheck();
