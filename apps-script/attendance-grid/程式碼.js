@@ -492,8 +492,10 @@ function route(p){
 function dataIntegrityCheck9_(){
   var P=[], known={}, groups={};
   rosterRows().forEach(function(r){ if(!r.name) return; known[r.name]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
-  // 補堂區本來就係跨班補堂生 → 用「補去班有對應補堂記錄」判定合法,唔可以淨靠 roster(否則誤標易晞渝等合法補堂)
-  var mkByClass={}; try{ makeupAll().forEach(function(m){ if(m.name && m.to){ (mkByClass[m.to]=mkByClass[m.to]||{})[m.name]=1; } }); }catch(e){}
+  // known 擴充：原始 Roster 分頁全部名（唔靠 ROSTER const filter → 免跨班補堂生/已移除班學生被濾走誤標,如易晞渝 badminton三補去四）＋所有補堂生名
+  try{ var _rsh=SS().getSheetByName("Roster"); if(_rsh && _rsh.getLastRow()>1) _rsh.getRange(2,1,_rsh.getLastRow()-1,1).getValues().forEach(function(r){ var n=String(r[0]||"").trim(); if(n) known[n]=1; }); }catch(e){}
+  try{ makeupAll().forEach(function(m){ var n=String(m.name||"").trim(); if(n) known[n]=1; }); }catch(e){}
+  var mkByClass={}; try{ makeupAll().forEach(function(m){ if(m.name && m.to){ (mkByClass[m.to]=mkByClass[m.to]||{})[String(m.name).trim()]=1; } }); }catch(e){}
   Object.keys(groups).forEach(function(k){
     var pp=k.split("|"), sport=pp[0], wd=pp[1], studs=groups[k];
     var nm=(SPORT[sport]&&SPORT[sport].name)||sport, sh=SS().getSheetByName(gridName(sport,wd));
