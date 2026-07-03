@@ -492,6 +492,8 @@ function route(p){
 function dataIntegrityCheck9_(){
   var P=[], known={}, groups={};
   rosterRows().forEach(function(r){ if(!r.name) return; known[r.name]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
+  // 補堂區本來就係跨班補堂生 → 用「補去班有對應補堂記錄」判定合法,唔可以淨靠 roster(否則誤標易晞渝等合法補堂)
+  var mkByClass={}; try{ makeupAll().forEach(function(m){ if(m.name && m.to){ (mkByClass[m.to]=mkByClass[m.to]||{})[m.name]=1; } }); }catch(e){}
   Object.keys(groups).forEach(function(k){
     var pp=k.split("|"), sport=pp[0], wd=pp[1], studs=groups[k];
     var nm=(SPORT[sport]&&SPORT[sport].name)||sport, sh=SS().getSheetByName(gridName(sport,wd));
@@ -501,8 +503,8 @@ function dataIntegrityCheck9_(){
     if(blank) P.push("暑期 "+nm+"("+wd+") 有 "+blank+" 個學生姓名空白");
     var seq=sh.getRange(DATA_START,SEQ_COL,studs.length,1).getValues();   // 序號連續性
     for(var s2=0;s2<studs.length;s2++){ if(String(seq[s2][0]||"").replace(/\D/g,"")!==String(s2+1)){ P.push("暑期 "+nm+"("+wd+") 序號錯位（疑插/刪行）"); break; } }
-    var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=0;
-    for(var j=0;j<MK_MAX;j++){ var v=String(mk[j][0]||"").trim(); if(v && !known[v]) bad++; }
+    var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=0, mkK=mkByClass[k]||{};
+    for(var j=0;j<MK_MAX;j++){ var v=String(mk[j][0]||"").trim(); if(v && !known[v] && !mkK[v]) bad++; }   // 有補堂記錄嘅補堂生唔當不明
     if(bad) P.push("暑期 "+nm+"("+wd+") 補堂區有 "+bad+" 個不明姓名");
     try{ readBlock(sport,wd); }catch(e){ P.push("暑期 "+nm+"("+wd+") readBlock 出錯"); }
   });
