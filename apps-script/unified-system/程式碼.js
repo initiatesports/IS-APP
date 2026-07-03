@@ -3603,8 +3603,10 @@ function applySnapshot_(rows){
   var ss=SS(), M=ss.getSheetByName("補堂");
   // 1) 補堂表（已批次，快）
   if(M && M.getLastRow()>1) M.getRange(2,1,M.getLastRow()-1,5).clearContent();
+  var KNOWN=allKnownStudents_();   // 只還原名冊仍有嘅學生 → 已移除嘅名(如陳大文)唔會由舊 snapshot 復活
   var mkr=[], seen={};
   rows.forEach(function(r){ if(r[1]!=="補") return;
+    if(!KNOWN[String(r[3]).trim()]) return;   // 非名冊補堂名 → 跳過
     var key=r[3]+"|"+r[2]+"|"+r[6]+"|"+toIso_(r[4]); if(seen[key]) return; seen[key]=1;
     mkr.push([r[3],r[2],r[6],toIso_(r[4]),r[5]]); });
   if(mkr.length && M){ M.getRange(2,4,mkr.length,1).setNumberFormat("@"); M.getRange(2,1,mkr.length,5).setValues(mkr); }
