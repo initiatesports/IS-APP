@@ -2545,12 +2545,16 @@ function apiLoad(p){
   // load 會回傳全校資料(出席/補堂/成績/體測/醫療備註等),只准教練;匿名 /exec?action=load 一律拒絕。
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false, err:"未授權"};
   var attendance=[], absencesRaw=[];
+  // 「無故缺席」唔可以補堂（老闆定，跟家長頁 classesFor_）：只有「請假」先當待補；
+  // 「缺席」只有喺 #11 歷史 absences 有記錄先當待補（對齊家長 pendingAbs11）,純 #4 grid 缺席唔當可補。
+  var is11AbsSet_={}; try{ is11_().abs.forEach(function(a){ is11AbsSet_[a.name+"|"+a.cid+"|"+a.absDate]=1; }); }catch(e){}
   CLASS_IDS.forEach(function(cid){
     var full=readFull(cid);
     full.students.forEach(function(nm){ var st=full.reg[nm]||[];
       st.forEach(function(zh,i){ if(!zh) return;
         var en=ZH2EN[zh]; if(en) attendance.push({key:cid+"|"+full.dates[i], name:nm, status:en});
-        if(zh==="請假"||zh==="缺席") absencesRaw.push({name:nm, classId:cid, absDate:full.dates[i]});
+        if(zh==="請假" || (zh==="缺席" && is11AbsSet_[nm+"|"+cid+"|"+full.dates[i]]))
+          absencesRaw.push({name:nm, classId:cid, absDate:full.dates[i]});
       });
     });
     full.mk.forEach(function(x){ x.statuses.forEach(function(zh,i){ if(!zh) return;
