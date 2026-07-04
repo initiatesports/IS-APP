@@ -1981,10 +1981,13 @@ saveRoll = function(){
   syncAttendance(key);
   syncAbsences();
 };
-const _origMarkMakeupDone = markMakeupDone;
-markMakeupDone = function(id){
-  _origMarkMakeupDone(id);
-  syncAbsences();
+// 已補堂：改用「補堂完成」ledger（apiMarkAbsenceDone）——直接標某缺席=已補,持久、specific、
+// 唔再造 to=自己班 自補記錄（舊做法會污染格覆蓋真請假、又反覆彈返）。
+markMakeupDone = async function(id){
+  const rec = ABSENCES.find(a=>a.id===id); if(!rec) return;
+  let r; try{ r=await apiPost({action:'markAbsenceDone', name:rec.name, classId:rec.classId, absDate:rec.absDate}); }catch(e){ r=null; }
+  if(r&&r.ok){ rec.madeUpDate=todayStr(); renderMakeup(); toast('已標記為補堂完成','✓'); }
+  else toast('儲存失敗'+((r&&r.err)?'：'+r.err:''),'⚠');
 };
 
 /* ═══════════ 十五、初始化 ═══════════ */

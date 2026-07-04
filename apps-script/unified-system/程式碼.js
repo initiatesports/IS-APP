@@ -958,6 +958,9 @@ function route(p){
     case "load":            return apiLoad(p);
     case "save_attendance": return apiSaveAttendance(p);
     case "save_absences":   return apiSaveAbsences(p);
+    case "markAbsenceDone": return apiMarkAbsenceDone(p);
+    case "unmarkAbsenceDone": return apiUnmarkAbsenceDone(p);
+    case "markLeave":       return apiMarkLeave(p);
     case "save_settings":   return apiSaveSettings(p);
     // ── 退出學生回歸 ──
     case "returnPay":       return apiReturnPay(p);
@@ -2555,11 +2558,13 @@ function apiLoad(p){
     if(stt==="出席"){ (mkByName[m.name]=mkByName[m.name]||[]).push(m.date); }
   });
   Object.keys(mkByName).forEach(function(n){ mkByName[n].sort(); });
+  var absDoneMap={}; try{ absDoneRows_().forEach(function(x){ absDoneMap[x.name+"|"+x.cid+"|"+x.absDate]=x.madeDate||x.absDate; }); }catch(e){}
   var absences=[], idx=0, used={}, dlMap=dlExtMap_();
   absencesRaw.sort(function(a,b){ return a.absDate.localeCompare(b.absDate); });
   absencesRaw.forEach(function(a){
-    var done=null, pool=mkByName[a.name];
-    if(pool){ used[a.name]=used[a.name]||0; if(used[a.name]<pool.length){ done=pool[used[a.name]]; used[a.name]++; } }
+    var done = absDoneMap[a.name+"|"+a.classId+"|"+a.absDate] || null;   // 「補堂完成」ledger（教練直接標某缺席=已補）優先
+    if(!done){ var pool=mkByName[a.name];                                // 其次：家長補堂（出席）按最舊缺席配對
+      if(pool){ used[a.name]=used[a.name]||0; if(used[a.name]<pool.length){ done=pool[used[a.name]]; used[a.name]++; } } }
     absences.push({ id:"g"+(idx++), name:a.name, classId:a.classId, absDate:a.absDate,
       deadline:(dlMap[a.name+"|"+a.classId+"|"+a.absDate] || addMonthsIso(a.absDate, CONFIG.MAKEUP_MONTHS)), madeUpDate:done });
   });
@@ -2720,10 +2725,7 @@ function apiSaveAttendance(p){
 }
 function apiSaveAbsences(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  // B 推送 ABSENCES：確保缺席格已標、已補嘅寫入 ledger（非破壞，去重）
   var arr=p.data||[];
-  // 去重 key 同時涵蓋「已存在列」＋「本次 call 內剛寫嘅列」，否則 p.data 有重複條目就會重複寫入補堂表
-  var seen={}; makeupAll().forEach(function(m){ seen[m.name+"|"+m.from+"|"+m.date]=1; });
   arr.forEach(function(a){
     if(!a||!a.classId||!CLASSES[a.classId]) return;
     if(a.absDate && sessionsFor(a.classId).indexOf(a.absDate)>=0){
@@ -2731,13 +2733,52 @@ function apiSaveAbsences(p){
       var cur=di>=0?String(st[di]||""):"";
       if(!cur) markCell(a.classId, a.name, a.absDate, "請假", false);  // 未標先補標請假
     }
-    if(a.madeUpDate){ // 已補 → 記入 ledger（去重）；目標班未知 → 記特殊日
-      var k=a.name+"|"+a.classId+"|"+toIso_(a.madeUpDate);
-      if(!seen[k]){ seen[k]=1; var M=makeupSheet(), row=M.getLastRow()+1; M.getRange(row,4).setNumberFormat("@");
-        M.getRange(row,1,1,5).setValues([[a.name, a.classId, a.classId, toIso_(a.madeUpDate), "出席"]]); }
-    }
+    // 已補完成：改用「補堂完成」ledger，唔再造 to=自己班 嘅自補記錄
+    // （舊做法 makeupStatus 讀補堂區搵唔到→唔算出席→madeUpDate 永配對唔到→反覆彈返；又污染格覆蓋真請假）
+    if(a.madeUpDate){ markAbsenceDone_(a.name, a.classId, a.absDate, toIso_(a.madeUpDate)); }
   });
   return {ok:true};
+}
+/* ═══════ 補堂完成 ledger：教練「已補堂」直接標某缺席=已補（唔造自補記錄、唔污染格）═══════ */
+function absDoneSheet_(){
+  var sh=SS().getSheetByName("補堂完成");
+  if(!sh){ sh=SS().insertSheet("補堂完成"); sh.appendRow(["學生","班別","缺席日","補堂日","標記時間"]); sh.getRange("A:A").setNumberFormat("@"); sh.getRange("C:D").setNumberFormat("@"); }
+  return sh;
+}
+function absDoneRows_(){
+  var sh=absDoneSheet_(); if(sh.getLastRow()<2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(function(r,i){
+    return {row:i+2, name:String(r[0]).trim(), cid:String(r[1]).trim(), absDate:toIso_(r[2]), madeDate:(r[3]?toIso_(r[3]):toIso_(r[2]))};
+  }).filter(function(x){ return x.name && x.cid && x.absDate; });
+}
+function markAbsenceDone_(nm, cid, absDate, madeDate){
+  nm=String(nm||"").trim(); cid=String(cid||"").trim(); absDate=toIso_(absDate); if(!nm||!cid||!absDate) return false;
+  madeDate=madeDate?toIso_(madeDate):todayIso();
+  if(absDoneRows_().some(function(x){ return x.name===nm&&x.cid===cid&&x.absDate===absDate; })) return true;
+  var sh=absDoneSheet_(), r=sh.getLastRow()+1;
+  sh.getRange(r,1).setNumberFormat("@"); sh.getRange(r,3,1,2).setNumberFormat("@");
+  sh.getRange(r,1,1,5).setValues([[nm,cid,absDate,madeDate,nowStamp_()]]); return true;
+}
+function apiMarkAbsenceDone(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:markAbsenceDone_(p.name, p.classId, p.absDate, p.madeUpDate), name:p.name, absDate:toIso_(p.absDate)};
+}
+function apiUnmarkAbsenceDone(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name||"").trim(), cid=String(p.classId||"").trim(), ad=toIso_(p.absDate);
+  var sh=absDoneSheet_(), rows=[]; absDoneRows_().forEach(function(x){ if(x.name===nm&&x.cid===cid&&x.absDate===ad) rows.push(x.row); });
+  rows.sort(function(a,b){return b-a;}).forEach(function(r){ sh.deleteRow(r); });
+  return {ok:true, removed:rows.length};
+}
+/* 教練直接標某學生某日=請假（繞過家長「當日／提前一日」閘；用嚟還原流失請假 / 教練代標）*/
+function apiMarkLeave(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name||"").trim(), cid=String(p.classId||"").trim(), date=toIso_(p.date);
+  if(!CLASSES[cid]) return {ok:false,err:"班別不存在"};
+  if(!date) return {ok:false,err:"缺日期"};
+  markCell(cid, nm, date, "請假", false);
+  logAppend({name:nm,key:cid,action:"coachLeave",date:date,status:"請假(教練代標)"});
+  return {ok:true, name:nm, cid:cid, date:date};
 }
 function apiSaveSettings(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
