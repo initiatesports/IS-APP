@@ -824,8 +824,8 @@ function renderHome(){
   document.getElementById('all-classes').innerHTML =
     Object.entries(CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');
 
-  try{ renderDashboard(); }catch(e){ console.error('renderDashboard',e); }
-  try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }
+  // 首頁精簡（2026-07）：移除「每週通知 / 即將到期補堂 / 每班摘要」（累贅少用），只保留上課地點+WhatsApp。
+  // 即將到期補堂仍可喺「補堂」分頁「即將到期」filter 睇；通知功能移除。
   try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
 }
 let VENUES_CACHE=[];
@@ -1207,8 +1207,11 @@ async function loadMakeupRoll(){
   (r.list||[]).forEach(g=>{
     const key=g.c.key||g.c.sport, label=(g.c.dayZh||'')+' '+(g.c.time||'');
     (g.rows||[]).forEach(row=>{
-      if(row.makeup || ['補堂','加操','轉堂'].includes(row.status))
-        MKROLL.push({name:row.name, key, label, date, status:row.status, kind:(row.status==='加操'?'加操':row.status==='轉堂'?'轉堂':'補堂')});
+      // 只顯示「未點名」嘅補堂/加操/轉堂；已㩒出席/缺席嘅唔再彈出（免同下方「已補堂」重複、免自補記錄反覆跳出）
+      var st=row.status;
+      if(st==='出席'||st==='缺席') return;
+      if(row.makeup || ['補堂','加操','轉堂'].includes(st))
+        MKROLL.push({name:row.name, key, label, date, status:st, kind:(st==='加操'?'加操':st==='轉堂'?'轉堂':'補堂')});
     });
   });
   MKROLL.sort((a,b)=>a.name.localeCompare(b.name));
@@ -1996,7 +1999,12 @@ function installManifest(){
     document.head.appendChild(l);
   }catch(e){}
 }
-let COACH_PASS_RT = (function(){ try{ return localStorage.getItem('is_cpass')||sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
+let COACH_PASS_RT = (function(){ try{
+  var v=localStorage.getItem('is_cpass')||sessionStorage.getItem('is_cpass')||'';
+  var t=Number(localStorage.getItem('is_cpass_t')||0);
+  if(v && (!t || (Date.now()-t) > 14*864e5)){ localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); return ''; }  // 記住密碼 14 日,過期要重新輸入(安全)
+  return v;
+}catch(e){ return ''; } })();
 function cpass(){ return COACH_PASS_RT; }
 async function coachGateSubmit(){
   const v=document.getElementById('cg-pass').value.trim();
@@ -2005,13 +2013,13 @@ async function coachGateSubmit(){
   let r; try{ r=await apiPost({action:'coachLogin', coachPass:v}); }catch(e){ r=null; }
   btn.disabled=false; btn.textContent='登入';
   if(!r||!r.ok){ document.getElementById('cg-err').textContent='密碼錯誤'; return; }
-  COACH_PASS_RT=v; try{ localStorage.setItem('is_cpass',v); sessionStorage.removeItem('is_cpass'); }catch(e){}
+  COACH_PASS_RT=v; try{ localStorage.setItem('is_cpass',v); localStorage.setItem('is_cpass_t',String(Date.now())); sessionStorage.removeItem('is_cpass'); }catch(e){}
   document.getElementById('cg-err').textContent='';
   document.getElementById('coach-gate').style.display='none';
   showScreen('home', false); await loadFromSheets(); checkHealth();
 }
 function coachLogout(){
-  COACH_PASS_RT=''; try{ localStorage.removeItem('is_cpass'); sessionStorage.removeItem('is_cpass'); }catch(e){}
+  COACH_PASS_RT=''; try{ localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); sessionStorage.removeItem('is_cpass'); }catch(e){}
   const g=document.getElementById('coach-gate'); g.style.display='flex';
   document.getElementById('cg-pass').value='';
 }
