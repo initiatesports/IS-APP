@@ -2555,29 +2555,31 @@ function apiLoad(p){
     full.mk.forEach(function(x){ x.statuses.forEach(function(zh,i){ if(!zh) return;
       var en=ZH2EN[zh]; if(en) attendance.push({key:cid+"|"+full.dates[i], name:x.name, status:en}); }); });
   });
-  // madeUpDate：每名學生嘅補堂 ledger（出席）按最舊缺席配對
-  // ⚠️ 剔走「#11 遷移」self/blank 補堂：呢啲 date=某條 #11 請假嘅補堂日,對應嘅原請假唔喺 #4 grid,
-  //    若照入 pool 會「浮」起錯配去 grid 另一條更後請假(補堂日竟早過缺席日)→ 教練面少計 owed、漏待補堂。
-  //    真跨班補堂(to≠from 且 to 非空)照計。與家長 classesFor_ migratedDone 剔除邏輯對齊。
-  var done11Mk_={}; try{ is11_().abs.forEach(function(a){ if(a.madeUpDate) done11Mk_[a.name+"|"+a.madeUpDate]=1; }); }catch(e){}
-  var mkByName={};
+  // madeUpDate 解析（與家長 classesFor_ 對齊，逐條請假精準對，唔再盲目 count-match）：
+  //   1) 補堂完成 ledger（教練標某缺席=已補，name+班+缺席日精準）
+  //   2) #11 absences 該缺席日 madeUpDate（歷史遷移已補，name+班+缺席日精準對）
+  //   3) 真跨班「出席」補堂 pool（to≠from），按最舊未解決缺席配對（每原班獨立）
+  //   ⚠️ self/blank 補堂(#11遷移噪音或舊已補堂殘留)一律唔入 pool：#11已補靠(2)精準對；舊殘留應清理/轉ledger，
+  //      唔可盲目 count-match，否則會浮起錯配去更後請假(補堂日早過缺席日→少計 owed)，或反而覆蓋咗(2)嘅精準已補(多計 owed)。
+  var absDoneMap={}; try{ absDoneRows_().forEach(function(x){ absDoneMap[x.name+"|"+x.cid+"|"+x.absDate]=x.madeDate||x.absDate; }); }catch(e){}
+  var is11Done={}; try{ is11_().abs.forEach(function(a){ if(a.madeUpDate) is11Done[a.name+"|"+a.cid+"|"+a.absDate]=a.madeUpDate; }); }catch(e){}
+  var mkPool={};   // key=name|原班 → [出席補堂日...]，只收真跨班(to≠from)
   makeupAll().forEach(function(m){
-    var selfOrBlank = (!m.to || m.to===m.from);
-    if(selfOrBlank && done11Mk_[m.name+"|"+m.date]) return;   // #11 遷移補堂 → 唔入 grid 待補配對池
+    if(!m.to || m.to===m.from) return;                       // self/blank 唔入 pool
     var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
     var stt = onGrid ? (makeupStatus(m.to,m.name,m.date)||"補堂") : (m.status||"補堂");
-    if(stt==="出席"){ (mkByName[m.name]=mkByName[m.name]||[]).push(m.date); }
+    if(stt==="出席"){ var k=m.name+"|"+m.from; (mkPool[k]=mkPool[k]||[]).push(m.date); }
   });
-  Object.keys(mkByName).forEach(function(n){ mkByName[n].sort(); });
-  var absDoneMap={}; try{ absDoneRows_().forEach(function(x){ absDoneMap[x.name+"|"+x.cid+"|"+x.absDate]=x.madeDate||x.absDate; }); }catch(e){}
+  Object.keys(mkPool).forEach(function(k){ mkPool[k].sort(); });
   var absences=[], idx=0, used={}, dlMap=dlExtMap_();
   absencesRaw.sort(function(a,b){ return a.absDate.localeCompare(b.absDate); });
   absencesRaw.forEach(function(a){
-    var done = absDoneMap[a.name+"|"+a.classId+"|"+a.absDate] || null;   // 「補堂完成」ledger（教練直接標某缺席=已補）優先
-    if(!done){ var pool=mkByName[a.name];                                // 其次：家長補堂（出席）按最舊缺席配對
-      if(pool){ used[a.name]=used[a.name]||0; if(used[a.name]<pool.length){ done=pool[used[a.name]]; used[a.name]++; } } }
+    var key=a.name+"|"+a.classId+"|"+a.absDate;
+    var done = absDoneMap[key] || is11Done[key] || null;               // (1)ledger →(2)#11 精準已補
+    if(!done){ var pk=a.name+"|"+a.classId, pool=mkPool[pk];           // (3)真跨班出席補堂,最舊未解決先配
+      if(pool){ used[pk]=used[pk]||0; if(used[pk]<pool.length){ done=pool[used[pk]]; used[pk]++; } } }
     absences.push({ id:"g"+(idx++), name:a.name, classId:a.classId, absDate:a.absDate,
-      deadline:(dlMap[a.name+"|"+a.classId+"|"+a.absDate] || addMonthsIso(a.absDate, CONFIG.MAKEUP_MONTHS)), madeUpDate:done });
+      deadline:(dlMap[key] || addMonthsIso(a.absDate, CONFIG.MAKEUP_MONTHS)), madeUpDate:done });
   });
   // settings / perf / body / grades
   var settings=settingsRows_();
