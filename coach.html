@@ -586,20 +586,25 @@ function buildSettingsPayload(){
 }
 
 /* ═══════════ 四、同步 ═══════════ */
+// ⚠️ 三個 sync 都要檢查 r.ok（後端密碼錯／未授權會回 {ok:false} 但唔 throw）——
+//    否則手機端密碼被清/過期時,寫入其實被拒但前端當成功(假保存)。一律回傳結果畀呼叫者判斷。
 async function syncAttendance(key){
   setSyncIndicator('saving');
-  try { await apiPost({ action:'save_attendance', data:{ key, session:ATT_LOG[key] } }); setSyncIndicator('ok'); }
-  catch(e){ setSyncIndicator('error'); }
+  try { const r = await apiPost({ action:'save_attendance', data:{ key, session:ATT_LOG[key] } });
+        if(!r||!r.ok){ setSyncIndicator('error'); return r||{ok:false}; } setSyncIndicator('ok'); return r; }
+  catch(e){ setSyncIndicator('error'); return {ok:false, err:'網絡錯誤'}; }
 }
 async function syncAbsences(){
   setSyncIndicator('saving');
-  try { await apiPost({ action:'save_absences', data:ABSENCES }); setSyncIndicator('ok'); }
-  catch(e){ setSyncIndicator('error'); }
+  try { const r = await apiPost({ action:'save_absences', data:ABSENCES });
+        if(!r||!r.ok){ setSyncIndicator('error'); return r||{ok:false}; } setSyncIndicator('ok'); return r; }
+  catch(e){ setSyncIndicator('error'); return {ok:false, err:'網絡錯誤'}; }
 }
 async function syncSettings(){
   setSyncIndicator('saving');
-  try { await apiPost({ action:'save_settings', data:buildSettingsPayload() }); setSyncIndicator('ok'); }
-  catch(e){ setSyncIndicator('error'); }
+  try { const r = await apiPost({ action:'save_settings', data:buildSettingsPayload() });
+        if(!r||!r.ok){ setSyncIndicator('error'); return r||{ok:false}; } setSyncIndicator('ok'); return r; }
+  catch(e){ setSyncIndicator('error'); return {ok:false, err:'網絡錯誤'}; }
 }
 
 /* ═══════════ 五、工具函數 ═══════════ */
@@ -1189,9 +1194,8 @@ function saveRoll(){
       if (pending.length > 0) pending[0].madeUpDate = date;
     }
   });
-  document.getElementById('roll-already-saved').style.display = 'flex';
   renderDatePills();
-  toast('點名記錄已儲存', '✓');
+  // 註：唔喺度彈「已儲存」——真正成功與否由下面 async override 等後端確認後先報（避免假保存）。
 }
 
 /* ═══════════ 九、補堂 ═══════════ */
@@ -1975,12 +1979,31 @@ async function checkHealth(){
 
 /* ═══════════ 十四、自動同步 Patch ═══════════ */
 const _origSaveRoll = saveRoll;
-saveRoll = function(){
-  _origSaveRoll();
-  const key = currentClass + '|' + rollSelectedDate;
-  syncAttendance(key);
-  syncAbsences();
+saveRoll = async function(){
+  const date = rollSelectedDate;
+  if(!date){ toast('請先選擇日期','⚠'); return; }
+  const btn=document.querySelector('.btn-save');
+  if(btn){ btn.disabled=true; btn.dataset._t=btn.textContent; btn.textContent='儲存中…'; }
+  _origSaveRoll();                                   // 本地更新 + renderDatePills（唔再自己報成功）
+  const key = currentClass + '|' + date;
+  let a,b; try{ [a,b] = await Promise.all([syncAttendance(key), syncAbsences()]); }catch(e){ a={ok:false}; b={ok:false}; }
+  if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
+  if(a&&a.ok&&b&&b.ok){
+    const badge=document.getElementById('roll-already-saved'); if(badge) badge.style.display='flex';
+    try{ if(cpass()) localStorage.setItem('is_cpass_t', String(Date.now())); }catch(e){}  // 滑動延長：活躍使用唔會 14 日過期
+    toast('點名記錄已儲存','✓');
+  } else {
+    const em=((a&&a.err)||'')+' '+((b&&b.err)||'');
+    if(/密碼|授權/.test(em) || !cpass()){
+      _pendingSave = { key, date };                  // 保住已㩒點名(in-memory)，重新登入後自動補交
+      toast('⚠ 未儲存到！登入已過期，請重新輸入密碼，之後會自動幫你補交','⚠');
+      coachLogout();                                 // 重彈登入 gate（手機清咗 localStorage 時會行到呢度）
+    } else {
+      toast('⚠ 未儲存到伺服器！請檢查網絡後再㩒「儲存點名」','⚠');
+    }
+  }
 };
+let _pendingSave = null;   // 密碼過期時暫存待補交嘅點名，重新登入後由 coachGateSubmit 自動再交
 // 已補堂：改用「補堂完成」ledger（apiMarkAbsenceDone）——直接標某缺席=已補,持久、specific、
 // 唔再造 to=自己班 自補記錄（舊做法會污染格覆蓋真請假、又反覆彈返）。
 markMakeupDone = async function(id){
@@ -2019,6 +2042,10 @@ async function coachGateSubmit(){
   COACH_PASS_RT=v; try{ localStorage.setItem('is_cpass',v); localStorage.setItem('is_cpass_t',String(Date.now())); sessionStorage.removeItem('is_cpass'); }catch(e){}
   document.getElementById('cg-err').textContent='';
   document.getElementById('coach-gate').style.display='none';
+  // 若有待補交嘅點名（密碼過期時暫存），趁 loadFromSheets 覆蓋前先補交返上伺服器
+  if(_pendingSave){ const ps=_pendingSave; _pendingSave=null;
+    try{ const a=await syncAttendance(ps.key), b=await syncAbsences();
+      if(a&&a.ok&&b&&b.ok) toast('已幫你補交剛才嘅點名','✓'); else toast('補交仍失敗，請重新點名','⚠'); }catch(e){ toast('補交失敗，請重新點名','⚠'); } }
   showScreen('home', false); await loadFromSheets(); checkHealth();
 }
 function coachLogout(){
