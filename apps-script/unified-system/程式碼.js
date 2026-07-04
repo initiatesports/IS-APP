@@ -910,6 +910,7 @@ function route(p){
     case "setMakeupDeadline": return apiSetMakeupDeadline(p);
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
+    case "migrateSelfMakeup": return apiMigrateSelfMakeup(p);
     case "purgeStudent":    return apiPurgeStudent(p);
     case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "cleanupStorage":  return apiCleanupStorage(p);
@@ -2782,6 +2783,51 @@ function apiUnmarkAbsenceDone(p){
   var sh=absDoneSheet_(), rows=[]; absDoneRows_().forEach(function(x){ if(x.name===nm&&x.cid===cid&&x.absDate===ad) rows.push(x.row); });
   rows.sort(function(a,b){return b-a;}).forEach(function(r){ sh.deleteRow(r); });
   return {ok:true, removed:rows.length};
+}
+/* 一次性 migration：把「純舊已補堂殘留」self/blank 補堂轉成「補堂完成」ledger，令教練面同家長面一致。
+   背景：舊已補堂機制造 from==to（或 to 空）補堂，家長 classesFor_ 當 booked4 減 owed（顯示已補），
+   但教練 apiLoad 精準對後唔認呢啲 self 補堂 → 教練面 owed 偏高、兩面唔一致。
+   做法（家長 owed 中性）：
+     - #11 遷移備份（date 命中該生該班 #11 madeUpDate）→ is11Done 已精準覆蓋 → 冗餘,直接刪。
+     - 純舊殘留 → 標該生該班「最舊、未被 #11/ledger 佔用」嘅請假入 ledger（補堂日=原自補日）,再刪該行。
+   結果：家長 booked4 減少 = ledger 抵銷相同節數（owed 不變）；教練 is11Done+ledger 覆蓋同樣節數（owed 回正）。
+   先整份備份到 Drive＋sheet 快照。冪等（再跑只會清剩低 self 殘留）。*/
+function migrateSelfMakeupToLedger_(){
+  var M=makeupSheet(); if(!M||M.getLastRow()<2) return {migrated:[], deletedRedundant:0, deletedTotal:0};
+  backupToDrive(); backup();
+  var is11byNC={}, is11DoneAbs={};
+  try{ is11_().abs.forEach(function(a){ if(a.madeUpDate){ (is11byNC[a.name+"|"+a.cid]=is11byNC[a.name+"|"+a.cid]||{})[a.madeUpDate]=1;
+    is11DoneAbs[a.name+"|"+a.cid+"|"+a.absDate]=1; } }); }catch(e){}
+  var ledger={}; absDoneRows_().forEach(function(x){ ledger[x.name+"|"+x.cid+"|"+x.absDate]=1; });
+  var leavesByNC={};
+  CLASS_IDS.forEach(function(cid){ var blk=readBlock(cid);
+    Object.keys(blk.status).forEach(function(nm){ var st=blk.status[nm]||[];
+      st.forEach(function(s,i){ if(s==="請假"||s==="缺席"){ (leavesByNC[nm+"|"+cid]=leavesByNC[nm+"|"+cid]||[]).push(blk.dates[i]); } });
+    });
+  });
+  Object.keys(leavesByNC).forEach(function(k){ leavesByNC[k].sort(); });
+  var all=M.getRange(2,1,M.getLastRow()-1,6).getValues();
+  var toDelete=[], migrated=[], redundant=0, usedLeaf={};
+  all.forEach(function(r,i){
+    var nm=String(r[0]).trim(), from=String(r[1]).trim(), to=String(r[2]).trim(), date=toIso_(r[3]), stt=String(r[4]||"").trim();
+    var row=i+2; if(!nm||!from) return;
+    if(!(!to || to===from)) return;                 // 真跨班,唔郁
+    if(stt!=="出席" && stt!=="") return;            // 只處理當出席嘅
+    var nc=nm+"|"+from;
+    if(is11byNC[nc] && is11byNC[nc][date]){ toDelete.push(row); redundant++; return; }  // #11 冗餘,刪
+    var leaves=leavesByNC[nc]||[], picked=null;
+    for(var j=0;j<leaves.length;j++){ var d=leaves[j], key=nm+"|"+from+"|"+d;
+      if(is11DoneAbs[key]||ledger[key]||usedLeaf[key]) continue; picked=d; usedLeaf[key]=1; break; }
+    if(picked){ markAbsenceDone_(nm, from, picked, date); ledger[nm+"|"+from+"|"+picked]=1;
+      migrated.push(nm+" "+from+" 缺"+picked+"←補"+date); }
+    toDelete.push(row);
+  });
+  toDelete.sort(function(a,b){ return b-a; }).forEach(function(r){ M.deleteRow(r); });
+  return {migrated:migrated, deletedRedundant:redundant, deletedTotal:toDelete.length};
+}
+function apiMigrateSelfMakeup(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, result:migrateSelfMakeupToLedger_()};
 }
 /* 教練直接標某學生某日=請假（繞過家長「當日／提前一日」閘；用嚟還原流失請假 / 教練代標）*/
 function apiMarkLeave(p){
