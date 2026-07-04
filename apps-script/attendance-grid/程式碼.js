@@ -489,13 +489,17 @@ function route(p){
 
 // 暑期 #9 資料完整性檢查：逐個(運動×星期)格掃姓名空白 / 補堂區不明姓名 / readBlock 出錯。
 // 只回「數量＋格名」摘要，唔含學生姓名，可安全經 health 端點開放畀 #4 匯總。
+// 姓名正規化：去零寬字元(U+200B–200D)/BOM(U+FEFF)/不換行空格(U+00A0)/所有空白。
+// 中文姓名冇內部空格,故安全。解決 grid 補堂區個名同 Roster/補堂表個名有隱藏字元差、
+// 令 known 點對都對唔到而日日誤報「補堂區有不明姓名」（如易晞渝 badminton三補去四）。
+function normNm_(s){ return String(s||"").replace(/[\s​-‍﻿ ]/g,""); }
 function dataIntegrityCheck9_(){
   var P=[], known={}, groups={};
-  rosterRows().forEach(function(r){ if(!r.name) return; known[r.name]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
+  rosterRows().forEach(function(r){ if(!r.name) return; known[normNm_(r.name)]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
   // known 擴充：原始 Roster 分頁全部名（唔靠 ROSTER const filter → 免跨班補堂生/已移除班學生被濾走誤標,如易晞渝 badminton三補去四）＋所有補堂生名
-  try{ var _rsh=SS().getSheetByName("Roster"); if(_rsh && _rsh.getLastRow()>1) _rsh.getRange(2,1,_rsh.getLastRow()-1,1).getValues().forEach(function(r){ var n=String(r[0]||"").trim(); if(n) known[n]=1; }); }catch(e){}
-  try{ makeupAll().forEach(function(m){ var n=String(m.name||"").trim(); if(n) known[n]=1; }); }catch(e){}
-  var mkByClass={}; try{ makeupAll().forEach(function(m){ if(m.name && m.to){ (mkByClass[m.to]=mkByClass[m.to]||{})[String(m.name).trim()]=1; } }); }catch(e){}
+  try{ var _rsh=SS().getSheetByName("Roster"); if(_rsh && _rsh.getLastRow()>1) _rsh.getRange(2,1,_rsh.getLastRow()-1,1).getValues().forEach(function(r){ var n=normNm_(r[0]); if(n) known[n]=1; }); }catch(e){}
+  try{ makeupAll().forEach(function(m){ var n=normNm_(m.name); if(n) known[n]=1; }); }catch(e){}
+  var mkByClass={}; try{ makeupAll().forEach(function(m){ if(m.name && m.to){ (mkByClass[m.to]=mkByClass[m.to]||{})[normNm_(m.name)]=1; } }); }catch(e){}
   Object.keys(groups).forEach(function(k){
     var pp=k.split("|"), sport=pp[0], wd=pp[1], studs=groups[k];
     var nm=(SPORT[sport]&&SPORT[sport].name)||sport, sh=SS().getSheetByName(gridName(sport,wd));
@@ -506,7 +510,7 @@ function dataIntegrityCheck9_(){
     var seq=sh.getRange(DATA_START,SEQ_COL,studs.length,1).getValues();   // 序號連續性
     for(var s2=0;s2<studs.length;s2++){ if(String(seq[s2][0]||"").replace(/\D/g,"")!==String(s2+1)){ P.push("暑期 "+nm+"("+wd+") 序號錯位（疑插/刪行）"); break; } }
     var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=0, mkK=mkByClass[k]||{};
-    for(var j=0;j<MK_MAX;j++){ var v=String(mk[j][0]||"").trim(); if(v && !known[v] && !mkK[v]) bad++; }   // 有補堂記錄嘅補堂生唔當不明
+    for(var j=0;j<MK_MAX;j++){ var v=normNm_(mk[j][0]); if(v && !known[v] && !mkK[v]) bad++; }   // 正規化後比對(去隱藏字元)；有補堂記錄嘅補堂生唔當不明
     if(bad) P.push("暑期 "+nm+"("+wd+") 補堂區有 "+bad+" 個不明姓名");
     try{ readBlock(sport,wd); }catch(e){ P.push("暑期 "+nm+"("+wd+") readBlock 出錯"); }
   });
