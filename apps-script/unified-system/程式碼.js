@@ -2556,8 +2556,14 @@ function apiLoad(p){
       var en=ZH2EN[zh]; if(en) attendance.push({key:cid+"|"+full.dates[i], name:x.name, status:en}); }); });
   });
   // madeUpDate：每名學生嘅補堂 ledger（出席）按最舊缺席配對
+  // ⚠️ 剔走「#11 遷移」self/blank 補堂：呢啲 date=某條 #11 請假嘅補堂日,對應嘅原請假唔喺 #4 grid,
+  //    若照入 pool 會「浮」起錯配去 grid 另一條更後請假(補堂日竟早過缺席日)→ 教練面少計 owed、漏待補堂。
+  //    真跨班補堂(to≠from 且 to 非空)照計。與家長 classesFor_ migratedDone 剔除邏輯對齊。
+  var done11Mk_={}; try{ is11_().abs.forEach(function(a){ if(a.madeUpDate) done11Mk_[a.name+"|"+a.madeUpDate]=1; }); }catch(e){}
   var mkByName={};
   makeupAll().forEach(function(m){
+    var selfOrBlank = (!m.to || m.to===m.from);
+    if(selfOrBlank && done11Mk_[m.name+"|"+m.date]) return;   // #11 遷移補堂 → 唔入 grid 待補配對池
     var onGrid = CLASSES[m.to] && sessionsFor(m.to).indexOf(m.date)>=0;
     var stt = onGrid ? (makeupStatus(m.to,m.name,m.date)||"補堂") : (m.status||"補堂");
     if(stt==="出席"){ (mkByName[m.name]=mkByName[m.name]||[]).push(m.date); }
