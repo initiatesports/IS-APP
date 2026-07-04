@@ -474,6 +474,13 @@ function route(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
+    case "_diagYi": {   // 臨時診斷：易晞渝 grid 名 vs 補堂名 char code（用完即刪）
+      if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+      var cc=function(s){ return Array.prototype.map.call(String(s),function(c){return c.charCodeAt(0).toString(16);}).join(" "); };
+      var g=SS().getSheetByName("羽毛球(四)").getRange(12,2).getValue();
+      var mk=makeupAll().filter(function(m){return m.to==="badminton|四" && normNm_(m.name).indexOf("易")===0;}).map(function(m){return {n:m.name,cc:cc(m.name),norm:normNm_(m.name),normCC:cc(normNm_(m.name))};});
+      return {ok:true, gridRaw:String(g), gridCC:cc(g), gridNorm:normNm_(g), gridNormCC:cc(normNm_(g)), mk:mk};
+    }
     case "health": return {ok:true, version:VERSION, problems:dataIntegrityCheck9_().concat(functionalCheck9_()).concat(writePathCheck9_())};  // 資料完整性+功能+寫入測試摘要(無學生姓名)，畀 #4 匯總
     case "verifyCoach": return apiVerifyCoach(p);  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
     case "dailyList": return apiDaily(p);
