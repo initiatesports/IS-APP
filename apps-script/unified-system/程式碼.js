@@ -997,6 +997,8 @@ function classesFor_(nm){
     st.forEach(function(s){ if(s==="出席"||s==="補堂")att++; else if(s==="請假")lv++; else if(s==="缺席")ab++; });
     // 補堂來源：#11 absences 已補（madeUpDate）+ 家長經 is-parent 預約嘅 #4 補堂
     var abs11=abs11all.filter(function(a){ return a.name===nm && a.cid===cid; });
+    // 「補堂完成」ledger（教練喺 coach.html 直接標某缺席=已補）→ 家長 owed 亦要當已補、唔再計待補。
+    var absDone_={}; try{ absDoneRows_().forEach(function(x){ if(x.name===nm && x.cid===cid) absDone_[x.absDate]=1; }); }catch(e){}
     var done11=abs11.filter(function(a){ return a.madeUpDate; });
     var mk4=mk.filter(function(m){ return m.from===cid; });   // mk 已由 makeupUniq_ 去重
     // 剔走遷移自 #11「已補」嘅重複列（importParentData 寫入，補去班 to 可能=本班/留空/原班）：
@@ -1043,13 +1045,14 @@ function classesFor_(nm){
     var effDl_=function(d, stored){ return dlMap[nm+"|"+cid+"|"+d] || stored || addMonthsIso(d, CONFIG.MAKEUP_MONTHS); };
     var pendingAbs11=abs11.filter(function(a){
       if(a.madeUpDate) return false;                          // #11 已補
+      if(absDone_[a.absDate]) return false;                   // 補堂完成 ledger 已標已補
       var g=stByDate[a.absDate];                              // 該缺席日喺 #4 本班 grid 嘅真相狀態
       if(g!==undefined && RESOLVED11_[g]) return false;       // #4 顯示已出席/豁免等 → 已解決，唔計待補
       if(effDl_(a.absDate, a.deadline) < today_) return false; // 限期已過 → 唔再當待補（老闆定：過期 owed 歸 0）
       return true;
     }).length;
     var absDateSet={}; abs11.forEach(function(a){ absDateSet[a.absDate]=true; });
-    var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]] && effDl_(blk.dates[i])>=today_) extraLeaves++; });
+    var extraLeaves=0; st.forEach(function(s,i){ if(s==="請假" && !absDateSet[blk.dates[i]] && !absDone_[blk.dates[i]] && effDl_(blk.dates[i])>=today_) extraLeaves++; });
     // booked4：真正由本班「新預約」出去嘅補堂（已用 mk4real 剔走遷移重複列，不論已/待出席各抵銷一節待補）。
     //   真正 is-parent 新預約 to 必為另一班，不受 migratedDone 剔除影響（羅靖誼個案已修：唔再被殘留 to="" 列抵銷）。
     var booked4=mk4real.length;
@@ -1155,7 +1158,8 @@ function apiMakeup(p){
   // 限期檢查：今次補堂對應「最舊未補嘅缺席」，須喺該缺席日 +N 個月內（#9）
   if(CLASSES[p.fromKey]){
     var fb=readBlock(p.fromKey), fst=fb.status[p.name]||[], fd=fb.dates, lv=[];
-    fst.forEach(function(s,i){ if(s==="請假") lv.push(fd[i]); });
+    var absDoneMk_={}; try{ absDoneRows_().forEach(function(x){ if(x.name===p.name && x.cid===p.fromKey) absDoneMk_[x.absDate]=1; }); }catch(e){}
+    fst.forEach(function(s,i){ if(s==="請假" && !absDoneMk_[fd[i]]) lv.push(fd[i]); }); // 剔走「補堂完成」ledger 已補嘅缺席
     lv.sort();
     // madeUp 要同前端 owed(mk4real) 一致：剔走由 #11 遷移嘅「已補」歷史補堂（madeUpDate 對應 #11 absence、
     // to 為本班/空）。否則歷史補堂會誤當佔咗本班待補額，令真正待補（如新一次請假）申請被拒（羅靖誼個案）。
