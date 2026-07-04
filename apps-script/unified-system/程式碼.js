@@ -909,6 +909,7 @@ function route(p){
     case "recoverPayments": return apiRecoverPayments(p);
     case "setMakeupDeadline": return apiSetMakeupDeadline(p);
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
+    case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
     case "purgeStudent":    return apiPurgeStudent(p);
     case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "cleanupStorage":  return apiCleanupStorage(p);
@@ -3498,6 +3499,29 @@ function cleanupDupMakeupMenu(){
   var r=cleanupDupMakeup();
   SpreadsheetApp.getUi().alert(
     "清理完成 ✅\n刪除重複補堂行："+r.removed+" 行\n保留唯一補堂："+r.kept+" 筆\n（已先整份備份到 Drive，可還原）");
+}
+/* 清走「自補」污染行（舊已補堂機制產物：原班==補去班、非 IMP、指定日期後）。
+   呢啲行會令補堂反覆彈返（to=自己班,makeupStatus 讀補堂區永配對唔到）。IMP 歷史遷移列一律保留。
+   已改用「補堂完成」ledger(markAbsenceDone)後,新已補堂唔再造呢啲行。內部先備份。 */
+function cleanupSelfMakeup_(sinceIso){
+  var M=makeupSheet(); if(!M||M.getLastRow()<2) return {removed:0, rows:[]};
+  backupToDrive(); backup();
+  var since=String(sinceIso||"");
+  var vals=M.getRange(2,1,M.getLastRow()-1,6).getValues();
+  var hit=[];
+  vals.forEach(function(r,i){
+    var from=String(r[1]).trim(), to=String(r[2]).trim(), date=toIso_(r[3]), tag=String(r[5]||"").trim();
+    if(from && to && from===to && tag!=="IMP" && (!since || date>=since)){
+      hit.push({row:i+2, name:String(r[0]).trim(), cid:from, date:date});
+    }
+  });
+  hit.sort(function(a,b){ return b.row-a.row; });     // 由下而上刪
+  hit.forEach(function(h){ M.deleteRow(h.row); });
+  return {removed:hit.length, rows:hit.map(function(h){ return h.name+" "+h.cid+" "+h.date; })};
+}
+function apiCleanupSelfMakeup(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, result:cleanupSelfMakeup_(p.since)};
 }
 /* 清除某學生喺各資料表嘅殘留列（補堂 A欄、繳費 A欄）。grid 由 applyRosterChanges force 重建處理。
    🔒 安全閘：仍喺 CLASSES 名冊嘅學生一律拒絕（防誤清在讀學生）。先整份備份到 Drive＋sheet 快照。*/
