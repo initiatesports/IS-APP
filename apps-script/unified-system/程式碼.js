@@ -575,8 +575,13 @@ var DATA_SS_ID = "1prjceGydcVHvhidlp8SZEJ1abE0Cvz2WqwrjN6_K7qo";  // IS App Data
 var NAME_FIX = { "陳柏晞":"陳柏睎" };
 function fixName_(nm){ return NAME_FIX[nm] || nm; }
 var _is11Cache = null;   // 每次執行只讀一次（Apps Script 全域於每次 doGet/doPost 重置）
+// 提速：#11(IS App Data) 而家係唯讀歷史後備（點名已搬 #4），數據極少變。
+// 用 CacheService 跨請求快取 30 分鐘 → 慳返每次 login/load 都要 openById 跨試算表 + 讀兩張表嘅開銷。
+// #11 有更新時（importParentData / 手動）用 bustIs11Cache_() 清；30 分鐘後亦自動更新。
+function bustIs11Cache_(){ _is11Cache=null; try{ CacheService.getScriptCache().remove("is11v1"); }catch(e){} }
 function is11_(){
   if(_is11Cache) return _is11Cache;
+  try{ var _s=CacheService.getScriptCache().get("is11v1"); if(_s){ _is11Cache=JSON.parse(_s); return _is11Cache; } }catch(e){}
   var out={att:{}, abs:[]};
   try{
     var ss=SpreadsheetApp.openById(DATA_SS_ID);
@@ -596,6 +601,7 @@ function is11_(){
       });
     }
   }catch(e){ Logger.log("is11_ 讀取 #11 失敗（家長端會退回 #4 grid）: "+e); }
+  try{ var _j=JSON.stringify(out); if(_j.length<95000) CacheService.getScriptCache().put("is11v1", _j, 1800); }catch(e){}  // 30 分鐘;>95KB 唔快取(CacheService 100KB 上限)
   _is11Cache=out; return out;
 }
 // #11 英文狀態 → 中文（absent 視乎係咪有 absences 紀錄分「請假 / 缺席」）
@@ -911,6 +917,8 @@ function route(p){
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
     case "migrateSelfMakeup": return apiMigrateSelfMakeup(p);
+    case "bustCache": if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"}; bustIs11Cache_(); return {ok:true, msg:"#11 快取已清"};
+    case "shrinkBackup": if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"}; return {ok:true, result:shrinkBackupSheet_(Number(p.keep)||6)};
     case "purgeStudent":    return apiPurgeStudent(p);
     case "clearFamilyPin":  return apiClearFamilyPin(p);
     case "cleanupStorage":  return apiCleanupStorage(p);
@@ -3697,9 +3705,21 @@ function backup(){
   });
   makeupAll().forEach(function(m){ rows.push([stamp,"補",m.from,m.name,toIso_(m.date),m.status||"",m.to]); });
   if(rows.length) bk.getRange(bk.getLastRow()+1,1,rows.length,7).setValues(rows);
-  pruneBackups_(bk,12);   // 保留最近 12 個 snapshot（原 30 → 收細「備份」分頁,減少每次寫入掃描負擔、提速）
+  pruneBackups_(bk,6);   // 保留最近 6 個 snapshot（原 12 → 進一步收細「備份」分頁,提速整個試算表）
   Logger.log("備份完成："+rows.length+" 筆 @ "+stamp);
   return rows.length;
+}
+/* 收窄「備份」分頁：先 prune 到 keep 個 snapshot,再實際刪走內容以外多餘空行,
+   令試算表行維度縮返細（clearContent 唔會縮維度,長期膨脹會拖慢成個試算表所有操作）。*/
+function shrinkBackupSheet_(keep){
+  var bk=SS().getSheetByName("備份"); if(!bk) return {before:0, after:0};
+  var before=bk.getMaxRows();
+  pruneBackups_(bk, keep||6);
+  var used=Math.max(2, bk.getLastRow());     // 內容行數（含表頭）
+  var maxR=bk.getMaxRows(), buffer=used+50;
+  if(maxR > buffer){ bk.deleteRows(buffer+1, maxR-buffer); }
+  SpreadsheetApp.flush();
+  return {before:before, afterRows:bk.getLastRow(), afterDim:bk.getMaxRows()};
 }
 function normalizeBackupStamps_(bk){
   if(bk.getLastRow()<2) return;
@@ -3953,6 +3973,7 @@ function markFiveSixPaidMenu(){
 
 function importParentData(){
   var ss=SS();
+  bustIs11Cache_();   // 匯入前清 #11 快取,確保讀到最新 #11 資料
   backup();
   ensureRoster_(ss);   // 名冊套用最新 CLASSES 班別（保留家長手機）→ 家長頁只顯示現時班別
   // 捕捉各班現有格仔（舊上課日）→ 之後改名單/加堂強制重建仍可還原（保留示範學員 demo 等）
