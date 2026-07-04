@@ -29,6 +29,10 @@ if (process.env.QA_ROSTER) {
     ROSTER_SRC = "live:" + process.env.QA_ROSTER;
   } catch (e) { console.error("⚠️ 讀 QA_ROSTER 失敗：" + e.message); }
 }
+// 已退出學生：名冊 sheet 未移除但已退學 → 硬跳過,唔再誤報登入失敗。新增退學者加入此 Set。
+const EXITED = new Set(["陳靖朗"]);
+R4 = R4.filter(([nm]) => !EXITED.has(String(nm).trim()));
+R9 = R9.filter(([nm]) => !EXITED.has(String(nm).trim()));
 if (!R4.length && !R9.length) {
   console.error("❌ 冇名冊資料。請設 QA_ROSTER 指向由 live sheet 建立嘅 JSON（見檔頭註解）。本工具唔再內建學生資料（私隱：public repo）。");
   process.exit(2);
