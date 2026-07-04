@@ -474,12 +474,21 @@ function route(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
-    case "_diagYi": {   // 臨時診斷：易晞渝 grid 名 vs 補堂名 char code（用完即刪）
+    case "_diagYi": {   // 臨時診斷：完整重演 badminton|四 補堂區檢查（用完即刪）
       if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-      var cc=function(s){ return Array.prototype.map.call(String(s),function(c){return c.charCodeAt(0).toString(16);}).join(" "); };
-      var g=SS().getSheetByName("羽毛球(四)").getRange(12,2).getValue();
-      var mk=makeupAll().filter(function(m){return m.to==="badminton|四" && normNm_(m.name).indexOf("易")===0;}).map(function(m){return {n:m.name,cc:cc(m.name),norm:normNm_(m.name),normCC:cc(normNm_(m.name))};});
-      return {ok:true, gridRaw:String(g), gridCC:cc(g), gridNorm:normNm_(g), gridNormCC:cc(normNm_(g)), mk:mk};
+      var known={}, groups={};
+      rosterRows().forEach(function(r){ if(!r.name) return; known[normNm_(r.name)]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
+      try{ var _rsh=SS().getSheetByName("Roster"); if(_rsh && _rsh.getLastRow()>1) _rsh.getRange(2,1,_rsh.getLastRow()-1,1).getValues().forEach(function(r){ var n=normNm_(r[0]); if(n) known[n]=1; }); }catch(e){}
+      try{ makeupAll().forEach(function(m){ var n=normNm_(m.name); if(n) known[n]=1; }); }catch(e){}
+      var mkByClass={}; try{ makeupAll().forEach(function(m){ if(m.name && m.to){ (mkByClass[m.to]=mkByClass[m.to]||{})[normNm_(m.name)]=1; } }); }catch(e){}
+      var K="badminton|四", studs=groups[K]||[], sh=SS().getSheetByName(gridName("badminton","四"));
+      var mkrows=sh.getRange(DATA_START+studs.length, NAME_COL, MK_MAX, 1).getValues();
+      var flagged=[];
+      for(var j=0;j<MK_MAX;j++){ var v=normNm_(mkrows[j][0]); if(v && !known[v] && !(mkByClass[K]||{})[v]) flagged.push({raw:String(mkrows[j][0]), row:DATA_START+studs.length+j}); }
+      return {ok:true, groupKey_exists:!!groups[K], studsLen:studs.length, studs:studs,
+        mkStartRow:DATA_START+studs.length, DATA_START:DATA_START, MK_MAX:MK_MAX,
+        knownHasYi:!!known["易晞渝"], mkByClassKeys:Object.keys(mkByClass), mkClassHasYi:!!(mkByClass[K]||{})["易晞渝"],
+        flagged:flagged };
     }
     case "health": return {ok:true, version:VERSION, problems:dataIntegrityCheck9_().concat(functionalCheck9_()).concat(writePathCheck9_())};  // 資料完整性+功能+寫入測試摘要(無學生姓名)，畀 #4 匯總
     case "verifyCoach": return apiVerifyCoach(p);  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
