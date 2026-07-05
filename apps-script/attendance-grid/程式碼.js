@@ -358,6 +358,26 @@ function syncMakeupsToGrid(){
     if(!cur) markCell(pr.sport,pr.wd,m.name,m.date,"補堂",true);
   });
 }
+/* 系統守護：#9 自動修復（由 #4 autoHeal_ 每朝遠端叫，coachPass 守護）。
+   全部非破壞性冪等修復：補堂日期正規化、補齊名冊缺行、補堂寫入格(只填空格)。先備份、寫「自動修復」日誌。*/
+function autoHeal9_(){
+  var actions=[];
+  try{ backup(); actions.push("修復前備份 ✓"); }catch(e){ actions.push("備份 ⚠"+e); }
+  try{ normalizeMakeupDates_(); actions.push("補堂日期正規化 ✓"); }catch(e){ actions.push("日期正規化 ⚠"+e); }
+  try{ ensureRosterRows_(); actions.push("補齊名冊缺行 ✓"); }catch(e){ actions.push("補名冊行 ⚠"+e); }
+  try{ syncMakeupsToGrid(); actions.push("補堂寫入格(只填空) ✓"); }catch(e){ actions.push("補堂入格 ⚠"+e); }
+  try{ var sh=SS().getSheetByName("自動修復")||SS().insertSheet("自動修復");
+    if(sh.getLastRow()<1){ sh.appendRow(["時間","動作"]); sh.getRange("A:A").setNumberFormat("@"); }
+    var stamp=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm");
+    actions.forEach(function(a){ sh.appendRow([stamp, a]); });
+    var last=sh.getLastRow(); if(last>201) sh.deleteRows(2, last-201);
+  }catch(e){}
+  return {ok:true, healed:actions.filter(function(a){return a.indexOf("⚠")<0 && a.indexOf("備份")<0;}).length, actions:actions};
+}
+function apiAutoHeal9(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return autoHeal9_();
+}
 
 /* ---------- Roster / 補堂 / Log ---------- */
 function rosterRows(){ var sh=SS().getSheetByName("Roster");
@@ -467,7 +487,7 @@ function reportError_(where, err){
   }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
 /* 抗擠塞（Phase 2）：只鎖寫入類，序列化並發寫入防覆蓋/空回應；讀取(login/dailyList…)唔鎖免拖慢。*/
-var WRITE_ACTIONS9 = { applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, setVenue:1, purgeStudent:1 };
+var WRITE_ACTIONS9 = { applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, setVenue:1, purgeStudent:1, autoHeal:1 };
 function route(p){
   if(p && WRITE_ACTIONS9[p.action]){
     var lock=LockService.getScriptLock();
@@ -494,6 +514,7 @@ function routeInner_(p){
     case "venuesAdmin": return apiVenuesAdmin(p);
     case "weeklyText": return apiWeeklyText(p);
     case "purgeStudent": return apiPurgeStudent(p);
+    case "autoHeal": return apiAutoHeal9(p);
     default: return {ok:false,err:"unknown action"};
   }
 }
