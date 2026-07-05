@@ -3915,16 +3915,26 @@ function restoreChoose(){
    備份日日有，但要確保「真係還原到」。restoreReadiness_ 每日驗證最完整快照存在、覆蓋所有班、
    夠新鮮、可解析（唔寫正式資料 = 安全演練）；駁入健康檢查。apiRestore 遠端還原（需 coachPass+confirm，
    還原前先 backup 現狀 → 還原後仲可反悔）。*/
+/* 揀還原目標：最近一個「覆蓋所有班」嘅快照（新鮮優先）。
+   唔用 restoreLatest 嘅「最多行」heuristic：cleanup(如清自補污染)後行數會合法減少，
+   「最多行」會揀到 cleanup 前嘅舊版 → 還原會重新引入已清走嘅污染。故改用最新-覆蓋齊。*/
+function pickRestoreSnap_(map){
+  var keys=Object.keys(map).sort();   // 舊 → 新
+  for(var i=keys.length-1;i>=0;i--){
+    var cids={}; map[keys[i]].rows.forEach(function(r){ if(r[1]==="格" && r[2]) cids[r[2]]=1; });
+    if(CLASS_IDS.every(function(c){ return cids[c]; })) return keys[i];   // 最近一個覆蓋所有班
+  }
+  return keys.length? keys[keys.length-1] : null;   // 冇一個齊 → 回最新
+}
 function restoreReadiness_(){
   var map=snapshots_(), keys=Object.keys(map);
   if(!keys.length) return {ok:true, ready:false, reason:"未有任何備份快照（還原無資料可用！）"};
-  var best=keys[0]; keys.forEach(function(t){ if(map[t].total>map[best].total) best=t; });
-  var snap=map[best], cids={};
+  var pick=pickRestoreSnap_(map), snap=map[pick], cids={};
   snap.rows.forEach(function(r){ if(r[1]==="格" && r[2]) cids[r[2]]=1; });
   var missing=CLASS_IDS.filter(function(c){ return !cids[c]; });
-  var freshDays=null; try{ var d=new Date(String(best).replace(/-/g,"/")); freshDays=Math.round((new Date()-d)/86400000); }catch(e){}
+  var freshDays=null; try{ var d=new Date(String(pick).replace(/-/g,"/")); freshDays=Math.round((new Date()-d)/86400000); }catch(e){}
   var ready = snap.total>0 && missing.length===0 && (freshDays==null || freshDays<=2);
-  return {ok:true, ready:ready, latest:best, total:snap.total, mk:snap.mk, snapshots:keys.length,
+  return {ok:true, ready:ready, target:pick, total:snap.total, mk:snap.mk, snapshots:keys.length,
     classesCovered:Object.keys(cids).length, totalClasses:CLASS_IDS.length,
     missingClasses:missing, freshDays:freshDays };
 }
@@ -3936,7 +3946,7 @@ function apiRestore(p){
   if(!keys.length) return {ok:false,err:"未有備份"};
   var target=p.stamp?String(p.stamp).trim():null;
   if(target){ if(!map[target]) return {ok:false,err:"搵唔到快照 "+target}; }
-  else { target=keys[0]; keys.forEach(function(t){ if(map[t].total>map[target].total) target=t; }); }   // 預設最完整
+  else { target=pickRestoreSnap_(map); }   // 預設：最近一個覆蓋所有班（新鮮優先，唔會揀 cleanup 前舊版）
   backup();                              // 先備份「現狀」→ 還原後仲可反悔
   applySnapshot_(map[target].rows);
   return {ok:true, restored:target, total:map[target].total, mk:map[target].mk};
