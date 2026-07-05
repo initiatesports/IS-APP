@@ -895,7 +895,27 @@ function reportError_(where, err){
       "\n\n（同類錯誤 15 分鐘內只會通知一次）");
   }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
+/* ═══ 抗擠塞（Phase 2）：只鎖「寫入類」action，序列化並發寫入防互相覆蓋/空回應。
+   讀取類（login/load/dailyList/feesAll…）唔鎖 → 唔會拖慢早上登入高峰。
+   寫入 whitelist 以外一律當讀取（漏鎖 = 同今日一樣、無 regression）。waitLock 15s，逼爆回「系統繁忙」。*/
+var WRITE_ACTIONS = {
+  applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, cancelDayFree:1,
+  cleanupGrids:1, uploadMedNote:1, genPeriod:1, applyRosterChanges:1, recoverPayments:1, setMakeupDeadline:1,
+  cleanupDupMakeup:1, cleanupSelfMakeup:1, migrateSelfMakeup:1, autoHeal:1, purgeStudent:1, clearFamilyPin:1,
+  cleanupStorage:1, resetFeePayment:1, payUpload:1, payUploadFamily:1, verifyPay:1, setFeeAdj:1,
+  addReferral:1, applyReferral:1, addNotice:1, deleteNotice:1, setVenue:1, addSession:1, addonUpload:1,
+  addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, save_attendance:1,
+  save_absences:1, markAbsenceDone:1, unmarkAbsenceDone:1, markLeave:1, save_settings:1, shrinkBackup:1
+};
 function route(p){
+  if(p && WRITE_ACTIONS[p.action]){
+    var lock=LockService.getScriptLock();
+    try{ lock.waitLock(15000); }catch(e){ return {ok:false, err:"系統繁忙，請幾秒後再試"}; }
+    try{ return routeInner_(p); } finally{ try{ lock.releaseLock(); }catch(e){} }
+  }
+  return routeInner_(p);
+}
+function routeInner_(p){
   switch(p.action){
     case "ping":            return {ok:true, version:VERSION};
     case "login":           return apiLogin(p);

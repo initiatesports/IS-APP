@@ -466,7 +466,17 @@ function reportError_(where, err){
       "\n\n（同類錯誤 15 分鐘內只會通知一次）");
   }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
+/* 抗擠塞（Phase 2）：只鎖寫入類，序列化並發寫入防覆蓋/空回應；讀取(login/dailyList…)唔鎖免拖慢。*/
+var WRITE_ACTIONS9 = { applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, setVenue:1, purgeStudent:1 };
 function route(p){
+  if(p && WRITE_ACTIONS9[p.action]){
+    var lock=LockService.getScriptLock();
+    try{ lock.waitLock(15000); }catch(e){ return {ok:false, err:"系統繁忙，請幾秒後再試"}; }
+    try{ return routeInner_(p); } finally{ try{ lock.releaseLock(); }catch(e){} }
+  }
+  return routeInner_(p);
+}
+function routeInner_(p){
   switch(p.action){
     case "login": return apiLogin(p);
     case "applyLeave": return apiLeave(p);
