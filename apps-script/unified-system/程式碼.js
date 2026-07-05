@@ -905,13 +905,18 @@ var WRITE_ACTIONS = {
   cleanupStorage:1, resetFeePayment:1, payUpload:1, payUploadFamily:1, verifyPay:1, setFeeAdj:1,
   addReferral:1, applyReferral:1, addNotice:1, deleteNotice:1, setVenue:1, addSession:1, addonUpload:1,
   addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, save_attendance:1,
-  save_absences:1, markAbsenceDone:1, unmarkAbsenceDone:1, markLeave:1, save_settings:1, shrinkBackup:1
+  save_absences:1, markAbsenceDone:1, unmarkAbsenceDone:1, markLeave:1, save_settings:1, shrinkBackup:1, restore:1
 };
+/* 寫前備份（Phase 5）：#4 原本只靠每日備份 → 兩次備份之間嘅錯寫最多蝕一日。
+   節流 30 分鐘：每個寫入窗口第一次寫之前先 backup() 一次(sheet snapshot,已 prune 6)→ 資料損失上限收到 30 分鐘。*/
+function preWriteBackup_(){
+  try{ var c=CacheService.getScriptCache(); if(c.get("prebk")) return; c.put("prebk","1",1800); backup(); }catch(e){}
+}
 function route(p){
   if(p && WRITE_ACTIONS[p.action]){
     var lock=LockService.getScriptLock();
     try{ lock.waitLock(15000); }catch(e){ return {ok:false, err:"系統繁忙，請幾秒後再試"}; }
-    try{ return routeInner_(p); } finally{ try{ lock.releaseLock(); }catch(e){} }
+    try{ preWriteBackup_(); return routeInner_(p); } finally{ try{ lock.releaseLock(); }catch(e){} }
   }
   return routeInner_(p);
 }
@@ -938,6 +943,8 @@ function routeInner_(p){
     case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
     case "migrateSelfMakeup": return apiMigrateSelfMakeup(p);
     case "autoHeal": return apiAutoHeal(p);
+    case "restoreReadiness": return apiRestoreReadiness(p);
+    case "restore": return apiRestore(p);
     case "bustCache": if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"}; bustIs11Cache_(); return {ok:true, msg:"#11 快取已清"};
     case "shrinkBackup": if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"}; return {ok:true, result:shrinkBackupSheet_(Number(p.keep)||6)};
     case "purgeStudent":    return apiPurgeStudent(p);
@@ -3298,11 +3305,20 @@ function opsHealthCheck_(){
   }catch(e){}
   // 資料量：Log / 備份 sheet 過大 → readBlock/load 變慢、超時風險（提早警示，可清舊）
   try{ [["Log",8000],["備份",20000]].forEach(function(t){ var sh=SS().getSheetByName(t[0]); if(sh && sh.getLastRow()>t[1]) P.push(t[0]+" 分頁過大（"+sh.getLastRow()+" 行 > "+t[1]+"），建議清舊防超時"); }); }catch(e){}
+  // 還原就緒演練：確保「真係還原到」——最完整快照要覆蓋所有班、夠新鮮（災難復原安全網）
+  try{ var rr=restoreReadiness_();
+    if(!rr.ready){ P.push("⚠ 還原就緒檢查未過：" + (rr.reason || ("最完整快照 "+rr.latest+" 缺班 ["+(rr.missingClasses||[]).join("、")+"]"+(rr.freshDays>2?"、且 "+rr.freshDays+" 日冇更新":""))) ); }
+  }catch(e){}
   return P;
 }
-function healthCheck(){   // 每日 trigger：先自動修復（資料類）→ 再檢查 → 只 email 剩返真需人手嘅嘢
+function healthCheck(){   // 每日 trigger：先自動修復（資料類，#4+#9）→ 再檢查 → 只 email 剩返真需人手嘅嘢
   var heal=null; try{ heal=autoHeal_(); }catch(e){ heal={ok:false, err:String(e)}; }
+  try{ healRemote9_(); }catch(e){}   // #9 暑期自動修復（遠端；#9 自帶備份+日誌）
   return runHealthChecks_(true, heal);
+}
+function healRemote9_(){
+  var IS9="https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
+  UrlFetchApp.fetch(IS9,{method:"post",contentType:"text/plain;charset=utf-8",payload:JSON.stringify({action:"autoHeal", coachPass:CONFIG.COACH_PASS}),muteHttpExceptions:true,followRedirects:true});
 }
 // coachPass 保護：即場觸發成個健康檢查並回傳問題清單（唔寄 email，畀教練端/驗證用）
 // email=1：跑完即 email 結果（連「全部正常」都寄），畀老闆按需觸發；fire-and-forget，唔使等 HTTP 回應
@@ -3894,6 +3910,36 @@ function restoreChoose(){
   if(!map[t]){ ui.alert("搵唔到「"+t+"」嘅備份。請用「備份清單」對返完整時間（連秒）。"); return; }
   applySnapshot_(map[t].rows);
   ui.alert("已還原至 "+t+"\n共 "+map[t].total+" 筆（補堂 "+map[t].mk+" 筆）");
+}
+/* ═══════ 災難復原（Phase 5）：還原就緒演練（讀-only）+ 遠端還原 route ═══════
+   備份日日有，但要確保「真係還原到」。restoreReadiness_ 每日驗證最完整快照存在、覆蓋所有班、
+   夠新鮮、可解析（唔寫正式資料 = 安全演練）；駁入健康檢查。apiRestore 遠端還原（需 coachPass+confirm，
+   還原前先 backup 現狀 → 還原後仲可反悔）。*/
+function restoreReadiness_(){
+  var map=snapshots_(), keys=Object.keys(map);
+  if(!keys.length) return {ok:true, ready:false, reason:"未有任何備份快照（還原無資料可用！）"};
+  var best=keys[0]; keys.forEach(function(t){ if(map[t].total>map[best].total) best=t; });
+  var snap=map[best], cids={};
+  snap.rows.forEach(function(r){ if(r[1]==="格" && r[2]) cids[r[2]]=1; });
+  var missing=CLASS_IDS.filter(function(c){ return !cids[c]; });
+  var freshDays=null; try{ var d=new Date(String(best).replace(/-/g,"/")); freshDays=Math.round((new Date()-d)/86400000); }catch(e){}
+  var ready = snap.total>0 && missing.length===0 && (freshDays==null || freshDays<=2);
+  return {ok:true, ready:ready, latest:best, total:snap.total, mk:snap.mk, snapshots:keys.length,
+    classesCovered:Object.keys(cids).length, totalClasses:CLASS_IDS.length,
+    missingClasses:missing, freshDays:freshDays };
+}
+function apiRestoreReadiness(p){ return restoreReadiness_(); }   // 讀-only,毋須 coachPass
+function apiRestore(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  if(String(p.confirm)!=="RESTORE") return {ok:false,err:"需 confirm=RESTORE（防誤還原）"};
+  var map=snapshots_(), keys=Object.keys(map);
+  if(!keys.length) return {ok:false,err:"未有備份"};
+  var target=p.stamp?String(p.stamp).trim():null;
+  if(target){ if(!map[target]) return {ok:false,err:"搵唔到快照 "+target}; }
+  else { target=keys[0]; keys.forEach(function(t){ if(map[t].total>map[target].total) target=t; }); }   // 預設最完整
+  backup();                              // 先備份「現狀」→ 還原後仲可反悔
+  applySnapshot_(map[target].rows);
+  return {ok:true, restored:target, total:map[target].total, mk:map[target].mk};
 }
 
 /* ═══════════ 一次性匯入：由「IS App Data」搬出席/成績/體測（冪等）═══════════
