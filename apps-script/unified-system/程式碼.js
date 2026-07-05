@@ -989,6 +989,7 @@ function routeInner_(p){
     // 公開:只回公眾假期(非敏感),畀家長頁顯示假期用,毋須登入。
     case "holidays":        return apiHolidays(p);
     // ── 私人訓練（與恆常班分開；只記上課日，無請假補堂）──
+    case "loginProfile":    return apiLoginProfile(p);
     case "pt_coach_load":   return apiPtCoachLoad(p);
     case "pt_mark":         return apiPtMark(p);
     case "pt_undo":         return apiPtUndo(p);
@@ -1104,6 +1105,22 @@ function rlBlocked_(bucket, max){ return Number(CacheService.getScriptCache().ge
 function rlBump_(bucket, ttlSec){ var c=CacheService.getScriptCache(), k="rl_"+bucket; c.put(k, String(Number(c.get(k)||0)+1), ttlSec); }
 function rlClear_(bucket){ CacheService.getScriptCache().remove("rl_"+bucket); }
 
+/* 登入效能剖析（Phase 5，coachPass）：量度每個子呼叫耗時，指導提速（唔郁登入熱路徑本身）。*/
+function apiLoginProfile(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name||"").trim(), T={}, mark=function(k,fn){ var t=new Date(); try{ fn(); }catch(e){} T[k]=(new Date()-t); };
+  mark("rosterRows", function(){ rosterRows(); });
+  mark("is11_", function(){ is11_(); });
+  mark("makeupUniq_", function(){ makeupUniq_(); });
+  mark("dlExtMap_", function(){ dlExtMap_(); });
+  mark("classesFor_", function(){ classesFor_(nm); });
+  mark("feesFor_", function(){ feesFor_(nm); });
+  mark("addonsFor_", function(){ addonsFor_(nm); });
+  mark("transfersFor_", function(){ transfersFor_(nm); });
+  mark("referralBalance_", function(){ referralBalance_(nm); });
+  var total=0; Object.keys(T).forEach(function(k){ total+=T[k]; });
+  return {ok:true, name:nm, ms:T, totalMs:total};
+}
 function apiLogin(p){
   var want=pad4(p.last4), nm=String(p.name).trim();
   if(rlBlocked_("login_"+nm, 12)) return {ok:false, err:"嘗試太多次，請約 5 分鐘後再試"};
