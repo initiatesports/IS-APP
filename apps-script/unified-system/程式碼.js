@@ -917,6 +917,7 @@ function route(p){
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
     case "migrateSelfMakeup": return apiMigrateSelfMakeup(p);
+    case "autoHeal": return apiAutoHeal(p);
     case "bustCache": if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"}; bustIs11Cache_(); return {ok:true, msg:"#11 快取已清"};
     case "shrinkBackup": if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"}; return {ok:true, result:shrinkBackupSheet_(Number(p.keep)||6)};
     case "purgeStudent":    return apiPurgeStudent(p);
@@ -2804,9 +2805,9 @@ function apiUnmarkAbsenceDone(p){
      - 純舊殘留 → 標該生該班「最舊、未被 #11/ledger 佔用」嘅請假入 ledger（補堂日=原自補日）,再刪該行。
    結果：家長 booked4 減少 = ledger 抵銷相同節數（owed 不變）；教練 is11Done+ledger 覆蓋同樣節數（owed 回正）。
    先整份備份到 Drive＋sheet 快照。冪等（再跑只會清剩低 self 殘留）。*/
-function migrateSelfMakeupToLedger_(){
+function migrateSelfMakeupToLedger_(skipBackup){
   var M=makeupSheet(); if(!M||M.getLastRow()<2) return {migrated:[], deletedRedundant:0, deletedTotal:0};
-  backupToDrive(); backup();
+  if(!skipBackup){ backupToDrive(); backup(); }   // autoHeal_ 已單次備份 → 傳 skipBackup
   var is11byNC={}, is11DoneAbs={};
   try{ is11_().abs.forEach(function(a){ if(a.madeUpDate){ (is11byNC[a.name+"|"+a.cid]=is11byNC[a.name+"|"+a.cid]||{})[a.madeUpDate]=1;
     is11DoneAbs[a.name+"|"+a.cid+"|"+a.absDate]=1; } }); }catch(e){}
@@ -2840,6 +2841,52 @@ function migrateSelfMakeupToLedger_(){
 function apiMigrateSelfMakeup(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   return {ok:true, result:migrateSelfMakeupToLedger_()};
+}
+/* ═══════════ 系統守護：自動修復引擎（Phase 1） ═══════════
+   老闆定：資料類自動修，金錢/名冊只報唔動。每朝健康檢查「之前」跑（heal→再 detect，
+   令報告只剩真.需人手嘅嘢）。先廉價掃描有冇安全可修問題,有先單次備份(sheet snapshot)再修,
+   全部寫入「自動修復」日誌分頁。金錢(學費)/名冊人手類唔喺度掂 → 留畀健康檢查報告。 */
+function autoHeal_(){
+  var actions=[], t0=new Date();
+  // ── 廉價掃描 ──
+  var seen={}, dupN=0, selfN=0;
+  try{ makeupAll().forEach(function(m){
+    var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
+    if(seen[k]) dupN++; else seen[k]=1;
+    if(!m.to || m.to===m.from) selfN++;
+  }); }catch(e){}
+  var bk=SS().getSheetByName("備份"), bkRows=bk?bk.getLastRow():0, bkDim=bk?bk.getMaxRows():0;
+  var trg={}; try{ ScriptApp.getProjectTriggers().forEach(function(t){ trg[t.getHandlerFunction()]=1; }); }catch(e){}
+  var needShrink=(bkRows>12000 || bkDim>15000), needTrigHealth=!trg["healthCheck"], needTrigBackup=!trg["backup"];
+  var need = dupN>0 || selfN>0 || needShrink || needTrigHealth || needTrigBackup;
+  if(!need){ autoHealLog_([{item:"掃描",action:"無需修復",result:"✅ 資料乾淨"}]); return {ok:true, healed:0, actions:[]}; }
+  // ── 有嘢要修：單次備份（可還原）──
+  try{ backup(); actions.push({item:"—",action:"修復前備份",result:"已存「備份」分頁"}); }
+  catch(e){ actions.push({item:"—",action:"修復前備份",result:"⚠ 失敗:"+e}); }
+  if(dupN>0){ try{ var d=cleanupDupMakeup(true); actions.push({item:"補堂表重複行",action:"cleanupDupMakeup",result:"刪 "+d.removed+" 行、保留 "+d.kept}); }
+    catch(e){ actions.push({item:"補堂表重複行",action:"cleanupDupMakeup",result:"⚠ "+e}); } }
+  if(selfN>0){ try{ var s=migrateSelfMakeupToLedger_(true); actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"轉ledger "+s.migrated.length+"、刪冗餘 "+s.deletedRedundant+"、共刪 "+s.deletedTotal}); }
+    catch(e){ actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"⚠ "+e}); } }
+  if(needShrink){ try{ var sh=shrinkBackupSheet_(6); actions.push({item:"備份分頁過大",action:"shrinkBackup",result:"維度 "+sh.before+"→"+sh.afterDim}); }
+    catch(e){ actions.push({item:"備份分頁過大",action:"shrinkBackup",result:"⚠ "+e}); } }
+  if(needTrigHealth){ try{ ScriptApp.newTrigger("healthCheck").timeBased().everyDays(1).atHour(5).create(); actions.push({item:"健康檢查trigger甩咗",action:"重裝",result:"已重裝(05:00)"}); }
+    catch(e){ actions.push({item:"健康檢查trigger甩咗",action:"重裝",result:"⚠ "+e}); } }
+  if(needTrigBackup){ try{ ensureAutoBackup(); actions.push({item:"備份trigger甩咗",action:"重裝",result:"已重裝"}); }
+    catch(e){ actions.push({item:"備份trigger甩咗",action:"重裝",result:"⚠ "+e}); } }
+  autoHealLog_(actions);
+  var healed=actions.filter(function(a){ return a.item!=="—" && a.result.indexOf("⚠")!==0; }).length;
+  return {ok:true, healed:healed, actions:actions, secs:Math.round((new Date()-t0)/1000)};
+}
+function autoHealLog_(actions){
+  var sh=SS().getSheetByName("自動修復");
+  if(!sh){ sh=SS().insertSheet("自動修復"); sh.appendRow(["時間","項目","動作","結果"]); sh.getRange("A:A").setNumberFormat("@"); }
+  var stamp=nowStamp_(), rows=actions.map(function(a){ return [stamp, a.item, a.action, a.result]; });
+  if(rows.length) sh.getRange(sh.getLastRow()+1,1,rows.length,4).setValues(rows);
+  var last=sh.getLastRow(); if(last>301) sh.deleteRows(2, last-301);   // 保留最近 ~300 行
+}
+function apiAutoHeal(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return autoHeal_();
 }
 /* 教練直接標某學生某日=請假（繞過家長「當日／提前一日」閘；用嚟還原流失請假 / 教練代標）*/
 function apiMarkLeave(p){
@@ -3233,7 +3280,10 @@ function opsHealthCheck_(){
   try{ [["Log",8000],["備份",20000]].forEach(function(t){ var sh=SS().getSheetByName(t[0]); if(sh && sh.getLastRow()>t[1]) P.push(t[0]+" 分頁過大（"+sh.getLastRow()+" 行 > "+t[1]+"），建議清舊防超時"); }); }catch(e){}
   return P;
 }
-function healthCheck(){ return runHealthChecks_(true); }   // 每日 trigger：有問題就 email
+function healthCheck(){   // 每日 trigger：先自動修復（資料類）→ 再檢查 → 只 email 剩返真需人手嘅嘢
+  var heal=null; try{ heal=autoHeal_(); }catch(e){ heal={ok:false, err:String(e)}; }
+  return runHealthChecks_(true, heal);
+}
 // coachPass 保護：即場觸發成個健康檢查並回傳問題清單（唔寄 email，畀教練端/驗證用）
 // email=1：跑完即 email 結果（連「全部正常」都寄），畀老闆按需觸發；fire-and-forget，唔使等 HTTP 回應
 function apiHealth(p){
@@ -3246,7 +3296,7 @@ function apiHealth(p){
     +"\n\n—— 手動觸發 "+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm")); }catch(e){} }
   return {ok:true, problems:probs};
 }
-function runHealthChecks_(sendEmail){
+function runHealthChecks_(sendEmail, heal){
   var problems=[], _t0=new Date();
   // 並行探測所有後端 /exec + 前端頁（fetchAll 併發，取代逐個順序等待）
   probeBatch_(
@@ -3277,11 +3327,13 @@ function runHealthChecks_(sendEmail){
   catch(e){ problems.push("運維檢查出錯："+e); }
   // 執行時間守護：健康檢查本身太慢 → 接近 Apps Script 6 分鐘上限，trigger 隨時靜靜超時
   try{ var secs=Math.round((new Date()-_t0)/1000); if(secs>240) problems.push("健康檢查耗時 "+secs+" 秒（接近超時上限），需精簡/分拆"); }catch(e){}
+  var healLine="";
+  if(heal && heal.healed) healLine="🔧 系統守護已自動修復 "+heal.healed+" 項（詳見「自動修復」分頁）\n\n";
   if(sendEmail && problems.length){
     try{
       MailApp.sendEmail(HEALTH_EMAIL,
-        "⚠️ INITIATE 系統健康警示（"+problems.length+" 項異常）",
-        "以下系統檢查未通過，建議盡快查看：\n\n• "+problems.join("\n• ")+
+        "⚠️ INITIATE 系統健康警示（"+problems.length+" 項需處理）",
+        healLine+"以下系統檢查未通過，建議盡快查看：\n\n• "+problems.join("\n• ")+
         "\n\n—— 每日自動健康檢查（"+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm")+"）");
     }catch(e){ Logger.log("健康警示 email 寄送失敗："+e); }
   }
@@ -3546,10 +3598,10 @@ function apiOpsSnapshot(p){
  *       但底層髒資料仍會被每日備份一直複製、且 makeupAll() 路徑仍會撞到。
  * 做法：先整份備份到 Drive（可還原），再按 name|from|to|date 保留首行、
  *       由下而上刪除其餘重複行（保留其他欄如 IMP 標記，唔做整片重寫）。 */
-function cleanupDupMakeup(){
+function cleanupDupMakeup(skipBackup){
   var M=makeupSheet(); if(!M||M.getLastRow()<2) return {removed:0,kept:0};
-  backupToDrive();                         // 先整份複製到 Drive，確保任何誤刪可還原
-  backup();                                // 同時寫一份 sheet 內快照
+  if(!skipBackup){ backupToDrive();        // 先整份複製到 Drive，確保任何誤刪可還原
+    backup(); }                            // 同時寫一份 sheet 內快照（autoHeal_ 已單次備份 → 傳 skipBackup）
   var seen={}, dupRows=[], kept=0;
   makeupAll().forEach(function(m){         // 已帶 row 號，按現有行序
     var k=m.name+"|"+m.from+"|"+m.to+"|"+m.date;
