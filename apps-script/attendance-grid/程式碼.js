@@ -484,7 +484,8 @@ function routeInner_(p){
     case "bookMakeup": return apiMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
-    case "health": return {ok:true, version:VERSION, problems:dataIntegrityCheck9_().concat(functionalCheck9_()).concat(writePathCheck9_())};  // 資料完整性+功能+寫入測試摘要(無學生姓名)，畀 #4 匯總
+    case "health": { var _wn=(String(p.coachPass||"")===String(CONFIG.COACH_PASS));  // coachPass 授權 → 問題含實際姓名(畀 #4 私隱分頁診斷)；否則只報數量
+      return {ok:true, version:VERSION, problems:dataIntegrityCheck9_(_wn).concat(functionalCheck9_()).concat(writePathCheck9_())}; }
     case "verifyCoach": return apiVerifyCoach(p);  // 畀前端鎖畫面驗證,只回 true/false,不洩漏密碼
     case "dailyList": return apiDaily(p);
     case "markAttendance": return apiMark(p);
@@ -503,7 +504,7 @@ function routeInner_(p){
 // 中文姓名冇內部空格,故安全。解決 grid 補堂區個名同 Roster/補堂表個名有隱藏字元差、
 // 令 known 點對都對唔到而日日誤報「補堂區有不明姓名」（如易晞渝 badminton三補去四）。
 function normNm_(s){ return String(s||"").replace(/[\s​-‍﻿ ]/g,""); }
-function dataIntegrityCheck9_(){
+function dataIntegrityCheck9_(withNames){
   var P=[], known={}, groups={};
   rosterRows().forEach(function(r){ if(!r.name) return; known[normNm_(r.name)]=1; var k=r.sport+"|"+r.wd; (groups[k]=groups[k]||[]).push(r.name); });
   // known 擴充：原始 Roster 分頁全部名（唔靠 ROSTER const filter → 免跨班補堂生/已移除班學生被濾走誤標,如易晞渝 badminton三補去四）＋所有補堂生名
@@ -522,9 +523,10 @@ function dataIntegrityCheck9_(){
     if(blank) P.push("暑期 "+nm+"("+wd+") 有 "+blank+" 個學生姓名空白");
     var seq=sh.getRange(DATA_START,SEQ_COL,studs.length,1).getValues();   // 序號連續性
     for(var s2=0;s2<studs.length;s2++){ if(String(seq[s2][0]||"").replace(/\D/g,"")!==String(s2+1)){ P.push("暑期 "+nm+"("+wd+") 序號錯位（疑插/刪行）"); break; } }
-    var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=0, mkK=mkByClass[k]||{};
-    for(var j=0;j<MK_MAX;j++){ var v=normNm_(mk[j][0]); if(v && !known[v] && !mkK[v]) bad++; }   // 正規化後比對(去隱藏字元)；有補堂記錄嘅補堂生唔當不明
-    if(bad) P.push("暑期 "+nm+"("+wd+") 補堂區有 "+bad+" 個不明姓名");
+    var mk=sh.getRange(DATA_START+studs.length,NAME_COL,MK_MAX,1).getValues(), bad=[], mkK=mkByClass[k]||{};
+    for(var j=0;j<MK_MAX;j++){ var raw=String(mk[j][0]||"").trim(), v=normNm_(raw); if(v && !known[v] && !mkK[v]) bad.push(raw); }   // 正規化後比對(去隱藏字元)；有補堂記錄嘅補堂生唔當不明
+    // withNames（coachPass 授權）先寫實際姓名 → 免再「只報數量估錯」（示範學員教訓）；開放端點只報數量保私隱。
+    if(bad.length) P.push("暑期 "+nm+"("+wd+") 補堂區有 "+bad.length+" 個不明姓名"+(withNames?"：["+bad.join("、")+"]":""));
     try{ readBlock(sport,wd); }catch(e){ P.push("暑期 "+nm+"("+wd+") readBlock 出錯"); }
   });
   return P;

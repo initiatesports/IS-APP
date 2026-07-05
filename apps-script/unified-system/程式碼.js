@@ -3326,7 +3326,7 @@ function runHealthChecks_(sendEmail, heal){
   // 暑期 #9 深層資料完整性（跨後端匯總；#9 health 只回摘要、無學生姓名）
   try{
     var IS9="https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
-    var r9=UrlFetchApp.fetch(IS9,{method:"post",contentType:"text/plain;charset=utf-8",payload:JSON.stringify({action:"health"}),muteHttpExceptions:true,followRedirects:true});
+    var r9=UrlFetchApp.fetch(IS9,{method:"post",contentType:"text/plain;charset=utf-8",payload:JSON.stringify({action:"health", coachPass:CONFIG.COACH_PASS}),muteHttpExceptions:true,followRedirects:true});
     var j9=JSON.parse(r9.getContentText());
     (j9.problems||[]).forEach(function(x){ problems.push(x); });
   }catch(e){}
