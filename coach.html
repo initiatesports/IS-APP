@@ -848,7 +848,7 @@ function vnRebuildCls(){ const d=document.getElementById('vn-date'), s=document.
 function vnCidLabel(cid){ return cid?((CLASSES[cid]&&CLASSES[cid].label)||cid):'全部'; }
 async function renderVenueAdmin(){
   let host=document.getElementById('home-venues');
-  if(!host){ const nt=document.getElementById('home-notices'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
+  if(!host){ const nt=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
   if(!host) return;
   let r; try{ r=await apiPost({action:'venuesAdmin', coachPass:cpass()}); }catch(e){ r=null; }
   VENUES_CACHE=(r&&r.ok&&r.venues)?r.venues:[];
