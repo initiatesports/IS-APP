@@ -1601,6 +1601,14 @@ function genPeriodNet_(label, dry, skipBackup){
   feeRows_().forEach(function(x){ if(x.period===label) rowMap[x.name]={row:x.row, status:x.status}; });
   var lines=[], n_new=0, n_upd=0, n_skip=0, n_void=0;
   var voidList=PERIOD_VOID[label]||[];
+  // 私訓學費 map（一次過算,避免喺迴圈度逐個學生重讀 PT 表／費率表 → 上百次讀表令 genPeriod 超時）
+  var ptFeeByFam={};
+  try{ var _ptAll=ptRows_();
+    PT_STUDENTS.forEach(function(s){ var r=ptRate_(s.name); if(r<=0) return;
+      var c=_ptAll.filter(function(x){ return x.name===s.name && x.billPeriod===label; }).length;
+      if(c>0){ var f=ptFeeByFam[s.family]||{amt:0,count:0,parts:[]}; f.amt+=c*r; f.count+=c;
+        f.parts.push((s.name===s.family?"私訓":s.name)+" "+c+"堂×$"+r); ptFeeByFam[s.family]=f; } });
+  }catch(e){}
   names.forEach(function(nm){
     // 強制豁免名單（本期暫停／退出）→ 設 $0，唔收費
     if(voidList.indexOf(nm)>=0){
@@ -1640,14 +1648,14 @@ function genPeriodNet_(label, dry, skipBackup){
     var d=periodFeeDetail_(nm, label); if(!d) return;   // 無在學班別（如暫停學生）→ 略過
     var disc=referralAutoDisc_(nm, d.base, 0);           // 保留推薦優惠（上限該期 base 50%）
     var credit=creditsFor_(nm, label);                   // 順延抵扣（停課退費等；ledger，重算唔會丟）
-    var pt=ptPeriodFee_(nm, label);                      // 私訓學費：該期已入帳 PT 堂×費率（併入跳繩學費一齊收；recompute-safe）
+    var pt=ptFeeByFam[nm]||{amt:0,count:0,parts:[]};     // 私訓學費：該期已入帳 PT 堂×費率（併入跳繩學費一齊收；recompute-safe；預先算好）
     var adjAmt=d.extraTot - credit + pt.amt;             // 調整 = 額外收費 − 抵扣 + 私訓
     var net=Math.max(0, d.base - disc + adjAmt);
     var note=periodExemptNote_(d);
     if(d.newJoin && !note) note="本期新加入（收全費，不適用順延豁免）";
     var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; })
       .concat(credit>0 ? ["抵扣 "+creditNotesFor_(nm,label)] : [])
-      .concat(pt.amt>0 ? ["私訓 "+pt.note+" = $"+pt.amt] : []).join("；");
+      .concat(pt.amt>0 ? ["私訓 "+(pt.parts||[]).join("、")+" = $"+pt.amt] : []).join("；");
     var vals=[nm, label, d.weekly, d.base, disc, net, 0, "未繳", "", "", "", note, adjAmt, adjNote];
     var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+(credit?(" −抵扣$"+credit):"")+" = $"+net;
     var hit=rowMap[nm];
