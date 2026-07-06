@@ -942,6 +942,7 @@ function routeInner_(p){
     case "cleanupDupMakeup": return apiCleanupDupMakeup(p);
     case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
     case "migrateSelfMakeup": return apiMigrateSelfMakeup(p);
+    case "cleanupLedgerRedundant": return apiCleanupLedgerRedundant(p);
     case "autoHeal": return apiAutoHeal(p);
     case "restoreReadiness": return apiRestoreReadiness(p);
     case "restore": return apiRestore(p);
@@ -2855,6 +2856,21 @@ function apiUnmarkAbsenceDone(p){
   rows.sort(function(a,b){return b-a;}).forEach(function(r){ sh.deleteRow(r); });
   return {ok:true, removed:rows.length};
 }
+/* 清「冗餘 ledger」：ledger 記錄嘅補堂日若已喺補堂表有真預約(booked4/pool 已代表)→ 冗餘、要刪，
+   否則同一補堂被雙重代表、owed 被扣爆（鄧可澄/張爾淳等：一個 6/29 補堂被記成完成多條請假 + 補堂表又有預約）。
+   呢啲係舊 count-match bug（一補堂配多請假）殘留。ledger 只應保留「補堂表冇對應」嘅完成（教練informally標）。*/
+function cleanupLedgerRedundant_(){
+  var sh=absDoneSheet_(), rows=absDoneRows_();
+  var mkDates={}; try{ makeupAll().forEach(function(m){ var k=String(m.name).trim()+"|"+String(m.from).trim(); (mkDates[k]=mkDates[k]||{})[toIso_(m.date)]=1; }); }catch(e){}
+  var del=[], removed=[];
+  rows.forEach(function(x){ if((mkDates[x.name+"|"+x.cid]||{})[x.madeDate]){ del.push(x.row); removed.push(x.name+" "+x.cid+" 缺"+x.absDate+"←補"+x.madeDate); } });
+  del.sort(function(a,b){ return b-a; }).forEach(function(r){ sh.deleteRow(r); });
+  return {removed:del.length, rows:removed};
+}
+function apiCleanupLedgerRedundant(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, result:cleanupLedgerRedundant_()};
+}
 /* 一次性 migration：把「純舊已補堂殘留」self/blank 補堂轉成「補堂完成」ledger，令教練面同家長面一致。
    背景：舊已補堂機制造 from==to（或 to 空）補堂，家長 classesFor_ 當 booked4 減 owed（顯示已補），
    但教練 apiLoad 精準對後唔認呢啲 self 補堂 → 教練面 owed 偏高、兩面唔一致。
@@ -2913,10 +2929,13 @@ function autoHeal_(){
     if(seen[k]) dupN++; else seen[k]=1;
     if(!m.to || m.to===m.from) selfN++;
   }); }catch(e){}
+  // 冗餘 ledger：ledger 補堂日已喺補堂表有真預約(雙重代表→owed 扣爆,如鄧可澄/張爾淳)
+  var ledgerRedN=0; try{ var mkD={}; makeupAll().forEach(function(m){ (mkD[String(m.name).trim()+"|"+String(m.from).trim()]=mkD[String(m.name).trim()+"|"+String(m.from).trim()]||{})[toIso_(m.date)]=1; });
+    absDoneRows_().forEach(function(x){ if((mkD[x.name+"|"+x.cid]||{})[x.madeDate]) ledgerRedN++; }); }catch(e){}
   var bk=SS().getSheetByName("備份"), bkRows=bk?bk.getLastRow():0, bkDim=bk?bk.getMaxRows():0;
   var trg={}; try{ ScriptApp.getProjectTriggers().forEach(function(t){ trg[t.getHandlerFunction()]=1; }); }catch(e){}
   var needShrink=(bkRows>12000 || bkDim>15000), needTrigHealth=!trg["healthCheck"], needTrigBackup=!trg["backup"];
-  var need = dupN>0 || selfN>0 || needShrink || needTrigHealth || needTrigBackup;
+  var need = dupN>0 || selfN>0 || ledgerRedN>0 || needShrink || needTrigHealth || needTrigBackup;
   if(!need){ autoHealLog_([{item:"掃描",action:"無需修復",result:"✅ 資料乾淨"}]); return {ok:true, healed:0, actions:[]}; }
   // ── 有嘢要修：單次備份（可還原）──
   try{ backup(); actions.push({item:"—",action:"修復前備份",result:"已存「備份」分頁"}); }
@@ -2925,6 +2944,8 @@ function autoHeal_(){
     catch(e){ actions.push({item:"補堂表重複行",action:"cleanupDupMakeup",result:"⚠ "+e}); } }
   if(selfN>0){ try{ var s=migrateSelfMakeupToLedger_(true); actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"轉ledger "+s.migrated.length+"、刪冗餘 "+s.deletedRedundant+"、共刪 "+s.deletedTotal}); }
     catch(e){ actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"⚠ "+e}); } }
+  if(ledgerRedN>0){ try{ var lr=cleanupLedgerRedundant_(); actions.push({item:"冗餘ledger(補堂日已有真預約)",action:"cleanupLedgerRedundant",result:"刪 "+lr.removed+" 條 → 修正 owed 扣爆"}); }
+    catch(e){ actions.push({item:"冗餘ledger",action:"cleanupLedgerRedundant",result:"⚠ "+e}); } }
   if(needShrink){ try{ var sh=shrinkBackupSheet_(6); actions.push({item:"備份分頁過大",action:"shrinkBackup",result:"維度 "+sh.before+"→"+sh.afterDim}); }
     catch(e){ actions.push({item:"備份分頁過大",action:"shrinkBackup",result:"⚠ "+e}); } }
   if(needTrigHealth){ try{ ScriptApp.newTrigger("healthCheck").timeBased().everyDays(1).atHour(5).create(); actions.push({item:"健康檢查trigger甩咗",action:"重裝",result:"已重裝(05:00)"}); }
