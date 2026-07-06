@@ -113,8 +113,8 @@ const CLASS_IDS = Object.keys(CLASSES);
  * 例：張雅堯個 slot 實際係佢父母 Keith & Elaine 上堂，但用「張雅堯」家庭帳號睇。
  */
 const PT_STUDENTS = [
-  { name:"鄧可澄",        family:"鄧可澄" },
-  { name:"Keith & Elaine", family:"張雅堯" },
+  { name:"鄧可澄",        family:"鄧可澄", bill:true },       // bill:true → PT 學費併入下一期跳繩學費一齊收（只適用鄧可澄；私訓逐節約、無固定schedule）
+  { name:"Keith & Elaine", family:"張雅堯" },                 // 其他私訓學員唔用併入學費收費（另行處理）
   { name:"示範學員",        family:"示範學員", demo:true }   // 示範帳號（電話後4位 1234）
 ];
 const PT_CYCLE = 10;   // 每期堂數；夠數自動開新一期
@@ -1604,7 +1604,7 @@ function genPeriodNet_(label, dry, skipBackup){
   // 私訓學費 map（一次過算,避免喺迴圈度逐個學生重讀 PT 表／費率表 → 上百次讀表令 genPeriod 超時）
   var ptFeeByFam={};
   try{ var _ptAll=ptRows_();
-    PT_STUDENTS.forEach(function(s){ var r=ptRate_(s.name); if(r<=0) return;
+    PT_STUDENTS.forEach(function(s){ if(!s.bill) return; var r=ptRate_(s.name); if(r<=0) return;
       var c=_ptAll.filter(function(x){ return x.name===s.name && x.billPeriod===label; }).length;
       if(c>0){ var f=ptFeeByFam[s.family]||{amt:0,count:0,parts:[]}; f.amt+=c*r; f.count+=c;
         f.parts.push((s.name===s.family?"私訓":s.name)+" "+c+"堂×$"+r); ptFeeByFam[s.family]=f; } });
@@ -2743,6 +2743,7 @@ function ptSetRate_(name, rate){
 function ptPeriodFee_(famName, label){
   var amt=0, cnt=0, parts=[];
   try{ PT_STUDENTS.forEach(function(s){
+    if(!s.bill) return;                    // 只有 bill:true 學員先併入學費（只鄧可澄）
     if(s.family!==famName) return;
     var r=ptRate_(s.name); if(r<=0) return;
     var c=ptRows_().filter(function(x){ return x.name===s.name && x.billPeriod===label; }).length;
@@ -2758,8 +2759,9 @@ function ptSummary_(name){
   var rate=ptRate_(name);
   var unbilled=rows.filter(function(r){ return !r.billPeriod; });   // 未入帳（未收費）堂
   var billedBy={}; rows.forEach(function(r){ if(r.billPeriod){ billedBy[r.billPeriod]=(billedBy[r.billPeriod]||0)+1; } });
+  var stMeta=PT_STUDENTS.filter(function(s){ return s.name===name; })[0]||{};
   return {
-    name:name, cycle:maxCycle, cap:PT_CYCLE, done:cur.length, totalDone:rows.length,
+    name:name, cycle:maxCycle, cap:PT_CYCLE, done:cur.length, totalDone:rows.length, bill:!!stMeta.bill,
     rate:rate, unbilledCount:unbilled.length, unbilledDates:unbilled.map(function(r){ return r.date; }),
     unbilledFee:(rate>0?unbilled.length*rate:0),
     billed:Object.keys(billedBy).sort().map(function(k){ return {period:k, count:billedBy[k], fee:(rate>0?billedBy[k]*rate:0)}; }),
@@ -2783,7 +2785,7 @@ function apiPtCoachLoad(p){
 function apiPtSetRate(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var name=String(p.name||"").trim();
-  if(!PT_STUDENTS.some(function(s){ return s.name===name; })) return {ok:false,err:"非私人訓練學員"};
+  if(!PT_STUDENTS.some(function(s){ return s.name===name && s.bill; })) return {ok:false,err:"此私訓學員未啟用併入學費收費"};
   var rate=ptSetRate_(name, p.rate);
   return {ok:true, name:name, rate:rate, summary:ptSummary_(name)};
 }
@@ -2811,8 +2813,8 @@ function recalcPtFeeRow_(famName, label){
 function apiPtBill(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var name=String(p.name||"").trim(), label=String(p.period||curPeriodLabel_()).trim();
-  var st=PT_STUDENTS.filter(function(s){ return s.name===name; })[0];
-  if(!st) return {ok:false,err:"非私人訓練學員"};
+  var st=PT_STUDENTS.filter(function(s){ return s.name===name && s.bill; })[0];
+  if(!st) return {ok:false,err:"此私訓學員未啟用併入學費收費"};
   if(ptRate_(name)<=0) return {ok:false,err:"未設每堂費用,請先輸入費率"};
   var sh=ptSheet(), rows=ptRows_().filter(function(r){ return r.name===name && !r.billPeriod; });
   if(!rows.length) return {ok:false,err:"冇未入帳嘅 PT 堂"};
