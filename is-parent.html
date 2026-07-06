@@ -1107,11 +1107,13 @@ let MF={};
 function openMakeup(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci], owed=c.owed||0;
   if(owed<=0){ openSheet(`<h2>${t('mkApply')}</h2><p class="sd">${t('noOwed')}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
-  // 補堂限期 = 最舊「未補」缺席日 + 2 個月（與後端一致 #9）
+  // 補堂限期 = 最舊「未補」缺席日之限期。⚠️ 必須用 c.mkExt 逐筆限期覆寫（教練延期），
+  // 否則延咗期嘅學生會照用「缺席日+2個月」原限期 → 已過期 → 篩走所有 slot → 錯報「冇可補時段」。
   const leaves=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
   const madeUp=Math.max(0, leaves.length-owed);
   const oldestUnmade=leaves[madeUp]||leaves[leaves.length-1];
-  const deadline=oldestUnmade?addMonths(oldestUnmade,CONFIG.MAKEUP_MONTHS||2):(c.deadline||CONFIG.TERM_END);
+  const mkExt=c.mkExt||{};
+  const deadline=oldestUnmade?(mkExt[oldestUnmade]||addMonths(oldestUnmade,CONFIG.MAKEUP_MONTHS||2)):(c.deadline||CONFIG.TERM_END);
   const cands=[];
   makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline) cands.push({toKey:s.key,date:d,time:s.time}); }); });
   cands.sort((a,b)=>a.date.localeCompare(b.date));
