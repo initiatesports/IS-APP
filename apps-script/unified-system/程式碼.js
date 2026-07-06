@@ -905,7 +905,7 @@ var WRITE_ACTIONS = {
   cleanupDupMakeup:1, cleanupSelfMakeup:1, migrateSelfMakeup:1, autoHeal:1, purgeStudent:1, clearFamilyPin:1,
   cleanupStorage:1, resetFeePayment:1, payUpload:1, payUploadFamily:1, verifyPay:1, setFeeAdj:1,
   addReferral:1, applyReferral:1, addNotice:1, deleteNotice:1, setVenue:1, addSession:1, addonUpload:1,
-  addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, save_attendance:1,
+  addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, pt_setRate:1, pt_bill:1, pt_unbill:1, save_attendance:1,
   save_absences:1, markAbsenceDone:1, unmarkAbsenceDone:1, markLeave:1, save_settings:1, shrinkBackup:1, restore:1
 };
 /* 寫前備份（Phase 5）：#4 原本只靠每日備份 → 兩次備份之間嘅錯寫最多蝕一日。
@@ -996,6 +996,9 @@ function routeInner_(p){
     case "pt_coach_load":   return apiPtCoachLoad(p);
     case "pt_mark":         return apiPtMark(p);
     case "pt_undo":         return apiPtUndo(p);
+    case "pt_setRate":      return apiPtSetRate(p);
+    case "pt_bill":         return apiPtBill(p);
+    case "pt_unbill":       return apiPtUnbill(p);
     // ── B 相容 ──
     case "load":            return apiLoad(p);
     case "save_attendance": return apiSaveAttendance(p);
@@ -1637,12 +1640,14 @@ function genPeriodNet_(label, dry, skipBackup){
     var d=periodFeeDetail_(nm, label); if(!d) return;   // 無在學班別（如暫停學生）→ 略過
     var disc=referralAutoDisc_(nm, d.base, 0);           // 保留推薦優惠（上限該期 base 50%）
     var credit=creditsFor_(nm, label);                   // 順延抵扣（停課退費等；ledger，重算唔會丟）
-    var adjAmt=d.extraTot - credit;                      // 調整 = 額外收費 − 抵扣
+    var pt=ptPeriodFee_(nm, label);                      // 私訓學費：該期已入帳 PT 堂×費率（併入跳繩學費一齊收；recompute-safe）
+    var adjAmt=d.extraTot - credit + pt.amt;             // 調整 = 額外收費 − 抵扣 + 私訓
     var net=Math.max(0, d.base - disc + adjAmt);
     var note=periodExemptNote_(d);
     if(d.newJoin && !note) note="本期新加入（收全費，不適用順延豁免）";
     var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; })
-      .concat(credit>0 ? ["抵扣 "+creditNotesFor_(nm,label)] : []).join("；");
+      .concat(credit>0 ? ["抵扣 "+creditNotesFor_(nm,label)] : [])
+      .concat(pt.amt>0 ? ["私訓 "+pt.note+" = $"+pt.amt] : []).join("；");
     var vals=[nm, label, d.weekly, d.base, disc, net, 0, "未繳", "", "", "", note, adjAmt, adjNote];
     var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+(credit?(" −抵扣$"+credit):"")+" = $"+net;
     var hit=rowMap[nm];
@@ -2690,28 +2695,68 @@ function ptSheet(){
   var sh=SS().getSheetByName("私人訓練");
   if(!sh){
     sh=SS().insertSheet("私人訓練");
-    sh.getRange(1,1,1,5).setValues([["學生","日期","期數","第幾堂","記錄時間"]]);
+    sh.getRange(1,1,1,6).setValues([["學生","日期","期數","第幾堂","記錄時間","已入帳期"]]);
     sh.setFrozenRows(1);
-    sh.getRange("A:E").setNumberFormat("@");   // 文字格式，避免日期被自動轉
+    sh.getRange("A:F").setNumberFormat("@");   // 文字格式，避免日期被自動轉
   }
+  // 自動升級：舊表冇「已入帳期」欄(F) → 補返(現有記錄一律留空=未入帳,唔郁)
+  if(String(sh.getRange(1,6).getValue()||"").trim()!=="已入帳期"){ sh.getRange(1,6).setValue("已入帳期"); sh.getRange("F:F").setNumberFormat("@"); }
   return sh;
 }
 function ptRows_(){
   var sh=ptSheet(); if(sh.getLastRow()<2) return [];
-  return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(function(r,i){
+  return sh.getRange(2,1,sh.getLastRow()-1,6).getValues().map(function(r,i){
     return {row:i+2, name:String(r[0]||"").trim(), date:toIso_(r[1]),
-      cycle:Number(r[2])||1, no:Number(r[3])||0, at:String(r[4]||"")};
+      cycle:Number(r[2])||1, no:Number(r[3])||0, at:String(r[4]||""), billPeriod:String(r[5]||"").trim()};
   }).filter(function(r){ return r.name && r.date; });
+}
+/* 私訓費率（教練端輸入，存「私訓費率」分頁）：每堂費用 $。 */
+function ptRateSheet_(){
+  var sh=SS().getSheetByName("私訓費率");
+  if(!sh){ sh=SS().insertSheet("私訓費率"); sh.getRange(1,1,1,3).setValues([["學生","每堂費用","更新時間"]]); sh.setFrozenRows(1); sh.getRange("A:A").setNumberFormat("@"); }
+  return sh;
+}
+function ptRate_(name){
+  name=String(name||"").trim(); var sh=ptRateSheet_(); if(sh.getLastRow()<2) return 0;
+  var v=sh.getRange(2,1,sh.getLastRow()-1,2).getValues(), rate=0;
+  v.forEach(function(r){ if(String(r[0]||"").trim()===name) rate=Number(r[1])||0; });
+  return rate;
+}
+function ptSetRate_(name, rate){
+  name=String(name||"").trim(); rate=Math.max(0, Number(rate)||0);
+  var sh=ptRateSheet_(), v=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,1).getValues():[], found=0;
+  for(var i=0;i<v.length;i++){ if(String(v[i][0]||"").trim()===name){ found=i+2; break; } }
+  if(found){ sh.getRange(found,2,1,2).setValues([[rate, nowStamp_()]]); }
+  else { var nr=sh.getLastRow()+1; sh.getRange(nr,1).setNumberFormat("@"); sh.getRange(nr,1,1,3).setValues([[name, rate, nowStamp_()]]); }
+  return rate;
+}
+/* 某恆常班家庭(famName)本期已入帳嘅 PT 學費 = 該家庭旗下 PT 學員、已蓋「本期」章嘅堂數 × 費率。
+   併入 genPeriodNet_ 嘅 adj → 每次重算都包含,唔會消失。Keith&Elaine 等 name≠family 亦對應返 family 帳戶。*/
+function ptPeriodFee_(famName, label){
+  var amt=0, cnt=0, parts=[];
+  try{ PT_STUDENTS.forEach(function(s){
+    if(s.family!==famName) return;
+    var r=ptRate_(s.name); if(r<=0) return;
+    var c=ptRows_().filter(function(x){ return x.name===s.name && x.billPeriod===label; }).length;
+    if(c>0){ amt+=c*r; cnt+=c; parts.push((s.name===famName?"私訓":s.name)+" "+c+"堂×$"+r); }
+  }); }catch(e){}
+  return {amt:amt, count:cnt, note:parts.join("、")};
 }
 function ptSummary_(name){
   var rows=ptRows_().filter(function(r){ return r.name===name; })
     .sort(function(a,b){ return a.date.localeCompare(b.date) || (a.no-b.no); });
   var maxCycle=1; rows.forEach(function(r){ if(r.cycle>maxCycle) maxCycle=r.cycle; });
   var cur=rows.filter(function(r){ return r.cycle===maxCycle; });
+  var rate=ptRate_(name);
+  var unbilled=rows.filter(function(r){ return !r.billPeriod; });   // 未入帳（未收費）堂
+  var billedBy={}; rows.forEach(function(r){ if(r.billPeriod){ billedBy[r.billPeriod]=(billedBy[r.billPeriod]||0)+1; } });
   return {
     name:name, cycle:maxCycle, cap:PT_CYCLE, done:cur.length, totalDone:rows.length,
-    curSessions:cur.map(function(r){ return {date:r.date, no:r.no}; }),
-    sessions:rows.map(function(r){ return {date:r.date, cycle:r.cycle, no:r.no}; })
+    rate:rate, unbilledCount:unbilled.length, unbilledDates:unbilled.map(function(r){ return r.date; }),
+    unbilledFee:(rate>0?unbilled.length*rate:0),
+    billed:Object.keys(billedBy).sort().map(function(k){ return {period:k, count:billedBy[k], fee:(rate>0?billedBy[k]*rate:0)}; }),
+    curSessions:cur.map(function(r){ return {date:r.date, no:r.no, billed:!!r.billPeriod}; }),
+    sessions:rows.map(function(r){ return {date:r.date, cycle:r.cycle, no:r.no, billPeriod:r.billPeriod}; })
   };
 }
 function ptForFamily_(cn){
@@ -2723,8 +2768,46 @@ function ptForFamily_(cn){
 }
 function apiPtCoachLoad(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  return {ok:true, cap:PT_CYCLE, today:todayIso(),
+  return {ok:true, cap:PT_CYCLE, today:todayIso(), curPeriod:curPeriodLabel_(),
     students:PT_STUDENTS.map(function(s){ return ptSummary_(s.name); })};
+}
+/* 教練端設 PT 每堂費用 */
+function apiPtSetRate(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var name=String(p.name||"").trim();
+  if(!PT_STUDENTS.some(function(s){ return s.name===name; })) return {ok:false,err:"非私人訓練學員"};
+  var rate=ptSetRate_(name, p.rate);
+  return {ok:true, name:name, rate:rate, summary:ptSummary_(name)};
+}
+/* 入帳：把某 PT 學員所有「未入帳」堂蓋章到指定期(預設現期)→ 併入該期學費一齊收。之後 genPeriod 重算會計 PT。
+   保住記錄：只寫「已入帳期」欄,唔刪任何堂。入帳後即場重算該期學費令 PT 反映到家長端。*/
+function apiPtBill(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var name=String(p.name||"").trim(), label=String(p.period||curPeriodLabel_()).trim();
+  var st=PT_STUDENTS.filter(function(s){ return s.name===name; })[0];
+  if(!st) return {ok:false,err:"非私人訓練學員"};
+  if(ptRate_(name)<=0) return {ok:false,err:"未設每堂費用,請先輸入費率"};
+  var sh=ptSheet(), rows=ptRows_().filter(function(r){ return r.name===name && !r.billPeriod; });
+  if(!rows.length) return {ok:false,err:"冇未入帳嘅 PT 堂"};
+  rows.forEach(function(r){ sh.getRange(r.row,6).setValue(label); });
+  // 即場重算該期學費（PT 併入該家庭 family 帳戶學費）
+  try{ genPeriodNet_(label, false, true); }catch(e){ Logger.log("PT 入帳後重算失敗:"+e); }
+  logAppend({name:name, key:"PT", action:"pt_bill", date:label, status:"入帳 "+rows.length+" 堂"});
+  return {ok:true, name:name, family:st.family, period:label, billed:rows.length, fee:rows.length*ptRate_(name), summary:ptSummary_(name)};
+}
+/* 取消入帳：把某期已入帳嘅 PT 堂還原做未入帳（改錯／退回）。同樣重算。*/
+function apiPtUnbill(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var name=String(p.name||"").trim(), label=String(p.period||"").trim();
+  var st=PT_STUDENTS.filter(function(s){ return s.name===name; })[0];
+  if(!st) return {ok:false,err:"非私人訓練學員"};
+  var sh=ptSheet(), rows=ptRows_().filter(function(r){ return r.name===name && (label? r.billPeriod===label : !!r.billPeriod); });
+  if(!rows.length) return {ok:false,err:"冇符合嘅已入帳堂"};
+  var per=rows[0].billPeriod;
+  rows.forEach(function(r){ sh.getRange(r.row,6).setValue(""); });
+  try{ genPeriodNet_(per, false, true); }catch(e){}
+  logAppend({name:name, key:"PT", action:"pt_unbill", date:per, status:"取消入帳 "+rows.length+" 堂"});
+  return {ok:true, name:name, period:per, unbilled:rows.length, summary:ptSummary_(name)};
 }
 function apiPtMark(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
@@ -2740,7 +2823,7 @@ function apiPtMark(p){
   if(rows.length===0){ cycle=1; no=1; }
   else if(inCur>=PT_CYCLE){ cycle=maxCycle+1; no=1; }   // 夠 PT_CYCLE 堂 → 自動開新一期
   else { cycle=maxCycle; no=inCur+1; }
-  ptSheet().appendRow([name, date, String(cycle), String(no), nowStamp_()]);
+  ptSheet().appendRow([name, date, String(cycle), String(no), nowStamp_(), ""]);
   logAppend({name:name, key:"PT", action:"pt_mark", date:date, status:"第"+cycle+"期 第"+no+"堂"});
   return {ok:true, newCycle:(no===1 && cycle>1), cycle:cycle, no:no, summary:ptSummary_(name)};
 }
@@ -2772,7 +2855,7 @@ function ptAdd_(name, date){
   if(rows.length===0){ cycle=1; no=1; }
   else if(inCur>=PT_CYCLE){ cycle=maxCycle+1; no=1; }   // 夠 PT_CYCLE 堂 → 自動開新一期
   else { cycle=maxCycle; no=inCur+1; }
-  ptSheet().appendRow([name, date, String(cycle), String(no), nowStamp_()]);
+  ptSheet().appendRow([name, date, String(cycle), String(no), nowStamp_(), ""]);
   return true;
 }
 /* 種私訓資料：示範帳號 示範學員（跟恆常班節奏，每週一堂、穩定上課，現處第 1 期）
