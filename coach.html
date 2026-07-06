@@ -430,7 +430,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-05a';
+const FRONTEND_VERSION = 'coach-2026-07-06a';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -745,6 +745,23 @@ async function renderPt(){
     }).join('') || `<div style="padding:10px 2px;color:var(--muted);font-size:13px">本期暫未有記錄</div>`;
     const nm = s.name.replace(/'/g, "\\'");
     const hasRec = (s.curSessions && s.curSessions.length);
+    // 私訓收費：費率輸入 + 未入帳應收 + 入帳到某期 + 已入帳歷史
+    const rate = s.rate || 0, unb = s.unbilledCount || 0, unbFee = s.unbilledFee || 0;
+    const curP = r.curPeriod || '', nextP = ptNextPeriod(curP);
+    const billHtml = `<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)">
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">💰 私訓收費（併入該期跳繩學費一齊收）</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;color:var(--muted);white-space:nowrap">每堂 $</span>
+        <input type="number" id="ptr-${i}" value="${rate||''}" placeholder="輸入金額" min="0" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">
+        <button onclick="ptSetRate('${nm}', ${i})" style="padding:11px 14px;border-radius:10px;border:none;font-weight:800;background:#2b2b2b;color:#eee;cursor:pointer;font-family:inherit;font-size:13px">儲存</button>
+      </div>
+      ${unb>0 ? `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">未入帳 <b style="color:var(--text)">${unb}</b> 堂${rate>0?` × $${rate} = <b style="color:#e0a93a">$${unbFee}</b>`:'（未設費率）'}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="ptbp-${i}" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">${curP?`<option value="${curP}">${curP}</option>`:''}${nextP?`<option value="${nextP}" selected>${nextP}</option>`:''}</select>
+          <button onclick="ptBill('${nm}', ${i})" ${rate>0?'':'disabled'} style="padding:11px 14px;border-radius:10px;border:none;font-weight:800;background:${rate>0?'linear-gradient(135deg,#e0a93a,#a06a10)':'#555'};color:#fff;cursor:${rate>0?'pointer':'not-allowed'};font-family:inherit;font-size:13px;white-space:nowrap">入帳</button>
+        </div>` : `<div style="font-size:13px;color:var(--muted)">✓ 冇未入帳嘅堂</div>`}
+      ${(s.billed&&s.billed.length)?`<div style="margin-top:10px">${s.billed.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 2px;font-size:12px;color:var(--muted)"><span>✅ 已入帳 ${b.period}：${b.count} 堂 $${b.fee}</span><button onclick="ptUnbill('${nm}','${b.period}')" style="background:none;border:none;color:#c66;cursor:pointer;font-size:12px;font-family:inherit">取消</button></div>`).join('')}</div>`:''}
+    </div>`;
     h += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin:0 0 14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:18px;font-weight:900;color:var(--text)">${s.name}</div>
@@ -761,6 +778,7 @@ async function renderPt(){
       ${markedToday ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);text-align:center">今日已記錄；如補其他日子，揀返日期再撳</div>` : ''}
       ${hasRec ? `<button onclick="ptUndo('${nm}')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit">↩ 撤銷最近一堂</button>` : ''}
       <div style="margin-top:12px">${rows}</div>
+      ${billHtml}
     </div>`;
   });
   box.innerHTML = h;
@@ -781,6 +799,35 @@ async function ptUndo(name){
   if (!r || !r.ok) { toast((r && r.err) || '撤銷失敗', '⚠'); return; }
   toast('已撤銷', '✓');
   renderPt();
+}
+/* 私訓收費 */
+function ptNextPeriod(label){
+  const m = String(label||'').match(/(\d{4})\s*(\d{1,2})-(\d{1,2})月/);
+  if(!m) return '';
+  let y=+m[1], b=+m[3], na=b+1, nb=b+2;
+  if(na>12){ na-=12; nb-=12; y+=1; }
+  return `${y} ${na}-${nb}月`;
+}
+async function ptSetRate(name, i){
+  const el=document.getElementById('ptr-'+i); const rate=el?el.value:'';
+  if(rate==='' || Number(rate)<0){ toast('請輸入金額','⚠'); return; }
+  let r; try{ r=await apiPost({action:'pt_setRate', name, rate}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'儲存失敗','⚠'); return; }
+  toast('已設每堂 $'+r.rate,'✓'); renderPt();
+}
+async function ptBill(name, i){
+  const sel=document.getElementById('ptbp-'+i); const period=sel?sel.value:'';
+  if(!period){ toast('請揀期','⚠'); return; }
+  if(!confirm(`把 ${name} 所有未入帳私訓堂入帳到「${period}」？\n會併入該期跳繩學費一齊收。`)) return;
+  let r; try{ r=await apiPost({action:'pt_bill', name, period}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'入帳失敗','⚠'); return; }
+  toast(`已入帳 ${r.billed} 堂 $${r.ptFee} 到 ${period}`,'✓'); renderPt();
+}
+async function ptUnbill(name, period){
+  if(!confirm(`取消 ${name} 喺「${period}」嘅私訓入帳？該期學費會扣返 PT 那部分。`)) return;
+  let r; try{ r=await apiPost({action:'pt_unbill', name, period}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'取消失敗','⚠'); return; }
+  toast('已取消入帳','✓'); renderPt();
 }
 
 /* ═══════════ 七、首頁 ═══════════ */

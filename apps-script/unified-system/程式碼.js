@@ -2789,6 +2789,25 @@ function apiPtSetRate(p){
 }
 /* 入帳：把某 PT 學員所有「未入帳」堂蓋章到指定期(預設現期)→ 併入該期學費一齊收。之後 genPeriod 重算會計 PT。
    保住記錄：只寫「已入帳期」欄,唔刪任何堂。入帳後即場重算該期學費令 PT 反映到家長端。*/
+/* 針對性重算一個家庭某期學費行（併入 PT）→ 即時可靠,唔使跑成個 genPeriod（慢/易 timeout）。
+   只碰未繳/部分行；已繳／豁免／待核實一律唔郁（保安全,PT 要收就入落未繳期）。算法同 genPeriodNet_ 正常branch。*/
+function recalcPtFeeRow_(famName, label){
+  var target=null; feeRows_().forEach(function(x){ if(x.name===famName && x.period===label) target=x; });
+  if(!target) return {ok:false, reason:"「"+label+"」未有學費行(未生成該期)"};
+  if(target.status==="已繳"||target.status==="豁免"||target.status==="待核實") return {ok:false, reason:"「"+label+"」狀態為"+target.status+"，唔可改（請入落未繳期）"};
+  var d=periodFeeDetail_(famName, label); if(!d) return {ok:false, reason:"無在學班別"};
+  var disc=referralAutoDisc_(famName, d.base, 0);
+  var credit=creditsFor_(famName, label);
+  var pt=ptPeriodFee_(famName, label);
+  var adjAmt=d.extraTot - credit + pt.amt;
+  var net=Math.max(0, d.base - disc + adjAmt);
+  var note=periodExemptNote_(d); if(d.newJoin && !note) note="本期新加入（收全費，不適用順延豁免）";
+  var adjNote=d.extras.map(function(e){ return e.note+" $"+e.amt; }).concat(credit>0?["抵扣 "+creditNotesFor_(famName,label)]:[]).concat(pt.amt>0?["私訓 "+(pt.note||"")+" = $"+pt.amt]:[]).join("；");
+  var sh=feeSheet(), paid=Number(target.paid)||0, st=(paid<=0?"未繳":(paid>=net?"已繳":"部分"));
+  sh.getRange(target.row,4).setValue(d.base); sh.getRange(target.row,5).setValue(disc); sh.getRange(target.row,6).setValue(net);
+  sh.getRange(target.row,8).setValue(st); sh.getRange(target.row,12).setValue(note); sh.getRange(target.row,13,1,2).setValues([[adjAmt, adjNote]]);
+  return {ok:true, net:net, ptFee:pt.amt};
+}
 function apiPtBill(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var name=String(p.name||"").trim(), label=String(p.period||curPeriodLabel_()).trim();
@@ -2797,13 +2816,13 @@ function apiPtBill(p){
   if(ptRate_(name)<=0) return {ok:false,err:"未設每堂費用,請先輸入費率"};
   var sh=ptSheet(), rows=ptRows_().filter(function(r){ return r.name===name && !r.billPeriod; });
   if(!rows.length) return {ok:false,err:"冇未入帳嘅 PT 堂"};
-  rows.forEach(function(r){ sh.getRange(r.row,6).setValue(label); });
-  // 即場重算該期學費（PT 併入該家庭 family 帳戶學費）
-  try{ genPeriodNet_(label, false, true); }catch(e){ Logger.log("PT 入帳後重算失敗:"+e); }
-  logAppend({name:name, key:"PT", action:"pt_bill", date:label, status:"入帳 "+rows.length+" 堂"});
-  return {ok:true, name:name, family:st.family, period:label, billed:rows.length, fee:rows.length*ptRate_(name), summary:ptSummary_(name)};
+  rows.forEach(function(r){ sh.getRange(r.row,6).setValue(label); });   // 蓋章(保住記錄,唔刪)
+  var rc=recalcPtFeeRow_(st.family, label);                             // 針對性併入該期學費
+  if(!rc.ok){ rows.forEach(function(r){ sh.getRange(r.row,6).setValue(""); }); return {ok:false, err:"入帳失敗："+rc.reason}; }   // 失敗回滾蓋章
+  logAppend({name:name, key:"PT", action:"pt_bill", date:label, status:"入帳 "+rows.length+" 堂 $"+rc.ptFee});
+  return {ok:true, name:name, family:st.family, period:label, billed:rows.length, ptFee:rc.ptFee, newNet:rc.net, summary:ptSummary_(name)};
 }
-/* 取消入帳：把某期已入帳嘅 PT 堂還原做未入帳（改錯／退回）。同樣重算。*/
+/* 取消入帳：把某期已入帳嘅 PT 堂還原做未入帳（改錯／退回）。同樣針對性重算。*/
 function apiPtUnbill(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var name=String(p.name||"").trim(), label=String(p.period||"").trim();
@@ -2813,7 +2832,7 @@ function apiPtUnbill(p){
   if(!rows.length) return {ok:false,err:"冇符合嘅已入帳堂"};
   var per=rows[0].billPeriod;
   rows.forEach(function(r){ sh.getRange(r.row,6).setValue(""); });
-  try{ genPeriodNet_(per, false, true); }catch(e){}
+  recalcPtFeeRow_(st.family, per);
   logAppend({name:name, key:"PT", action:"pt_unbill", date:per, status:"取消入帳 "+rows.length+" 堂"});
   return {ok:true, name:name, period:per, unbilled:rows.length, summary:ptSummary_(name)};
 }
