@@ -999,6 +999,7 @@ function routeInner_(p){
     // ── 私人訓練（與恆常班分開；只記上課日，無請假補堂）──
     case "loginProfile":    return apiLoginProfile(p);
     case "owedDebug":       return apiOwedDebug(p);
+    case "makeupAudit":     return apiMakeupAudit(p);
     case "pt_coach_load":   return apiPtCoachLoad(p);
     case "pt_mark":         return apiPtMark(p);
     case "pt_undo":         return apiPtUndo(p);
@@ -3529,6 +3530,58 @@ function apiHealth(p){
     +"\n\n—— 手動觸發 "+Utilities.formatDate(new Date(),tz(),"yyyy-MM-dd HH:mm")); }catch(e){} }
   return {ok:true, problems:probs};
 }
+/* ═══════════ 補堂審計：模擬每個家長「撳補堂」真實體驗，捉 autoHeal 唔會自動修嘅漏網位 ═══════════
+   背景：守護系統原本測內部結構，但家長真正撞到嘅係「有請假但補唔到」。呢個審計逐班逐生掃：
+   ① 孤兒 ledger：標咗某缺席=已補，但 grid 該日根本唔係請假/缺席（garbage，會靜靜雞影響 owed）。
+   ② 名冊外 ledger：ledger 有個學生根本唔喺該班名冊。
+   ③ 時光倒流／冗餘 ledger 殘存數（autoHeal 應已清 0，若>0 即有嘢再製造緊，要查）。
+   ④ 啱啱過期未補：請假限期喺過去 10 日內剛過、仍未補 → 主動提醒老闆決定要唔要延期（唔自動改）。
+   回傳 problem 字串陣列，接入每日健康檢查 email。純讀，唔改資料。 */
+function makeupAudit_(){
+  var out=[], today=todayIso();
+  var d10=new Date(); d10.setDate(d10.getDate()-10); var since=iso(d10);
+  var ledger=absDoneRows_();
+  var mkAll; try{ mkAll=makeupUniq_(); }catch(e){ mkAll=[]; }
+  var impN=0, redN=0;
+  // 冗餘偵測需要 makeupAll 日期 map
+  var mkD={}; try{ makeupAll().forEach(function(m){ (mkD[String(m.name).trim()+"|"+String(m.from).trim()]=mkD[String(m.name).trim()+"|"+String(m.from).trim()]||{})[toIso_(m.date)]=1; }); }catch(e){}
+  ledger.forEach(function(x){ if(x.valid===false) impN++; if((mkD[x.name+"|"+x.cid]||{})[x.madeDate]) redN++; });
+  if(impN>0) out.push("補堂審計：仲有 "+impN+" 筆『補堂日早過缺席日』ledger（autoHeal 應已清，若持續出現代表有嘢再製造，需查根源）");
+  if(redN>0) out.push("補堂審計：仲有 "+redN+" 筆『補堂表已有真預約』冗餘 ledger（雙重扣 owed 風險）");
+  // 逐班逐生
+  var expiredList=[];
+  CLASS_IDS.forEach(function(cid){
+    var blk; try{ blk=readBlockMerged_(cid); }catch(e){ return; }
+    var names={}; (blk.students||[]).forEach(function(n){ names[n]=1; }); Object.keys(blk.status||{}).forEach(function(n){ names[n]=1; });
+    // 該班 ledger
+    ledger.filter(function(x){ return x.cid===cid; }).forEach(function(x){
+      var st=blk.status[x.name]||[], idx=blk.dates.indexOf(x.absDate), cell=(idx>=0?st[idx]:"");
+      if(!names[x.name]){ out.push("補堂審計：ledger 有『"+x.name+"』但佢唔喺 "+cid+" 名冊（孤兒記錄）"); return; }
+      if(cell!=="請假" && cell!=="缺席"){ out.push("補堂審計：孤兒 ledger — "+x.name+" "+cid+" 標咗 "+x.absDate+" 已補，但 grid 該日係「"+(cell||"空白")+"」唔係請假/缺席"); }
+    });
+    // 啱啱過期未補（請假）
+    Object.keys(blk.status||{}).forEach(function(nm){
+      if(!names[nm]) return;
+      var st=blk.status[nm]||[], leaves=[];
+      st.forEach(function(s,i){ if(s==="請假") leaves.push(blk.dates[i]); });
+      if(!leaves.length) return;
+      var doneL=ledger.filter(function(x){ return x.valid!==false && x.name===nm && x.cid===cid; }).length;
+      var doneMk=mkAll.filter(function(m){ return m.name===nm && m.from===cid; }).length;
+      var unmade=leaves.length-doneL-doneMk;
+      if(unmade<=0) return;
+      // 睇最舊未補嗰啲限期係咪啱過期
+      var expired=leaves.filter(function(dd){ var dl=effDeadline_(nm,cid,dd); return dl<today && dl>=since; });
+      if(expired.length) expiredList.push(nm+" "+cid+"（限期 "+expired.map(function(dd){return effDeadline_(nm,cid,dd);}).join("、")+"）");
+    });
+  });
+  if(expiredList.length) out.push("補堂審計：⏰ "+expiredList.length+" 位學生請假補堂限期喺近 10 日內剛過、仍未補 → 要唔要延期畀佢哋補？"+expiredList.join("；"));
+  return out;
+}
+function apiMakeupAudit(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var a; try{ a=makeupAudit_(); }catch(e){ return {ok:false,err:String(e)}; }
+  return {ok:true, count:a.length, problems:a};
+}
 function runHealthChecks_(sendEmail, heal){
   var problems=[], _t0=new Date();
   // 並行探測所有後端 /exec + 前端頁（fetchAll 併發，取代逐個順序等待）
@@ -3549,6 +3602,9 @@ function runHealthChecks_(sendEmail, heal){
   // 功能層 smoke test（後端核心 / 家長端 / 教練端）
   try{ functionalCheck_().forEach(function(x){ problems.push(x); }); }
   catch(e){ problems.push("功能檢查出錯："+e); }
+  // 補堂審計（模擬家長「撳補堂」真實體驗；捉孤兒/名冊外 ledger、剛過期未補等 autoHeal 唔會自動修嘅漏網位）
+  try{ makeupAudit_().forEach(function(x){ problems.push(x); }); }
+  catch(e){ problems.push("補堂審計出錯："+e); }
   // 寫入鏈自我測試（示範帳號全流程，抑制 email、完成即清）；最重，若前面已耗時過多就今次略過免超時
   try{
     if((new Date()-_t0)/1000 < 210){ writePathCheck_().forEach(function(x){ problems.push(x); }); }
