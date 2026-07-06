@@ -2977,6 +2977,9 @@ function markAbsenceDone_(nm, cid, absDate, madeDate){
   nm=String(nm||"").trim(); cid=String(cid||"").trim(); absDate=toIso_(absDate); if(!nm||!cid||!absDate) return false;
   madeDate=madeDate?toIso_(madeDate):todayIso();
   if(absDoneRows_().some(function(x){ return x.name===nm&&x.cid===cid&&x.absDate===absDate; })) return true;
+  // 源頭防重複代表：若補堂表已有該生該班喺 madeDate 嘅真預約 → 補堂已由預約代表，唔再寫 ledger（否則雙重扣 owed，
+  // 教練撳「已補堂」就會撞：本來 autoHeal 5點先清，而家喺寫入一刻堵死，唔會有過夜 owed 錯算）。
+  try{ if(makeupAll().some(function(m){ return String(m.name).trim()===nm && String(m.from).trim()===cid && toIso_(m.date)===madeDate; })) return true; }catch(e){}
   var sh=absDoneSheet_(), r=sh.getLastRow()+1;
   sh.getRange(r,1).setNumberFormat("@"); sh.getRange(r,3,1,2).setNumberFormat("@");
   sh.getRange(r,1,1,5).setValues([[nm,cid,absDate,madeDate,nowStamp_()]]); return true;
