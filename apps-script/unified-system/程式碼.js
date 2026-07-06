@@ -902,7 +902,7 @@ function reportError_(where, err){
 var WRITE_ACTIONS = {
   applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, cancelDayFree:1,
   cleanupGrids:1, uploadMedNote:1, genPeriod:1, applyRosterChanges:1, recoverPayments:1, setMakeupDeadline:1,
-  cleanupDupMakeup:1, cleanupSelfMakeup:1, migrateSelfMakeup:1, autoHeal:1, purgeStudent:1, clearFamilyPin:1,
+  cleanupDupMakeup:1, cleanupSelfMakeup:1, migrateSelfMakeup:1, cleanupLedgerRedundant:1, cleanupImpossibleLedger:1, autoHeal:1, purgeStudent:1, clearFamilyPin:1,
   cleanupStorage:1, resetFeePayment:1, payUpload:1, payUploadFamily:1, verifyPay:1, setFeeAdj:1,
   addReferral:1, applyReferral:1, addNotice:1, deleteNotice:1, setVenue:1, addSession:1, addonUpload:1,
   addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, pt_setRate:1, pt_bill:1, pt_unbill:1, save_attendance:1,
@@ -944,6 +944,7 @@ function routeInner_(p){
     case "cleanupSelfMakeup": return apiCleanupSelfMakeup(p);
     case "migrateSelfMakeup": return apiMigrateSelfMakeup(p);
     case "cleanupLedgerRedundant": return apiCleanupLedgerRedundant(p);
+    case "cleanupImpossibleLedger": return apiCleanupImpossibleLedger(p);
     case "autoHeal": return apiAutoHeal(p);
     case "restoreReadiness": return apiRestoreReadiness(p);
     case "restore": return apiRestore(p);
@@ -1042,7 +1043,7 @@ function classesFor_(nm){
     // 補堂來源：#11 absences 已補（madeUpDate）+ 家長經 is-parent 預約嘅 #4 補堂
     var abs11=abs11all.filter(function(a){ return a.name===nm && a.cid===cid; });
     // 「補堂完成」ledger（教練喺 coach.html 直接標某缺席=已補）→ 家長 owed 亦要當已補、唔再計待補。
-    var absDone_={}; try{ absDoneRows_().forEach(function(x){ if(x.name===nm && x.cid===cid) absDone_[x.absDate]=1; }); }catch(e){}
+    var absDone_={}; try{ absDoneRows_().forEach(function(x){ if(x.valid && x.name===nm && x.cid===cid) absDone_[x.absDate]=1; }); }catch(e){}
     var done11=abs11.filter(function(a){ return a.madeUpDate; });
     var mk4=mk.filter(function(m){ return m.from===cid; });   // mk 已由 makeupUniq_ 去重
     // 剔走遷移自 #11「已補」嘅重複列（importParentData 寫入，補去班 to 可能=本班/留空/原班）：
@@ -1231,7 +1232,7 @@ function apiMakeup(p){
   // 限期檢查：今次補堂對應「最舊未補嘅缺席」，須喺該缺席日 +N 個月內（#9）
   if(CLASSES[p.fromKey]){
     var fb=readBlock(p.fromKey), fst=fb.status[p.name]||[], fd=fb.dates, lv=[];
-    var absDoneMk_={}; try{ absDoneRows_().forEach(function(x){ if(x.name===p.name && x.cid===p.fromKey) absDoneMk_[x.absDate]=1; }); }catch(e){}
+    var absDoneMk_={}; try{ absDoneRows_().forEach(function(x){ if(x.valid && x.name===p.name && x.cid===p.fromKey) absDoneMk_[x.absDate]=1; }); }catch(e){}
     fst.forEach(function(s,i){ if(s==="請假" && !absDoneMk_[fd[i]]) lv.push(fd[i]); }); // 剔走「補堂完成」ledger 已補嘅缺席
     lv.sort();
     // madeUp 要同前端 owed(mk4real) 一致：剔走由 #11 遷移嘅「已補」歷史補堂（madeUpDate 對應 #11 absence、
@@ -2650,7 +2651,7 @@ function apiLoad(p){
   //   3) 真跨班「出席」補堂 pool（to≠from），按最舊未解決缺席配對（每原班獨立）
   //   ⚠️ self/blank 補堂(#11遷移噪音或舊已補堂殘留)一律唔入 pool：#11已補靠(2)精準對；舊殘留應清理/轉ledger，
   //      唔可盲目 count-match，否則會浮起錯配去更後請假(補堂日早過缺席日→少計 owed)，或反而覆蓋咗(2)嘅精準已補(多計 owed)。
-  var absDoneMap={}; try{ absDoneRows_().forEach(function(x){ absDoneMap[x.name+"|"+x.cid+"|"+x.absDate]=x.madeDate||x.absDate; }); }catch(e){}
+  var absDoneMap={}; try{ absDoneRows_().forEach(function(x){ if(x.valid) absDoneMap[x.name+"|"+x.cid+"|"+x.absDate]=x.madeDate||x.absDate; }); }catch(e){}
   var is11Done={}; try{ is11_().abs.forEach(function(a){ if(a.madeUpDate) is11Done[a.name+"|"+a.cid+"|"+a.absDate]=a.madeUpDate; }); }catch(e){}
   var mkPool={};   // key=name|原班 → [出席補堂日...]，只收真跨班(to≠from)
   makeupAll().forEach(function(m){
@@ -2949,7 +2950,11 @@ function absDoneSheet_(){
 function absDoneRows_(){
   var sh=absDoneSheet_(); if(sh.getLastRow()<2) return [];
   return sh.getRange(2,1,sh.getLastRow()-1,5).getValues().map(function(r,i){
-    return {row:i+2, name:String(r[0]).trim(), cid:String(r[1]).trim(), absDate:toIso_(r[2]), madeDate:(r[3]?toIso_(r[3]):toIso_(r[2]))};
+    var absD=toIso_(r[2]), madeD=(r[3]?toIso_(r[3]):toIso_(r[2]));
+    // valid=false 表示「補堂日早過缺席日」——時光倒流、冇可能，多數係舊 migrateSelfMakeup 錯配殘留。
+    // 計 owed 時一律唔當已補（唔可以錯扣人補堂），但仍返回俾清理/刪除 route 定位。
+    var valid = !madeD || !absD || madeD>=absD;
+    return {row:i+2, name:String(r[0]).trim(), cid:String(r[1]).trim(), absDate:absD, madeDate:madeD, valid:valid};
   }).filter(function(x){ return x.name && x.cid && x.absDate; });
 }
 function markAbsenceDone_(nm, cid, absDate, madeDate){
@@ -2986,6 +2991,21 @@ function apiCleanupLedgerRedundant(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   return {ok:true, result:cleanupLedgerRedundant_()};
 }
+/* 清「時光倒流 ledger」：補堂日早過缺席日（madeDate<absDate）的完成記錄冇可能真實，
+   多數係舊 migrateSelfMakeup 把最舊未解決請假錯配去更早嘅自補日而生。physically 刪走，
+   還原受影響學生嘅 owed（例：陳曉瑩 c5 缺5/1 錯標補4/6 → 補堂 button 唔亮）。內部先備份。*/
+function cleanupImpossibleLedger_(){
+  var sh=absDoneSheet_(), rows=absDoneRows_();
+  var del=[], removed=[];
+  rows.forEach(function(x){ if(x.valid===false){ del.push(x.row); removed.push(x.name+" "+x.cid+" 缺"+x.absDate+"←補"+x.madeDate); } });
+  if(del.length) try{ backup(); }catch(e){}
+  del.sort(function(a,b){ return b-a; }).forEach(function(r){ sh.deleteRow(r); });
+  return {removed:del.length, rows:removed};
+}
+function apiCleanupImpossibleLedger(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  return {ok:true, result:cleanupImpossibleLedger_()};
+}
 /* 一次性 migration：把「純舊已補堂殘留」self/blank 補堂轉成「補堂完成」ledger，令教練面同家長面一致。
    背景：舊已補堂機制造 from==to（或 to 空）補堂，家長 classesFor_ 當 booked4 減 owed（顯示已補），
    但教練 apiLoad 精準對後唔認呢啲 self 補堂 → 教練面 owed 偏高、兩面唔一致。
@@ -3019,7 +3039,9 @@ function migrateSelfMakeupToLedger_(skipBackup){
     if(is11byNC[nc] && is11byNC[nc][date]){ toDelete.push(row); redundant++; return; }  // #11 冗餘,刪
     var leaves=leavesByNC[nc]||[], picked=null;
     for(var j=0;j<leaves.length;j++){ var d=leaves[j], key=nm+"|"+from+"|"+d;
-      if(is11DoneAbs[key]||ledger[key]||usedLeaf[key]) continue; picked=d; usedLeaf[key]=1; break; }
+      if(is11DoneAbs[key]||ledger[key]||usedLeaf[key]) continue;
+      if(toIso_(d)>date) continue;                    // 補堂日必須 ≥ 缺席日，否則時光倒流（跳過，唔標）
+      picked=d; usedLeaf[key]=1; break; }
     if(picked){ markAbsenceDone_(nm, from, picked, date); ledger[nm+"|"+from+"|"+picked]=1;
       migrated.push(nm+" "+from+" 缺"+picked+"←補"+date); }
     toDelete.push(row);
@@ -3045,12 +3067,12 @@ function autoHeal_(){
     if(!m.to || m.to===m.from) selfN++;
   }); }catch(e){}
   // 冗餘 ledger：ledger 補堂日已喺補堂表有真預約(雙重代表→owed 扣爆,如鄧可澄/張爾淳)
-  var ledgerRedN=0; try{ var mkD={}; makeupAll().forEach(function(m){ (mkD[String(m.name).trim()+"|"+String(m.from).trim()]=mkD[String(m.name).trim()+"|"+String(m.from).trim()]||{})[toIso_(m.date)]=1; });
-    absDoneRows_().forEach(function(x){ if((mkD[x.name+"|"+x.cid]||{})[x.madeDate]) ledgerRedN++; }); }catch(e){}
+  var ledgerRedN=0, impN=0; try{ var mkD={}; makeupAll().forEach(function(m){ (mkD[String(m.name).trim()+"|"+String(m.from).trim()]=mkD[String(m.name).trim()+"|"+String(m.from).trim()]||{})[toIso_(m.date)]=1; });
+    absDoneRows_().forEach(function(x){ if((mkD[x.name+"|"+x.cid]||{})[x.madeDate]) ledgerRedN++; if(x.valid===false) impN++; }); }catch(e){}
   var bk=SS().getSheetByName("備份"), bkRows=bk?bk.getLastRow():0, bkDim=bk?bk.getMaxRows():0;
   var trg={}; try{ ScriptApp.getProjectTriggers().forEach(function(t){ trg[t.getHandlerFunction()]=1; }); }catch(e){}
   var needShrink=(bkRows>12000 || bkDim>15000), needTrigHealth=!trg["healthCheck"], needTrigBackup=!trg["backup"];
-  var need = dupN>0 || selfN>0 || ledgerRedN>0 || needShrink || needTrigHealth || needTrigBackup;
+  var need = dupN>0 || selfN>0 || ledgerRedN>0 || impN>0 || needShrink || needTrigHealth || needTrigBackup;
   if(!need){ autoHealLog_([{item:"掃描",action:"無需修復",result:"✅ 資料乾淨"}]); return {ok:true, healed:0, actions:[]}; }
   // ── 有嘢要修：單次備份（可還原）──
   try{ backup(); actions.push({item:"—",action:"修復前備份",result:"已存「備份」分頁"}); }
@@ -3061,6 +3083,8 @@ function autoHeal_(){
     catch(e){ actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"⚠ "+e}); } }
   if(ledgerRedN>0){ try{ var lr=cleanupLedgerRedundant_(); actions.push({item:"冗餘ledger(補堂日已有真預約)",action:"cleanupLedgerRedundant",result:"刪 "+lr.removed+" 條 → 修正 owed 扣爆"}); }
     catch(e){ actions.push({item:"冗餘ledger",action:"cleanupLedgerRedundant",result:"⚠ "+e}); } }
+  if(impN>0){ try{ var im=cleanupImpossibleLedger_(); actions.push({item:"時光倒流ledger(補堂日早過缺席日)",action:"cleanupImpossibleLedger",result:"刪 "+im.removed+" 條 → 還原被錯扣嘅補堂"}); }
+    catch(e){ actions.push({item:"時光倒流ledger",action:"cleanupImpossibleLedger",result:"⚠ "+e}); } }
   if(needShrink){ try{ var sh=shrinkBackupSheet_(6); actions.push({item:"備份分頁過大",action:"shrinkBackup",result:"維度 "+sh.before+"→"+sh.afterDim}); }
     catch(e){ actions.push({item:"備份分頁過大",action:"shrinkBackup",result:"⚠ "+e}); } }
   if(needTrigHealth){ try{ ScriptApp.newTrigger("healthCheck").timeBased().everyDays(1).atHour(5).create(); actions.push({item:"健康檢查trigger甩咗",action:"重裝",result:"已重裝(05:00)"}); }
