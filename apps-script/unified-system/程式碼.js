@@ -1647,7 +1647,9 @@ function genPeriodNet_(label, dry, skipBackup){
     var line=nm+" | "+d.weekly+"班 淨"+d.net+"堂×$"+d.rate+"=$"+d.base+(disc?(" −優惠$"+disc):"")+(d.extraTot?(" +$"+d.extraTot):"")+(credit?(" −抵扣$"+credit):"")+" = $"+net;
     var hit=rowMap[nm];
     if(hit){
-      if(hit.status==="已繳"||hit.status==="豁免"){ n_skip++; lines.push("⏭ "+line+"（"+hit.status+"，略過）"); return; }
+      // 已繳一律略過。「豁免」只可能嚟自 PERIOD_VOID（net<=0 係「已繳」唔係「豁免」）；
+      // 行到呢度＝該生唔喺 voidList（非暫停）→ 陳舊豁免要重生（解「移出暫停後學費仍 $0」，如何梓程）。
+      if(hit.status==="已繳"){ n_skip++; lines.push("⏭ "+line+"（已繳，略過）"); return; }
       if(!dry){
         sh.getRange(hit.row,2).setNumberFormat("@");
         // ⚠️ 保留付款進度欄（7已繳/8狀態/9截圖/10核實教練/11核實時間）：家長已上傳截圖＝待核實，
