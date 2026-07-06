@@ -3559,18 +3559,21 @@ function makeupAudit_(){
       if(!names[x.name]){ out.push("補堂審計：ledger 有『"+x.name+"』但佢唔喺 "+cid+" 名冊（孤兒記錄）"); return; }
       if(cell!=="請假" && cell!=="缺席"){ out.push("補堂審計：孤兒 ledger — "+x.name+" "+cid+" 標咗 "+x.absDate+" 已補，但 grid 該日係「"+(cell||"空白")+"」唔係請假/缺席"); }
     });
-    // 啱啱過期未補（請假）
+    // 啱啱過期未補（請假）——必須逐日精準剔走已補，否則有未補堂嘅學生連佢「已補」嗰幾日都會被誤報過期。
     Object.keys(blk.status||{}).forEach(function(nm){
       if(!names[nm]) return;
       var st=blk.status[nm]||[], leaves=[];
       st.forEach(function(s,i){ if(s==="請假") leaves.push(blk.dates[i]); });
       if(!leaves.length) return;
-      var doneL=ledger.filter(function(x){ return x.valid!==false && x.name===nm && x.cid===cid; }).length;
+      leaves.sort();
+      // ① 剔走 ledger 精準命中嘅缺席日（教練標「某日已補」）
+      var doneSet={}; ledger.forEach(function(x){ if(x.valid!==false && x.name===nm && x.cid===cid) doneSet[x.absDate]=1; });
+      var unresolved=leaves.filter(function(dd){ return !doneSet[dd]; });
+      // ② 真跨班補堂唔綁具體缺席日 → 由最舊未解決請假剔起（與 classesFor_ 對齊）
       var doneMk=mkAll.filter(function(m){ return m.name===nm && m.from===cid; }).length;
-      var unmade=leaves.length-doneL-doneMk;
-      if(unmade<=0) return;
-      // 睇最舊未補嗰啲限期係咪啱過期
-      var expired=leaves.filter(function(dd){ var dl=effDeadline_(nm,cid,dd); return dl<today && dl>=since; });
+      if(doneMk>0) unresolved=unresolved.slice(doneMk);
+      if(!unresolved.length) return;
+      var expired=unresolved.filter(function(dd){ var dl=effDeadline_(nm,cid,dd); return dl<today && dl>=since; });
       if(expired.length) expiredList.push(nm+" "+cid+"（限期 "+expired.map(function(dd){return effDeadline_(nm,cid,dd);}).join("、")+"）");
     });
   });
