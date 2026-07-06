@@ -336,14 +336,22 @@ function extendExpiredDeadlinesApply(){ return extendExpiredDeadlines(true); }
 
 /* ═══════════ Settings：假期 / 加課 / 停課日（教練設定頁控制）═══════════ */
 function settingsSheet(){ return SS().getSheetByName("Settings"); }
+// 每次請求快取：Settings 一個請求內讀一次就夠（原本每個 sessionsFor→cancelledSet/holidaysSet 都重讀全表，
+// 點名一次讀幾十上百次→又慢又易撞到 Google「試算表服務暫時無法運作」偶發失敗）。寫 Settings 後要清。
+var _settingsCache=null, _sessCache={};
+function _clearSettingsCache_(){ _settingsCache=null; _sessCache={}; }
 function settingsMap(){
+  if(_settingsCache) return _settingsCache;
   var sh=settingsSheet(), map={};
-  if(!sh || sh.getLastRow()<2) return map;
-  sh.getRange(2,1,sh.getLastRow()-1,2).getValues().forEach(function(r){
+  if(!sh || sh.getLastRow()<2){ _settingsCache=map; return map; }
+  var vals;
+  try{ vals=sh.getRange(2,1,sh.getLastRow()-1,2).getValues(); }
+  catch(e){ Utilities.sleep(500); vals=sh.getRange(2,1,sh.getLastRow()-1,2).getValues(); }  // 抗 Google 試算表偶發失敗：等半秒重試一次
+  vals.forEach(function(r){
     var k=String(r[0]||"").trim(); if(!k) return;
     try{ map[k]=JSON.parse(r[1]); }catch(e){ map[k]=r[1]; }
   });
-  return map;
+  _settingsCache=map; return map;
 }
 // 程式碼層額外假期：喺 Settings public_holidays 之外「再加」（唔覆蓋 Settings，避免改錯其他日子）。
 var EXTRA_HOLIDAYS = ["2026-07-01"];   // 2026-07-01（三）全校暫停課堂 → c3/c4 該堂自動唔計學費
@@ -364,6 +372,7 @@ function extraSet(cid){ return listFromSettings("extra_",cid); }
 
 /* ═══════════ 上課日生成（學期窗內，該班星期，扣假期/停課，加加課）═══════════ */
 function sessionsFor(cid){
+  if(_sessCache[cid]) return _sessCache[cid];
   var c=CLASSES[cid]; if(!c) return [];
   var a=CONFIG.TERM_START.split("-").map(Number), b=CONFIG.TERM_END.split("-").map(Number);
   var cur=new Date(a[0],a[1]-1,a[2]), end=new Date(b[0],b[1]-1,b[2]);
@@ -380,7 +389,7 @@ function sessionsFor(cid){
   // 加課日（非正規星期）
   var extra=extraSet(cid);
   Object.keys(extra).forEach(function(s){ if(out.indexOf(s)<0 && !cancel[s]) out.push(s); });
-  return out.sort();
+  out.sort(); _sessCache[cid]=out; return out;
 }
 
 /* ═══════════ 安裝（非破壞性）═══════════ */
@@ -3134,6 +3143,7 @@ function apiSaveSettings(p){
     if(existing[k]) sh.getRange(existing[k],2).setValue(val);
     else { sh.appendRow([k,val]); existing[k]=sh.getLastRow(); }
   });
+  _clearSettingsCache_();   // 假期/停課/名單改咗 → 清快取，令同一請求後續 sessionsFor 讀到新值
   return {ok:true};
 }
 
@@ -4520,8 +4530,8 @@ function upsertSetting_(key, value){
   var ST=settingsSheet(); if(!ST){ ST=SS().insertSheet("Settings"); ST.appendRow(["key","value"]); }
   var last=ST.getLastRow();
   if(last>=2){ var keys=ST.getRange(2,1,last-1,1).getValues();
-    for(var i=0;i<keys.length;i++){ if(String(keys[i][0]).trim()===key){ ST.getRange(i+2,2).setValue(value); return; } } }
-  ST.appendRow([key, value]);
+    for(var i=0;i<keys.length;i++){ if(String(keys[i][0]).trim()===key){ ST.getRange(i+2,2).setValue(value); _clearSettingsCache_(); return; } } }
+  ST.appendRow([key, value]); _clearSettingsCache_();
 }
 
 /* 一次過將整班 marks 寫入 grid（取代逐格 markCell，避免逾時）
