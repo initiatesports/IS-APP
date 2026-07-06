@@ -430,7 +430,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-06a';
+const FRONTEND_VERSION = 'coach-2026-07-06b';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -778,7 +778,7 @@ async function renderPt(){
       ${markedToday ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);text-align:center">今日已記錄；如補其他日子，揀返日期再撳</div>` : ''}
       ${hasRec ? `<button onclick="ptUndo('${nm}')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit">↩ 撤銷最近一堂</button>` : ''}
       <div style="margin-top:12px">${rows}</div>
-      ${billHtml}
+      ${s.bill ? billHtml : ''}
     </div>`;
   });
   box.innerHTML = h;
