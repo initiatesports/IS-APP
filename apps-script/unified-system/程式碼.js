@@ -990,6 +990,7 @@ function routeInner_(p){
     case "holidays":        return apiHolidays(p);
     // ── 私人訓練（與恆常班分開；只記上課日，無請假補堂）──
     case "loginProfile":    return apiLoginProfile(p);
+    case "owedDebug":       return apiOwedDebug(p);
     case "pt_coach_load":   return apiPtCoachLoad(p);
     case "pt_mark":         return apiPtMark(p);
     case "pt_undo":         return apiPtUndo(p);
@@ -1120,6 +1121,19 @@ function apiLoginProfile(p){
   mark("referralBalance_", function(){ referralBalance_(nm); });
   var total=0; Object.keys(T).forEach(function(k){ total+=T[k]; });
   return {ok:true, name:nm, ms:T, totalMs:total};
+}
+/* owed 診斷（coachPass）：dump 某生某班 classesFor_ 嘅原始輸入,搵 owed 錯計根因（唔靠估）。*/
+function apiOwedDebug(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var nm=String(p.name||"").trim(), cid=String(p.cid||"").trim();
+  var mk=makeupUniq_().filter(function(m){ return m.name===nm; }).map(function(m){ return {from:m.from,to:m.to,date:m.date,status:m.status}; });
+  var abs11=is11_().abs.filter(function(a){ return a.name===nm && a.cid===cid; }).map(function(a){ return {absDate:a.absDate,madeUpDate:a.madeUpDate,deadline:a.deadline}; });
+  var absDone=absDoneRows_().filter(function(x){ return x.name===nm && x.cid===cid; }).map(function(x){ return x.absDate+"→"+x.madeDate; });
+  var blk=readBlockMerged_(cid), st=blk.status[nm]||[];
+  var leaves=[]; st.forEach(function(s,i){ if(s==="請假"||s==="缺席") leaves.push(blk.dates[i]+":"+s); });
+  var cl=classesFor_(nm).filter(function(c){ return c.key===cid; })[0]||null;
+  return {ok:true, name:nm, cid:cid, makeups_allName:mk, abs11:abs11, absDoneLedger:absDone,
+    gridLeaves:leaves, classesFor_owed:(cl?cl.owed:null), classesFor_makeups:(cl?cl.makeups:null) };
 }
 function apiLogin(p){
   var want=pad4(p.last4), nm=String(p.name).trim();
