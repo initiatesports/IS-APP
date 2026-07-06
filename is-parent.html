@@ -590,6 +590,12 @@ function classCard(child,ki,c,ci){
   const pTotal=pSess.length;
   const pAtt=pSess.filter(s=>s.status==='出席'||s.status==='補堂').length;
   const pLeave=pSess.filter(s=>s.status==='請假').length;
+  // 待補提示嘅限期 = 最舊未補請假嘅「有效限期」（含教練延期覆寫 c.mkExt）。
+  // ⚠️ 唔可以用 c.deadline —— 後端 c.deadline = 該班 grid 最後一堂（如 c5 = 10/30），唔係補堂限期。
+  const _lv=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
+  const _ext=c.mkExt||{};
+  const _dls=_lv.slice(Math.max(0,_lv.length-owed)).map(d=>_ext[d]||addMonths(d,CONFIG.MAKEUP_MONTHS||2)).filter(dl=>dl>=todayStr()).sort();
+  const mkDl=_dls.length?_dls[0]:null;
   return `<div class="card">
     <div class="topline"><span class="dot"></span><h3>${classLabel(c.key||c.sport)}</h3></div>
     <div class="meta">${LANG==='en'?pTotal+' sessions · '+periodLabel(S.period):periodLabel(S.period)+'・共 '+pTotal+' 堂'}</div>
@@ -599,7 +605,7 @@ function classCard(child,ki,c,ci){
       <div class="stat"><div class="n">${pLeave}</div><div class="k">${t('onLeave')}</div></div>
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
-    ${owed>0&&c.deadline?`<div class="dlnote">${t('dlNote',owed,fmtDate(c.deadline))}</div>`:''}
+    ${owed>0&&mkDl?`<div class="dlnote">${t('dlNote',owed,fmtDate(mkDl))}</div>`:''}
     ${ isPeriodActive(child,S.period) ? `
     <div class="rowbtns">
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">${t('applyLeave')}</button>
