@@ -464,7 +464,15 @@ function apiPurgeStudent(p){
 }
 
 /* ---------- Web App ---------- */
-function doGet(){ return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK"); }
+function doGet(e){
+  // 無 action → 回健康字串（沿用舊行為，健康探測靠呢個）；有 action → 照 route（同 #4，令 admin 可經 GET 穩定 call）。
+  var p=(e&&e.parameter)?e.parameter:{};
+  if(p&&p.action){
+    var out; try{ out=route(p); }catch(err){ reportError_("#9 doGet "+(p.action||""), err); out={ok:false,err:String(err)}; }
+    return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+  }
+  return ContentService.createTextOutput("INITIATE SPORTS API "+VERSION+" OK");
+}
 function doPost(e){
   var p={}; try{ p=JSON.parse(e.postData.contents); }catch(err){}
   var out; try{ out=route(p); }catch(err){ reportError_("#9 doPost "+(p&&p.action||""), err); out={ok:false,err:String(err)}; }
@@ -486,8 +494,45 @@ function reportError_(where, err){
       "\n\n（同類錯誤 15 分鐘內只會通知一次）");
   }catch(e){ Logger.log("reportError_ 失敗："+e); }
 }
+/* 教練專用（coachPass）手動加補堂：家長冇網上約、教練替佢安排。完整正路寫入：
+   (可選)先標原班該日請假 → 寫補堂去目標班 grid + 補堂表。暑期容許「提前補」（補堂日早過缺席日）。
+   params: name, fromKey("gym|一"), toKey("gym|四"), absDate(可選,原班缺席日), toDate(補堂日), coachPass */
+function apiCoachAddMakeup(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var name=String(p.name||"").trim(), fromKey=String(p.fromKey||"").trim(), toKey=String(p.toKey||"").trim();
+  var absDate=p.absDate?toIso_(p.absDate):"", toDate=toIso_(p.toDate);
+  if(!name||!fromKey||!toKey||!toDate) return {ok:false,err:"參數不全（name/fromKey/toKey/toDate）"};
+  var from=classKeyParts(fromKey), to=classKeyParts(toKey);
+  if(!ROSTER[from.sport]||!ROSTER[from.sport][from.wd]) return {ok:false,err:"原班不存在："+fromKey};
+  var inClass=rosterRows().some(function(r){ return r.name===name && (r.sport+"|"+r.wd)===fromKey; });
+  if(!inClass) return {ok:false,err:name+" 唔喺 "+gridName(from.sport,from.wd)+" 名單"};
+  // 補堂目標須為原班合法補堂時段（同項目、指定星期）
+  var slots=makeupSlotsFor(from.sport, from.wd), okSlot=false;
+  for(var si=0;si<slots.length;si++){ if(slots[si].sport===to.sport&&slots[si].wd===to.wd){ okSlot=true; break; } }
+  if(!okSlot) return {ok:false,err:gridName(to.sport,to.wd)+" 唔係 "+gridName(from.sport,from.wd)+" 嘅有效補堂時段"};
+  // 補堂日須為目標班真實上課日
+  var onGrid=(ROSTER[to.sport]&&ROSTER[to.sport][to.wd]&&sessionsFor(to.wd).indexOf(toDate)>=0);
+  if(!onGrid) return {ok:false,err:toDate+" 唔係 "+gridName(to.sport,to.wd)+" 嘅上課日"};
+  if(makeupAll().some(function(m){ return m.name===name&&m.from===fromKey&&m.to===toKey&&m.date===toDate; }))
+    return {ok:true, dup:true, msg:name+" "+toDate+" 已存在，冇重複加"};
+  var msg="";
+  // 1) 可選：標原班該日請假（若該日係原班上課日、未標請假）
+  if(absDate){
+    var fblk=readBlock(from.sport,from.wd), fi=fblk.dates.indexOf(absDate);
+    if(fi<0) return {ok:false,err:absDate+" 唔係 "+gridName(from.sport,from.wd)+" 嘅上課日"};
+    var cur=(fblk.status[name]||[])[fi]||"";
+    if(cur!=="請假"){ writeStatus(from.sport,from.wd,name,absDate,"請假"); msg+="已標 "+gridName(from.sport,from.wd)+" "+absDate+" 請假；"; }
+  }
+  // 2) 寫補堂（grid 補堂區 + 補堂表）
+  markCell(to.sport,to.wd,name,toDate,"補堂",true);
+  var M=makeupSheet(), row=M.getLastRow()+1;
+  M.getRange(row,4).setNumberFormat("@");
+  M.getRange(row,1,1,5).setValues([[name,fromKey,toKey,toDate,"格"]]);
+  logAppend({name:name,key:fromKey,action:"coachAddMakeup",to:toKey,toDate:toDate,status:"補堂(教練加)"});
+  return {ok:true, msg:msg+"已加補堂："+name+" "+gridName(from.sport,from.wd)+"→"+gridName(to.sport,to.wd)+" "+toDate};
+}
 /* 抗擠塞（Phase 2）：只鎖寫入類，序列化並發寫入防覆蓋/空回應；讀取(login/dailyList…)唔鎖免拖慢。*/
-var WRITE_ACTIONS9 = { applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, setVenue:1, purgeStudent:1, autoHeal:1 };
+var WRITE_ACTIONS9 = { applyLeave:1, cancelLeave:1, bookMakeup:1, cancelMakeup:1, markAttendance:1, cancelDay:1, setVenue:1, purgeStudent:1, autoHeal:1, coachAddMakeup:1 };
 function route(p){
   if(p && WRITE_ACTIONS9[p.action]){
     var lock=LockService.getScriptLock();
@@ -502,6 +547,7 @@ function routeInner_(p){
     case "applyLeave": return apiLeave(p);
     case "cancelLeave": return apiCancelLeave(p);
     case "bookMakeup": return apiMakeup(p);
+    case "coachAddMakeup": return apiCoachAddMakeup(p);
     case "cancelMakeup": return apiCancelMakeup(p);
     case "ping": return {ok:true, version:VERSION};
     case "health": { var _wn=(String(p.coachPass||"")===String(CONFIG.COACH_PASS));  // coachPass 授權 → 問題含實際姓名(畀 #4 私隱分頁診斷)；否則只報數量
