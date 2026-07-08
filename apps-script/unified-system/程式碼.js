@@ -1925,8 +1925,16 @@ function venueMap_(){
 }
 // 解析某日某班場地：先班別專屬，冇就 fallback 該日 _all
 function venueFor_(vmap,date,cid){ var d=vmap[date]; if(!d) return null; return d[cid]||d["_all"]||null; }
+/* 自動清走「過去日子」嘅場地資料（date < 今日）→ 場地表唔會累積舊嘢。回傳刪咗幾多行。 */
+function pruneVenuePast_(){
+  var sh=venueSheet_(), today=todayIso();
+  var old=venueRows_().filter(function(v){ return v.date && v.date < today; });
+  old.sort(function(a,b){ return b.row-a.row; }).forEach(function(v){ try{ sh.deleteRow(v.row); }catch(e){} });
+  return old.length;
+}
 function apiSetVenue(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  try{ pruneVenuePast_(); }catch(e){}   // 每次設場地順手清走過去日子
   var date=toIso_(p.date); if(!date) return {ok:false,err:"請揀日期"};
   var cid=String(p.cid||"").trim();   // 空＝該日全部班
   var centre=String(p.centre||"").trim(), room=String(p.room||"").trim();
@@ -1943,14 +1951,17 @@ function timeStartHour_(s){ s=String(s||""); var m=s.match(/(\d+)\s*(am|pm)?/i);
 // 一鍵生成 WhatsApp 文案：列出未來 days 日內每個上課日（日期＋地點＋場地＋各班時間），假期標取消。
 function apiWeeklyText(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  var days=Number(p.days)||10, today=todayIso(), end=addDaysIso_(today,days), vmap=venueMap_(), hol=holidaysSet();
+  // 只出「當週」一至日（例：今日 7/8 → 7/6 至 7/12）。可傳 weekOffset(±1) 睇上/下週。
+  var today=todayIso(), vmap=venueMap_(), hol=holidaysSet();
+  var _dw=new Date(today+"T00:00:00").getDay(), off=Number(p.weekOffset)||0;
+  var monday=addDaysIso_(today, (_dw===0?-6:1-_dw)+off*7), sunday=addDaysIso_(monday,6);
   var WDZH=["日","一","二","三","四","五","六"], byDate={};
   CLASS_IDS.forEach(function(cid){
-    sessionsFor(cid).forEach(function(d){ if(d>=today && d<=end){ (byDate[d]=byDate[d]||[]).push({cid:cid, time:CLASSES[cid].time, h:timeStartHour_(CLASSES[cid].time)}); } });
+    sessionsFor(cid).forEach(function(d){ if(d>=monday && d<=sunday){ (byDate[d]=byDate[d]||[]).push({cid:cid, time:CLASSES[cid].time, h:timeStartHour_(CLASSES[cid].time)}); } });
   });
   var holDates={};
   Object.keys(hol).forEach(function(d){
-    if(d<today || d>end) return;
+    if(d<monday || d>sunday) return;
     var wd=new Date(d+"T00:00:00").getDay();
     if(CLASS_IDS.some(function(cid){return CLASSES[cid].wd===wd;}) && d>=CONFIG.TERM_START && d<=CONFIG.TERM_END) holDates[d]=1;
   });
@@ -3146,9 +3157,10 @@ function autoHeal_(){
   var ledgerRedN=0, impN=0; try{ var mkD={}; makeupAll().forEach(function(m){ (mkD[String(m.name).trim()+"|"+String(m.from).trim()]=mkD[String(m.name).trim()+"|"+String(m.from).trim()]||{})[toIso_(m.date)]=1; });
     absDoneRows_().forEach(function(x){ if((mkD[x.name+"|"+x.cid]||{})[x.madeDate]) ledgerRedN++; if(x.valid===false) impN++; }); }catch(e){}
   var bk=SS().getSheetByName("備份"), bkRows=bk?bk.getLastRow():0, bkDim=bk?bk.getMaxRows():0;
+  var venuePastN=0; try{ var _t=todayIso(); venuePastN=venueRows_().filter(function(v){ return v.date && v.date<_t; }).length; }catch(e){}
   var trg={}; try{ ScriptApp.getProjectTriggers().forEach(function(t){ trg[t.getHandlerFunction()]=1; }); }catch(e){}
   var needShrink=(bkRows>12000 || bkDim>15000), needTrigHealth=!trg["healthCheck"], needTrigBackup=!trg["backup"];
-  var need = dupN>0 || selfN>0 || ledgerRedN>0 || impN>0 || needShrink || needTrigHealth || needTrigBackup;
+  var need = dupN>0 || selfN>0 || ledgerRedN>0 || impN>0 || venuePastN>0 || needShrink || needTrigHealth || needTrigBackup;
   if(!need){ autoHealLog_([{item:"掃描",action:"無需修復",result:"✅ 資料乾淨"}]); return {ok:true, healed:0, actions:[]}; }
   // ── 有嘢要修：單次備份（可還原）──
   try{ backup(); actions.push({item:"—",action:"修復前備份",result:"已存「備份」分頁"}); }
@@ -3157,6 +3169,8 @@ function autoHeal_(){
     catch(e){ actions.push({item:"補堂表重複行",action:"cleanupDupMakeup",result:"⚠ "+e}); } }
   if(selfN>0){ try{ var s=migrateSelfMakeupToLedger_(true); actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"轉ledger "+s.migrated.length+"、刪冗餘 "+s.deletedRedundant+"、共刪 "+s.deletedTotal}); }
     catch(e){ actions.push({item:"自補污染",action:"migrateSelfMakeup",result:"⚠ "+e}); } }
+  if(venuePastN>0){ try{ var vp=pruneVenuePast_(); actions.push({item:"過去日子場地資料",action:"pruneVenuePast",result:"清 "+vp+" 行"}); }
+    catch(e){ actions.push({item:"過去場地",action:"pruneVenuePast",result:"⚠ "+e}); } }
   if(ledgerRedN>0){ try{ var lr=cleanupLedgerRedundant_(); actions.push({item:"冗餘ledger(補堂日已有真預約)",action:"cleanupLedgerRedundant",result:"刪 "+lr.removed+" 條 → 修正 owed 扣爆"}); }
     catch(e){ actions.push({item:"冗餘ledger",action:"cleanupLedgerRedundant",result:"⚠ "+e}); } }
   if(impN>0){ try{ var im=cleanupImpossibleLedger_(); actions.push({item:"時光倒流ledger(補堂日早過缺席日)",action:"cleanupImpossibleLedger",result:"刪 "+im.removed+" 條 → 還原被錯扣嘅補堂"}); }

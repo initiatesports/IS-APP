@@ -963,7 +963,7 @@ async function genWhatsApp(){
   let r; try{ r=await apiPost({action:'weeklyText', coachPass:cpass(), days:10}); }catch(e){ r=null; }
   if(!(r&&r.ok)){ toast('生成失敗','⚠'); return; }
   const ta=document.getElementById('vn-wa'); if(!ta) return;
-  ta.value=(r.text&&r.text.trim())?r.text:'未來 10 日內暫無排定課堂';
+  ta.value=(r.text&&r.text.trim())?r.text:'本週暫無排定課堂';
   ta.style.display='block';
   const cp=document.getElementById('vn-wa-copy'); if(cp) cp.style.display='block';
   toast('已生成','✓');
