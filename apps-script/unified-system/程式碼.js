@@ -240,6 +240,37 @@ function addDaysIso(isoStr, n){
 var SUMMER_BRIDGE_UNTIL = "2026-09-01";
 function summerBridgeOn_(){ return todayIso() < SUMMER_BRIDGE_UNTIL; }
 
+/* ═══════════ 暑期花式跳繩補堂 → 恆常班點名表顯示 ═══════════
+   暑期花式跳繩(六) 星期六 15:00–16:00 ＝ 恆常班 c7 星期六 3–4pm（同一時段、同一教練）。
+   暑期學生喺 #9 揀補堂坐入 rope|六，即係坐喺 c7 呢一堂 → 要喺教練「今日」點名表顯示，
+   等老闆知道「嗰日有暑期學生嚟補堂」。純顯示（唔可喺 #4 點名，出席由 #9 grid 記）。
+   rope|四（星期四）冇對應恆常班時段 → 唔顯示（正常，嗰時冇恆常班）。 */
+var SUMMER_GRID_SS_ID = "1_6ZTG51u57OY82jUG20PUO5JUAe__iYTvuxoZ8Be7DE"; // 暑期班請假補堂
+var SUMMER_ROPE_TO_REGULAR = { "rope|六": "c7" };  // 暑期補去班 → 恆常班 cid（同時段）
+var _summerMkCache = {};
+function summerRopeMakeups_(date){
+  if(!summerBridgeOn_()) return [];
+  var di=toIso_(date);
+  // 只有星期六嘅 rope|六 先會同恆常班(c7)撞時段 → 非星期六直接省開銷
+  if(new Date(di+"T00:00:00").getDay()!==6) return [];
+  if(_summerMkCache[di]) return _summerMkCache[di];
+  var out=[];
+  try{
+    var ss=SpreadsheetApp.openById(SUMMER_GRID_SS_ID);
+    var sh=ss.getSheetByName("補堂"); if(!sh){ _summerMkCache[di]=out; return out; }
+    var vals=sh.getDataRange().getValues();
+    for(var i=1;i<vals.length;i++){
+      var name=String(vals[i][0]||"").trim(), toCls=String(vals[i][2]||"").trim(),
+          d=toIso_(vals[i][3]), st=String(vals[i][4]||"").trim();
+      if(!name || d!==di) continue;
+      if(st==="停課"||st==="取消") continue;
+      var cid=SUMMER_ROPE_TO_REGULAR[toCls]; if(!cid) continue;   // 只認有對應恆常時段嘅暑期班
+      out.push({name:name, cid:cid});
+    }
+  }catch(e){}
+  _summerMkCache[di]=out; return out;
+}
+
 /* ═══════════ 補堂限期延長（逐筆覆寫；僅限「請假」可補堂節數）═══════════
    override store「限期延長」：學生|班別|缺席日|原限期|新限期|記錄時間
    有覆寫就用新限期，否則 = 缺席日 + MAKEUP_MONTHS。 */
@@ -2592,6 +2623,12 @@ function apiDaily(p){
     if(onGrid) return;
     if(!groups[cid]){ var c=CLASSES[cid]||{}; groups[cid]={c:{sport:cid,key:cid,wd:c.dayZh||"",dayZh:c.dayZh||"",time:c.time||""},rows:[]}; }
     groups[cid].rows.push({name:m.name, makeup:true, status:(m.status&&m.status!=="格"?m.status:"補堂")});
+  });
+  // 暑期花式跳繩補堂（坐入同時段恆常班，如 rope|六→c7）→ 顯示提示，讓教練知有暑期學生嚟補堂
+  summerRopeMakeups_(date).forEach(function(s){
+    var cid=s.cid;
+    if(!groups[cid]){ var c=CLASSES[cid]||{}; groups[cid]={c:{sport:cid,key:cid,wd:c.dayZh||"",dayZh:c.dayZh||"",time:c.time||""},rows:[]}; }
+    groups[cid].rows.push({name:s.name, makeup:true, summer:true, status:"補堂", note:"暑期花式跳繩"});
   });
   return {ok:true, list:CLASS_IDS.filter(function(k){return groups[k];}).map(function(k){return groups[k];})};
 }

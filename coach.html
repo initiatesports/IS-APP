@@ -124,6 +124,8 @@ html,body{
 .dp-date{font-size:18px;font-weight:900;color:var(--text);line-height:1;}
 .roll-info-bar{background:var(--cyan-dim);border-bottom:1px solid rgba(62,207,207,0.2);padding:8px 16px;font-size:12px;color:var(--cyan);display:flex;align-items:center;gap:6px;}
 .already-saved-bar{background:var(--amber-dim);border-bottom:1px solid rgba(251,191,36,0.2);padding:8px 16px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:6px;}
+.summerinfo{background:var(--cyan-dim);border:1px dashed rgba(62,207,207,0.45);border-radius:12px;padding:9px 12px;margin:6px 0;font-size:14px;color:var(--cyan);}
+.summerinfo .sub{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
 .student-list{padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
 .student-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;}
 .student-card.is-absent{border-color:var(--red);background:var(--red-dim);}
@@ -430,7 +432,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-08-swrcache';
+const FRONTEND_VERSION = 'coach-2026-07-08-summermk';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1914,18 +1916,26 @@ async function loadDaily(){
   box.innerHTML = r.list.map((g, gi) => {
     const key = g.c.key || g.c.sport;
     const label = (g.c.dayZh || g.c.wd || '') + ' ' + (g.c.time || '');
-    const present = g.rows.filter(x => x.status === '出席' || x.status === '補堂').length;
-    const miss = g.rows.filter(x => !x.status || x.status === '補堂').length;
+    const realRows = g.rows.filter(x => !x.summer);       // 暑期補堂只提示、唔計入點名數
+    const summerRows = g.rows.filter(x => x.summer);
+    const present = realRows.filter(x => x.status === '出席' || x.status === '補堂').length;
+    const miss = realRows.filter(x => !x.status || x.status === '補堂').length;
     return `<div class="cgrp" id="cg${gi}">
-      <div class="grp-h"><span class="dot"></span>${label}<span class="t">${g.rows.length} 人</span></div>
-      <div class="ccount" id="cc${gi}">出席 <b>${present}</b> / ${g.rows.length}${miss?`　·　<span class="miss">未點 ${miss}</span>`:''}</div>
+      <div class="grp-h"><span class="dot"></span>${label}<span class="t">${realRows.length} 人</span></div>
+      <div class="ccount" id="cc${gi}">出席 <b>${present}</b> / ${realRows.length}${miss?`　·　<span class="miss">未點 ${miss}</span>`:''}</div>
       <div class="allrow">
         <button class="allbtn" onclick="markAllDaily(${gi},'${key}','${coachDate}','出席',this)">✓ 全部出席</button>
         <button class="allbtn bad" onclick="markAllDaily(${gi},'${key}','${coachDate}','缺席',this)">✗ 全部缺席</button>
       </div>
-      ${g.rows.map(row => attRowHTML(g, row, key)).join('')}
+      ${realRows.map(row => attRowHTML(g, row, key)).join('')}
+      ${summerRows.map(s => summerInfoHTML(s)).join('')}
     </div>`;
   }).join('');
+}
+// 暑期花式跳繩補堂：只顯示提示（出席喺暑期系統 #9 點名，唔喺此處寫入）
+function summerInfoHTML(row){
+  return `<div class="summerinfo">🔵 <b>${row.name}</b> · ${row.note||'暑期補堂'}
+    <span class="sub">今日嚟補堂 · 出席請喺暑期教練頁點名</span></div>`;
 }
 function attRowHTML(g, row, key){
   const mk = row.makeup ? 1 : 0;
