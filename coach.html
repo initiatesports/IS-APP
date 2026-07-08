@@ -430,7 +430,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-07-saveroll';
+const FRONTEND_VERSION = 'coach-2026-07-08-swrcache';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -483,12 +483,18 @@ async function apiGet(params){
   const res = await fetch(url);
   return res.json();
 }
+// 讀取快取（stale-while-revalidate）：切返開過嘅 tab 即顯快取、背景攞新→唔使每次等 3 秒平台冷啟動。
+// 任何「寫入」動作自動清晒快取 → 下次開 tab 一定攞到最新，唔會顯示舊資料。
+const _readCache = {};
+const _READ_ACT = { load:1, dailyList:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1 };
 async function apiPost(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
   const res = await fetch(API_URL, { method:'POST', body:JSON.stringify(payload) });
-  return res.json();
+  const j = await res.json();
+  if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
+  return j;
 }
 
 async function loadFromSheets(){
@@ -731,9 +737,13 @@ function goBack(){
 function fmtPtDate(d){ return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]}`; }
 async function renderPt(){
   const box = document.getElementById('pt-content');
-  box.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">載入中…</div>`;
-  let r; try { r = await apiPost({ action:'pt_coach_load' }); } catch(e) { r=null; }
-  if (!r || !r.ok) { box.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">載入失敗，請重試</div>`; return; }
+  let r = _readCache['pt'];
+  if(!r){
+    box.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">載入中…</div>`;
+    try { r = await apiPost({ action:'pt_coach_load' }); } catch(e) { r=null; }
+    if (!r || !r.ok) { box.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">載入失敗，請重試</div>`; return; }
+    _readCache['pt']=r;   // 快取；任何寫入動作會自動清（見 apiPost）
+  }
   const cap = r.cap || 10, today = r.today || '';
   let h = `<div style="font-size:13px;color:var(--muted);margin:12px 4px 16px;line-height:1.65">⭐ 私人訓練自成一格，與恆常班分開。每位學員各自 ${cap} 堂一個週期，夠數自動開新一期。上完堂即撳「今日上咗堂」。</div>`;
   (r.students || []).forEach((s, i) => {
@@ -1455,9 +1465,13 @@ async function renderFees(){
   document.getElementById('header-subtitle-text').textContent='Tuition';
   const wrap=document.getElementById('fees-content');
   if(!FEES_PERIOD) FEES_PERIOD=curFeePeriodLabel();
-  wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
-  let r; try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
-  if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
+  let r=_readCache['fees'];
+  if(!r){
+    wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
+    try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
+    if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
+    _readCache['fees']=r;   // 快取；任何寫入動作會自動清（見 apiPost）
+  }
   FEES_DATA=r.fees||[];
   // 只顯示現期及之後（隱藏 5-6月 等過去期，教練頁清爽）；FEE_SHOW_PAST=true 可顯示全部
   const feeOrd=l=>{const m=String(l).match(/(\d{4})\s*(\d+)-/);return m?Number(m[1])*100+Number(m[2]):0;};
