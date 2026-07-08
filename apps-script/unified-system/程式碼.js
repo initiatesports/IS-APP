@@ -928,7 +928,7 @@ var WRITE_ACTIONS = {
   cleanupDupMakeup:1, cleanupSelfMakeup:1, migrateSelfMakeup:1, cleanupLedgerRedundant:1, cleanupImpossibleLedger:1, autoHeal:1, purgeStudent:1, clearFamilyPin:1,
   cleanupStorage:1, resetFeePayment:1, payUpload:1, payUploadFamily:1, verifyPay:1, setFeeAdj:1,
   addReferral:1, applyReferral:1, addNotice:1, deleteNotice:1, setVenue:1, addSession:1, addonUpload:1,
-  addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, pt_setRate:1, pt_setSessionFee:1, pt_bill:1, pt_unbill:1, save_attendance:1,
+  addonVerify:1, coachAddSession:1, coachTransfer:1, setPin:1, pt_mark:1, pt_undo:1, pt_setRate:1, pt_setSessionFee:1, pt_bill:1, pt_unbill:1, save_roll:1, save_attendance:1,
   save_absences:1, markAbsenceDone:1, unmarkAbsenceDone:1, markLeave:1, save_settings:1, shrinkBackup:1, restore:1
 };
 /* 寫前備份（Phase 5）：#4 原本只靠每日備份 → 兩次備份之間嘅錯寫最多蝕一日。
@@ -1027,6 +1027,7 @@ function routeInner_(p){
     case "pt_unbill":       return apiPtUnbill(p);
     // ── B 相容 ──
     case "load":            return apiLoad(p);
+    case "save_roll":       return apiSaveRoll(p);
     case "save_attendance": return apiSaveAttendance(p);
     case "save_absences":   return apiSaveAbsences(p);
     case "markAbsenceDone": return apiMarkAbsenceDone(p);
@@ -3002,6 +3003,16 @@ function apiSaveAbsences(p){
     }
   });
   return {ok:true};
+}
+/* 合併保存（出席＋請假一次過）：教練點名一次發一個 POST、攞一把鎖就寫晒兩樣。
+   原本前端發兩個 POST(save_attendance+save_absences)各攞一次鎖 → 第二個攞唔到鎖即「系統繁忙」失敗、又慢。
+   合併後：少一半 round-trip、少一半鎖競爭 → 快又穩。route save_roll(WRITE_ACTIONS)。 */
+function apiSaveRoll(p){
+  if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  var r1=apiSaveAttendance({coachPass:p.coachPass, data:p.att||{}});
+  var r2=apiSaveAbsences({coachPass:p.coachPass, data:p.abs||[]});
+  var ok=(r1&&r1.ok!==false)&&(r2&&r2.ok!==false);
+  return {ok:ok, att:r1, abs:r2, err:(ok?undefined:((r1&&r1.err)||(r2&&r2.err)||"保存失敗"))};
 }
 /* ═══════ 補堂完成 ledger：教練「已補堂」直接標某缺席=已補（唔造自補記錄、唔污染格）═══════ */
 function absDoneSheet_(){

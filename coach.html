@@ -430,7 +430,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-07-ptfee';
+const FRONTEND_VERSION = 'coach-2026-07-07-saveroll';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2051,16 +2051,17 @@ saveRoll = async function(){
   if(btn){ btn.disabled=true; btn.dataset._t=btn.textContent; btn.textContent='儲存中…'; }
   _origSaveRoll();                                   // 本地更新 + renderDatePills（唔再自己報成功）
   const key = currentClass + '|' + date;
-  // 順序寫入（唔用 Promise.all）：兩個都係後端 WRITE_ACTIONS 爭同一個 LockService 鎖，並發會自己撞自己
-  // →「系統繁忙」→ 儲存失敗要㩒多次。順序做：第一個放鎖後第二個先攞，唔再自撞。
-  let a=null,b=null; try{ a = await syncAttendance(key); b = await syncAbsences(); }catch(e){ a=a||{ok:false}; b=b||{ok:false}; }
+  // 合併保存：一個 save_roll POST 攞一把鎖寫晒出席+請假 → 快又穩（唔再兩個 POST 爭鎖／兩次 round-trip）。
+  setSyncIndicator('saving');
+  let a=null; try{ a = await apiPost({ action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:ABSENCES }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
+  setSyncIndicator(a&&a.ok?'ok':'error');
   if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
-  if(a&&a.ok&&b&&b.ok){
+  if(a&&a.ok){
     const badge=document.getElementById('roll-already-saved'); if(badge) badge.style.display='flex';
     try{ if(cpass()) localStorage.setItem('is_cpass_t', String(Date.now())); }catch(e){}  // 滑動延長：活躍使用唔會 14 日過期
     toast('點名記錄已儲存','✓');
   } else {
-    const em=((a&&a.err)||'')+' '+((b&&b.err)||'');
+    const em=(a&&a.err)||'';
     if(/密碼|授權/.test(em) || !cpass()){
       _pendingSave = { key, date };                  // 保住已㩒點名(in-memory)，重新登入後自動補交
       toast('⚠ 未儲存到！登入已過期，請重新輸入密碼，之後會自動幫你補交','⚠');
