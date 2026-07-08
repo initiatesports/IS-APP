@@ -1951,10 +1951,11 @@ function timeStartHour_(s){ s=String(s||""); var m=s.match(/(\d+)\s*(am|pm)?/i);
 // 一鍵生成 WhatsApp 文案：列出未來 days 日內每個上課日（日期＋地點＋場地＋各班時間），假期標取消。
 function apiWeeklyText(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  // 只出「當週」一至日（例：今日 7/8 → 7/6 至 7/12）。可傳 weekOffset(±1) 睇上/下週。
+  // 出「一至日」一週。★星期日＝當作準備下一週（老闆上一週日先發下週文案）：星期日 → 聽日星期一開始嗰週。
+  // 例 7/5(日)→7/6 至 7/12；7/8(三)→7/6 至 7/12。可傳 weekOffset(±1) 睇上/下週。
   var today=todayIso(), vmap=venueMap_(), hol=holidaysSet();
   var _dw=new Date(today+"T00:00:00").getDay(), off=Number(p.weekOffset)||0;
-  var monday=addDaysIso_(today, (_dw===0?-6:1-_dw)+off*7), sunday=addDaysIso_(monday,6);
+  var monday=addDaysIso_(today, (_dw===0?1:1-_dw)+off*7), sunday=addDaysIso_(monday,6);
   var WDZH=["日","一","二","三","四","五","六"], byDate={};
   CLASS_IDS.forEach(function(cid){
     sessionsFor(cid).forEach(function(d){ if(d>=monday && d<=sunday){ (byDate[d]=byDate[d]||[]).push({cid:cid, time:CLASSES[cid].time, h:timeStartHour_(CLASSES[cid].time)}); } });

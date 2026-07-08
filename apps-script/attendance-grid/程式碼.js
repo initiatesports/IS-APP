@@ -729,11 +729,12 @@ function apiVenuesAdmin(p){
 // 一鍵生成 WhatsApp 文案：未來 days 日內每個暑期上課日（日期＋地點＋場地＋各運動時間）
 function apiWeeklyText(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  // 只出「當週」一至日（例：今日 7/8 → 7/6 至 7/12）。可傳 weekOffset(±1) 睇上/下週。
+  // 出「一至日」一週。★星期日＝當作準備下一週：星期日生成 → 出聽日星期一開始嗰週
+  // （老闆流程：上一週日先發下週文案。例 7/5(日)→7/6 至 7/12；7/8(三)→7/6 至 7/12）。可傳 weekOffset(±1)。
   var today=todayIso9_(), vmap=venueMap_();
   var _dw=new Date(today+"T00:00:00").getDay();                 // 0=日..6=六
   var off=Number(p.weekOffset)||0;
-  var monday=addDaysIso9_(today, (_dw===0?-6:1-_dw)+off*7), sunday=addDaysIso9_(monday,6);
+  var monday=addDaysIso9_(today, (_dw===0?1:1-_dw)+off*7), sunday=addDaysIso9_(monday,6);
   var WDZH=["日","一","二","三","四","五","六"], byDate={};
   Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
     var time=TIMES[sp+"|"+wd]||"", cid=sp+"|"+wd;
