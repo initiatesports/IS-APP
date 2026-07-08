@@ -366,6 +366,7 @@ function autoHeal9_(){
   try{ normalizeMakeupDates_(); actions.push("補堂日期正規化 ✓"); }catch(e){ actions.push("日期正規化 ⚠"+e); }
   try{ ensureRosterRows_(); actions.push("補齊名冊缺行 ✓"); }catch(e){ actions.push("補名冊行 ⚠"+e); }
   try{ syncMakeupsToGrid(); actions.push("補堂寫入格(只填空) ✓"); }catch(e){ actions.push("補堂入格 ⚠"+e); }
+  try{ var vp=pruneVenuePast_(); if(vp>0) actions.push("清過去場地 "+vp+" 行 ✓"); }catch(e){ actions.push("清過去場地 ⚠"+e); }
   try{ var sh=SS().getSheetByName("自動修復")||SS().insertSheet("自動修復");
     if(sh.getLastRow()<1){ sh.appendRow(["時間","動作"]); sh.getRange("A:A").setNumberFormat("@"); }
     var stamp=Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm");
@@ -701,8 +702,16 @@ function venueFor_(vmap,date,cid){ var d=vmap[date]; if(!d) return null; return 
 function nowStamp9_(){ return Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd HH:mm"); }
 function todayIso9_(){ return Utilities.formatDate(new Date(), SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
 function addDaysIso9_(isoStr,n){ var d=new Date(isoStr+"T00:00:00"); d.setDate(d.getDate()+n); return Utilities.formatDate(d, SS().getSpreadsheetTimeZone(), "yyyy-MM-dd"); }
+/* 自動清走「過去日子」嘅場地資料（date < 今日）→ 場地表唔會累積舊嘢。回傳刪咗幾多行。 */
+function pruneVenuePast_(){
+  var sh=venueSheet_(), today=todayIso9_();
+  var old=venueRows_().filter(function(v){ return v.date && v.date < today; });
+  old.sort(function(a,b){ return b.row-a.row; }).forEach(function(v){ try{ sh.deleteRow(v.row); }catch(e){} });
+  return old.length;
+}
 function apiSetVenue(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
+  try{ pruneVenuePast_(); }catch(e){}   // 每次設場地順手清走過去日子
   var date=toIso_(p.date); if(!date) return {ok:false,err:"請揀日期"};
   var cid=String(p.cid||"").trim();   // 空＝該日全部班；否則 "sport|wd"
   var centre=String(p.centre||"").trim(), room=String(p.room||"").trim();
@@ -720,11 +729,15 @@ function apiVenuesAdmin(p){
 // 一鍵生成 WhatsApp 文案：未來 days 日內每個暑期上課日（日期＋地點＋場地＋各運動時間）
 function apiWeeklyText(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
-  var days=Number(p.days)||10, today=todayIso9_(), end=addDaysIso9_(today,days), vmap=venueMap_();
+  // 只出「當週」一至日（例：今日 7/8 → 7/6 至 7/12）。可傳 weekOffset(±1) 睇上/下週。
+  var today=todayIso9_(), vmap=venueMap_();
+  var _dw=new Date(today+"T00:00:00").getDay();                 // 0=日..6=六
+  var off=Number(p.weekOffset)||0;
+  var monday=addDaysIso9_(today, (_dw===0?-6:1-_dw)+off*7), sunday=addDaysIso9_(monday,6);
   var WDZH=["日","一","二","三","四","五","六"], byDate={};
   Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
     var time=TIMES[sp+"|"+wd]||"", cid=sp+"|"+wd;
-    sessionsFor(wd).forEach(function(d){ if(d>=today && d<=end){ (byDate[d]=byDate[d]||[]).push({cid:cid, sport:(SPORT[sp]&&SPORT[sp].name)||sp, time:time}); } });
+    sessionsFor(wd).forEach(function(d){ if(d>=monday && d<=sunday){ (byDate[d]=byDate[d]||[]).push({cid:cid, sport:(SPORT[sp]&&SPORT[sp].name)||sp, time:time}); } });
   });});
   var out=Object.keys(byDate).sort().map(function(d){
     var dt=new Date(d+"T00:00:00"), head=dt.getDate()+"/"+(dt.getMonth()+1)+"（"+WDZH[dt.getDay()]+"）";
