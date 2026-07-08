@@ -4067,11 +4067,10 @@ function backupToDrive(){
   var ss=SS(), file=DriveApp.getFileById(ss.getId());
   var stamp=Utilities.formatDate(new Date(), tz(), "yyyy-MM-dd_HHmm");
   file.makeCopy("IS 備份 "+stamp, folder);
-  var copies=[], fit=folder.getFiles();
-  while(fit.hasNext()){ var f=fit.next(); if(f.getName().indexOf("IS 備份 ")===0) copies.push(f); }
-  copies.sort(function(a,b){ return b.getDateCreated()-a.getDateCreated(); });
-  copies.slice(KEEP).forEach(function(f){ try{ f.setTrashed(true); }catch(e){} });
-  Logger.log("Drive 備份完成 @ "+stamp+"（保留最近 "+KEEP+" 份）");
+  // 用徹底清理：全 Drive 搜「IS 備份」(資料夾內＋散落 root)，只保留最新 KEEP 份、其餘 trash（可還原 30 日）。
+  // 舊做法只清資料夾內 → 散落嘅清唔到、累積到幾十個。
+  try{ var d=pruneDriveBackups_(KEEP); Logger.log("Drive 備份完成 @ "+stamp+"（保留 "+d.kept+"/"+d.total+"，trash "+d.trashed+"）"); }
+  catch(e){ Logger.log("Drive 備份 prune 失敗："+e); }
 }
 /* 示範帳號 示範學員（電話後4位 1234，c1）— 種一批示範資料；已有資料則跳過（非破壞性） */
 function seedDemo_(){
