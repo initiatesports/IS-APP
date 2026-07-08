@@ -339,7 +339,7 @@ function settingsSheet(){ return SS().getSheetByName("Settings"); }
 // 每次請求快取：Settings 一個請求內讀一次就夠（原本每個 sessionsFor→cancelledSet/holidaysSet 都重讀全表，
 // 點名一次讀幾十上百次→又慢又易撞到 Google「試算表服務暫時無法運作」偶發失敗）。寫 Settings 後要清。
 var _settingsCache=null, _sessCache={};
-function _clearSettingsCache_(){ _settingsCache=null; _sessCache={}; }
+function _clearSettingsCache_(){ _settingsCache=null; _sessCache={}; try{ _clearGridCache_(); }catch(e){} }
 function settingsMap(){
   if(_settingsCache) return _settingsCache;
   var sh=settingsSheet(), map={};
@@ -485,6 +485,7 @@ function rebuildAll(){
 
 /* ═══════════ 格仔建立 ═══════════ */
 function buildGrid(ss, cid, force){
+  _clearGridCache_(cid);   // 重建 grid 會改結構(欄/行) → 清該班快取，免後續讀到舊結構
   var c=CLASSES[cid], nm=gridName(cid), sh=ss.getSheetByName(nm);
   var dates=sessionsFor(cid), n=dates.length, students=c.students;
   if(sh && !force && sh.getLastRow()>=DATA_START && sameDateHeader_(sh,dates,n)){
@@ -663,7 +664,13 @@ function readBlockMerged_(cid){
   return {dates:base.dates, n:base.n, students:base.students, status:map};
 }
 
+// 每請求快取 gridMeta：結構(表頭日期欄/名單/mkStart)寫 status 唔會變 → 一個請求讀一次夠。
+// markCell/readBlock/readFull 每格每條都叫 gridMeta（原本每次讀表頭+getLastColumn=3次表讀），
+// 一次點名做幾十上百次 → 又慢又易失敗。快取後大幅減表讀。buildGrid 重建 grid 時清。
+var _gmCache={};
+function _clearGridCache_(cid){ if(cid){ delete _gmCache[cid]; } else { _gmCache={}; } }
 function gridMeta(cid){
+  if(_gmCache[cid]) return _gmCache[cid];
   if(!CLASSES[cid]) return {sh:null, dates:[], n:0, students:[], colOf:{}, physN:0, R:0, mkStart:0, physN2:0};   // 防護：無效 cid（如 login-only 空 cid）唔好爆
   var students=CLASSES[cid].students, dates=sessionsFor(cid);
   var sh=SS().getSheetByName(gridName(cid)), colOf={}, physN=0;
@@ -680,8 +687,10 @@ function gridMeta(cid){
       for(var h=0;h<physN;h++){ var key=(fh[h] instanceof Date)?Utilities.formatDate(fh[h],tz(),"MM/dd"):String(fh[h]||""); if(key && colOf[key]==null) colOf[key]=h; }
     }
   }
-  return {sh:sh, dates:dates, n:dates.length, students:students, R:students.length,
+  var meta={sh:sh, dates:dates, n:dates.length, students:students, R:students.length,
     mkStart:DATA_START+students.length, colOf:colOf, physN:physN};
+  if(sh) _gmCache[cid]=meta;   // 只快取有 sheet 嘅（有效 cid）
+  return meta;
 }
 function mmdd_(iso){ return String(iso).slice(5).replace("-","/"); }
 function dateCol(m,dateIso){
@@ -2971,16 +2980,26 @@ function apiSaveAttendance(p){
 function apiSaveAbsences(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   var arr=p.data||[];
+  // 提速：迴圈外只讀一次重料 —— 每班 readBlock 一次(快取)、ledger keys、補堂表 map。
+  // 原本逐條 absence 都 readBlock(讀全 grid)+markAbsenceDone_(讀 ledger+補堂表) → 一次保存做幾十次讀表。
+  var blkCache={};
+  function blkOf(cid){ if(!blkCache[cid]) blkCache[cid]=readBlock(cid); return blkCache[cid]; }
+  var ledgerKeys={}; try{ absDoneRows_().forEach(function(x){ ledgerKeys[x.name+"|"+x.cid+"|"+x.absDate]=1; }); }catch(e){}
+  var mkMap={}; try{ makeupAll().forEach(function(m){ (mkMap[String(m.name).trim()+"|"+String(m.from).trim()]=mkMap[String(m.name).trim()+"|"+String(m.from).trim()]||{})[toIso_(m.date)]=1; }); }catch(e){}
   arr.forEach(function(a){
     if(!a||!a.classId||!CLASSES[a.classId]) return;
     if(a.absDate && sessionsFor(a.classId).indexOf(a.absDate)>=0){
-      var blk=readBlock(a.classId), st=(blk.status[a.name]||[]), di=blk.dates.indexOf(a.absDate);
+      var blk=blkOf(a.classId), st=(blk.status[a.name]||[]), di=blk.dates.indexOf(a.absDate);
       var cur=di>=0?String(st[di]||""):"";
       if(!cur) markCell(a.classId, a.name, a.absDate, "請假", false);  // 未標先補標請假
     }
-    // 已補完成：改用「補堂完成」ledger，唔再造 to=自己班 嘅自補記錄
-    // （舊做法 makeupStatus 讀補堂區搵唔到→唔算出席→madeUpDate 永配對唔到→反覆彈返；又污染格覆蓋真請假）
-    if(a.madeUpDate){ markAbsenceDone_(a.name, a.classId, a.absDate, toIso_(a.madeUpDate)); }
+    // 已補完成 ledger：已喺 ledger／或補堂表已有真預約代表 → 直接跳過（唔再逐條讀表）；真新嘅先 markAbsenceDone_
+    if(a.madeUpDate){
+      var absIso=toIso_(a.absDate), md=toIso_(a.madeUpDate), k=a.name+"|"+a.classId+"|"+absIso;
+      if(ledgerKeys[k]) return;                                             // 已記錄
+      if((mkMap[a.name+"|"+a.classId]||{})[md]) return;                     // 補堂表已代表(PR182 源頭防重複)
+      if(markAbsenceDone_(a.name, a.classId, a.absDate, md)) ledgerKeys[k]=1;
+    }
   });
   return {ok:true};
 }
