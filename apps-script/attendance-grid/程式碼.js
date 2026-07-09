@@ -156,6 +156,25 @@ function ensureRosterRows_(){
   });});
 }
 
+// 自癒：把「ROSTER const 已加、但 Roster 參考分頁未有」嘅學生補入分頁。
+// ⚠️ 關鍵：apiLogin 用 rosterRows()（讀 Roster 分頁）驗證家長 → 新生若只喺 grid、唔喺 Roster 分頁，
+//    會登入唔到、用唔到請假補堂。setup() 先會 rebuild 分頁；此函式令 autoHeal 亦補齊（只加缺行、冪等）。
+function ensureRosterSheet_(){
+  var sh=SS().getSheetByName("Roster"); if(!sh) return 0;
+  var have={};
+  if(sh.getLastRow()>1){ sh.getRange(2,1,sh.getLastRow()-1,4).getValues().forEach(function(r){
+    have[String(r[0]).trim()+"|"+String(r[2])+"|"+String(r[3])]=1; }); }
+  var added=0;
+  Object.keys(ROSTER).forEach(function(sp){ Object.keys(ROSTER[sp]).forEach(function(wd){
+    ROSTER[sp][wd].forEach(function(nm){
+      var k=String(nm).trim()+"|"+sp+"|"+wd;
+      if(!have[k]){ sh.appendRow([nm, PHONE[nm]||"", sp, wd, TIMES[sp+"|"+wd]||""]); have[k]=1; added++; }
+    });
+  });});
+  if(added) Logger.log("ensureRosterSheet_: 補 Roster 分頁 "+added+" 行");
+  return added;
+}
+
 // 示範用：為 示範學員（羽毛球·四）種一個請假，令暑期補堂示範到「待補 1 堂 + 可揀補堂時段」。
 // 冪等：佢已有任何格仔狀態就唔覆蓋；只係示範，唔影響真實學生。
 function seedDemo_(){
@@ -364,6 +383,7 @@ function autoHeal9_(){
   var actions=[];
   try{ backup(); actions.push("修復前備份 ✓"); }catch(e){ actions.push("備份 ⚠"+e); }
   try{ normalizeMakeupDates_(); actions.push("補堂日期正規化 ✓"); }catch(e){ actions.push("日期正規化 ⚠"+e); }
+  try{ var rs=ensureRosterSheet_(); actions.push("補 Roster 分頁缺行 "+rs+" ✓"); }catch(e){ actions.push("補 Roster 分頁 ⚠"+e); }
   try{ ensureRosterRows_(); actions.push("補齊名冊缺行 ✓"); }catch(e){ actions.push("補名冊行 ⚠"+e); }
   try{ syncMakeupsToGrid(); actions.push("補堂寫入格(只填空) ✓"); }catch(e){ actions.push("補堂入格 ⚠"+e); }
   try{ var vp=pruneVenuePast_(); if(vp>0) actions.push("清過去場地 "+vp+" 行 ✓"); }catch(e){ actions.push("清過去場地 ⚠"+e); }
