@@ -3020,12 +3020,19 @@ function apiSaveAttendance(p){
   var d=p.data||{}, key=d.key||"", session=d.session||{};
   var parts=key.split("|"), cid=parts[0], date=parts[1];
   if(!CLASSES[cid]) return {ok:false,err:"班別不存在"};
+  // ⚠️ 防抹走（2026-07-09 修）：原本 `EN2ZH[x]||""` 收到非英文碼(如舊版前端 cache 傳中文、或空/未知值)
+  //    就寫空白 → markCell 把成班已點嘅出席抹成空白 = silent data loss（老闆星期一/三點名唔見咗嘅真兇）。
+  //    改：英文→轉中文；本身已係合法中文狀態→直接用；空/未知→**跳過唔寫**，永不以空白覆蓋已有點名。
+  var VALID_ZH_STATUS=["出席","請假","缺席","補堂","停課","豁免","加操","轉堂"];
+  var wrote=0, skipped=0;
   Object.keys(session).forEach(function(nm){
-    var zh=EN2ZH[session[nm]] || "";
-    markCell(cid, nm, date, zh, true);   // 正規或補堂行皆可
+    var raw=String(session[nm]==null?"":session[nm]).trim();
+    var zh=EN2ZH[raw] || (VALID_ZH_STATUS.indexOf(raw)>=0 ? raw : "");
+    if(!zh){ skipped++; return; }        // 空/未知 → 唔覆蓋，防抹走
+    if(markCell(cid, nm, date, zh, true)) wrote++;   // 正規或補堂行皆可
   });
-  logAppend({name:"(批量)",key:cid,action:"save_attendance",date:date,status:Object.keys(session).length+"人"});
-  return {ok:true};
+  logAppend({name:"(批量)",key:cid,action:"save_attendance",date:date,status:"寫"+wrote+(skipped?("／跳過"+skipped):"")+"人"});
+  return {ok:true, wrote:wrote, skipped:skipped};
 }
 function apiSaveAbsences(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
