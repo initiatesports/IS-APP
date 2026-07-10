@@ -69,6 +69,12 @@ var PERIOD_VOID = { "2026 5-6月": ["梁心朗"],
   // （保留喺名單/可登入/歷史；已繳行唔郁）。
   // 何梓程(c3)：2026-07-06 老闆定「不暫停」→ 移出,當正常 c3 學生照收 7-8月學費。
   "2026 7-8月": ["馬仲然","蘇穎悠","梁正軒"] };
+// 該日所屬期嘅「暫停／退出」學生集（＝PERIOD_VOID 該期名單）。暫停學生($0、因病/退出)
+// 唔應出現喺教練點名表、亦唔應被「未點名提醒」當作未點（前端已隱藏，後端要跟，否則永遠誤報）。
+function suspendedSet_(dateIso){
+  var arr=PERIOD_VOID[periodLabelFromIso_(toIso_(dateIso))]||[];
+  var s={}; arr.forEach(function(n){ s[String(n).trim()]=1; }); return s;
+}
 
 /* 特別安排固定學費：跨班／固定堂數，唔跟標準班別自動計（自動計會計錯）。
    設固定 due（應繳），記 paid（已繳，由其他來源轉抵）；genPeriodNet_ 會直接寫呢個數、
@@ -2605,13 +2611,14 @@ function apiSetPin(p){
 function apiDaily(p){
   if(String(p.coachPass)!==String(CONFIG.COACH_PASS)) return {ok:false,err:"密碼錯誤"};
   try{ enforceSickCert(); }catch(e){}
-  var date=p.date, groups={};
+  var date=p.date, groups={}, susp=suspendedSet_(date);
   CLASS_IDS.forEach(function(cid){
     if(sessionsFor(cid).indexOf(date)<0) return;
     var full=readFull(cid), di=full.dates.indexOf(date), c=CLASSES[cid];
     var g={c:{sport:cid, key:cid, wd:c.dayZh, dayZh:c.dayZh, time:c.time}, rows:[]};
     full.students.forEach(function(nm){
       var ji=joinIso_(nm); if(ji && String(date)<ji) return;   // 未到入班日（STUDENT_JOIN）→ 唔喺點名表出現（如黃玥晴 7/1 前唔顯示喺 c1）
+      if(susp[nm]) return;                                     // 本期暫停/退出（如梁正軒因病）→ 唔喺點名表出現（同前端一致）
       g.rows.push({name:nm, makeup:false, status:(full.reg[nm]||[])[di]||""});
     });
     full.mk.forEach(function(x){ if(x.statuses[di]) g.rows.push({name:x.name, makeup:true, status:x.statuses[di]}); });
@@ -3280,11 +3287,14 @@ function ensureReminders(){
   }catch(e){}
 }
 function remindUnmarked(){
-  var today=todayIso(), lines=[];
+  var today=todayIso(), lines=[], susp=suspendedSet_(today);
   CLASS_IDS.forEach(function(cid){
     if(sessionsFor(cid).indexOf(today)<0) return;
     var full=readFull(cid), di=full.dates.indexOf(today), miss=[];
-    full.students.forEach(function(nm){ if(!((full.reg[nm]||[])[di]||"")) miss.push(nm); });
+    full.students.forEach(function(nm){
+      if(susp[nm]) return;                                     // 暫停學生唔算未點（否則永遠誤報，如梁正軒因病）
+      var ji=joinIso_(nm); if(ji && String(today)<ji) return;  // 未到入班日
+      if(!((full.reg[nm]||[])[di]||"")) miss.push(nm); });
     full.mk.forEach(function(x){ if(x.statuses[di]==="補堂") miss.push(x.name+"(補)"); });
     if(miss.length) lines.push("・"+classLabel_(cid)+"："+miss.length+" 人未點 — "+miss.join("、"));
   });
