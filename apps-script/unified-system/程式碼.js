@@ -2760,7 +2760,8 @@ function apiLoad(p){
   var body=tableRows_("Body", ["name","date","height","weight"]);
   var grades=tableRows_("Grades", ["name","grade"]);
   return {ok:true, version:VERSION, attendance:attendance, absences:absences,
-    settings:settings, performance:performance, body:body, grades:grades, medNotes:medNotesAll(), fee_paid:[]};
+    settings:settings, performance:performance, body:body, grades:grades, medNotes:medNotesAll(), fee_paid:[],
+    periodVoid:PERIOD_VOID};   // 暫停/退出學生（按期）→ 教練前端據此喺點名清單隱藏（單一真相，唔使前後端各改一次）
 }
 function settingsRows_(){
   var sh=settingsSheet(); if(!sh||sh.getLastRow()<2) return [];

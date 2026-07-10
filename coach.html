@@ -432,7 +432,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-10-rollfix';
+const FRONTEND_VERSION = 'coach-2026-07-10-suspend';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -515,6 +515,7 @@ async function loadFromSheets(){
     }
 
     restoreSettings(data.settings || []);
+    PERIOD_VOID_MAP = data.periodVoid || {};   // 後端暫停/退出名單（單一真相）→ 點名清單自動隱藏
 
     (data.attendance || []).forEach(row => {
       const key = row.key;
@@ -1090,8 +1091,20 @@ function openRoll(classId){
   renderDatePills();
   loadRollSession();
 }
+// 本期暫停/退出學生（由後端 PERIOD_VOID 提供，單一真相）→ 點名清單自動隱藏，唔使前端另手動改名冊。
+let PERIOD_VOID_MAP = {};
+function periodLabelOf(dateStr){
+  if(!dateStr) return '';
+  const y=dateStr.slice(0,4), mo=+dateStr.slice(5,7), idx=Math.floor((mo-1)/2);
+  return y+' '+(idx*2+1)+'-'+(idx*2+2)+'月';
+}
+function isSuspendedOn(name, dateStr){
+  const arr=PERIOD_VOID_MAP[periodLabelOf(dateStr)]||[];
+  return arr.indexOf(name)>=0;
+}
 function getRollStudents(classId, dateStr){
-  const base = CLASSES[classId] ? CLASSES[classId].students.slice() : [];
+  let base = CLASSES[classId] ? CLASSES[classId].students.slice() : [];
+  if (dateStr) base = base.filter(n => !isSuspendedOn(n, dateStr));   // 本期暫停學生（如梁正軒因病）→ 唔喺點名清單
   // 加入當日補堂學生：家長申請補堂後，後端已喺目標班嗰格寫低（喺 ATT_LOG 出現但唔屬正規名單）→ 點名名單見到佢
   const sess = (dateStr && ATT_LOG[classId + '|' + dateStr]) || {};
   Object.keys(sess).forEach(n => { if (n && base.indexOf(n) < 0) base.push(n); });
