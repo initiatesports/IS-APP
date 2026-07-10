@@ -432,7 +432,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-08-summermk';
+const FRONTEND_VERSION = 'coach-2026-07-10-rollfix';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1165,12 +1165,15 @@ function loadRollSession(){
   }
   const key = currentClass + '|' + rollSelectedDate;
   const saved = ATT_LOG[key];
+  // ⚠️ 一定要先把全部學生預設 present，再覆蓋已存狀態——否則未㩒過嘅學生唔會入 rollSession，
+  //    儲存時 payload 唔含佢哋 → markCell 唔會被叫 → 成班得返「已有請假/補堂」嗰幾個入到、其餘出席全冇。
+  //    呢個係教練點名 silent data loss 真兇（一堂只要有任何家長請假/補堂學生就中招）。
+  rollSession = {};
+  getRollStudents(currentClass, rollSelectedDate).forEach(n => rollSession[n] = 'present');
   if (saved && Object.keys(saved).length > 0) {
-    rollSession = { ...saved };
+    Object.assign(rollSession, saved);   // 覆蓋：已有請假/補堂/豁免嘅照舊，其餘維持預設 present
     document.getElementById('roll-already-saved').style.display = 'flex';
   } else {
-    rollSession = {};
-    getRollStudents(currentClass, rollSelectedDate).forEach(n => rollSession[n] = 'present');
     document.getElementById('roll-already-saved').style.display = 'none';
   }
   const d = new Date(rollSelectedDate + 'T00:00:00');
