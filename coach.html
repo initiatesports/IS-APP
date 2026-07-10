@@ -433,7 +433,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-10-suspend';
+const FRONTEND_VERSION = 'coach-2026-07-11-forceupd';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2100,7 +2100,14 @@ saveRoll = async function(){
   if(a&&a.ok){
     const badge=document.getElementById('roll-already-saved'); if(badge) badge.style.display='flex';
     try{ if(cpass()) localStorage.setItem('is_cpass_t', String(Date.now())); }catch(e){}  // 滑動延長：活躍使用唔會 14 日過期
-    toast('點名記錄已儲存','✓');
+    // 核對：後端實際寫入人數 vs 送出人數。少咗 = 有學生冇存到（舊版/異常）→ 大聲提示，唔會靜靜雞漏data
+    const sent = Object.keys(ATT_LOG[key]||{}).length;
+    const wrote = (a.att && typeof a.att.wrote === 'number') ? a.att.wrote : sent;
+    if(wrote < sent){
+      toast('⚠ 只存到 '+wrote+'/'+sent+' 人！請拉低刷新 App（或重開）再點一次','⚠');
+    } else {
+      toast('點名記錄已儲存（'+wrote+' 人）','✓');
+    }
   } else {
     const em=(a&&a.err)||'';
     if(/密碼|授權/.test(em) || !cpass()){
@@ -2178,13 +2185,21 @@ async function checkForUpdate(){
 }
 function showUpdateBanner(latest){
   if(document.getElementById('update-banner')) return;
-  const b=document.createElement('div'); b.id='update-banner';
-  b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#2563eb;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;font-weight:700;box-shadow:0 -3px 14px rgba(0,0,0,.45)';
-  const s=document.createElement('span'); s.textContent='🔄 有新版本，請更新';
-  const btn=document.createElement('button'); btn.textContent='立即更新';
-  btn.style.cssText='background:#fff;color:#2563eb;border:0;border-radius:8px;padding:9px 18px;font-family:inherit;font-weight:800;cursor:pointer;white-space:nowrap';
-  btn.onclick=function(){ location.replace(location.pathname + '?v=' + encodeURIComponent(latest)); };
-  b.appendChild(s); b.appendChild(btn); document.body.appendChild(b);
+  // ① 先自動 cache-bust 重載一次（每個新版本只自動試一次，防死循環）——多數情況一次就更到新版
+  try{
+    if(sessionStorage.getItem('is_upd_tried') !== latest){
+      sessionStorage.setItem('is_upd_tried', latest);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
+      return;
+    }
+  }catch(e){}
+  // ② 自動重載完仲係舊版（iOS 主畫面 App 死 cache）→ 全屏阻塞，唔准用舊版點名（舊版會令儲存失敗）
+  const ov=document.createElement('div'); ov.id='update-banner';
+  ov.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,.97);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center;font-size:15px;line-height:1.65';
+  ov.innerHTML='<div style="font-size:46px">🔄</div><div style="font-weight:800;font-size:19px">系統已更新<br>必須更新先可以繼續點名</div><div style="opacity:.9;max-width:340px">你而家用緊舊版本，舊版可能令點名<b>儲存唔到</b>。<br>撳「立即更新」；若撳完仲係舊版，請<b>刪除主畫面圖示 → 重新加到主畫面</b>（iOS 主畫面 App cache 太黐要咁樣清）。</div>';
+  const btn=document.createElement('button'); btn.textContent='🔄 立即更新'; btn.style.cssText='background:#fff;color:#2563eb;border:0;border-radius:12px;padding:14px 30px;font-family:inherit;font-weight:800;font-size:17px;cursor:pointer';
+  btn.onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  ov.appendChild(btn); document.body.appendChild(ov);
 }
 document.addEventListener('DOMContentLoaded', async function(){
   installManifest();
