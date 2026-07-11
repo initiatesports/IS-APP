@@ -435,7 +435,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-11-venueall';
+const FRONTEND_VERSION = 'coach-2026-07-11-venue2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -915,8 +915,8 @@ function renderHome(){
   try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
 }
 let VENUES_CACHE=[];
-const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所'];
-const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室'];
+const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
+const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室','主場館'];
 const VN_INS='width:100%;padding:10px;border-radius:9px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px;margin-bottom:8px';
 let VN_COURTS_MAP={};   // cid → Set(揀咗嘅羽毛球場號)  ・逐班獨立
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
