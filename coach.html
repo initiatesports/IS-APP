@@ -126,6 +126,8 @@ html,body{
 .roll-info-bar{background:var(--cyan-dim);border-bottom:1px solid rgba(62,207,207,0.2);padding:8px 16px;font-size:12px;color:var(--cyan);display:flex;align-items:center;gap:6px;}
 .already-saved-bar{background:var(--amber-dim);border-bottom:1px solid rgba(251,191,36,0.2);padding:8px 16px;font-size:12px;color:var(--amber);display:flex;align-items:center;gap:6px;}
 .summerinfo{background:var(--cyan-dim);border:1px dashed rgba(62,207,207,0.45);border-radius:12px;padding:9px 12px;margin:6px 0;font-size:14px;color:var(--cyan);}
+.vn-court-btn{width:38px;height:38px;border-radius:9px;background:#1b1b1b;color:#ccc;border:1px solid #444;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;}
+.vn-court-btn.on{background:var(--cyan);border-color:var(--cyan);color:#053b22;}
 .summerinfo .sub{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
 .student-list{padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
 .student-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;}
@@ -433,7 +435,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-11-forceupd';
+const FRONTEND_VERSION = 'coach-2026-07-11-court';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -914,7 +916,22 @@ function renderHome(){
 }
 let VENUES_CACHE=[];
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所'];
-const VN_ROOMS=['活動室','舞蹈室','壁球室'];
+const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室'];
+const VN_COURTS=new Set();   // 揀咗嘅羽毛球場號數（可多個）
+function vnCourtToggle(n){
+  n=String(n);
+  if(VN_COURTS.has(n)) VN_COURTS.delete(n); else VN_COURTS.add(n);
+  const b=document.getElementById('vn-court-'+n); if(b) b.classList.toggle('on', VN_COURTS.has(n));
+}
+function vnRoomVal(){
+  const sel=document.getElementById('vn-room');
+  let room=sel.value==='__other' ? (document.getElementById('vn-room-o').value||'').trim() : sel.value;
+  if(room==='羽毛球場'){
+    const c=[...VN_COURTS].map(Number).sort((a,b)=>a-b);
+    if(c.length) room='羽毛球場 '+c.join('、')+'號場';   // 例：羽毛球場 3、5號場
+  }
+  return room;
+}
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
 function vnDayZh(dateStr){ const WZ=['日','一','二','三','四','五','六']; if(!dateStr) return ''; return '星期'+WZ[new Date(dateStr+'T00:00:00').getDay()]; }
 function vnClassOpts(dateStr){
@@ -926,6 +943,7 @@ function vnClassOpts(dateStr){
 function vnRebuildCls(){ const d=document.getElementById('vn-date'), s=document.getElementById('vn-cid'); if(d&&s) s.innerHTML=vnClassOpts(d.value); }
 function vnCidLabel(cid){ return cid?((CLASSES[cid]&&CLASSES[cid].label)||cid):'全部'; }
 async function renderVenueAdmin(){
+  VN_COURTS.clear();   // 每次重繪重設羽毛球場號選擇
   let host=document.getElementById('home-venues');
   if(!host){ const nt=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
   if(!host) return;
@@ -942,6 +960,10 @@ async function renderVenueAdmin(){
       <input id="vn-centre-o" placeholder="體育館名（如 楓樹窩體育館）" style="display:none;${inS}">
       <select id="vn-room" onchange="vnToggle('room')" style="${inS}">${rOpts}</select>
       <input id="vn-room-o" placeholder="場地名" style="display:none;${inS}">
+      <div id="vn-courts" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        <span style="width:100%;font-size:12px;color:var(--muted)">揀羽毛球場號數（共 8 個，可揀多個）：</span>
+        ${[1,2,3,4,5,6,7,8].map(n=>`<button type="button" id="vn-court-${n}" class="vn-court-btn" onclick="vnCourtToggle(${n})">${n}</button>`).join('')}
+      </div>
       <button class="btn-makeup-done" style="width:100%" onclick="postVenue()">設定地點</button>
       <button class="btn-makeup-done" style="width:100%;margin-top:8px;background:#25D366;border-color:#1da851;color:#053b22" onclick="genWhatsApp()">📋 一鍵生成 WhatsApp 文案</button>
       <textarea id="vn-wa" readonly placeholder="撳上面個掣生成，跟住複製去 WhatsApp group" style="display:none;${inS};min-height:170px;margin-top:8px;white-space:pre-wrap;line-height:1.5"></textarea>
@@ -960,6 +982,10 @@ async function renderVenueAdmin(){
 function vnToggle(which){
   const sel=document.getElementById('vn-'+which), o=document.getElementById('vn-'+which+'-o');
   if(o) o.style.display = sel.value==='__other' ? 'block' : 'none';
+  if(which==='room'){
+    const cp=document.getElementById('vn-courts');
+    if(cp) cp.style.display = sel.value==='羽毛球場' ? 'flex' : 'none';
+  }
 }
 function vnVal(which){
   const sel=document.getElementById('vn-'+which);
@@ -969,9 +995,10 @@ async function postVenue(){
   const date=document.getElementById('vn-date').value;
   if(!date){ toast('請揀日期','⚠'); return; }
   const cidEl=document.getElementById('vn-cid'), cid=cidEl?cidEl.value:'';
-  const centre=vnVal('centre'), room=vnVal('room');
+  const centre=vnVal('centre'), room=vnRoomVal();
+  if(room==='羽毛球場'){ toast('請揀羽毛球場號數','⚠'); return; }   // 揀咗羽毛球場但未揀號 → 提示
   let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, cid, centre, room}); }catch(e){ r=null; }
-  if(r&&r.ok){ toast('已設定','✓'); renderVenueAdmin(); } else toast((r&&r.err)||'設定失敗','⚠');
+  if(r&&r.ok){ VN_COURTS.clear(); toast('已設定','✓'); renderVenueAdmin(); } else toast((r&&r.err)||'設定失敗','⚠');
 }
 async function genWhatsApp(){
   let r; try{ r=await apiPost({action:'weeklyText', coachPass:cpass(), days:10}); }catch(e){ r=null; }
