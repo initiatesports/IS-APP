@@ -74,6 +74,7 @@ input:focus{border-color:var(--accent)}
 .mk{min-width:46px;height:38px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:14px;font-weight:700;color:var(--muted)}
 .mk.go.on{background:var(--ok);color:#fff;border-color:var(--ok)}
 .mk.no.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+.mk.lv.on{background:#E6A700;color:#fff;border-color:#E6A700}
 .empty{text-align:center;color:var(--muted);padding:46px 12px;font-size:14px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:99px;font-size:14px;z-index:80;opacity:0;transition:.25s;max-width:88%;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
@@ -275,11 +276,12 @@ function grp(g,gi,date){
     ${g.rows.map((r,ri)=>row(r,gi,ri,key,date)).join("")}</div>`;
 }
 function row(r,gi,ri,key,date){
-  const go=r.status==="出席",no=r.status==="缺席",cc=r.status==="停課",mk=r.makeup?1:0;
+  const go=r.status==="出席",no=r.status==="缺席",lv=r.status==="請假",cc=r.status==="停課",mk=r.makeup?1:0;
   return `<div class="att" data-mk="${mk}">
     <span class="nm">${r.name}</span>${r.makeup?'<span class="tag">補堂</span>':''}${cc?'<span class="tag" style="background:#E2E3E5;color:#5F6368">停課</span>':''}
     <div class="marks">
       <button class="mk go ${go?'on':''}" onclick="mark('${r.name}','${key}','${date}','出席',this,${gi},${mk})">出席</button>
+      <button class="mk lv ${lv?'on':''}" onclick="mark('${r.name}','${key}','${date}','請假',this,${gi},${mk})">請假</button>
       <button class="mk no ${no?'on':''}" onclick="mark('${r.name}','${key}','${date}','缺席',this,${gi},${mk})">缺席</button>
     </div></div>`;
 }
