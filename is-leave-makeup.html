@@ -593,7 +593,7 @@ function classCard(child,ki,c,ci){
     ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
       <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
       ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const done=m.status==='出席';const lbl=done?'已出席':(m.status==='缺席'?'缺席':'待出席');return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
-        <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）</span>
+        <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）${m.time?'　'+m.time:''}</span>
         <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
       ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">取消補堂（${cancellableMakeups(c).length}）</button>`:''}
     </div>`:''}
@@ -631,7 +631,7 @@ function historyHTML(child){
   const items=[];
   child.classes.forEach(c=>{
     (c.sessions||[]).forEach(s=>{ if(s.status==="請假") items.push({date:s.date,kind:"請假",text:`${SPORT[c.sport].name}（星期${c.wd}）請假`,color:"#9C6500"}); });
-    (c.makeups||[]).forEach(m=>{ const lbl=m.status==="出席"?"補堂已出席":(m.status==="缺席"?"補堂缺席":"已約補堂"); items.push({date:m.date,kind:"補堂",text:`補堂 → ${classLabel(m.to)}（${lbl}）`,color:"#1F4E79"}); });
+    (c.makeups||[]).forEach(m=>{ const lbl=m.status==="出席"?"補堂已出席":(m.status==="缺席"?"補堂缺席":"已約補堂"); items.push({date:m.date,kind:"補堂",text:`補堂 → ${classLabel(m.to)}${m.time?'　'+m.time:''}（${lbl}）`,color:"#1F4E79"}); });
   });
   if(!items.length) return "";
   items.sort((a,b)=> a.date<b.date?-1:1);
