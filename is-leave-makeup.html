@@ -897,7 +897,7 @@ async function submitMakeup(){
   for(const i of MF.picks){
     const cd=MF.cands[i], s=cd.slot;
     try{ const r=await api("bookMakeup",{name:child.name,fromKey:classKey(c),fromDate:"",
-        toKey:s.sport+"|"+s.wd,toDate:cd.date});
+        toKey:s.sport+"|"+s.wd,toDate:cd.date,toTime:s.time});
       if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
