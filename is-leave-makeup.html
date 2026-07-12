@@ -695,7 +695,10 @@ function openLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   const today=new Date(); today.setHours(0,0,0,0);
   const opts=(c.sessions||[]).filter(s=> new Date(s.date+"T00:00:00")>today && !s.status).map(s=>s.date);
-  LF={ki,ci,type:"事假",dates:[]};
+  // 兄弟姊妹：其他小朋友有「同一星期」嘅班（同一日可一齊請假）
+  const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
+    .map(o=>{ const sc=(o.ch.classes||[]).find(x=>x.wd===c.wd); return sc?{idx:o.idx,name:o.ch.name,sc}:null; }).filter(Boolean);
+  LF={ki,ci,type:"事假",dates:[],sibs:[]};
   if(!opts.length){ openSheet(`<h2>申請請假</h2><p class="sd">${SPORT[c.sport].name} 已經冇可請假嘅未來堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   openSheet(`<h2>申請請假 · ${SPORT[c.sport].name}</h2>
     <p class="sd">逢星期${c.wd} ${c.time}　·　可一次揀多堂</p>
@@ -705,6 +708,10 @@ function openLeave(ki,ci){
     <div id="lf-opts">${opts.map(di=>{const d=new Date(di+"T00:00:00");return `<div class="opt" onclick="toggleLeave('${di}',this)">
       <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div></div>
       <div class="cap" style="display:none">✓</div></div>`;}).join("")}</div>
+    ${sibs.length?`<div class="lbl" style="font-size:13px;font-weight:500;margin:14px 0 6px">👨‍👩‍👧‍👦 同時幫兄弟姊妹一齊請假（揀邊個就同上面日子一齊請）</div>
+    <div id="lf-sibs">${sibs.map(s=>`<div class="opt" onclick="toggleSib(${s.idx},this)">
+      <div><div class="t">${s.name}　·　${SPORT[s.sc.sport]?SPORT[s.sc.sport].name:s.sc.sport}（星期${s.sc.wd}）</div></div>
+      <div class="cap" style="display:none">✓</div></div>`).join("")}</div>`:''}
     <div class="notice warn" style="font-size:12.5px">事假需提前 24 小時，否則該堂計缺席、不設補堂；病假需 48 小時內交醫生證明。</div>
     <div class="confirm-q" id="lf-count">未揀任何堂</div>
     <input id="lf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
@@ -719,6 +726,11 @@ function toggleLeave(di,el){
   $("#lf-count").textContent= LF.dates.length? `已揀 ${LF.dates.length} 堂`:"未揀任何堂";
   $("#lf-go").disabled = LF.dates.length===0;
 }
+function toggleSib(idx,el){
+  const i=LF.sibs.indexOf(idx);
+  if(i>=0){LF.sibs.splice(i,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
+  else{LF.sibs.push(idx);el.classList.add("on");el.querySelector(".cap").style.display="";}
+}
 async function submitLeave(){
   const code=$("#lf-code").value.trim();
   if(code!==S.family.last4) return toast("後 4 位數字唔啱");
@@ -732,15 +744,28 @@ async function submitLeave(){
       if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
+  // 兄弟姊妹一齊請假：同一星期嘅班、同一日有堂先請
+  const sibDone=[];
+  for(const sidx of (LF.sibs||[])){
+    const sib=S.family.children[sidx]; if(!sib) continue;
+    const sc=(sib.classes||[]).find(x=>x.wd===c.wd); if(!sc) continue;
+    const shh=(sc.time||"00:00").slice(0,5); let did=0;
+    for(const date of LF.dates){
+      if(!(sc.sessions||[]).some(x=>x.date===date && !x.status)) continue;   // 該日冇未上堂 → 跳過
+      const el2= LF.type==="病假"?true:((new Date(date+"T"+shh+":00")-new Date())/36e5)>=24;
+      try{ const r=await api("applyLeave",{name:sib.name,key:classKey(sc),date,leaveType:LF.type,eligible:el2}); if(r&&r.ok) did++; else fail++; }catch(e){ fail++; }
+    }
+    if(did) sibDone.push(sib.name);
+  }
   closeSheet(); await refresh();
   if(fail){ toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
   const ds=LF.dates.map(d=>fmt(new Date(d+"T00:00:00"))).join("、");
   showLeaveReceipt("✅ 已提交請假", [
-    `小朋友：<b>${child.name}</b>`,
+    `小朋友：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,
     `班別：${SPORT[c.sport].name}（星期${c.wd}）`,
     `日期：${ds}（${LF.dates.length} 堂）`,
     `假別：${LF.type}`
-  ], `INITIATE 請假申請\n小朋友：${child.name}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
+  ], `INITIATE 請假申請\n小朋友：${child.name}${sibDone.length?('、'+sibDone.join('、')):''}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
 }
 
 /* ---------- 取消請假 ---------- */
