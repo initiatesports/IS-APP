@@ -196,22 +196,24 @@ function vnCidLabel(cid){ if(!cid) return '全部'; const a=String(cid).split('|
 function vnOptSel(list,val){ const inList=list.indexOf(val)>=0; return list.map(x=>`<option value="${vnEsc(x)}"${x===val?' selected':''}>${vnEsc(x)}</option>`).join('')+`<option value="__other"${(!inList&&val)?' selected':''}>其他（自己填）</option>`; }
 function vnParse(room){ room=String(room||''); let base=room,courts=[]; const m=room.match(/^羽毛球場\s*([0-9、,\s]+)號場/); if(m){ base='羽毛球場'; courts=m[1].split(/[、,\s]+/).filter(Boolean); } else if(room==='羽毛球場'){ base='羽毛球場'; } return {base,courts}; }
 function vnCourtToggle(cid,n){ n=String(n); if(!VN_COURTS_MAP[cid]) VN_COURTS_MAP[cid]=new Set(); const set=VN_COURTS_MAP[cid]; if(set.has(n)) set.delete(n); else set.add(n); const b=gid('vncourt-'+cid+'-'+n); if(b) b.classList.toggle('on',set.has(n)); }
-function vnToggleRow(cid,which){ const sel=gid('vn'+which+'-'+cid), o=gid('vn'+which+'o-'+cid); if(o) o.style.display=sel.value==='__other'?'block':'none'; if(which==='r'){ const cp=gid('vncourts-'+cid); if(cp) cp.style.display=sel.value==='羽毛球場'?'flex':'none'; } }
+function vnToggleRow(cid,which){ const sel=gid('vn'+which+'-'+cid), o=gid('vn'+which+'o-'+cid); if(o) o.style.display=sel.value==='__other'?'block':'none'; if(which==='r'){ const cp=gid('vncourts-'+cid); if(cp) cp.style.display=sel.value==='羽毛球場'?'flex':'none'; } if(which==='c'){ vnGroundToggle_(cid); } }
+function vnGroundToggle_(cid){ const cen=gid('vnc-'+cid), ground=!!(cen&&cen.value==='青衣運動場'); const rs=gid('vnr-'+cid),ro=gid('vnro-'+cid),cp=gid('vncourts-'+cid); if(rs) rs.style.display=ground?'none':''; if(ro) ro.style.display=ground?'none':(rs&&rs.value==='__other'?'block':'none'); if(cp) cp.style.display=ground?'none':(rs&&rs.value==='羽毛球場'?'flex':'none'); }
 function vnCentreVal(cid){ const s=gid('vnc-'+cid); if(!s) return ''; return s.value==='__other'?(gid('vnco-'+cid).value||'').trim():s.value; }
-function vnRoomVal(cid){ const s=gid('vnr-'+cid); if(!s) return ''; let room=s.value==='__other'?(gid('vnro-'+cid).value||'').trim():s.value; if(room==='羽毛球場'){ const c=[...(VN_COURTS_MAP[cid]||[])].map(Number).sort((a,b)=>a-b); if(c.length) room='羽毛球場 '+c.join('、')+'號場'; } return room; }
+function vnRoomVal(cid){ const cen=gid('vnc-'+cid); if(cen&&cen.value==='青衣運動場') return ''; const s=gid('vnr-'+cid); if(!s) return ''; let room=s.value==='__other'?(gid('vnro-'+cid).value||'').trim():s.value; if(room==='羽毛球場'){ const c=[...(VN_COURTS_MAP[cid]||[])].map(Number).sort((a,b)=>a-b); if(c.length) room='羽毛球場 '+c.join('、')+'號場'; } return room; }
 function vnRowHtml(cid,label){
   const date=gid('vn-date').value;
   const ex=VENUES_CACHE.find(v=>v.date===date&&(v.cid||'')===cid);
   const centre=ex?ex.centre:''; const pr=vnParse(ex?ex.room:''); VN_COURTS_MAP[cid]=new Set(pr.courts);
   const courtBtns=[1,2,3,4,5,6,7,8].map(n=>`<button type="button" id="vncourt-${cid}-${n}" class="vn-court-btn${pr.courts.indexOf(String(n))>=0?' on':''}" onclick="vnCourtToggle('${cid}',${n})">${n}</button>`).join('');
   const cOther=(VN_CENTRES.indexOf(centre)<0&&centre)?centre:''; const rOther=(VN_ROOMS.indexOf(pr.base)<0&&pr.base)?pr.base:'';
+  const ground=(centre==='青衣運動場');
   return `<div style="border:1px solid var(--line,#e3e3e3);border-radius:10px;padding:10px 10px 4px;margin-bottom:8px">
       <div style="font-weight:700;font-size:13px;margin-bottom:7px">${vnEsc(label)}</div>
       <select id="vnc-${cid}" onchange="vnToggleRow('${cid}','c')" style="${VN_INS}"><option value="">— 揀體育館 —</option>${vnOptSel(VN_CENTRES,centre)}</select>
       <input id="vnco-${cid}" placeholder="體育館名" value="${vnEsc(cOther)}" style="display:${cOther?'block':'none'};${VN_INS}">
-      <select id="vnr-${cid}" onchange="vnToggleRow('${cid}','r')" style="${VN_INS}"><option value="">— 揀場地 —</option>${vnOptSel(VN_ROOMS,pr.base)}</select>
-      <input id="vnro-${cid}" placeholder="場地名" value="${vnEsc(rOther)}" style="display:${rOther?'block':'none'};${VN_INS}">
-      <div id="vncourts-${cid}" style="display:${pr.base==='羽毛球場'?'flex':'none'};flex-wrap:wrap;gap:6px;margin-bottom:6px"><span style="width:100%;font-size:12px;color:#888">羽毛球場號（共8個，可多選）：</span>${courtBtns}</div>
+      <select id="vnr-${cid}" onchange="vnToggleRow('${cid}','r')" style="display:${ground?'none':''};${VN_INS}"><option value="">— 揀場地 —</option>${vnOptSel(VN_ROOMS,pr.base)}</select>
+      <input id="vnro-${cid}" placeholder="場地名" value="${vnEsc(rOther)}" style="display:${(!ground&&rOther)?'block':'none'};${VN_INS}">
+      <div id="vncourts-${cid}" style="display:${(!ground&&pr.base==='羽毛球場')?'flex':'none'};flex-wrap:wrap;gap:6px;margin-bottom:6px"><span style="width:100%;font-size:12px;color:#888">羽毛球場號（共8個，可多選）：</span>${courtBtns}</div>
     </div>`;
 }
 async function vnRenderRows(){
