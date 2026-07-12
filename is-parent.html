@@ -1012,7 +1012,10 @@ function openLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   const today0=todayStr();
   const opts=(c.sessions||[]).filter(s=>s.date>=today0 && !s.status).map(s=>s.date);
-  LF={ki,ci,type:'事假',dates:[],fileData:null,fileName:''};
+  // 兄弟姊妹：其他小朋友有同一日（同 dayZh）嘅班 → 可一齊請假
+  const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
+    .map(o=>{ const sc=(o.ch.classes||[]).find(x=>x.wd===c.wd); return sc?{idx:o.idx,name:o.ch.name,sc}:null; }).filter(Boolean);
+  LF={ki,ci,type:'事假',dates:[],fileData:null,fileName:'',sibs:[]};
   if(!opts.length){ openSheet(`<h2>${t('applyLeave')}</h2><p class="sd">${classLabel(c.key||c.sport)} ${LANG==='en'?'— no upcoming sessions for leave.':'已經冇可請假嘅未來堂數。'}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
   openSheet(`<h2>${t('applyLeave')} · ${classLabel(c.key||c.sport)}</h2>
     <p class="sd">${t('pickMulti')}</p>
@@ -1023,6 +1026,8 @@ function openLeave(ki,ci){
       <div id="lf-med-status" style="font-size:12px;color:var(--muted);margin-top:5px">${t('medHint')}</div>
     </div>
     <div id="lf-opts">${opts.map(di=>{const d=new Date(di+'T00:00:00');const isT=di===today0;return `<div class="opt" onclick="toggleLeave('${di}',this)"><div><div class="t">${fmt(d)}${dow(d)}${isT?` <span style="color:#e08a00;font-weight:700">· ${t('todayTag')}</span>`:''}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
+    ${sibs.length?`<div style="font-size:13px;font-weight:600;color:var(--ink2);margin:14px 0 6px">${LANG==='en'?'👨‍👩‍👧‍👦 Also apply leave for sibling(s) — same day':'👨‍👩‍👧‍👦 同時幫兄弟姊妹一齊請假（同一日）'}</div>
+    <div id="lf-sibs">${sibs.map(s=>`<div class="opt" onclick="toggleSib(${s.idx},this)"><div><div class="t">${s.name}　·　${classLabel(s.sc.key||s.sc.sport)}</div></div><div class="cap" style="display:none">✓</div></div>`).join('')}</div>`:''}
     <div class="notice warn" id="lf-notice">${t('noticeErr')}</div>
     <div class="confirm-q" id="lf-count">${t('none')}</div>
     <input id="lf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
@@ -1041,6 +1046,7 @@ function onMedFile(input){
 }
 function toggleLeave(di,el){const i=LF.dates.indexOf(di);if(i>=0){LF.dates.splice(i,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}else{LF.dates.push(di);el.classList.add('on');el.querySelector('.cap').style.display='';}
   $('lf-count').textContent=LF.dates.length?t('picked',LF.dates.length):t('none');$('lf-go').disabled=LF.dates.length===0;}
+function toggleSib(idx,el){const i=LF.sibs.indexOf(idx);if(i>=0){LF.sibs.splice(i,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}else{LF.sibs.push(idx);el.classList.add('on');el.querySelector('.cap').style.display='';}}
 function alertSheet(title,msg){ openSheet(`<h2>${title}</h2><div class="notice warn" style="margin-top:8px">${msg}</div><div style="height:12px"></div><button class="btn" onclick="closeSheet()">${t('okBtn')}</button>`); }
 async function submitLeave(){
   const code=$('lf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong'));
@@ -1062,6 +1068,18 @@ async function submitLeave(){
     try{ const r=await api('applyLeave',{name:child.name,key:classKey(c),date,leaveType:LF.type});
       if(!r||!r.ok){fail++;err=(r&&r.err)||'';} else if(date===today0 && r.certDeadline) certDeadline=r.certDeadline; }catch(e){fail++;err=String(e);}
   }
+  // 兄弟姊妹一齊請假：同一日（同 dayZh）有未上堂先請
+  const sibDone=[];
+  for(const sidx of (LF.sibs||[])){
+    const sib=S.family.children[sidx]; if(!sib) continue;
+    const sc=(sib.classes||[]).find(x=>x.wd===c.wd); if(!sc) continue;
+    let did=0;
+    for(const date of LF.dates){
+      if(!(sc.sessions||[]).some(x=>x.date===date && !x.status)) continue;
+      try{ const r=await api('applyLeave',{name:sib.name,key:classKey(sc),date,leaveType:LF.type}); if(r&&r.ok) did++; else fail++; }catch(e){ fail++; }
+    }
+    if(did) sibDone.push(sib.name);
+  }
   closeSheet();
   // 醫生紙：只在「當日病假」時上傳，連到當日；提前病假已按事假處理，不需醫生紙
   let medMsg=''; const sickToday = (LF.type==='病假' && sameDay.length>0);
@@ -1072,7 +1090,7 @@ async function submitLeave(){
   await refresh();
   if(fail) return toast(t('failN',fail,err));
   const ds=LF.dates.map(d=>fmtDate(d)).join('、');
-  const baseLines=[`${t('child')}：<b>${child.name}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,`${t('dateK')}：${ds}`,`${t('leaveTypeK')}：${LF.type==='病假'?t('sickLeave'):t('errLeave')}${medMsg}`];
+  const baseLines=[`${t('child')}：<b>${child.name}${sibDone.length?('、'+sibDone.join('、')):''}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,`${t('dateK')}：${ds}`,`${t('leaveTypeK')}：${LF.type==='病假'?t('sickLeave'):t('errLeave')}${medMsg}`];
   // 當日病假 → 強制「知悉並完成」窗（須撳掣先可離開）
   if(sickToday){ showSickAck(baseLines, certDeadline, !!LF.fileData); return; }
   const extra=[];
@@ -1080,7 +1098,7 @@ async function submitLeave(){
   if(blocked.length){ extra.push(`<span style="color:#c0392b">${t('blockedNote',blocked.map(fmtDate).join('、'))}</span>`); }
   // 請假成功 → 即場畀家長揀「即刻約補堂」定「稍後再決定」（呢啲都係合資格補堂嘅提前請假）
   showLeaveReceipt(t('rcLeave'),[...baseLines,...extra],
-    `INITIATE 請假申請\n小朋友：${child.name}\n班別：${classLabel(c.key||c.sport)}\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
+    `INITIATE 請假申請\n小朋友：${child.name}${sibDone.length?('、'+sibDone.join('、')):''}\n班別：${classLabel(c.key||c.sport)}\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
 }
 
 /* ═══════════ 取消請假 ═══════════ */
