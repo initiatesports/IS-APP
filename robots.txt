@@ -1,4 +1,4 @@
 # INITIATE SPORTS — 只公開官網首頁俾搜尋引擎；App／登入頁各自帶 noindex
 User-agent: *
 Allow: /
-Sitemap: https://initiatesports.github.io/IS-APP/sitemap.xml
+Sitemap: https://www.initiatesportshk.com/sitemap.xml
