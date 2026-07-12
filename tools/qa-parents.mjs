@@ -8,7 +8,7 @@
  * 輸出：人類可讀報告 + 最後一行 JSON 摘要（畀排程解析）。
  */
 
-const EXEC4 = "https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec";
+const EXEC4 = "https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec";
 const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
 
 const TODAY = process.argv[2] || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Hong_Kong" });
