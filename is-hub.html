@@ -101,7 +101,7 @@ body{margin:0;font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft 
 
 </div>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbxeQizogWDoNl6PhAp_sE3_HfFc8MAtYEd-66k7zF3rRyhxPOM7qmnxYx6EzFUkiHLb/exec';
+const API_URL='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 let CPASS=(function(){ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
 async function apiPost(body){
   const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
