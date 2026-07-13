@@ -101,6 +101,8 @@ const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec",
   EXPECTED_VERSION: "v2-grid-mk10",
 };
+/* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
+const FRONTEND_VERSION = 'coach9-2026-07-13-lspass';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -114,13 +116,20 @@ const todayIso=()=>new Date().toLocaleDateString("en-CA");
 let S={authed:false,date:isDemo?"2026-07-16":todayIso()};
 
 /* ---- API ---- */
-// 教練密碼:即場輸入,經後端 verifyCoach 驗證後存 sessionStorage(關掉分頁即清),唔再寫死喺檔案。
-let COACH_PASS_RT=(function(){try{return sessionStorage.getItem("is_cpass")||"";}catch(e){return"";}})();
+// 教練密碼:即場輸入,經後端 verifyCoach 驗證後存 localStorage(持久:閂app/主畫面icon重開都記得),唔再寫死喺檔案。
+let COACH_PASS_RT=(function(){try{return localStorage.getItem("is_cpass")||"";}catch(e){return"";}})();
 async function api(action,p={}){
   if(isDemo) return new Promise(r=>setTimeout(()=>r(demo(action,p)),150));
-  const res=await fetch(CONFIG.API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body:JSON.stringify({action,coachPass:COACH_PASS_RT,...p})});
-  return res.json();
+  // Apps Script 有時 cold start / 手機網絡短暫抽風 → fetch 會 throw。自動重試一次(隔 1.2 秒)先當真失敗。
+  let lastErr;
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      const res=await fetch(CONFIG.API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify({action,coachPass:COACH_PASS_RT,...p})});
+      return await res.json();
+    }catch(e){ lastErr=e; if(attempt===0) await new Promise(r=>setTimeout(r,1200)); }
+  }
+  throw lastErr;
 }
 /* ---- demo ---- */
 const DEMO_DAY={ "2026-07-16":[
@@ -164,10 +173,10 @@ async function enter(){
   if(!v) return toast("請輸入密碼");
   let r; try{ r=await api("verifyCoach",{coachPass:v}); }catch(e){ r=null; }
   if(!r||!r.ok) return toast("密碼錯誤");
-  COACH_PASS_RT=v; try{sessionStorage.setItem("is_cpass",v);}catch(e){}
+  COACH_PASS_RT=v; try{localStorage.setItem("is_cpass",v);}catch(e){}
   S.authed=true; renderMain();
 }
-function logout(){ S.authed=false; COACH_PASS_RT=""; try{sessionStorage.removeItem("is_cpass");}catch(e){} renderGate(); }
+function logout(){ S.authed=false; COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} renderGate(); }
 
 /* ---- main roll call ---- */
 function renderMain(){
@@ -299,6 +308,7 @@ async function load(){
   const box=$("#list"); box.innerHTML=`<div class="empty">載入中…</div>`;
   try{
     const r=await api("dailyList",{date});
+    if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
     if(!r||!r.ok){box.innerHTML=`<div class="empty">載入失敗${r&&r.err?'：'+r.err:''}</div>`;return;}
     if(!r.list.length){box.innerHTML=`<div class="empty">呢日冇堂（暑期班 7 月 13 日先開始）。<br>請揀返星期一～五嘅上課日，例如 7/16。</div>`;return;}
     box.innerHTML=r.list.map((g,gi)=>grp(g,gi,date)).join("");
@@ -332,6 +342,7 @@ function row(r,gi,ri,key,date){
 async function mark(name,key,date,status,btn,gi,mk){
   try{
     const r=await api("markAttendance",{name,key,date,status,makeup:!!mk});
+    if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
     if(!r||!r.ok){ toast(r&&r.err? "存唔到："+r.err : "儲存失敗，請再試"); return; }
     const row=btn.closest(".att"); row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); btn.classList.add("on");
     recount(gi);
@@ -410,7 +421,37 @@ async function checkHealth(){
     else setHealth("● 回應異常","#B26A00");
   }catch(e){ setHealth("● 連線失敗（檢查網絡／部署）","#D6432F"); }
 }
-renderGate();
+/* 自動更新檢查：iOS 加咗主畫面嘅 Web App 會無視 no-cache、serve 舊版 HTML(舊版會令連線/點名失敗)。
+   開頁防快取 fetch 攞返伺服器最新 HTML,抽 FRONTEND_VERSION 比對;唔同 = 舊快取 → 自動 cache-bust 重載攞新版。 */
+async function checkForUpdate(){
+  try{
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const html = await r.text();
+    const m = html.match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    const latest = m && m[1];
+    if(latest && latest !== FRONTEND_VERSION) showUpdateBanner(latest);
+  }catch(e){}
+}
+function showUpdateBanner(latest){
+  if(document.getElementById('update-banner')) return;
+  try{
+    if(sessionStorage.getItem('is_upd_tried') !== latest){
+      sessionStorage.setItem('is_upd_tried', latest);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
+      return;
+    }
+  }catch(e){}
+  const ov=document.createElement('div'); ov.id='update-banner';
+  ov.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,.97);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center;font-size:15px;line-height:1.65';
+  ov.innerHTML='<div style="font-size:46px">🔄</div><div style="font-weight:800;font-size:19px">系統已更新<br>必須更新先可以繼續點名</div><div style="opacity:.9;max-width:340px">你而家用緊舊版本,舊版可能令連線／點名<b>失敗</b>。<br>撳「立即更新」;若撳完仲係舊版,請<b>刪除主畫面圖示 → 重新加到主畫面</b>。</div>';
+  const btn=document.createElement('button'); btn.textContent='🔄 立即更新'; btn.style.cssText='background:#fff;color:#2563eb;border:0;border-radius:12px;padding:14px 30px;font-family:inherit;font-weight:800;font-size:17px;cursor:pointer';
+  btn.onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  ov.appendChild(btn); document.body.appendChild(ov);
+}
+checkForUpdate();
+// 有存低密碼(localStorage)→ 直接入主畫面,唔使每次重新輸入;冇就顯示登入。load() 遇密碼錯會自動彈返登入。
+if(COACH_PASS_RT){ S.authed=true; renderMain(); } else { renderGate(); }
 checkHealth();
 </script>
 </body>
