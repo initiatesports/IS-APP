@@ -422,22 +422,21 @@ function waLink(text){ return "https://wa.me/"+CONFIG.WHATSAPP+"?text="+encodeUR
 function showReceipt(title, lines, waText){
   openSheet(`<h2>${title}</h2>
     <div class="receipt">${lines.map(l=>`<div class="rc-row">${l}</div>`).join("")}</div>
-    <p class="sd" style="margin-top:10px">已即時通知教練。如想 WhatsApp 留底俾張 Sir，可撳下面：</p>
-    <a class="btn wa" href="${waLink(waText)}" target="_blank" rel="noopener">📲 WhatsApp 通知張 Sir</a>
-    <div style="height:10px"></div>
-    <button class="btn ghost" onclick="closeSheet()">完成</button>`);
+    <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(27,141,155,.10);color:#1b8d9b;font-size:13px;font-weight:600;text-align:center">✅ 系統已自動通知教練，唔使再 WhatsApp。</div>
+    <div style="height:12px"></div>
+    <button class="btn" style="width:100%" onclick="closeSheet()">完成</button>`);
 }
 // 請假成功 receipt：附「即刻揀補堂 / 稍後再決定」兩個掣，慳家長一步
 function showLeaveReceipt(title, lines, waText, ki, ci){
   openSheet(`<h2>${title}</h2>
     <div class="receipt">${lines.map(l=>`<div class="rc-row">${l}</div>`).join("")}</div>
+    <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(27,141,155,.10);color:#1b8d9b;font-size:13px;font-weight:600;text-align:center">✅ 系統已自動通知教練，唔使再 WhatsApp。</div>
     <div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(27,141,155,.09)">
       <div style="font-weight:700;text-align:center;color:#1b8d9b;font-size:14px">要而家就約補堂嗎？</div>
       <div style="font-size:12.5px;text-align:center;color:#667;margin:5px 0 11px">呢堂可以補返。你可以即刻揀時間，或者遲啲先約。</div>
       <button class="btn" style="width:100%;margin-bottom:8px" onclick="closeSheet();openMakeup(${ki},${ci})">🗓️ 即刻揀補堂時間</button>
-      <button class="btn ghost" style="width:100%" onclick="closeSheet()">稍後再決定</button>
-    </div>
-    <a class="btn wa" href="${waLink(waText)}" target="_blank" rel="noopener" style="margin-top:8px">📲 WhatsApp 通知張 Sir</a>`);
+      <button class="btn ghost" style="width:100%" onclick="closeSheet()">完成・離開</button>
+    </div>`);
 }
 
 /* ---------- 系統健康檢查（用 POST ping，最可靠） ---------- */

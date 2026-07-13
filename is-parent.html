@@ -977,7 +977,7 @@ function closeSheet(){ $('scrim').classList.remove('show'); }
 function waLink(text){ return 'https://wa.me/'+CONFIG.WHATSAPP+'?text='+encodeURIComponent(text); }
 function showReceipt(title,lines,waText){
   $('receipt-box').innerHTML=`<h3>${title}</h3>${lines.map(l=>`<div class="line">${l}</div>`).join('')}
-    ${waText?`<a class="wa" href="${waLink(waText)}" target="_blank" rel="noopener">${t('waConfirm')}</a>`:''}
+    <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:var(--teal-dim);color:var(--teal-dark);font-size:13px;font-weight:600;text-align:center">${LANG==='en'?'✅ The system has already notified the coach — no need to WhatsApp.':'✅ 系統已自動通知教練，唔使再 WhatsApp。'}</div>
     <button class="close" onclick="closeReceipt()">${t('done')}</button>`;
   $('receipt-scrim').classList.add('show');
 }
@@ -986,13 +986,13 @@ function closeReceipt(){ if(RECEIPT_LOCKED) return; $('receipt-scrim').classList
 // 請假成功 receipt：附「即刻揀補堂 / 稍後再決定」兩個掣，方便家長一條龍操作
 function showLeaveReceipt(title,lines,waText,ki,ci){
   $('receipt-box').innerHTML=`<h3>${title}</h3>${lines.map(l=>`<div class="line">${l}</div>`).join('')}
+    <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:var(--teal-dim);color:var(--teal-dark);font-size:13px;font-weight:600;text-align:center">${LANG==='en'?'✅ The system has already notified the coach — no need to WhatsApp.':'✅ 系統已自動通知教練，唔使再 WhatsApp。'}</div>
     <div style="margin-top:12px;padding:12px;border-radius:12px;background:var(--teal-dim)">
       <div style="font-weight:700;color:var(--teal-dark);font-size:14px;text-align:center">${t('mkPromptH')}</div>
       <div style="font-size:12.5px;color:var(--ink2);text-align:center;margin:5px 0 11px">${t('mkPromptSd')}</div>
       <button class="btn" style="width:100%;margin-bottom:8px" onclick="closeReceipt();openMakeup(${ki},${ci})">🗓️ ${t('mkPromptNow')}</button>
-      <button class="btn ghost" style="width:100%" onclick="closeReceipt()">${t('mkPromptLater')}</button>
-    </div>
-    ${waText?`<a class="wa" href="${waLink(waText)}" target="_blank" rel="noopener" style="margin-top:8px">${t('waConfirm')}</a>`:''}`;
+      <button class="btn ghost" style="width:100%" onclick="closeReceipt()">${LANG==='en'?'Done':'完成・離開'}</button>
+    </div>`;
   $('receipt-scrim').classList.add('show');
 }
 // 必認窗（當日病假）：鎖住背景，只可撳「我知悉並完成」先關閉
