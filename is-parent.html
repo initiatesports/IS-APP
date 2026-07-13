@@ -202,6 +202,8 @@ const CONFIG = {
   WHATSAPP: '85263317403',
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
+/* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
+const FRONTEND_VERSION = 'parent-2026-07-13-noWA';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -1262,8 +1264,39 @@ function installManifest(){
     document.head.appendChild(l);
   }catch(e){}
 }
+/* 自動更新檢查：iOS 加咗主畫面嘅 Web App 會無視 no-cache、serve 舊版 HTML。
+   開頁時用「防快取」fetch 攞返伺服器最新版 HTML,抽出佢 FRONTEND_VERSION 同本頁比對;
+   唔同 = 本頁係舊快取 → 自動 cache-bust 重載攞新版(只自動試一次),仲係舊就彈可關橫額。 */
+async function checkForUpdate(){
+  try{
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const html = await r.text();
+    const m = html.match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    const latest = m && m[1];
+    if(latest && latest !== FRONTEND_VERSION) showUpdateBanner(latest);
+  }catch(e){}
+}
+function showUpdateBanner(latest){
+  if(document.getElementById('update-banner')) return;
+  try{
+    if(sessionStorage.getItem('is_upd_tried') !== latest){
+      sessionStorage.setItem('is_upd_tried', latest);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
+      return;
+    }
+  }catch(e){}
+  const bar=document.createElement('div'); bar.id='update-banner';
+  bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#1b8d9b;color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.25)';
+  bar.innerHTML='<span style="flex:1;font-weight:600">🔄 系統有新版本</span>';
+  const btn=document.createElement('button'); btn.textContent='立即更新'; btn.style.cssText='background:#fff;color:#1b8d9b;border:0;border-radius:9px;padding:8px 15px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer';
+  btn.onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  const x=document.createElement('button'); x.setAttribute('aria-label','關閉'); x.textContent='✕'; x.style.cssText='background:transparent;color:#fff;border:0;font-size:17px;line-height:1;cursor:pointer;padding:0 4px'; x.onclick=function(){ bar.remove(); };
+  bar.appendChild(btn); bar.appendChild(x); document.body.appendChild(bar);
+}
 document.addEventListener('DOMContentLoaded', async function(){
   installManifest();
+  checkForUpdate();
   renderLogin();
   syncHolidays();
 });

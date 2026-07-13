@@ -216,6 +216,8 @@ const CONFIG = {
   WHATSAPP: "85263317403",  // 張 Sir WhatsApp（家長確認連結用）
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
+/* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
+const FRONTEND_VERSION = 'lm-2026-07-13-noWA';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -1080,7 +1082,38 @@ async function bootSSO(){
   checkHealth();
 }
 
+/* 自動更新檢查：iOS 加咗主畫面嘅 Web App 會無視 no-cache、serve 舊版 HTML。
+   開頁時用「防快取」fetch 攞返伺服器最新版 HTML,抽出佢 FRONTEND_VERSION 同本頁比對;
+   唔同 = 本頁係舊快取 → 自動 cache-bust 重載攞新版(只自動試一次),仲係舊就彈可關橫額。 */
+async function checkForUpdate(){
+  try{
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const html = await r.text();
+    const m = html.match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    const latest = m && m[1];
+    if(latest && latest !== FRONTEND_VERSION) showUpdateBanner(latest);
+  }catch(e){}
+}
+function showUpdateBanner(latest){
+  if(document.getElementById('update-banner')) return;
+  try{
+    if(sessionStorage.getItem('is_upd_tried') !== latest){
+      sessionStorage.setItem('is_upd_tried', latest);
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
+      return;
+    }
+  }catch(e){}
+  const bar=document.createElement('div'); bar.id='update-banner';
+  bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#1b8d9b;color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.25)';
+  bar.innerHTML='<span style="flex:1;font-weight:600">🔄 系統有新版本</span>';
+  const btn=document.createElement('button'); btn.textContent='立即更新'; btn.style.cssText='background:#fff;color:#1b8d9b;border:0;border-radius:9px;padding:8px 15px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer';
+  btn.onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  const x=document.createElement('button'); x.setAttribute('aria-label','關閉'); x.textContent='✕'; x.style.cssText='background:transparent;color:#fff;border:0;font-size:17px;line-height:1;cursor:pointer;padding:0 4px'; x.onclick=function(){ bar.remove(); };
+  bar.appendChild(btn); bar.appendChild(x); document.body.appendChild(bar);
+}
 /* 啟動 */
+checkForUpdate();
 bootSSO();
 </script>
 <!-- ══ 私人訓練彈出層（自包含；全部 .ptx 前綴，唔會撞到本頁原有樣式）══ -->
