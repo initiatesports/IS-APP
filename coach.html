@@ -435,7 +435,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-12-ground';
+const FRONTEND_VERSION = 'coach-2026-07-14-vnextwk';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1006,6 +1006,8 @@ function vnCopyFirst(){   // 把第一班嘅選擇複製去全部（同一地點
   });
   toast('已複製去全部','✓');
 }
+// 地點面板預設日期＝今日 +6 天，方便提早設定下週場地／時間（老闆指定 +6）。
+function vnDefaultDate(){ const d=new Date(); d.setDate(d.getDate()+6); return d.toLocaleDateString('en-CA'); }
 async function renderVenueAdmin(){
   VN_COURTS_MAP={};
   let host=document.getElementById('home-venues');
@@ -1015,7 +1017,7 @@ async function renderVenueAdmin(){
   VENUES_CACHE=(r&&r.ok&&r.venues)?r.venues:[];
   let html=`<div class="section-header">📍 上課地點（家長端會見到）</div>
     <div style="margin:0 4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
-      <input type="date" id="vn-date" value="${VN_LAST_DATE||todayStr()}" onchange="vnRenderRows()" style="${VN_INS}">
+      <input type="date" id="vn-date" value="${VN_LAST_DATE||vnDefaultDate()}" onchange="vnRenderRows()" style="${VN_INS}">
       <div id="vn-rows"></div>
       <button class="btn-makeup-done" style="width:100%" onclick="postVenueAll()">💾 儲存全日地點</button>
       <button class="btn-makeup-done" style="width:100%;margin-top:8px;background:#25D366;border-color:#1da851;color:#053b22" onclick="genWhatsApp()">📋 一鍵生成 WhatsApp 文案</button>
