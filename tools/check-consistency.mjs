@@ -34,12 +34,12 @@ function ptBlock(file) {
 }
 
 // ── 1) 私人訓練內容三檔一致（官網為準）────────────────────────────────────────
-console.log('\n[1] 私人訓練 (PT) 內容跨檔一致 — 以 is-home.html 官網為準');
-const PT_FILES = ['is-home.html', 'is-parent.html', 'is-leave-makeup.html'];
+console.log('\n[1] 私人訓練 (PT) 內容跨檔一致 — 以 index.html 官網為準');
+const PT_FILES = ['index.html', 'is-parent.html', 'is-leave-makeup.html'];
 const blocks = PT_FILES.map((f) => ({ f, b: ptBlock(f) }));
 const canonical = blocks[0].b;
 if (!canonical) {
-  bad('搵唔到 is-home.html 嘅 PT 內容區（官網基準遺失？）');
+  bad('搵唔到 index.html 嘅 PT 內容區（官網基準遺失？）');
 } else {
   for (const { f, b } of blocks) {
     if (b === null) bad(`${f} 缺少 PT 內容區（ptx-pane-kid…/ptx-pane-adult）`);
@@ -81,9 +81,9 @@ console.log('\n[4] is-attendance-app.html 章別 BADGE_DATA Level 1–14 齊全'
 }
 
 // ── 5) 官網器材清單核心項目存在（防器材陣列被改錯）────────────────────────────
-console.log('\n[5] is-home.html 器材清單核心項目存在');
+console.log('\n[5] index.html 器材清單核心項目存在');
 {
-  const t = read('is-home.html');
+  const t = read('index.html');
   for (const name of ['拍子繩', '鋼絲繩', '膠繩', '跳繩袋']) {
     if (t.includes(`name:'${name}'`)) ok(`器材「${name}」存在`);
     else bad(`器材「${name}」遺失`);
@@ -93,7 +93,7 @@ console.log('\n[5] is-home.html 器材清單核心項目存在');
 // ── 6) 前端各頁 inline JS 語法（任何頁面 JS 語法錯 → 部署前攔截，防白屏/按鈕死）────
 console.log('\n[6] 前端各頁 JS 語法');
 {
-  const pages = ['is-home.html','is-hub.html','is-parent.html','is-coach.html','is-leave-makeup.html',
+  const pages = ['index.html','is-hub.html','is-parent.html','is-coach.html','is-leave-makeup.html',
     'is-attendance-app.html','is-pay.html','parent.html','coach.html','is-parent-tour.html','initiate-sports-booking.html'];
   for (const f of pages) {
     let t; try { t = read(f); } catch { continue; }
