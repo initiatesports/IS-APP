@@ -514,6 +514,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 .kn-reader-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .kn-reader-title{font-size:20px;font-weight:900;color:var(--fg);margin:0 0 14px;line-height:1.35;letter-spacing:-.01em}
 .kn-reader-body{font-size:14px;color:var(--fg);line-height:1.85;white-space:pre-line}
+.kn-inline-img{display:block;width:100%;max-width:540px;margin:16px auto;border-radius:12px;box-shadow:0 4px 16px rgba(20,33,48,.12)}
 @media(max-width:560px){.kn-reader{padding:14px 8px}.kn-reader-title{font-size:18px}.kn-reader-text{padding:18px 18px 24px}}
 /* ── 聯絡 CTA band ── */
 .cta-band{max-width:1000px;margin:10px auto 8px;padding:32px 26px;border-radius:22px;text-align:center;background:linear-gradient(135deg,var(--cyan-deep),var(--cyan) 70%,#2BA9B6);box-shadow:0 16px 40px rgba(20,33,48,.16);position:relative;overflow:hidden}
@@ -1857,6 +1858,11 @@ function doSearch(){
 // 知識圖片版本碼：每次換圖把數字 +1，瀏覽器即取新檔（防舊 cache）
 const KN_IMG_VER = '20260620';
 function knImg(src){ if(!src) return ''; return src + (src.indexOf('?')>=0?'&':'?') + 'v=' + KN_IMG_VER; }
+// 內文插圖：body 內 [[img:路徑]] 轉成圖；其餘文字照 escape（防注入），配合 pre-line 保留換行。
+function knBodyHtml(t){
+  const esc=String(t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  return esc.replace(/\[\[img:([^\]]+?)\]\]/g,(m,u)=>`<img class="kn-inline-img" src="${knImg(u.trim())}" alt="" loading="lazy">`);
+}
 function renderKnowledgeScreen() {
   const el = document.getElementById('knowledge-list');
   if (!el) return;
@@ -1897,7 +1903,7 @@ function openKnowledgePost(id){
   lb.querySelector('.kn-reader-img').style.display=p.image?'':'none';
   lb.querySelector('.kn-reader-meta').innerHTML=(p.tag?`<span class="kn-tag">${p.tag}</span>`:'')+(p.date?`<span class="kn-date">${p.date}</span>`:'');
   lb.querySelector('.kn-reader-title').textContent=p.title||'';
-  lb.querySelector('.kn-reader-body').textContent=p.body||p.content||p.summary||'';
+  lb.querySelector('.kn-reader-body').innerHTML=knBodyHtml(p.body||p.content||p.summary||'');
   lb.querySelector('.kn-reader-scroll').scrollTop=0;
   lb.classList.add('open');
   document.body.style.overflow='hidden';
