@@ -130,6 +130,8 @@ input:focus,select:focus{border-color:var(--accent)}
 .opt .t{font-weight:500} .opt .s{font-size:12.5px;color:var(--muted)}
 .opt .cap{margin-left:auto;font-size:12px;font-weight:500;color:var(--ok)}
 .opt .cap.full{color:var(--bad)}
+.opt.disabled{opacity:.5;cursor:not-allowed;background:#F4F5F6}
+.capleft{color:var(--ok);font-weight:600} .capfull{color:var(--bad);font-weight:600}
 .opt.dis{opacity:.5}
 .seg{display:flex;gap:8px;margin-bottom:14px}
 .seg button{flex:1;padding:11px;border-radius:11px;border:1.5px solid var(--line);background:#fff;font-weight:500;color:var(--ink2)}
@@ -217,7 +219,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-13-badcap8';
+const FRONTEND_VERSION = 'lm-2026-07-14-capshow';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -890,9 +892,9 @@ function openMakeup(ki,ci){
   MF={ki,ci,cands,picks:[],owed};
   const opts=cands.map((cd,i)=>{
     const s=cd.slot, d=new Date(cd.date+"T00:00:00");
-    return `<div class="opt" onclick="toggleMakeup(${i},this)">
+    return `<div class="opt" id="mkopt${i}" onclick="toggleMakeup(${i},this)">
       <div><div class="t">${SPORT[s.sport].name}・${fmt(d)}（星期${WDN[d.getDay()]}）</div>
-        <div class="s">${s.time}${s.note?' · '+s.note:''}</div></div>
+        <div class="s">${s.time}${s.note?' · '+s.note:''}<span class="capleft" id="mkcap${i}"></span></div></div>
       <div class="cap" style="display:none">✓</div></div>`;
   }).join("");
   openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
@@ -903,8 +905,31 @@ function openMakeup(ki,ci){
     <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
     <button class="btn" id="mf-go" onclick="submitMakeup()" disabled>提交補堂</button>`);
+  if(c.sport==="badminton") loadMakeupCaps();   // 羽毛球：載入每日剩餘補堂位
+}
+/* 羽毛球補堂：問後端每個(星期|日期)剩幾多位，填入畫面；滿場 grey 咗禁揀。 */
+async function loadMakeupCaps(){
+  let caps=null;
+  try{ const r=await api("makeupCaps",{sport:"badminton"}); if(r&&r.ok) caps=r.caps; }catch(e){}
+  if(!caps||!MF) return; MF.caps=caps;
+  MF.cands.forEach((cd,i)=>{
+    if(cd.slot.sport!=="badminton") return;
+    const rem=caps[cd.slot.wd+"|"+cd.date];
+    const capEl=document.getElementById("mkcap"+i), optEl=document.getElementById("mkopt"+i);
+    if(rem==null||!capEl||!optEl) return;
+    if(rem<=0){
+      capEl.textContent="・已滿"; capEl.className="capfull";
+      optEl.classList.add("disabled"); optEl.removeAttribute("onclick");
+      const pi=MF.picks.indexOf(i); if(pi>=0){ MF.picks.splice(pi,1); optEl.classList.remove("on"); const c=optEl.querySelector(".cap"); if(c)c.style.display="none"; }
+    } else {
+      capEl.textContent="・剩 "+rem+" 位"; capEl.className="capleft";
+    }
+  });
+  if($("#mf-count")) $("#mf-count").textContent = MF.picks.length? `已揀 ${MF.picks.length} 堂`:"未揀任何堂";
+  if($("#mf-go")) $("#mf-go").disabled = MF.picks.length===0;
 }
 function toggleMakeup(i,el){
+  if(el.classList.contains("disabled")) return;   // 滿場唔畀揀
   const idx=MF.picks.indexOf(i);
   if(idx>=0){MF.picks.splice(idx,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
   else{
