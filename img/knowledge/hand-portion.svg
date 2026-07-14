@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 360" font-family="'PingFang HK','Noto Sans HK',-apple-system,sans-serif">
+  <defs>
+    <linearGradient id="hdr" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1B8D9B"/><stop offset="1" stop-color="#147180"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="816" height="356" rx="20" fill="#ffffff" stroke="#E1EAEC" stroke-width="2"/>
+  <rect x="2" y="2" width="816" height="78" rx="20" fill="url(#hdr)"/>
+  <rect x="2" y="52" width="816" height="28" fill="url(#hdr)"/>
+  <text x="410" y="38" text-anchor="middle" fill="#fff" font-size="27" font-weight="800">手掌份量法</text>
+  <text x="410" y="64" text-anchor="middle" fill="#DCF3F6" font-size="14" font-weight="600" letter-spacing="1">Your hand is your portioning tool　·　每餐份量參考</text>
+
+  <!-- 4 columns -->
+  <!-- Protein -->
+  <g transform="translate(105,205)">
+    <circle r="58" fill="#DFF3F6"/>
+    <text y="20" text-anchor="middle" font-size="58">✋</text>
+    <text y="82" text-anchor="middle" fill="#13202E" font-size="19" font-weight="800">蛋白質</text>
+    <text y="105" text-anchor="middle" fill="#5B6B72" font-size="13">Protein · 一掌</text>
+    <text y="132" text-anchor="middle" fill="#147180" font-size="21" font-weight="900">20–24g</text>
+  </g>
+  <!-- Veg / Fiber -->
+  <g transform="translate(308,205)">
+    <circle r="58" fill="#E4F5E2"/>
+    <text y="20" text-anchor="middle" font-size="58">✊</text>
+    <text y="82" text-anchor="middle" fill="#13202E" font-size="19" font-weight="800">蔬菜・纖維</text>
+    <text y="105" text-anchor="middle" fill="#5B6B72" font-size="13">Veg · 一拳</text>
+    <text y="132" text-anchor="middle" fill="#3E9C3B" font-size="21" font-weight="900">3–5g 纖維</text>
+  </g>
+  <!-- Fat -->
+  <g transform="translate(511,205)">
+    <circle r="58" fill="#FCE4E4"/>
+    <text y="20" text-anchor="middle" font-size="58">👍</text>
+    <text y="82" text-anchor="middle" fill="#13202E" font-size="19" font-weight="800">脂肪</text>
+    <text y="105" text-anchor="middle" fill="#5B6B72" font-size="13">Fat · 一拇指</text>
+    <text y="132" text-anchor="middle" fill="#D8524F" font-size="21" font-weight="900">8–10g</text>
+  </g>
+  <!-- Carb -->
+  <g transform="translate(714,205)">
+    <circle r="58" fill="#FDEFD8"/>
+    <text y="20" text-anchor="middle" font-size="58">🤲</text>
+    <text y="82" text-anchor="middle" fill="#13202E" font-size="19" font-weight="800">碳水化合物</text>
+    <text y="105" text-anchor="middle" fill="#5B6B72" font-size="13">Carb · 一手捧</text>
+    <text y="132" text-anchor="middle" fill="#C98A1E" font-size="21" font-weight="900">20–24g</text>
+  </g>
+</svg>
