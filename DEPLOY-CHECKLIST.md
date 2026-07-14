@@ -24,8 +24,8 @@ git diff                   # 逐行睇
 - 特別留意「內容陣列」（器材 `EQUIPMENT_ITEMS`、知識 `knowledge`、章別 `BADGE_DATA`、課程）有冇被無故改動／截短。
 
 ## 3. 「以官網為準」的共用內容
-- 私人訓練(PT)內容嘅唯一真相 = `is-home.html`（官網）。
-- 若 PT 內容有改 → **三個檔一齊改**：`is-home.html`、`is-parent.html`、`is-leave-makeup.html`，改完第 1 步嘅 PT 一致性檢查要 ✓。
+- 私人訓練(PT)內容嘅唯一真相 = `index.html (官網首頁, 舊 is-home.html 轉址)`（官網）。
+- 若 PT 內容有改 → **三個檔一齊改**：`index.html (官網首頁, 舊 is-home.html 轉址)`、`is-parent.html`、`is-leave-makeup.html`，改完第 1 步嘅 PT 一致性檢查要 ✓。
 
 ## 4. 後端（apps-script）改動
 - 涉及名額／收費／待補(owed)／繳費邏輯 → 部署前先同老闆確認。

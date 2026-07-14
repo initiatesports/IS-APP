@@ -6,7 +6,7 @@ import puppeteer from 'puppeteer-core';
 
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const BASE = 'https://initiatesports.github.io/IS-APP/';
-const PAGES = ['is-home.html','is-parent.html','is-coach.html','is-leave-makeup.html','is-pay.html','is-hub.html','is-guide.html'];
+const PAGES = ['index.html','is-parent.html','is-coach.html','is-leave-makeup.html','is-pay.html','is-hub.html','is-guide.html'];
 // 明顯無關嘅 console 噪音（唔當錯）：favicon、網絡層、未登入時嘅預期 fetch 失敗
 const BENIGN = /favicon|ERR_|net::|Failed to load resource|the server responded with a status/i;
 
