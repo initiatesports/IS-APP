@@ -102,7 +102,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-14-vnextwk';
+const FRONTEND_VERSION = 'coach9-2026-07-15-markall';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -333,7 +333,7 @@ function grp(g,gi,date){
 }
 function row(r,gi,ri,key,date){
   const go=r.status==="出席",no=r.status==="缺席",lv=r.status==="請假",cc=r.status==="停課",mk=r.makeup?1:0;
-  return `<div class="att" data-mk="${mk}">
+  return `<div class="att" data-mk="${mk}" data-st="${r.status||''}">
     <span class="nm">${r.name}</span>${r.makeup?'<span class="tag">補堂</span>':''}${cc?'<span class="tag" style="background:#E2E3E5;color:#5F6368">停課</span>':''}
     <div class="marks">
       <button class="mk go ${go?'on':''}" onclick="mark('${r.name}','${key}','${date}','出席',this,${gi},${mk})">出席</button>
@@ -354,8 +354,12 @@ async function mark(name,key,date,status,btn,gi,mk){
 async function markAll(gi,key,date,status,btn){
   const grp=$("#g"+gi); const rows=[...grp.querySelectorAll(".att")];
   const old=btn.textContent; btn.textContent="儲存中…";
+  let skipped=0;
   try{
     for(const row of rows){
+      const st=row.dataset.st||"";
+      const lvOn=row.querySelector(".mk.lv")?.classList.contains("on");
+      if(st==="請假"||st==="停課"||lvOn){ skipped++; continue; }   // 已請假／停課 → 唔覆蓋
       const name=row.querySelector(".nm").textContent;
       const mk=row.dataset.mk==="1";
       const r=await api("markAttendance",{name,key,date,status,makeup:mk});
@@ -363,7 +367,7 @@ async function markAll(gi,key,date,status,btn){
       row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on"));
       row.querySelector(status==="出席"?".mk.go":".mk.no").classList.add("on");
     }
-    recount(gi); toast(status==="出席"?"已全部標出席":"已全部標缺席");
+    recount(gi); toast((status==="出席"?"已全部標出席":"已全部標缺席")+(skipped?`（跳過 ${skipped} 個請假）`:""));
   }catch(e){ toast("連線錯誤："+((e&&e.message)||e)); }
   btn.textContent=old;
 }
