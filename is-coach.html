@@ -102,7 +102,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-13-lspass';
+const FRONTEND_VERSION = 'coach9-2026-07-14-vnextwk';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -247,6 +247,8 @@ function vnCopyFirst(){
   });
   toast('已複製去全部');
 }
+// 地點面板預設日期＝今日 +6 天，方便提早設定下週場地／時間（老闆指定 +6）。
+function vnDefaultDate(){ const d=new Date(); d.setDate(d.getDate()+6); return d.toLocaleDateString('en-CA'); }
 async function renderVenuePanel(){
   VN_COURTS_MAP={};
   const host=$("#venuePanel"); if(!host) return;
@@ -254,7 +256,7 @@ async function renderVenuePanel(){
   VENUES_CACHE=(r&&r.ok&&r.venues)?r.venues:[];
   let html=`<div style="border:1px solid var(--line,#e3e3e3);border-radius:14px;padding:13px;background:var(--card,#fff)">
     <div style="font-weight:700;font-size:15px;margin-bottom:9px">📍 上課地點（家長端會見到）</div>
-    <input type="date" id="vn-date" value="${VN_LAST_DATE||S.date}" onchange="vnRenderRows()" style="${VN_INS}">
+    <input type="date" id="vn-date" value="${VN_LAST_DATE||vnDefaultDate()}" onchange="vnRenderRows()" style="${VN_INS}">
     <div id="vn-rows"></div>
     <button class="mini" style="width:100%;padding:11px" onclick="postVenueAll()">💾 儲存全日地點</button>
     <button class="mini" style="width:100%;padding:11px;margin-top:8px;background:#25D366;color:#053b22;font-weight:700" onclick="genWhatsApp()">📋 一鍵生成 WhatsApp 文案</button>
