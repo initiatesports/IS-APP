@@ -2100,6 +2100,8 @@ async function loadFromSheets(manual=false) {
     renderBadgePanel();
     if (typeof renderCoursesPanel==='function') renderCoursesPanel();
     if (typeof renderAchPanel==='function') renderAchPanel();
+    try{ renderKnowledgeScreen(); }catch(e){}
+    try{ renderEquipmentScreen(); }catch(e){}
     if (manual) showToast('數據已更新 ☁');
   } catch(e) {
     setSyncState('error');
@@ -2280,9 +2282,28 @@ function switchTab(tab) {
   if (tab === 'star') renderStarPanel();
 }
 
-// 只有已登入家長先向後端攞學生資料（排行榜／優秀學員等）；公開訪客唔會載入任何學生數據
+// 公開訪客：只載入公開 CMS 內容（知識分享/課程/器材/成就），唔套用任何學生數據（相片/成績/體測）。
+async function loadPublicCMS(){
+  try{
+    const data = await apiGet({ action:'home' });
+    if(!data || !Array.isArray(data.settings)) return;
+    const map={}; data.settings.forEach(r=>{ if(r && r.key!==undefined) map[r.key]=r.value; });
+    const arr=k=>{ try{ const v=JSON.parse(map[k]); return (Array.isArray(v)&&v.length)?v:null; }catch(e){ return null; } };
+    let a;
+    if((a=arr('knowledge_posts'))) KNOWLEDGE_POSTS=a;
+    if((a=arr('course_items')))    COURSE_ITEMS=a;
+    if((a=arr('equipment_items'))) EQUIPMENT_ITEMS=a;
+    if((a=arr('achievements')))    ACHIEVEMENTS=a;
+    const active=id=>{const p=document.getElementById('panel-'+id);return p&&p.classList.contains('active');};
+    if(active('knowledge')) renderKnowledgeScreen();
+    if(active('equipment')) renderEquipmentScreen();
+    if(active('courses') && typeof renderCoursesPanel==='function') renderCoursesPanel();
+    if(active('ach') && typeof renderAchPanel==='function') renderAchPanel();
+  }catch(e){}
+}
+// 已登入家長：載入學生資料（排行榜／優秀學員等）；公開訪客：只載入公開 CMS 內容。
 if (isParentAuthed()) { loadFromSheets(); }
-else { var _si=document.getElementById('sync-icon'); if(_si) _si.style.display='none'; }
+else { var _si=document.getElementById('sync-icon'); if(_si) _si.style.display='none'; loadPublicCMS(); }
 // 深層連結：請假補堂家長頁帶 ?view=lb/star/badge 過嚟，直接開該頁（未登入會被 switchPanel 帶去登入頁）
 (function(){var v=new URLSearchParams(location.search).get('view');var ok=['lb','star','badge','ach','courses','news','knowledge','equipment','pt'];if(v&&ok.indexOf(v)>=0)switchPanel(v);})();
 
