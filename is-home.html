@@ -505,17 +505,23 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 /* ── 知識閱讀視窗（圖＋文） ── */
 .kn-reader{position:fixed;inset:0;z-index:9999;background:rgba(12,20,30,.78);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;-webkit-overflow-scrolling:touch}
 .kn-reader.open{display:flex}
-.kn-reader-card{position:relative;width:100%;max-width:600px;background:var(--surface);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden;margin:auto}
+.kn-reader-card{position:relative;width:100%;max-width:660px;background:var(--surface);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden;margin:auto}
 .kn-reader-x{position:absolute;top:12px;right:12px;z-index:2;width:38px;height:38px;border-radius:50%;border:0;background:rgba(12,20,30,.55);color:#fff;font-size:17px;cursor:pointer;line-height:1}
 .kn-reader-x:hover{background:rgba(12,20,30,.78)}
 .kn-reader-scroll{max-height:calc(100vh - 56px);overflow:auto;-webkit-overflow-scrolling:touch}
 .kn-reader-img{width:100%;height:auto;display:block;background:#eef3f4}
-.kn-reader-text{padding:20px 24px 28px}
+.kn-reader-text{padding:26px 32px 34px}
 .kn-reader-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .kn-reader-title{font-size:20px;font-weight:900;color:var(--fg);margin:0 0 14px;line-height:1.35;letter-spacing:-.01em}
-.kn-reader-body{font-size:14px;color:var(--fg);line-height:1.85;white-space:pre-line}
-.kn-inline-img{display:block;width:100%;max-width:540px;margin:16px auto;border-radius:12px;box-shadow:0 4px 16px rgba(20,33,48,.12)}
-@media(max-width:560px){.kn-reader{padding:14px 8px}.kn-reader-title{font-size:18px}.kn-reader-text{padding:18px 18px 24px}}
+.kn-reader-body{font-size:15.5px;color:var(--fg);line-height:1.78}
+.kn-reader-body>*:first-child{margin-top:0}
+.kn-reader-body .kn-h{font-size:16.5px;font-weight:800;color:var(--cyan-deep);margin:24px 0 9px;padding-left:11px;border-left:3px solid var(--cyan);line-height:1.4}
+.kn-reader-body .kn-sub{font-weight:700;color:var(--fg);margin:15px 0 5px;font-size:15px}
+.kn-reader-body .kn-li{position:relative;padding-left:18px;margin:5px 0;color:var(--fg)}
+.kn-reader-body .kn-li::before{content:'•';position:absolute;left:3px;top:-.5px;color:var(--cyan);font-weight:700}
+.kn-reader-body .kn-p{margin:0 0 9px}
+.kn-inline-img{display:block;width:100%;max-width:540px;margin:18px auto;border-radius:12px;box-shadow:0 4px 16px rgba(20,33,48,.12)}
+@media(max-width:560px){.kn-reader{padding:0}.kn-reader-card{max-width:100%;border-radius:0;min-height:100vh}.kn-reader-scroll{max-height:100vh}.kn-reader-title{font-size:19px}.kn-reader-text{padding:20px 18px 40px}.kn-reader-body{font-size:15px}.kn-reader-body .kn-h{font-size:16px;margin-top:20px}}
 /* ── 聯絡 CTA band ── */
 .cta-band{max-width:1000px;margin:10px auto 8px;padding:32px 26px;border-radius:22px;text-align:center;background:linear-gradient(135deg,var(--cyan-deep),var(--cyan) 70%,#2BA9B6);box-shadow:0 16px 40px rgba(20,33,48,.16);position:relative;overflow:hidden}
 .cta-band::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 25%,rgba(255,255,255,.18),transparent 55%);pointer-events:none}
@@ -1322,7 +1328,7 @@ function switchPanel(id) {
 //  API
 // ═══════════════════════
 const API_URL='https://script.google.com/macros/s/AKfycbxuJ6ypxGG3bZi5SGtgPkedl3fs0mm3SJ3c9DcauTN0SDzfTvSw7nyTBcaaI5vC9GU/exec';
-async function apiGet(p){const r=await fetch(API_URL+'?'+new URLSearchParams(p));return r.json();}
+async function apiGet(p){const r=await fetch(API_URL+'?'+new URLSearchParams(p)+'&_='+Date.now(),{cache:'no-store'});return r.json();}
 
 // ═══════════════════════
 //  DATA
@@ -1858,10 +1864,22 @@ function doSearch(){
 // 知識圖片版本碼：每次換圖把數字 +1，瀏覽器即取新檔（防舊 cache）
 const KN_IMG_VER = '20260620';
 function knImg(src){ if(!src) return ''; return src + (src.indexOf('?')>=0?'&':'?') + 'v=' + KN_IMG_VER; }
-// 內文插圖：body 內 [[img:路徑]] 轉成圖；其餘文字照 escape（防注入），配合 pre-line 保留換行。
+// 知識文章排版：把純文字 body 解析成有層次嘅 HTML（標題／小標／列點／段落／內文插圖）。
+// 全部文字照 escape 防注入；只認 [[img:路徑]] token 轉圖。
 function knBodyHtml(t){
-  const esc=String(t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  return esc.replace(/\[\[img:([^\]]+?)\]\]/g,(m,u)=>`<img class="kn-inline-img" src="${knImg(u.trim())}" alt="" loading="lazy">`);
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const out=[];
+  String(t||'').split('\n').forEach(raw=>{
+    const line=raw.trim();
+    if(!line) return;                                              // 空行：由元素間距處理
+    let m;
+    if((m=line.match(/^\[\[img:([^\]]+?)\]\]$/))){ out.push(`<img class="kn-inline-img" src="${knImg(m[1].trim())}" alt="" loading="lazy">`); return; }
+    if(/^【.*】$/.test(line)){ out.push(`<h3 class="kn-h">${esc(line.replace(/^【|】$/g,''))}</h3>`); return; }               // 【大標題】
+    if(/^[①②③④⑤⑥⑦⑧⑨⑩]/.test(line) || /^(STEP|Step)\s*\d/.test(line) || /^\d+[\.、]\s?\S/.test(line)){ out.push(`<div class="kn-sub">${esc(line)}</div>`); return; } // 小標(①/STEP/1.)
+    if(/^[•‧・·▪]\s?/.test(line)){ out.push(`<div class="kn-li">${esc(line.replace(/^[•‧・·▪]\s?/,''))}</div>`); return; }   // • 列點
+    out.push(`<p class="kn-p">${esc(line)}</p>`);                  // 一般段落
+  });
+  return out.join('');
 }
 function renderKnowledgeScreen() {
   const el = document.getElementById('knowledge-list');
