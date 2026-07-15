@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 440" font-family="'PingFang HK','Noto Sans HK',-apple-system,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" font-family="'PingFang HK','Noto Sans HK',-apple-system,sans-serif">
   <defs>
     <linearGradient id="wbg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#2FC5D6"/><stop offset="0.55" stop-color="#1B8D9B"/><stop offset="1" stop-color="#0E5f6a"/>
@@ -7,22 +7,20 @@
       <stop offset="0" stop-color="#EAFBFD"/><stop offset="1" stop-color="#8FE3EE"/>
     </linearGradient>
   </defs>
-  <rect width="820" height="440" fill="url(#wbg)"/>
-  <!-- 裝飾水泡 -->
-  <circle cx="712" cy="360" r="70" fill="#ffffff" opacity="0.06"/>
-  <circle cx="120" cy="70" r="46" fill="#ffffff" opacity="0.06"/>
-  <circle cx="770" cy="120" r="26" fill="#ffffff" opacity="0.08"/>
-  <!-- 水滴 -->
-  <g transform="translate(650,150)">
+  <rect width="760" height="440" fill="url(#wbg)"/>
+  <!-- 裝飾水泡（角落，可被裁切唔影響） -->
+  <circle cx="60" cy="380" r="70" fill="#ffffff" opacity="0.06"/>
+  <circle cx="700" cy="70" r="52" fill="#ffffff" opacity="0.06"/>
+  <circle cx="690" cy="380" r="30" fill="#ffffff" opacity="0.07"/>
+  <!-- 水滴（右上角裝飾） -->
+  <g transform="translate(628,54) scale(0.62)">
     <path d="M60 0 C60 0 108 66 108 104 A48 48 0 1 1 12 104 C12 66 60 0 60 0 Z" fill="url(#drop)"/>
     <ellipse cx="44" cy="120" rx="14" ry="20" fill="#ffffff" opacity="0.55"/>
   </g>
-  <!-- 標籤 -->
-  <text x="60" y="66" fill="#EAFBFD" font-size="15" font-weight="700" letter-spacing="2">INITIATE SPORTS　運動知識分享 101 · 第 4 期</text>
-  <!-- 標題 -->
-  <text x="60" y="176" fill="#fff" font-size="52" font-weight="900">唔肯飲水嘅小朋友</text>
-  <text x="60" y="238" fill="#EAFBFD" font-size="30" font-weight="800">等到「口渴」先飲，其實已經遲咗</text>
-  <!-- 副線 -->
-  <rect x="62" y="270" width="70" height="5" rx="2.5" fill="#EAFBFD" opacity="0.85"/>
-  <text x="60" y="332" fill="#DFF6F9" font-size="20" font-weight="600">口渴唔係提示，係警號 —— 教你飲幾多、點樣令小朋友自己想飲水</text>
+  <!-- 全部置中：卡片 object-fit:cover 置中裁切都唔會切到 -->
+  <text x="380" y="92" text-anchor="middle" fill="#EAFBFD" font-size="16" font-weight="700" letter-spacing="2">INITIATE SPORTS　·　知識分享 101　·　第 4 期</text>
+  <text x="380" y="196" text-anchor="middle" fill="#fff" font-size="54" font-weight="900">唔肯飲水嘅小朋友</text>
+  <text x="380" y="256" text-anchor="middle" fill="#EAFBFD" font-size="30" font-weight="800">等到「口渴」先飲，其實已經遲咗</text>
+  <rect x="345" y="286" width="70" height="5" rx="2.5" fill="#EAFBFD" opacity="0.85"/>
+  <text x="380" y="344" text-anchor="middle" fill="#DFF6F9" font-size="19" font-weight="600">口渴唔係提示，係警號 —— 教你飲幾多、點令小朋友自己想飲水</text>
 </svg>
