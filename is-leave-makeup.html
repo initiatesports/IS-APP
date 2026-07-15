@@ -219,7 +219,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-15-sibmakeup';
+const FRONTEND_VERSION = 'lm-2026-07-15-nocancelmadeup';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -775,7 +775,7 @@ async function submitLeave(){
 /* ---------- 取消請假 ---------- */
 function cancellableLeaves(c){
   const t=iso(new Date());
-  return (c.sessions||[]).filter(s=> s.date>=t && (s.status==="請假"||s.status==="缺席"));
+  return (c.sessions||[]).filter(s=> s.date>=t && (s.status==="請假"||s.status==="缺席") && !s.madeUp);   // 已補堂(出席)嘅請假唔畀取消
 }
 let CF={};
 function openCancelLeave(ki,ci){
