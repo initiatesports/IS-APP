@@ -219,7 +219,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-15-bballbackup';
+const FRONTEND_VERSION = 'lm-2026-07-15-dmydate';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -227,7 +227,7 @@ const FRONTEND_VERSION = 'lm-2026-07-15-bballbackup';
 const START_MON = new Date(2026,6,13);            // 2026-07-13 (週一)
 const WD = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6};
 const WDN = ["日","一","二","三","四","五","六"];
-const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+const fmt = d => `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;   // 香港格式 日/月/年
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 // 個別班別專屬學期（覆蓋 START_MON / n）：花式跳繩(六) 2026-07-04 起、共 9 堂（與後端 SCHED_OVR 一致）
 const SCHED_OVR = { "六":{start:new Date(2026,6,4), n:9} };
@@ -673,7 +673,7 @@ function venueAt(date,cid){ const day=(S.venues||{})[date]; if(!day) return null
 function sessRow(s,cid){
   const d=new Date(s.date+"T00:00:00"), today=new Date(); today.setHours(0,0,0,0);
   let pill=`<span class="pill p-up">未上</span>`;
-  if(s.status==="請假") pill=`<span class="pill p-leave">請假</span>`;
+  if(s.status==="請假") pill = s.madeUp ? `<span class="pill p-makeup">已補堂</span>` : `<span class="pill p-leave">請假</span>`;
   else if(s.status==="補堂") pill=`<span class="pill p-makeup">補堂</span>`;
   else if(s.status==="出席") pill=`<span class="pill p-go">出席</span>`;
   else if(s.status==="缺席") pill=`<span class="pill p-absent">缺席</span>`;
@@ -1065,14 +1065,14 @@ function cancelText(date){
   const d=new Date(date+"T00:00:00");
   return `【INITIATE SPORTS．停課通知】
 各位家長 🙏
-因應天文台發出黑色暴雨警告／八號或以上風球，今日（${d.getMonth()+1}/${d.getDate()}・星期${WDN[d.getDay()]}）課堂取消。
+因應天文台發出黑色暴雨警告／八號或以上風球，今日（${d.getDate()}/${d.getMonth()+1}・星期${WDN[d.getDay()]}）課堂取消。
 按報名須知之天氣安排，是次取消將計算一堂學費，不設補堂，敬請留意。
 不便之處，敬請見諒；如有查詢歡迎 WhatsApp 6331 7403。
 INITIATE SPORTS`;
 }
 function weatherCancel(){
   const date=$("#cdate").value, d=new Date(date+"T00:00:00");
-  if(!confirm(`確定將 ${d.getMonth()+1}/${d.getDate()}（星期${WDN[d.getDay()]}）所有課堂標記為「停課」，並產生家長通知文案？`)) return;
+  if(!confirm(`確定將 ${d.getDate()}/${d.getMonth()+1}（星期${WDN[d.getDay()]}）所有課堂標記為「停課」，並產生家長通知文案？`)) return;
   doWeatherCancel(date);
 }
 async function doWeatherCancel(date){
