@@ -203,7 +203,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-13-noWA';
+const FRONTEND_VERSION = 'parent-2026-07-15-nocancelmadeup';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -1104,7 +1104,7 @@ async function submitLeave(){
 }
 
 /* ═══════════ 取消請假 ═══════════ */
-function cancellableLeaves(c){ const t=todayStr(); return (c.sessions||[]).filter(s=>s.date>=t&&(s.status==='請假'||s.status==='缺席')); }
+function cancellableLeaves(c){ const t=todayStr(); const madeUp=new Set((c.makeups||[]).filter(m=>m.status==='出席'&&m.from).map(m=>m.from)); return (c.sessions||[]).filter(s=>s.date>=t&&(s.status==='請假'||s.status==='缺席')&&!madeUp.has(s.date)); }   // 已補堂(出席)嘅請假唔畀取消
 let CF={};
 function openCancelLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci], opts=cancellableLeaves(c); CF={ki,ci,dates:[]};
