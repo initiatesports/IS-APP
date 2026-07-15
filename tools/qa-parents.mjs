@@ -61,6 +61,25 @@ async function callLogin(exec, name, cred) {
   return { ok: false, err: lastErr || "fetch failed" };
 }
 
+// 教練 load（authoritative grid）：回傳全校 attendance=[{key:"cid|date",name,status}]（只非空格）。
+// 用嚟做「全班漏點」判斷，唔靠家長登入 → 杜絕「有標記學生登入失敗 → 全班誤判漏點」盲點。
+async function callLoad(exec, coachPass) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(exec, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "load", coachPass }),
+        redirect: "follow",
+      });
+      const txt = await res.text();
+      try { return JSON.parse(txt); } catch { /* 重試 */ }
+    } catch (e) { /* 重試 */ }
+    await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+  }
+  return { ok: false, err: "load fetch failed" };
+}
+
 function uniqByName(rows) {
   const seen = new Set(), out = [];
   for (const [n, l] of rows) { if (!seen.has(n)) { seen.add(n); out.push([n, l]); } }
@@ -137,11 +156,27 @@ async function sweep(label, exec, rows, withPin) {
   console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}`);
   console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}\n`);
 
-  // 整班漏點：某班某上課日全班都係空白（seen>0 且全部 blank）→ 教練可能漏咗點名
+  // 整班漏點偵測。clsDate 提供「窗口內有課堂嘅 (班|日)」候選（由家長 session 列舉，
+  // 只要每班有 1 個家長登入到就齊全）。有無點名嘅裁決分兩路：
+  //   ① COACH_PASS 有 → 讀教練 grid（load）判斷該日 grid 有無任何非空記錄（authoritative，
+  //      唔理邊個學生登入到；解決「有標記學生登入失敗 → 全班誤判漏點」，如 c4 2026-06-24）。
+  //   ② 冇 COACH_PASS → 回退舊法（家長 session 全班空白）。
+  let gridMark = null;
+  if (process.env.COACH_PASS) {
+    const g = await callLoad(EXEC4, process.env.COACH_PASS);
+    if (g && g.ok && Array.isArray(g.attendance)) {
+      gridMark = {};
+      for (const a of g.attendance) gridMark[a.key] = (gridMark[a.key] || 0) + 1;   // 每 (班|日) 非空格數
+    } else {
+      console.error("⚠️ 教練 load 失敗，整班漏點回退用登入統計：" + ((g && g.err) || "?"));
+    }
+  }
   for (const k of Object.keys(clsDate)) {
     const o = clsDate[k];
-    if (o.seen > 0 && o.blank === o.seen) {
-      const [cid, date] = k.split("|");
+    const [cid, date] = k.split("|");
+    if (gridMark) {
+      if (!(gridMark[k] > 0)) add("UNPOINTED", "恆常#4", cid, `${date} 全班未點名（grid 零記錄，可能漏點）`);
+    } else if (o.seen > 0 && o.blank === o.seen) {
       add("UNPOINTED", "恆常#4", cid, `${date} 全班 ${o.seen} 人都未點名（可能漏咗點名）`);
     }
   }
