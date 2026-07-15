@@ -131,7 +131,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .opt .cap{margin-left:auto;font-size:12px;font-weight:500;color:var(--ok)}
 .opt .cap.full{color:var(--bad)}
 .opt.disabled{opacity:.5;cursor:not-allowed;background:#F4F5F6}
-.capleft{color:var(--ok);font-weight:600} .capfull{color:var(--bad);font-weight:600}
+.capleft{color:var(--ok);font-weight:600} .capfull{color:var(--bad);font-weight:600} .capwait{color:#C47F00;font-weight:600}
 .opt.dis{opacity:.5}
 .seg{display:flex;gap:8px;margin-bottom:14px}
 .seg button{flex:1;padding:11px;border-radius:11px;border:1.5px solid var(--line);background:#fff;font-weight:500;color:var(--ink2)}
@@ -219,7 +219,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-14-capshow';
+const FRONTEND_VERSION = 'lm-2026-07-15-bballbackup';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -306,8 +306,9 @@ function makeupSlotsFor(c){
       : {"一":"14:00–15:00","四":"15:00–16:00"};
     return all.filter(w=>w!==c.wd).map(w=>({sport:sp,wd:w,time:times[w],cap:SPORT[sp].cap}));
   }
-  if(sp==="basketball") return [{sport:"basketball",wd:"三",time:"09:00–10:00",
-      fixed:["2026-08-21","2026-08-28"],note:"後備日"}];
+  if(sp==="basketball") return [
+      {sport:"basketball",wd:"六",time:"17:00–18:00",fixed:["2026-08-08","2026-08-15"],note:"後備日"},
+      {sport:"basketball",wd:"三",time:"09:00–10:00",fixed:["2026-08-21","2026-08-28"],note:"後備日"}];
   return []; // 其餘單班，無預設 → 由教練另約
 }
 /* 某時段某日仲有冇位 */
@@ -905,13 +906,26 @@ function openMakeup(ki,ci){
     <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
     <button class="btn" id="mf-go" onclick="submitMakeup()" disabled>提交補堂</button>`);
-  if(c.sport==="badminton") loadMakeupCaps();   // 羽毛球：載入每日剩餘補堂位
+  if(c.sport==="badminton"||c.sport==="basketball") loadMakeupCaps(c.sport);
 }
-/* 羽毛球補堂：問後端每個(星期|日期)剩幾多位，填入畫面；滿場 grey 咗禁揀。 */
-async function loadMakeupCaps(){
-  let caps=null;
-  try{ const r=await api("makeupCaps",{sport:"badminton"}); if(r&&r.ok) caps=r.caps; }catch(e){}
-  if(!caps||!MF) return; MF.caps=caps;
+/* 補堂名額顯示：羽毛球→每日剩幾多位(滿場禁揀)；籃球後備日→每日已選人數(需 4 人開班)。 */
+async function loadMakeupCaps(sport){
+  sport=sport||"badminton";
+  let r=null;
+  try{ r=await api("makeupCaps",{sport}); }catch(e){}
+  if(!r||!r.ok||!MF) return;
+  if(sport==="basketball"){
+    const counts=r.counts||{}, minOpen=r.minOpen||4;
+    MF.cands.forEach((cd,i)=>{
+      if(cd.slot.sport!=="basketball") return;
+      const n=counts[cd.date], capEl=document.getElementById("mkcap"+i);
+      if(n==null||!capEl) return;
+      capEl.textContent = `・已有 ${n} 人選`+(n>=minOpen?`（已夠 ${minOpen} 人開班 ✓）`:`（需 ${minOpen} 人開班）`);
+      capEl.className = n>=minOpen ? "capleft" : "capwait";
+    });
+    return;
+  }
+  const caps=r.caps; if(!caps) return; MF.caps=caps;
   MF.cands.forEach((cd,i)=>{
     if(cd.slot.sport!=="badminton") return;
     const rem=caps[cd.slot.wd+"|"+cd.date];
