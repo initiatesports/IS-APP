@@ -219,7 +219,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-15-dmydate';
+const FRONTEND_VERSION = 'lm-2026-07-15-sibmakeup';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -890,7 +890,10 @@ function openMakeup(ki,ci){
     if(s.fixed){ s.fixed.forEach(di=>{ if(new Date(di+"T00:00:00")>today) cands.push({slot:s,date:di}); }); }
     else { sessionsFor(s.wd).filter(d=>d>today && d<=deadline).forEach(d=>cands.push({slot:s,date:iso(d)})); }
   });
-  MF={ki,ci,cands,picks:[],owed};
+  // 兄弟姊妹：其他小朋友喺同一班（同項目同星期）有待補堂 → 可一齊補堂
+  const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
+    .map(o=>{ const sc=(o.ch.classes||[]).find(x=>x.sport===c.sport && x.wd===c.wd && (x.owed||0)>0); return sc?{idx:o.idx,name:o.ch.name,sc}:null; }).filter(Boolean);
+  MF={ki,ci,cands,picks:[],owed,sibs:[]};
   const opts=cands.map((cd,i)=>{
     const s=cd.slot, d=new Date(cd.date+"T00:00:00");
     return `<div class="opt" id="mkopt${i}" onclick="toggleMakeup(${i},this)">
@@ -902,6 +905,10 @@ function openMakeup(ki,ci){
     <p class="sd">待補 ${owed} 堂，可揀最多 ${owed} 堂${refund?'':`　·　須於 ${fmt(deadline)} 前完成`}</p>
     ${refund?`<div class="notice warn">籃球設兩日後備補堂日；如兩日都未能出席，將作退款處理。</div>`:''}
     ${opts||'<div class="notice warn">截止前已冇可補時段，請 WhatsApp 張 Sir。</div>'}
+    ${sibs.length?`<div class="lbl" style="font-size:13px;font-weight:500;margin:14px 0 6px">👨‍👩‍👧‍👦 同時幫兄弟姊妹一齊補堂（揀邊個就同上面日子一齊補）</div>
+    <div id="mf-sibs">${sibs.map(s=>`<div class="opt" onclick="toggleMkSib(${s.idx},this)">
+      <div><div class="t">${s.name}　·　${SPORT[s.sc.sport]?SPORT[s.sc.sport].name:s.sc.sport}（星期${s.sc.wd}）　待補 ${s.sc.owed} 堂</div></div>
+      <div class="cap" style="display:none">✓</div></div>`).join("")}</div>`:''}
     <div class="confirm-q" id="mf-count">未揀任何堂</div>
     <input id="mf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
@@ -953,6 +960,11 @@ function toggleMakeup(i,el){
   $("#mf-count").textContent= MF.picks.length? `已揀 ${MF.picks.length} 堂`:"未揀任何堂";
   $("#mf-go").disabled = MF.picks.length===0;
 }
+function toggleMkSib(idx,el){
+  const i=MF.sibs.indexOf(idx);
+  if(i>=0){MF.sibs.splice(i,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
+  else{MF.sibs.push(idx);el.classList.add("on");el.querySelector(".cap").style.display="";}
+}
 async function submitMakeup(){
   const code=$("#mf-code").value.trim();
   if(code!==S.family.last4) return toast("後 4 位數字唔啱");
@@ -966,14 +978,24 @@ async function submitMakeup(){
       if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
+  if(fail){ closeSheet(); await refresh(); toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
+  // 兄弟姊妹一齊補堂：同一班（同項目同星期），同上面揀嘅日子一齊補
+  const sibDone=[];
+  for(const sidx of (MF.sibs||[])){
+    const sib=S.family.children[sidx], scc=(sib.classes||[]).find(x=>x.sport===c.sport && x.wd===c.wd);
+    if(!scc) continue;
+    let sok=0;
+    for(const i of MF.picks){ const cd=MF.cands[i], s=cd.slot;
+      try{ const r=await api("bookMakeup",{name:sib.name,fromKey:classKey(scc),fromDate:"",toKey:s.sport+"|"+s.wd,toDate:cd.date,toTime:s.time}); if(r&&r.ok) sok++; }catch(e){} }
+    if(sok) sibDone.push(sib.name);
+  }
   closeSheet(); await refresh();
-  if(fail){ toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
   const picks=MF.picks.map(i=>MF.cands[i]).map(cd=>{const d=new Date(cd.date+"T00:00:00");return `${SPORT[cd.slot.sport].name}・${fmt(d)}（星期${WDN[d.getDay()]}）`;});
   showReceipt("✅ 已預約補堂", [
-    `小朋友：<b>${child.name}</b>`,
+    `小朋友：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,
     `原班：${SPORT[c.sport].name}（星期${c.wd}）`,
     ...picks.map(p=>`補去：${p}`)
-  ], `INITIATE 補堂預約\n小朋友：${child.name}\n原班：${SPORT[c.sport].name}（星期${c.wd}）\n${picks.map(p=>'補去：'+p).join("\n")}`);
+  ], `INITIATE 補堂預約\n小朋友：${child.name}${sibDone.length?('、'+sibDone.join('、')):''}\n原班：${SPORT[c.sport].name}（星期${c.wd}）\n${picks.map(p=>'補去：'+p).join("\n")}`);
 }
 
 /* ---------- 教練版 ---------- */
