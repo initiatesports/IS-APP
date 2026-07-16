@@ -102,7 +102,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-15-markall';
+const FRONTEND_VERSION = 'coach9-2026-07-16-cancelclass';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -328,6 +328,7 @@ function grp(g,gi,date){
     <div style="display:flex;gap:8px;margin:2px 0 10px">
       <button class="allbtn" onclick="markAll(${gi},'${key}','${date}','出席',this)">✓ 全部出席</button>
       <button class="allbtn" style="background:var(--bad-bg);color:var(--bad)" onclick="markAll(${gi},'${key}','${date}','缺席',this)">✗ 全部缺席</button>
+      <button class="allbtn" style="background:#E2E3E5;color:#5F6368" onclick="cancelClass(${gi},'${key}','${date}','${sp.name}',this)">🌧 今日停課</button>
     </div>
     ${g.rows.map((r,ri)=>row(r,gi,ri,key,date)).join("")}</div>`;
 }
@@ -401,14 +402,36 @@ async function doWeatherCancel(date){
   showCancelPanel(date);
   toast(`已停課 ${r.classes?r.classes.length:0} 班`);
 }
-function showCancelPanel(date){
+function showCancelPanel(date,label){
   const box=$("#list"); if(!box) return;
   const p=document.createElement("div");
   p.className="cancelpanel";
-  p.innerHTML=`<div class="cp-h">📣 家長群組文案（已自動將當日全部點名為「停課」）</div>
-    <textarea id="cptext" readonly rows="7">${cancelText(date)}</textarea>
+  const txt=label?classCancelText(date,label):cancelText(date);
+  p.innerHTML=`<div class="cp-h">📣 家長群組文案（已將${label?`「${label}」`:'當日全部'}標記為「停課」）</div>
+    <textarea id="cptext" readonly rows="7">${txt}</textarea>
     <button class="btn" onclick="copyCancel()">複製文案</button>`;
   box.prepend(p);
+}
+/* ---- 單班停課（只停當前呢一班，如只田徑取消；其他班唔受影響）---- */
+function classCancelText(date,label){
+  const d=new Date(date+"T00:00:00");
+  return `【INITIATE SPORTS．停課通知】
+各位家長 🙏
+因應天氣關係，今日（${d.getMonth()+1}/${d.getDate()}・星期${WDN[d.getDay()]}）「${label}」課堂取消。
+按報名須知之天氣安排，是次取消將計算一堂學費，敬請留意。
+不便之處，敬請見諒；如有查詢歡迎 WhatsApp 6331 7403。
+INITIATE SPORTS`;
+}
+async function cancelClass(gi,key,date,spname,btn){
+  const d=new Date(date+"T00:00:00");
+  if(!confirm(`確定將「${spname}」（${d.getMonth()+1}/${d.getDate()}・星期${WDN[d.getDay()]}）成班標記為「停課」？只影響呢一班，其他班唔受影響。`)) return;
+  const old=btn.textContent; btn.textContent="處理中…";
+  let r; try{ r=await api("cancelDay",{date,key}); }
+  catch(e){ toast("連線錯誤，請再試"); btn.textContent=old; return; }
+  if(!r||!r.ok){ toast("失敗"+(r&&r.err?"："+r.err:"")); btn.textContent=old; return; }
+  await load();
+  showCancelPanel(date,spname);
+  toast(`已停課：${spname}`);
 }
 function copyCancel(){
   const t=$("#cptext"); if(!t) return; t.select(); t.setSelectionRange(0,99999);
