@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-16-refreshbtn';
+const FRONTEND_VERSION = 'parent-2026-07-16-mkvisibility';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -251,6 +251,9 @@ const T={
   cancelLeave:{zh:n=>`取消請假（${n}）`,en:n=>`Cancel leave (${n})`},
   cancelMk:{zh:n=>`取消補堂（${n}）`,en:n=>`Cancel make-up (${n})`},
   booked:{zh:'已約補堂',en:'Booked make-ups'},
+  upMkBanner:{zh:n=>`📅 你有 ${n} 堂已約補堂`,en:n=>`📅 You have ${n} booked make-up${n>1?'s':''}`},
+  upMkHint:{zh:'詳情或取消可喺下面班別卡「已約補堂」。',en:'See details / cancel under “Booked make-ups” in the class card below.'},
+  mkReviewHint:{zh:'💡 隨時可返嚟本頁「已約補堂」查看或取消，唔使問教練。',en:'💡 View or cancel anytime under “Booked make-ups” here — no need to ask the coach.'},
   mkToShort:{zh:'補去',en:'To'},reschedMk:{zh:'改期',en:'Reschedule'},cancelOne:{zh:'取消',en:'Cancel'},
   reschedQ:{zh:x=>`改期：會先取消「${x}」嘅補堂，再畀你揀新一日。確認？`,en:x=>`Reschedule: this cancels "${x}" then lets you pick a new day. Confirm?`},
   cancelOneQ:{zh:x=>`確認取消補堂「${x}」？取消後待補堂數會回復。`,en:x=>`Cancel make-up "${x}"? Your owed count will be restored.`},
@@ -386,6 +389,14 @@ function payOpenDate(idx){const y=Number(CONFIG.TERM_START.slice(0,4));const fir
 // 該期付款是否已開放：現期及之前一律開放；未來期要到 payOpenDate 先開放
 function payOpen(idx){return idx<=currentPeriodIdx() ? true : todayStr()>=payOpenDate(idx);}
 /* 小朋友歷史：已出席 / 可補堂(未過期) / 已過期不能補堂 */
+// 小朋友所有「未來、未上」已約補堂（跨所有班別），畀主頁置頂摘要用。
+function upcomingMakeups(child){
+  const t=todayStr(), out=[];
+  (child.classes||[]).forEach(c=>{
+    (c.makeups||[]).forEach(m=>{ if(m.date>=t && m.status!=='出席' && m.status!=='缺席' && m.status!=='停課') out.push({date:m.date,to:m.to}); });
+  });
+  return out.sort((a,b)=>a.date<b.date?-1:1);
+}
 function childHistory(child){
   const t=todayStr(), out={attended:[],makeupable:[],expired:[]};
   (child.classes||[]).forEach(c=>{
@@ -575,6 +586,14 @@ function renderParent(){
       html+=`<div class="banner next"><div class="nx-l"><div class="nx-k">${t('nextClass')}</div>
         <div class="nx-v">${classLabel(nx.cid)}・${fmt(d)}${dow(d)}</div></div>
         <button class="nx-btn" onclick="downloadICS(${ki})">${t('addCal')}</button></div>`;
+    }
+    // 📅 已約補堂摘要（置頂、一開就見；解決家長唔知去邊睇已約補堂）
+    const upMk=upcomingMakeups(child);
+    if(upMk.length){
+      html+=`<div class="banner" style="margin-top:8px;background:var(--teal-dim,#e6f6f8);border-color:#bfe3e7;color:#0a6b74">
+        <div style="font-weight:700">${t('upMkBanner',upMk.length)}</div>
+        <div style="font-size:13px;margin-top:3px">${upMk.map(m=>{const d=new Date(m.date+'T00:00:00');return `${fmt(d)}${dow(d)}・${classLabel(m.to)}`;}).join('<br>')}</div>
+        <div style="font-size:11.5px;opacity:.85;margin-top:4px">${t('upMkHint')}</div></div>`;
     }
     html+=`<div class="cards-grid">`;
     (child.classes||[]).forEach((c,ci)=> html+=classCard(child,ki,c,ci));
@@ -1192,7 +1211,7 @@ async function submitMakeup(){
   closeSheet(); await refresh();
   if(fail) return toast(t('failN',fail,err));
   const picks=MF.picks.map(p=>{const d=new Date(p.date+'T00:00:00');return `${classLabel(p.toKey)}・${fmt(d)}${dow(d)}`;});
-  showReceipt(t('rcMk'),[`${t('child')}：<b>${child.name}</b>`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...picks.map(p=>t('mkTo',p))],
+  showReceipt(t('rcMk'),[`${t('child')}：<b>${child.name}</b>`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...picks.map(p=>t('mkTo',p)),`<span style="color:var(--muted)">${t('mkReviewHint')}</span>`],
     `INITIATE 補堂預約\n小朋友：${child.name}\n原班：${classLabel(c.key||c.sport)}\n${picks.map(p=>'補去：'+p).join('\n')}`);
 }
 
