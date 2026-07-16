@@ -191,7 +191,10 @@ input:focus,select:focus{border-color:var(--accent)}
       <div class="bt">INITIATE <span>SPORTS</span></div>
       <div class="sub">暑期班 · 請假補堂</div>
     </div>
-    <div class="right" id="navRight"></div>
+    <div class="right" style="align-items:center">
+      <button class="chip-btn" id="refresh-btn" onclick="forceRefresh()" aria-label="更新最新版" title="更新最新版" style="font-size:15px">🔄</button>
+      <span id="navRight" style="display:flex;gap:7px"></span>
+    </div>
   </div>
   <a id="bookingPromo" href="https://initiatesports.github.io/IS-APP/initiate-sports-booking.html" target="_blank" rel="noopener" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:13px 16px;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;text-decoration:none;font-weight:800;font-size:14.5px;box-shadow:0 4px 14px rgba(27,141,155,.28)">
     <span>📣 6–7月平日特別課程・接受報名中</span><span style="font-size:18px">→</span>
@@ -219,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-15-nocancelmadeup';
+const FRONTEND_VERSION = 'lm-2026-07-16-refreshbtn';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -1146,6 +1149,11 @@ async function bootSSO(){
 /* 自動更新檢查：iOS 加咗主畫面嘅 Web App 會無視 no-cache、serve 舊版 HTML。
    開頁時用「防快取」fetch 攞返伺服器最新版 HTML,抽出佢 FRONTEND_VERSION 同本頁比對;
    唔同 = 本頁係舊快取 → 自動 cache-bust 重載攞新版(只自動試一次),仲係舊就彈可關橫額。 */
+/* 家長可隨時撳「🔄」強制攞最新版：cache-bust 重載，繞過 iOS 主畫面 icon 舊快取。 */
+function forceRefresh(){
+  try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+  location.replace(location.pathname + '?_r=' + Date.now());
+}
 async function checkForUpdate(){
   try{
     const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
