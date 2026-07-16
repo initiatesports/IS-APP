@@ -122,7 +122,8 @@ async function sweep(label, exec, rows, withPin) {
         for (const s of (cls.sessions || [])) {
           if (s.status === "請假" && s.date > TODAY && (mkMade.has(s.date) || s.madeUp)) {
             // 多數＝合法提前補堂（有真出席補堂＋明確原缺席日）；但若補堂日對唔上／無真補堂＝陳思允式錯配 bug。agent 需核對。
-            add("MKMADEUP", label, c.name, `${cls.cid || cls.key} ${s.date} 未來請假顯示已補堂（核對：有無對應真出席補堂；多數係提前補堂則正常）`);
+            const clsId = cls.cid || cls.key || (cls.sport ? cls.sport + "|" + cls.wd : "?");
+            add("MKMADEUP", label, c.name, `${clsId} ${s.date} 未來請假顯示已補堂（核對：有無對應真出席補堂；多數係提前補堂則正常）`);
           }
         }
         // 4) 歷史補完（只恆常#4）：截止日前嘅過往堂應已補完，唔應再有空白
