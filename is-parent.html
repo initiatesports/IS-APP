@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-16-mkvisibility';
+const FRONTEND_VERSION = 'parent-2026-07-16-ledgermadeup';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -702,7 +702,7 @@ function sessRow(s,cid,madeUp){
   const L=(zh,en)=>LANG==='en'?en:zh;
   let pill=`<span class="pill p-up">${L('未上','Upcoming')}</span>`;
   // 該日已完成補堂（原請假日）→ 一律顯示「已補堂」，統一 grid 誤標（出席/請假）嘅顯示
-  if(madeUp && madeUp.has(s.date))pill=`<span class="pill p-makeup">${L('已補堂','Made up')}</span>`;
+  if(s.madeUp || (madeUp && madeUp.has(s.date)))pill=`<span class="pill p-makeup">${L('已補堂','Made up')}</span>`;
   else if(s.status==='請假')pill=`<span class="pill p-leave">${L('請假','Leave')}</span>`;
   else if(s.status==='補堂')pill=`<span class="pill p-makeup">${L('補堂','Make-up')}</span>`;
   else if(s.status==='出席')pill=`<span class="pill p-go">${L('出席','Present')}</span>`;

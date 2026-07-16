@@ -116,6 +116,15 @@ async function sweep(label, exec, rows, withPin) {
         // 3) 學費負數
         const net = cls.net != null ? cls.net : (cls.owed != null ? cls.owed : null);
         if (net != null && Number(net) < 0) add("FEE", label, c.name, `${cls.cid || cls.key} 應繳負數 ${net}`);
+        // 3b) 補堂完整性（信任重災）：未來請假被顯示「已補堂」＝補堂日期對唔上原缺席日，家長會覺得騙咗一堂。
+        //     用同 is-parent 一致嘅 madeUp 邏輯（makeups 出席+from）。
+        const mkMade = new Set((cls.makeups || []).filter(m => m.status === "出席" && m.from).map(m => m.from));
+        for (const s of (cls.sessions || [])) {
+          if (s.status === "請假" && s.date > TODAY && (mkMade.has(s.date) || s.madeUp)) {
+            // 多數＝合法提前補堂（有真出席補堂＋明確原缺席日）；但若補堂日對唔上／無真補堂＝陳思允式錯配 bug。agent 需核對。
+            add("MKMADEUP", label, c.name, `${cls.cid || cls.key} ${s.date} 未來請假顯示已補堂（核對：有無對應真出席補堂；多數係提前補堂則正常）`);
+          }
+        }
         // 4) 歷史補完（只恆常#4）：截止日前嘅過往堂應已補完，唔應再有空白
         if (label === "恆常#4") {
           const gaps = (cls.sessions || []).filter(s => s.date < HIST_CUTOFF && s.date <= TODAY && !s.status).map(s => s.date);
@@ -183,8 +192,8 @@ async function sweep(label, exec, rows, withPin) {
 
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
-  const order = ["LEAK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "PT", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
+  const order = ["LEAK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
+  const names = { LEAK: "🔴 資料洩漏", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   for (const sev of order) {
     if (!bySev[sev]) continue;
@@ -195,7 +204,7 @@ async function sweep(label, exec, rows, withPin) {
   console.log(JSON.stringify({
     date: TODAY,
     tested: { c4: s4, c9: s9 },
-    counts: { LEAK: (bySev.LEAK || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
+    counts: { LEAK: (bySev.LEAK || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
   }));
 })();
