@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-16-refreshbtn';
+const FRONTEND_VERSION = 'lm-2026-07-16-mkvisibility';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -570,6 +570,14 @@ function renderParent(){
           <div class="nx-v">${SPORT[nx.sport]?SPORT[nx.sport].name:nx.sport}・${fmt(d)}（星期${WDN[d.getDay()]}）${nx.time?' '+nx.time:''}</div></div>
         <button class="nx-btn" onclick="downloadICS(${ki})">＋ 加入行事曆</button></div>`;
     }
+    // 📅 已約補堂摘要（置頂、一開就見；解決家長唔知去邊睇已約補堂）
+    const upMk=upcomingMakeups(child);
+    if(upMk.length){
+      html+=`<div class="banner" style="background:#EAF6FF;border:1px solid #bfe3e7;color:#1F4E79">
+        <div style="font-weight:700">📅 你有 ${upMk.length} 堂已約補堂</div>
+        <div style="font-size:13px;margin-top:3px">${upMk.map(m=>{const d=new Date(m.date+"T00:00:00");return `${fmt(d)}（星期${WDN[d.getDay()]}）・${classLabel(m.to)}`;}).join("<br>")}</div>
+        <div style="font-size:11.5px;opacity:.85;margin-top:4px">詳情或取消可喺下面班別卡「已約補堂」。</div></div>`;
+    }
     child.classes.forEach((c,ci)=> html+= classCard(child,ki,c,ci));
     // 申請紀錄
     const h=historyHTML(child);
@@ -614,6 +622,14 @@ function cancelToday(child){
     if((c.makeups||[]).some(m=>m.date===t && m.status==="停課")) { const d=new Date(t+"T00:00:00"); return fmt(d); }
   }
   return "";
+}
+// 小朋友所有「未來、未上」已約補堂（跨所有班別），畀主頁置頂摘要用（與恆常班一致）。
+function upcomingMakeups(child){
+  const t=iso(new Date()), out=[];
+  (child.classes||[]).forEach(c=>{
+    (c.makeups||[]).forEach(m=>{ if(m.date>=t && m.status!=="出席" && m.status!=="缺席" && m.status!=="停課") out.push({date:m.date,to:m.to}); });
+  });
+  return out.sort((a,b)=>a.date<b.date?-1:1);
 }
 /* 下一堂：所有班別中，今日或之後、唔係請假/停課嘅最早一堂（含補堂） */
 function nextClassInfo(child){
@@ -997,7 +1013,8 @@ async function submitMakeup(){
   showReceipt("✅ 已預約補堂", [
     `小朋友：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,
     `原班：${SPORT[c.sport].name}（星期${c.wd}）`,
-    ...picks.map(p=>`補去：${p}`)
+    ...picks.map(p=>`補去：${p}`),
+    `<span style="color:var(--muted)">💡 隨時可返嚟本頁「已約補堂」查看或取消，唔使問教練。</span>`
   ], `INITIATE 補堂預約\n小朋友：${child.name}${sibDone.length?('、'+sibDone.join('、')):''}\n原班：${SPORT[c.sport].name}（星期${c.wd}）\n${picks.map(p=>'補去：'+p).join("\n")}`);
 }
 
