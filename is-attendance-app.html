@@ -2337,7 +2337,11 @@ function renderHome() {
   document.getElementById('greeting-text').textContent = greet;
   document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('zh-HK', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  const totalStudents = Object.values(CLASSES).reduce((s,c)=>s+c.students.length, 0);
+  // 總學生數＝unique 活躍學生：去重（一週上兩堂只計一次）＋排除示範 demo。
+  // （本頁無 PERIOD_VOID 資料，暫停學生以 coach.html 為準；此處先修「重複計＋demo」兩大主因。）
+  const _seenS=new Set();
+  Object.values(CLASSES).forEach(c=>(c.students||[]).forEach(n=>{ if(n && !/示範/.test(n)) _seenS.add(n); }));
+  const totalStudents = _seenS.size;
   document.getElementById('home-stats').innerHTML = `
     <div class="stat-card"><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
     <div class="stat-card"><div class="num ok">${Object.keys(CLASSES).length}</div><div class="lbl">班別數</div></div>`;
