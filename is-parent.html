@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-17-expiredpill';
+const FRONTEND_VERSION = 'parent-2026-07-17-promocode';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -781,7 +781,14 @@ function paymentCard(child,ki){
   } else {
     owedLine=`<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);font-size:13px;color:var(--green)">✅ ${L('冇待補堂，繼續保持！','No make-up owed — keep it up!')}${os.expired>0?`　·　${L('已過期：','Expired: ')}${os.expired}`:''}</div>`;
   }
-  const actions=`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+  // 🎟️ 學費優惠碼（2026 9-10月期起；S.period idx 4 = 9-10月）。套用成功後 refresh，應繳自動更新。
+  const promoUI = (S.period>=4) ? `<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(224,169,58,.08);border:1px solid rgba(224,169,58,.3)">
+      <div style="font-size:12.5px;font-weight:700;color:#a06a10;margin-bottom:6px">🎟️ ${L('有學費優惠碼？喺度輸入','Have a promo code? Enter it here')}</div>
+      <div style="display:flex;gap:8px">
+        <input id="promo-in-${ki}" placeholder="${L('輸入優惠碼','Promo code')}" style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--line,#e3e3e3);border-radius:10px;font-family:inherit;font-size:14px;text-transform:uppercase">
+        <button class="btn sm" style="width:auto;padding:10px 16px;background:#e0a93a;box-shadow:none" onclick="applyPromo(${ki},'${f.period}')">${L('套用','Apply')}</button>
+      </div></div>` : '';
+  const actions=promoUI+`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
     <button onclick="openPay(${ki},'${f.period}')" style="margin-top:10px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-3l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
       ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
@@ -912,6 +919,20 @@ async function retSubmit(ki){
   } else { if(st){ st.textContent=(r&&r.err)||(LANG==='en'?'Submit failed':'提交失敗'); st.style.color='var(--red)'; } RET.fileData=null; }
 }
 let PAY={};
+// 🎟️ 套用學費優惠碼：後端驗證（一次性/限定學生/期數）→ 寫入調整欄 → refresh 後應繳自動減
+async function applyPromo(ki,period){
+  const el=document.getElementById('promo-in-'+ki);
+  const code=((el&&el.value)||'').trim().toUpperCase();
+  if(!code) return toast(LANG==='en'?'Please enter a promo code':'請先輸入優惠碼');
+  const child=S.family.children[ki]; if(!child) return;
+  let r; try{ r=await api('applyPromo',{name:child.name,period,promo:code}); }catch(e){ r=null; }
+  if(!r||!r.ok) return toast((r&&r.err)||(LANG==='en'?'Failed, please retry':'套用失敗，請再試'));
+  await refresh();
+  showReceipt(LANG==='en'?'✅ Promo applied':'✅ 優惠碼已套用',[
+    `${t('child')}：<b>${child.name}</b>`,
+    `${LANG==='en'?'Discount':'優惠'}：<b>−$${r.amount}</b>`,
+    `${LANG==='en'?'New total due':'新應繳'}：<b>$${r.net}</b>`],'');
+}
 function openPay(ki,period){
   const child=S.family.children[ki]; PAY={name:child.name,period,fileData:null};
   openSheet(`<h2>${t('payTitle')}</h2>
