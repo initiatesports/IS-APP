@@ -435,7 +435,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-18-studentleave';
+const FRONTEND_VERSION = 'coach-2026-07-18-testhide';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1200,6 +1200,7 @@ function isSuspendedOn(name, dateStr){
 }
 function getRollStudents(classId, dateStr){
   let base = CLASSES[classId] ? CLASSES[classId].students.slice() : [];
+  base = base.filter(n => !/示範|測試/.test(n));   // 🧪 測試/示範學生唔喺點名清單
   if (dateStr) base = base.filter(n => !isSuspendedOn(n, dateStr));   // 本期暫停學生（如梁正軒因病）→ 唔喺點名清單
   // 離班日起唔顯示（如周莉晶 c7 7/12；之前歷史照顯示）
   if (dateStr) base = base.filter(n => { const le=STUDENT_LEAVE_MAP[n+'|'+classId]; return !(le && dateStr>=le); });
