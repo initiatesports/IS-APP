@@ -435,7 +435,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-16-transferroll';
+const FRONTEND_VERSION = 'coach-2026-07-18-studentleave';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -522,6 +522,7 @@ async function loadFromSheets(){
     // 調堂(轉堂)記錄 → 逐班點名 openRoll 據此喺該日目標班顯示轉入嘅學生（如周莉晶 c7→c3；轉堂唔喺 attendance）
     TRANSFERS_MAP = {};
     (data.transfers || []).forEach(t => { if(t && t.cid && t.date && t.name){ const k=t.cid+'|'+t.date; (TRANSFERS_MAP[k]=TRANSFERS_MAP[k]||[]).push(t.name); } });
+    STUDENT_LEAVE_MAP = data.studentLeave || {};   // 離班日（如周莉晶 c7 7/12 起唔再喺 c7 點名清單）
 
     (data.attendance || []).forEach(row => {
       const key = row.key;
@@ -1187,6 +1188,7 @@ function openRoll(classId){
 // 本期暫停/退出學生（由後端 PERIOD_VOID 提供，單一真相）→ 點名清單自動隱藏，唔使前端另手動改名冊。
 let PERIOD_VOID_MAP = {};
 let TRANSFERS_MAP = {};   // 調堂：{ "cid|date": [轉入學生名] }（如周莉晶 c3|2026-07-22）
+let STUDENT_LEAVE_MAP = {};   // 離班日：{ "姓名|cid": "ISO" }，此日起唔喺該班點名清單（如周莉晶 c7 7/12）
 function periodLabelOf(dateStr){
   if(!dateStr) return '';
   const y=dateStr.slice(0,4), mo=+dateStr.slice(5,7), idx=Math.floor((mo-1)/2);
@@ -1199,6 +1201,8 @@ function isSuspendedOn(name, dateStr){
 function getRollStudents(classId, dateStr){
   let base = CLASSES[classId] ? CLASSES[classId].students.slice() : [];
   if (dateStr) base = base.filter(n => !isSuspendedOn(n, dateStr));   // 本期暫停學生（如梁正軒因病）→ 唔喺點名清單
+  // 離班日起唔顯示（如周莉晶 c7 7/12；之前歷史照顯示）
+  if (dateStr) base = base.filter(n => { const le=STUDENT_LEAVE_MAP[n+'|'+classId]; return !(le && dateStr>=le); });
   // 加入當日補堂學生：家長申請補堂後，後端已喺目標班嗰格寫低（喺 ATT_LOG 出現但唔屬正規名單）→ 點名名單見到佢
   const sess = (dateStr && ATT_LOG[classId + '|' + dateStr]) || {};
   Object.keys(sess).forEach(n => { if (n && base.indexOf(n) < 0) base.push(n); });
