@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-19-ropeslotfix';
+const FRONTEND_VERSION = 'lm-2026-07-19-loginguard';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -504,7 +504,24 @@ function renderLogin(){
   </div>`;
   if(S.health) setHealth(S.health.txt,S.health.color);
 }
+// 登入前先確保用緊最新版：有新版即強制 cache-bust 重載，唔畀舊版登入（家長從不按刷新掣都攔到）
+async function ensureLatestBeforeLogin(){
+  try{
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return true;
+    const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    const latest = m && m[1];
+    if(latest && latest !== FRONTEND_VERSION){
+      try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+      toast('🔄 系統已更新，正載入最新版，請再按一次登入');
+      setTimeout(()=>location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()), 1000);
+      return false;
+    }
+  }catch(e){}
+  return true;
+}
 async function doLogin(){
+  if(!(await ensureLatestBeforeLogin())) return;            // 有新版 → 強制載入最新版，唔畀舊版登入
   const name=$("#li-name").value.trim(), last4=$("#li-last4").value.trim();
   // 先試教練密碼:交後端 verifyCoach 驗證,啱即入教練模式(唔需要中文名)
   if(last4){
