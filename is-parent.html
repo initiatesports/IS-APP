@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-17-promocode';
+const FRONTEND_VERSION = 'parent-2026-07-19-loginguard';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -474,9 +474,26 @@ function renderLogin(){
   </div>`;
   checkHealth();
 }
+// 登入前先確保用緊最新版：有新版即強制 cache-bust 重載，唔畀舊版登入（就算家長從不按刷新掣都攔到）
+async function ensureLatestBeforeLogin(){
+  try{
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return true;                                  // 攞唔到版本就照舊登入，唔阻家長
+    const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    const latest = m && m[1];
+    if(latest && latest !== FRONTEND_VERSION){
+      try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+      toast(LANG==='en'?'🔄 New version — loading the latest, please tap Log in again':'🔄 系統已更新，正載入最新版，請再按一次登入');
+      setTimeout(()=>location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()), 1000);
+      return false;
+    }
+  }catch(e){}
+  return true;
+}
 async function doLogin(){
   const name=$('li-name').value.trim(), last4=$('li-last4').value.trim();
   if(!name||last4.length!==4) return toast(t('fillNameCode'));
+  if(!(await ensureLatestBeforeLogin())) return;            // 有新版 → 強制載入最新版，唔畀舊版登入
   const btn=$('li-go'); btn.disabled=true; btn.textContent=t('loggingIn');
   let r; try{ r=await api('login',{name,last4}); }catch(e){ btn.disabled=false; btn.textContent=t('login'); return toast(t('netFail')); }
   btn.disabled=false; btn.textContent=t('login');
