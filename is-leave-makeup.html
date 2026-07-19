@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-16-ropethutime';
+const FRONTEND_VERSION = 'lm-2026-07-19-ropeslotfix';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -292,7 +292,7 @@ function lastSession(c){ const s=sessionsFor(c.wd); return s[s.length-1]; }
 function makeupSlotsFor(c){
   // 回傳可補嘅 {sport,wd,time,cap} 列表（同一學生嘅 leave class c）
   const sp=c.sport;
-  if(sp==="rope") return ROPE_SLOTS.map(s=>({sport:"rope",wd:s.wd,time:s.time,cap:SPORT.rope.cap}));
+  if(sp==="rope") return ROPE_SLOTS.filter(s=>s.wd!==c.wd).map(s=>({sport:"rope",wd:s.wd,time:s.time,cap:SPORT.rope.cap}));   // 排除學生自己嗰日（如黃信晴 rope|六 唔應見到「六 11-12」撞自己正規堂）
   if(sp==="pickleball"){
     // 五班請假→補二班(1hr)；二班請假→補五班（可分兩次）
     return c.wd==="五"
