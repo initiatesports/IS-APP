@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-19-voucher';
+const FRONTEND_VERSION = 'parent-2026-07-19-referral';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -811,9 +811,10 @@ function paymentCard(child,ki){
       ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
     </button>
     ${f.hasScreenshot?`<div style="font-size:12.5px;color:var(--teal-dark);margin-top:7px;text-align:center">${t('feeUploaded')}</div>`:`<div style="font-size:12px;color:#c0392b;margin-top:7px;text-align:center;font-weight:600">⬆ ${LANG==='en'?'Tap above to upload your payment screenshot':'撳上面個掣即可上傳付款截圖'}</div>`}`;
-  // 🎟️ 暑期現金券餘額（自動當恆常學費折扣，每期最多 $200，用剩滾去下期）
+  // 🎟️ 優惠券餘額（暑期現金券＋推薦優惠，自動當恆常學費折扣，每期最多 $200，用剩滾去下期）
   const sv=child.summerVoucher;
-  const voucherLine = (sv && sv.total>0) ? `<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(224,169,58,.08);border:1px solid rgba(224,169,58,.3);font-size:12.5px;line-height:1.6;color:#a06a10">🎟️ ${L('暑期現金券','Summer voucher')}：${L('總','Total')} $${sv.total}${sv.used>0?('，'+L('已用','used')+' $'+sv.used):''}${sv.remaining>0?('，'+L('餘','left')+' <b>$'+sv.remaining+'</b>（'+L('每期最多扣 $200，用剩自動留到下一期','max $200/term, remainder carries over')+'）'):('（'+L('已用完','fully used')+'）')}</div>` : '';
+  const svBrk = (sv && (sv.summer>0) && (sv.referral>0)) ? `（${L('暑期','summer')}$${sv.summer}＋${L('推薦','referral')}$${sv.referral}）` : '';
+  const voucherLine = (sv && sv.total>0) ? `<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(224,169,58,.08);border:1px solid rgba(224,169,58,.3);font-size:12.5px;line-height:1.6;color:#a06a10">🎟️ ${L('優惠券','Voucher')}：${L('總','Total')} $${sv.total}${svBrk}${sv.used>0?('，'+L('已用','used')+' $'+sv.used):''}${sv.remaining>0?('，'+L('餘','left')+' <b>$'+sv.remaining+'</b>（'+L('每期最多扣 $200，用剩自動留到下一期','max $200/term, remainder carries over')+'）'):('（'+L('已用完','fully used')+'）')}</div>` : '';
   const who = ((S.family&&S.family.children)||[]).length>1 ? `<div style="font-size:12px;color:var(--muted);margin:-2px 0 8px">${child.name}</div>` : '';
   return `<div class="card" style="border-color:rgba(40,184,200,.35)"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${who}
     <div class="meta">${lbl}　·　${t('feeWeekly',f.weekly||1)}</div>
