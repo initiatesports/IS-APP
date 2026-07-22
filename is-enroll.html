@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#28B8C8">
+<title>INITIATE SPORTS 恆常班報名</title>
+<style>
+:root{ --teal:#28B8C8; --teal-dark:#1F9DAC; --teal-dim:rgba(40,184,200,0.10); --ink:#1f2a30; --mut:#66757c; --line:#e3e9ec; --bg:#f5f8f9; --ok:#1a9e6a; --warn:#c47f00; --err:#c0392b; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+.wrap{max-width:520px;margin:0 auto;padding:16px 16px 60px;}
+header.top{display:flex;align-items:center;gap:10px;padding:6px 2px 14px;}
+header.top .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);}
+header.top h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.3px;}
+header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.03);}
+.card h2{font-size:16px;margin:0 0 4px;font-weight:800;}
+.card h2 em{font-style:normal;color:var(--teal);}
+.card .hint{font-size:12.5px;color:var(--mut);margin:0 0 14px;}
+.steps{display:flex;gap:5px;margin:0 0 14px;}
+.steps .s{flex:1;height:4px;border-radius:2px;background:var(--line);}
+.steps .s.on{background:var(--teal);}
+.fld{margin-bottom:12px;}
+.fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;font-weight:600;}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;font-size:15px;font-family:inherit;background:#fff;color:var(--ink);}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--teal);}
+.row2{display:flex;gap:10px;} .row2 .fld{flex:1;}
+.btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;padding:14px;font-family:inherit;cursor:pointer;margin-top:4px;}
+.btn:active{background:var(--teal-dark);} .btn:disabled{opacity:.45;}
+.btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal);}
+.btn.sm{padding:10px;font-size:14px;width:auto;}
+.navbtns{display:flex;gap:10px;margin-top:6px;} .navbtns .btn{margin-top:0;}
+.banner{background:var(--teal-dim);border:1px solid var(--teal);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--teal-dark);margin-bottom:14px;font-weight:600;}
+.course{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--line);border-radius:13px;padding:13px;margin-bottom:10px;cursor:pointer;transition:.12s;}
+.course.on{border-color:var(--teal);background:var(--teal-dim);}
+.course input{margin-top:3px;width:20px;height:20px;accent-color:var(--teal);flex-shrink:0;}
+.course .cn{font-weight:800;font-size:15px;}
+.course .cm{font-size:12.5px;color:var(--mut);margin-top:2px;}
+.course .cp{margin-left:auto;text-align:right;font-weight:800;color:var(--teal-dark);font-size:14px;white-space:nowrap;}
+.quote{border:1.5px solid var(--line);border-radius:13px;overflow:hidden;}
+.quote .q{display:flex;justify-content:space-between;padding:11px 14px;font-size:14px;border-bottom:1px solid var(--line);}
+.quote .q.dim{color:var(--mut);} .quote .q.credit{color:var(--ok);}
+.quote .q.net{font-weight:800;font-size:17px;background:var(--teal-dim);border-bottom:none;}
+.terms{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:12.5px;color:#3a464c;background:#fafcfc;margin-bottom:12px;}
+.terms p{margin:0 0 9px;} .terms p b{color:var(--ink);}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;margin-bottom:12px;}
+.chk input{width:20px;height:20px;accent-color:var(--teal);margin-top:1px;flex-shrink:0;}
+.sumline{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-bottom:1px dashed var(--line);}
+.sumline .k{color:var(--mut);}
+.msg{font-size:13px;padding:10px 12px;border-radius:10px;margin-top:10px;display:none;}
+.msg.err{background:#fdecea;color:var(--err);display:block;} .msg.ok{background:#e8f7ef;color:var(--ok);display:block;}
+.done{text-align:center;padding:20px 6px;}
+.done .big{font-size:44px;} .done h2{margin:8px 0 6px;} .done .rid{font-weight:800;color:var(--teal-dark);font-size:20px;letter-spacing:1px;margin:6px 0;}
+.pill{display:inline-block;background:var(--teal-dim);color:var(--teal-dark);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:6px;}
+.foot{text-align:center;font-size:11px;color:#9aa7ac;margin-top:18px;}
+.load{text-align:center;color:var(--mut);padding:40px 0;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS</h1><span class="sub" id="periodLbl">恆常班報名</span></header>
+  <div id="app"><div class="load">載入中…</div></div>
+  <div class="foot">INITIATE SPORTS · 報名系統 · <span id="ver"></span></div>
+</div>
+<script>
+const FRONTEND_VERSION='enroll-2026-07-22-v1';
+const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
+document.getElementById('ver').textContent=FRONTEND_VERSION;
+const app=document.getElementById('app');
+const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'' };
+
+async function apiGet(p){ const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
+async function apiPost(body){ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); return r.json(); }
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>'$'+(Number(n)||0).toLocaleString();
+function steps(n){ let h='<div class="steps">'; for(let i=1;i<=6;i++) h+=`<div class="s ${i<=n?'on':''}"></div>`; return h+'</div>'; }
+
+// ── 檔案欄位（label / key＝saveProfile參數 / sheet header＝profile帶出）──
+const PFIELDS=[
+  {k:'nameEn',   h:'英文姓名', label:'英文姓名 English Name'},
+  {k:'gender',   h:'性別',     label:'性別', sel:['男 Male','女 Female']},
+  {k:'birthYear',h:'出生年',   label:'出生年份 (e.g. 2016)'},
+  {k:'birthMonth',h:'出生月',  label:'出生月份 (e.g. 3)'},
+  {k:'school',   h:'就讀學校', label:'就讀學校'},
+  {k:'district', h:'居住地區', label:'居住地區'},
+  {k:'emgName',  h:'緊急聯絡人',label:'緊急聯絡人姓名'},
+  {k:'emgPhone', h:'緊急電話', label:'緊急聯絡人電話'},
+  {k:'emgRel',   h:'關係',     label:'與參加者關係'},
+  {k:'health',   h:'健康狀況', label:'健康狀況（如無填「無」）'},
+  {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無填「無」）'}
+];
+
+/* ════ 啟動 ════ */
+async function boot(){
+  try{ S.cfg=await apiGet({action:'enrollConfig'}); }
+  catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div></div>'; return; }
+  document.getElementById('periodLbl').textContent=(S.cfg.period||'恆常班')+' 報名';
+  renderLogin();
+}
+/* ════ ① 登入 / 認人 ════ */
+function renderLogin(){
+  const openBanner = S.cfg.open ? '' :
+    `<div class="banner">📅 ${esc(S.cfg.period)} 恆常班報名將於 <b>8 月中</b> 正式開放。你可以先預覽流程；課程時間及收費稍後公佈。</div>`;
+  app.innerHTML=`
+  <div class="card">
+    ${steps(1)}
+    ${openBanner}
+    <h2>報名 <em>${esc(S.cfg.period)}</em> 恆常班</h2>
+    <p class="hint">已報過暑期班嘅同學，資料會自動帶出，唔使重複填。</p>
+    <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
+    <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
+    <button class="btn" id="li_go">下一步</button>
+    <div class="msg" id="li_msg"></div>
+  </div>`;
+  document.getElementById('li_go').onclick=doLogin;
+}
+async function doLogin(){
+  const name=document.getElementById('li_name').value.trim();
+  const last4=document.getElementById('li_last4').value.trim();
+  const msg=document.getElementById('li_msg');
+  if(!name||!last4){ msg.className='msg err'; msg.textContent='請填姓名同電話後 4 位。'; return; }
+  const btn=document.getElementById('li_go'); btn.disabled=true; btn.textContent='核對中…';
+  const res=await apiGet({action:'enrollQuote', name, last4, courses:''});
+  btn.disabled=false; btn.textContent='下一步';
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'搵唔到你嘅登入資料，請確認姓名同電話後 4 位。'; return; }
+  S.family={name,last4}; S.profile=res.profile||null;
+  S.credit={remaining:res.creditRemaining||0, summer:res.summer||0, referral:res.referral||0};
+  renderProfile();
+}
+/* ════ ② 確認 / 補填檔案 ════ */
+function renderProfile(){
+  const pf=S.profile||{};
+  const val=(f)=> esc(pf[f.h]||'');
+  let fieldsHtml=PFIELDS.map(f=>{
+    if(f.sel){ const cur=pf[f.h]||''; return `<div class="fld"><label>${f.label}</label><select id="pf_${f.k}">
+      <option value="">請選擇</option>${f.sel.map(o=>`<option ${cur&&o.indexOf(cur.replace(/\s.*/,''))>=0?'selected':''}>${o}</option>`).join('')}</select></div>`; }
+    return `<div class="fld"><label>${f.label}</label><input id="pf_${f.k}" value="${val(f)}"></div>`;
+  }).join('');
+  const known = S.profile ? '<p class="hint">我哋已有你嘅資料，請核對；如有更新可直接改。</p>' : '<p class="hint">第一次報名，請填一次基本資料，之後報其他課程免再填。</p>';
+  app.innerHTML=`
+  <div class="card">
+    ${steps(2)}
+    <h2>學生資料 · <em>${esc(S.family.name)}</em></h2>
+    ${known}
+    ${fieldsHtml}
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
+      <button class="btn" id="pf_go">儲存並繼續</button>
+    </div>
+    <div class="msg" id="pf_msg"></div>
+  </div>`;
+  document.getElementById('pf_go').onclick=saveProfileGo;
+}
+async function saveProfileGo(){
+  const body={action:'saveProfile', name:S.family.name, nameZh:S.family.name, last4:S.family.last4};
+  PFIELDS.forEach(f=>{ const el=document.getElementById('pf_'+f.k); if(el) body[f.k]=el.value.trim(); });
+  const msg=document.getElementById('pf_msg'), btn=document.getElementById('pf_go');
+  btn.disabled=true; btn.textContent='儲存中…';
+  const res=await apiPost(body);
+  btn.disabled=false; btn.textContent='儲存並繼續';
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'儲存失敗，請再試。'; return; }
+  // 更新本地 profile（帶簽署人預填）
+  S.profile=S.profile||{}; PFIELDS.forEach(f=>{ S.profile[f.h]=document.getElementById('pf_'+f.k).value.trim(); });
+  renderCourses();
+}
+/* ════ ③ 揀課程 ════ */
+function renderCourses(){
+  const cs=S.cfg.courses||[];
+  const list=cs.map(c=>{
+    const on=S.courses.indexOf(c.id)>=0;
+    const priceTxt = c.price>0 ? money(c.price) : '待定';
+    const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
+      .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
+    return `<label class="course ${on?'on':''}" data-id="${c.id}">
+      <input type="checkbox" ${on?'checked':''} data-id="${c.id}">
+      <div><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜每班上限 ${c.cap} 人</div></div>
+      <div class="cp">${priceTxt}</div></label>`;
+  }).join('');
+  app.innerHTML=`
+  <div class="card">
+    ${steps(3)}
+    <h2>揀課程 <span class="pill">可多選</span></h2>
+    <p class="hint">揀你要報嘅恆常班（可一次過報多項）。</p>
+    ${list}
+    <div class="msg" id="cs_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderProfile()">返回</button>
+      <button class="btn" id="cs_go">下一步（睇費用）</button>
+    </div>
+  </div>`;
+  app.querySelectorAll('.course input').forEach(cb=>cb.onchange=()=>{
+    const id=cb.getAttribute('data-id');
+    if(cb.checked){ if(S.courses.indexOf(id)<0) S.courses.push(id); }
+    else S.courses=S.courses.filter(x=>x!==id);
+    cb.closest('.course').classList.toggle('on',cb.checked);
+  });
+  document.getElementById('cs_go').onclick=()=>{
+    const msg=document.getElementById('cs_msg');
+    if(!S.courses.length){ msg.className='msg err'; msg.textContent='請最少揀一項課程。'; return; }
+    // 同日同時段衝突檢查
+    const picked=(S.cfg.courses||[]).filter(c=>S.courses.indexOf(c.id)>=0);
+    const seen={}; let clash='';
+    picked.forEach(c=>{ const k=(c.day||'')+'|'+(c.time||''); if(c.day!=='待定'&&c.time!=='待定'){ if(seen[k]) clash=c.day+' '+c.time; seen[k]=1; } });
+    if(clash){ msg.className='msg err'; msg.textContent='揀咗兩班喺同一時段（'+clash+'），一個學生唔可以同時上兩班，請改一改。'; return; }
+    renderFee();
+  };
+}
+/* ════ ④ 費用 ════ */
+async function renderFee(){
+  app.innerHTML=`<div class="card">${steps(4)}<div class="load">計緊費用…</div></div>`;
+  const res=await apiGet({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
+  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(4)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
+  S.quote=res;
+  const priced = res.base>0;
+  const creditLine = res.credit>0 ? `<div class="q credit"><span>優惠券／推薦折扣</span><span>− ${money(res.credit)}</span></div>` : '';
+  const pendNote = res.creditRemaining>0 ? `<p class="hint">你仲有 ${money(res.creditRemaining)} 優惠餘額（每期最多抵 $200，餘額自動順延下期）。</p>` : '';
+  const body = priced ? `
+    <div class="quote">
+      <div class="q dim"><span>原價（${(res.courses||[]).length} 項課程）</span><span>${money(res.base)}</span></div>
+      ${creditLine}
+      <div class="q net"><span>實付</span><span>${money(res.net)}</span></div>
+    </div>${pendNote}` :
+    `<div class="banner">課程收費老闆稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
+  app.innerHTML=`
+  <div class="card">
+    ${steps(4)}
+    <h2>費用</h2>
+    <p class="hint">${esc(S.cfg.period)}｜${(res.courses||[]).map(c=>esc(c.sport)).join('、')||'未選'}</p>
+    ${body}
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderCourses()">返回</button>
+      <button class="btn" id="fee_go">下一步（同意條款）</button>
+    </div>
+  </div>`;
+  document.getElementById('fee_go').onclick=renderTerms;
+}
+/* ════ ⑤ 條款 ════ */
+function renderTerms(){
+  const t=S.cfg.terms||{statements:[],version:''};
+  const pf=S.profile||{};
+  const sEn=esc(S.signEn||pf['簽署人英文名']||pf['英文姓名']||'');
+  const sId=esc(S.signId||pf['證件首4']||'');
+  app.innerHTML=`
+  <div class="card">
+    ${steps(5)}
+    <h2>聲明及同意 <span class="pill">版本 ${esc(t.version)}</span></h2>
+    <div class="terms">${(t.statements||[]).map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div>
+    <label class="chk"><input type="checkbox" id="tm_agree"><span>本人已閱讀並<b>同意</b>以上全部聲明。</span></label>
+    <div class="fld"><label>確認聲明人（家長／監護人）英文全名</label><input id="tm_signEn" value="${sEn}" placeholder="e.g. Chan Tai Man"></div>
+    <div class="fld"><label>證件號碼首 4 位（英文字母+首3數字，e.g. A123）</label><input id="tm_signId" value="${sId}" maxlength="8"></div>
+    <div class="msg" id="tm_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderFee()">返回</button>
+      <button class="btn" id="tm_go">下一步（付款）</button>
+    </div>
+  </div>`;
+  document.getElementById('tm_go').onclick=()=>{
+    const msg=document.getElementById('tm_msg');
+    if(!document.getElementById('tm_agree').checked){ msg.className='msg err'; msg.textContent='必須同意聲明先可以報名。'; return; }
+    S.signEn=document.getElementById('tm_signEn').value.trim();
+    S.signId=document.getElementById('tm_signId').value.trim();
+    if(!S.signEn||!S.signId){ msg.className='msg err'; msg.textContent='請填簽署人英文全名同證件首 4 位。'; return; }
+    S.agree=true; renderPay();
+  };
+}
+/* ════ ⑥ 付款 + 提交 ════ */
+function renderPay(){
+  const net=(S.quote&&S.quote.net)||0;
+  const amtLine = net>0 ? `<div class="sumline"><span class="k">應付金額</span><span><b>${money(net)}</b></span></div>` :
+    `<div class="banner">收費稍後公佈；如已知金額可先付款上傳，或稍後補交。</div>`;
+  app.innerHTML=`
+  <div class="card">
+    ${steps(6)}
+    <h2>付款</h2>
+    <div class="sumline"><span class="k">學生</span><span>${esc(S.family.name)}</span></div>
+    <div class="sumline"><span class="k">課程</span><span>${(S.quote.courses||[]).map(c=>esc(c.sport)).join('、')}</span></div>
+    ${amtLine}
+    <p class="hint" style="margin-top:12px">請以 FPS／PayMe 轉數至 <b>${esc(S.cfg.fps)}</b>，然後上載轉帳截圖。</p>
+    <div class="fld"><label>上載付款截圖</label><input type="file" id="py_file" accept="image/*"></div>
+    <div class="msg" id="py_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderTerms()">返回</button>
+      <button class="btn" id="py_go">確認提交報名</button>
+    </div>
+  </div>`;
+  document.getElementById('py_file').onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader(); rd.onload=()=>{ S.payImg=rd.result; }; rd.readAsDataURL(f);
+  };
+  document.getElementById('py_go').onclick=submitEnroll;
+}
+async function submitEnroll(){
+  const msg=document.getElementById('py_msg'), btn=document.getElementById('py_go');
+  if(!S.cfg.open){ msg.className='msg err'; msg.textContent='報名將於 8 月中開放，暫時未可提交。（你已可預覽整個流程）'; return; }
+  if(!S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
+  btn.disabled=true; btn.textContent='提交中…';
+  const q=S.quote||{};
+  const coursesTxt=(q.courses||[]).map(c=>esc(c.sport)+(c.day&&c.day!=='待定'?('|'+c.day+' '+c.time):'')).join('、');
+  const res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
+    courses:coursesTxt, period:q.period||S.cfg.period,
+    feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
+    payImg:S.payImg, signEn:S.signEn, signId:S.signId, agree:'同意' });
+  btn.disabled=false; btn.textContent='確認提交報名';
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
+  renderDone(res);
+}
+/* ════ 完成 ════ */
+function renderDone(res){
+  app.innerHTML=`
+  <div class="card done">
+    <div class="big">✅</div>
+    <h2>報名已收到！</h2>
+    <div class="rid">${esc(res.id||'')}</div>
+    <p class="hint">我哋已收到你嘅報名及付款截圖，會盡快核實。確認後會以電郵通知。多謝報名 INITIATE SPORTS！</p>
+    <button class="btn ghost" style="margin-top:14px" onclick="location.reload()">再報一位學生</button>
+  </div>`;
+}
+boot();
+</script>
+</body>
+</html>
