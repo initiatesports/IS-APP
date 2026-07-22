@@ -80,6 +80,18 @@ async function callLoad(exec, coachPass) {
   return { ok: false, err: "load fetch failed" };
 }
 
+async function callAudit(exec, coachPass) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch(exec + "?" + new URLSearchParams({ action: "audit", coachPass }), { redirect: "follow" });
+      const txt = await res.text();
+      try { return JSON.parse(txt); } catch { /* 重試 */ }
+    } catch (e) { /* 重試 */ }
+    await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+  }
+  return { ok: false, err: "audit fetch failed" };
+}
+
 function uniqByName(rows) {
   const seen = new Set(), out = [];
   for (const [n, l] of rows) { if (!seen.has(n)) { seen.add(n); out.push([n, l]); } }
@@ -191,10 +203,27 @@ async function sweep(label, exec, rows, withPin) {
     }
   }
 
+  // 🔍 補堂完整性審計（兩系統 audit route）：owed 不變式全校掃。owed 錯計＝真 bug（OWED，紅）；
+  //    未來請假顯示已補堂＝提前補堂（歸 MKMADEUP，核對用）。需 COACH_PASS。
+  if (process.env.COACH_PASS) {
+    for (const [sys, exec] of [["恆常#4", EXEC4], ["暑期#9", EXEC9]]) {
+      const au = await callAudit(exec, process.env.COACH_PASS);
+      if (!au || !au.ok) { add("ERR", sys, "audit", "審計 route 失敗：" + ((au && au.err) || "?")); continue; }
+      for (const x of (au.anomalies || [])) {
+        const who = x.name + " " + (x.cid || x.cls || "");
+        for (const f of (x.flags || [])) {
+          if (f.indexOf("owed=") >= 0 && f.indexOf("應") >= 0) add("OWED", sys, who, f);   // owed 錯計＝真 bug
+          else if (f.indexOf("已補堂") >= 0) add("MKMADEUP", sys, who, f);                  // 提前補堂＝核對
+          else add("ERR", sys, who, f);
+        }
+      }
+    }
+  }
+
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
-  const order = ["LEAK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
+  const order = ["LEAK", "OWED", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
+  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   for (const sev of order) {
     if (!bySev[sev]) continue;
@@ -205,7 +234,7 @@ async function sweep(label, exec, rows, withPin) {
   console.log(JSON.stringify({
     date: TODAY,
     tested: { c4: s4, c9: s9 },
-    counts: { LEAK: (bySev.LEAK || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
+    counts: { LEAK: (bySev.LEAK || []).length, OWED: (bySev.OWED || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
   }));
 })();
