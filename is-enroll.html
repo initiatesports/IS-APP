@@ -67,7 +67,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 報名系統 · <span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-07-22-v2';
+const FRONTEND_VERSION='enroll-2026-07-22-v3';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -81,6 +81,7 @@ function steps(n){ let h='<div class="steps">'; for(let i=1;i<=6;i++) h+=`<div c
 
 // ── 檔案欄位（label / key＝saveProfile參數 / sheet header＝profile帶出）──
 const PFIELDS=[
+  {k:'email',    h:'電郵',     label:'家長電郵 Email（收報名確認）'},
   {k:'nameEn',   h:'英文姓名', label:'英文姓名 English Name'},
   {k:'gender',   h:'性別',     label:'性別', sel:['男 Male','女 Female']},
   {k:'birthYear',h:'出生年',   label:'出生年份 (e.g. 2016)'},
@@ -114,9 +115,26 @@ function renderLogin(){
     <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
     <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
     <button class="btn" id="li_go">下一步</button>
+    <button class="btn ghost" id="li_look" style="margin-top:10px">查詢我嘅報名狀態</button>
     <div class="msg" id="li_msg"></div>
   </div>`;
   document.getElementById('li_go').onclick=doLogin;
+  document.getElementById('li_look').onclick=lookupMine;
+}
+async function lookupMine(){
+  const name=document.getElementById('li_name').value.trim();
+  const last4=document.getElementById('li_last4').value.trim();
+  const msg=document.getElementById('li_msg');
+  if(!name||!last4){ msg.className='msg err'; msg.textContent='請填姓名同電話後 4 位。'; return; }
+  const btn=document.getElementById('li_look'); btn.disabled=true; btn.textContent='查詢中…';
+  const res=await apiGet({action:'enrollMyRecords', name, last4});
+  btn.disabled=false; btn.textContent='查詢我嘅報名狀態';
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'查詢失敗。'; return; }
+  const recs=res.records||[];
+  const rows = recs.length ? recs.map(r=>`<div class="sumline"><span class="k">${esc(r.courses)}</span><span><span class="pill">${esc(r.status)}</span></span></div>`).join('')
+    : '<p class="hint">你未有任何報名記錄。</p>';
+  app.innerHTML=`<div class="card">${steps(1)}<h2>${esc(name)} 嘅報名狀態</h2>${rows}
+    <button class="btn ghost" style="margin-top:14px" onclick="renderLogin()">返回</button></div>`;
 }
 async function doLogin(){
   const name=document.getElementById('li_name').value.trim();
@@ -273,8 +291,21 @@ function renderTerms(){
 /* ════ ⑥ 付款 + 提交 ════ */
 function renderPay(){
   const net=(S.quote&&S.quote.net)||0;
-  const amtLine = net>0 ? `<div class="sumline"><span class="k">應付金額</span><span><b>${money(net)}</b></span></div>` :
-    `<div class="banner">收費稍後公佈；如已知金額可先付款上傳，或稍後補交。</div>`;
+  const priced=(S.quote&&S.quote.base)>0;
+  const free = priced && net<=0;   // 有價錢但被優惠券全數抵扣
+  let amtLine, payBox;
+  if(free){
+    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（優惠券全額抵扣）</b></span></div>`;
+    payBox=`<div class="banner" style="margin-top:12px">🎉 你嘅優惠券已抵扣全部學費，<b>無需付款</b>，直接提交即可。</div>`;
+  }else if(net>0){
+    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b>${money(net)}</b></span></div>`;
+    payBox=`<p class="hint" style="margin-top:12px">請以 FPS／PayMe 轉數至 <b>${esc(S.cfg.fps)}</b>，然後上載轉帳截圖。</p>
+      <div class="fld"><label>上載付款截圖</label><input type="file" id="py_file" accept="image/*"></div>`;
+  }else{
+    amtLine=`<div class="banner">收費稍後公佈；如已知金額可先付款上傳，或稍後補交。</div>`;
+    payBox=`<p class="hint" style="margin-top:12px">如已知金額，可轉數至 <b>${esc(S.cfg.fps)}</b> 並上載截圖（選填）。</p>
+      <div class="fld"><label>上載付款截圖（選填）</label><input type="file" id="py_file" accept="image/*"></div>`;
+  }
   app.innerHTML=`
   <div class="card">
     ${steps(6)}
@@ -282,15 +313,16 @@ function renderPay(){
     <div class="sumline"><span class="k">學生</span><span>${esc(S.family.name)}</span></div>
     <div class="sumline"><span class="k">課程</span><span>${(S.quote.courses||[]).map(c=>esc(c.sport)).join('、')}</span></div>
     ${amtLine}
-    <p class="hint" style="margin-top:12px">請以 FPS／PayMe 轉數至 <b>${esc(S.cfg.fps)}</b>，然後上載轉帳截圖。</p>
-    <div class="fld"><label>上載付款截圖</label><input type="file" id="py_file" accept="image/*"></div>
+    ${payBox}
     <div class="msg" id="py_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderTerms()">返回</button>
       <button class="btn" id="py_go">確認提交報名</button>
     </div>
   </div>`;
-  document.getElementById('py_file').onchange=e=>{
+  S._payFree=free;
+  const pf=document.getElementById('py_file');
+  if(pf) pf.onchange=e=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader(); rd.onload=()=>{ S.payImg=rd.result; }; rd.readAsDataURL(f);
   };
@@ -299,14 +331,14 @@ function renderPay(){
 async function submitEnroll(){
   const msg=document.getElementById('py_msg'), btn=document.getElementById('py_go');
   if(!S.cfg.open){ msg.className='msg err'; msg.textContent='報名將於 8 月中開放，暫時未可提交。（你已可預覽整個流程）'; return; }
-  if(!S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
+  if(!S._payFree && ((S.quote&&S.quote.net)>0) && !S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
   btn.disabled=true; btn.textContent='提交中…';
   const q=S.quote||{};
   const coursesTxt=(q.courses||[]).map(c=>esc(c.sport)+(c.day&&c.day!=='待定'?('|'+c.day+' '+c.time):'')).join('、');
   const res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
     courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
     feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
-    payImg:S.payImg, signEn:S.signEn, signId:S.signId, agree:'同意' });
+    payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId, agree:'同意' });
   btn.disabled=false; btn.textContent='確認提交報名';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
   renderDone(res);
