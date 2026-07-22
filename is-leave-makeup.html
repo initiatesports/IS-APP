@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-19-loginguard';
+const FRONTEND_VERSION = 'lm-2026-07-22-sameday';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -923,8 +923,8 @@ function openMakeup(ki,ci){
   const deadline=lastSession(c), refund=(c.sport==="basketball");
   let cands=[];
   slots.forEach(s=>{
-    if(s.fixed){ s.fixed.forEach(di=>{ if(new Date(di+"T00:00:00")>today) cands.push({slot:s,date:di}); }); }
-    else { sessionsFor(s.wd).filter(d=>d>today && d<=deadline).forEach(d=>cands.push({slot:s,date:iso(d)})); }
+    if(s.fixed){ s.fixed.forEach(di=>{ if(new Date(di+"T00:00:00")>=today) cands.push({slot:s,date:di}); }); }
+    else { sessionsFor(s.wd).filter(d=>d>=today && d<=deadline).forEach(d=>cands.push({slot:s,date:iso(d)})); }   // 容許補當日（同 is-parent 一致；後端亦接受今日）
   });
   // 兄弟姊妹：其他小朋友喺同一班（同項目同星期）有待補堂 → 可一齊補堂
   const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
