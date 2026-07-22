@@ -67,7 +67,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 報名系統 · <span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-07-22-v1';
+const FRONTEND_VERSION='enroll-2026-07-22-v2';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -175,9 +175,12 @@ function renderCourses(){
     const priceTxt = c.price>0 ? money(c.price) : '待定';
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
       .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
+    const left = c.cap - (c.enrolled||0);
+    const seat = c.full ? '<span style="color:var(--err);font-weight:700">已滿（可候補）</span>'
+      : (left<=3 ? `<span style="color:var(--warn);font-weight:700">尚餘 ${left} 位</span>` : `餘 ${left}/${c.cap} 位`);
     return `<label class="course ${on?'on':''}" data-id="${c.id}">
       <input type="checkbox" ${on?'checked':''} data-id="${c.id}">
-      <div><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜每班上限 ${c.cap} 人</div></div>
+      <div><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜${seat}</div></div>
       <div class="cp">${priceTxt}</div></label>`;
   }).join('');
   app.innerHTML=`
@@ -301,7 +304,7 @@ async function submitEnroll(){
   const q=S.quote||{};
   const coursesTxt=(q.courses||[]).map(c=>esc(c.sport)+(c.day&&c.day!=='待定'?('|'+c.day+' '+c.time):'')).join('、');
   const res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
-    courses:coursesTxt, period:q.period||S.cfg.period,
+    courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
     feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
     payImg:S.payImg, signEn:S.signEn, signId:S.signId, agree:'同意' });
   btn.disabled=false; btn.textContent='確認提交報名';
@@ -310,11 +313,13 @@ async function submitEnroll(){
 }
 /* ════ 完成 ════ */
 function renderDone(res){
+  const wl = res.waitlisted ? `<div class="banner" style="margin-top:12px">⚠️ 以下課程已滿，你已加入<b>候補</b>：${esc((res.fullCourses||[]).join('、'))}。有位會盡快通知你。</div>` : '';
   app.innerHTML=`
   <div class="card done">
-    <div class="big">✅</div>
-    <h2>報名已收到！</h2>
+    <div class="big">${res.waitlisted?'📝':'✅'}</div>
+    <h2>${res.waitlisted?'報名已收到（部分候補）':'報名已收到！'}</h2>
     <div class="rid">${esc(res.id||'')}</div>
+    ${wl}
     <p class="hint">我哋已收到你嘅報名及付款截圖，會盡快核實。確認後會以電郵通知。多謝報名 INITIATE SPORTS！</p>
     <button class="btn ghost" style="margin-top:14px" onclick="location.reload()">再報一位學生</button>
   </div>`;
