@@ -110,7 +110,12 @@ function render(sum, recs){
       <div class="stat"><div class="n">${st.waitlist||0}</div><div class="l">候補</div></div>
       <div class="stat"><div class="n">${money(st.revenue||0)}</div><div class="l">已收入</div></div>
     </div>
+    <div class="rowact" style="margin-top:12px">
+      <button class="btn sm" onclick="exportRoster()">📋 匯出 9 月名冊</button>
+      <button class="btn sm gray" onclick="exportCSV()">⬇️ 匯出 CSV</button>
+    </div>
     <div class="msg" id="msg"></div>
+    <textarea id="exp" style="display:none;width:100%;height:180px;margin-top:10px;font-size:12px;font-family:monospace;border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
   </div>
   <div class="card"><h2>逐課程名額（最低 4 人開班）</h2>
     <div class="scroll"><table><tr><th>課程</th><th>名額</th><th>學費</th><th>正取學生 / 候補</th></tr>${courseRows}</table></div>
@@ -118,6 +123,30 @@ function render(sum, recs){
   <div class="card"><h2>逐筆報名審核</h2>
     <div class="scroll"><table><tr><th>學生</th><th>課程</th><th>實收</th><th>狀態</th><th>付款</th><th>操作</th></tr>${recRows}</table></div>
   </div>`;
+}
+function exportRoster(){
+  const s=window._sum; if(!s) return;
+  let out='INITIATE SPORTS '+s.period+' 報名名冊（正取學生，可貼入班別 CLASSES）\n';
+  out+='※ 只列已核實/待核實正取學生（唔含候補/取消/測試）\n\n';
+  (s.courses||[]).forEach(c=>{
+    if(!c.active.length && !c.waitlist.length) return;
+    out+=`【${c.sport} ${c.day} ${c.time}】 正取 ${c.enrolled}/${c.cap}${c.enrolled>=4?'（可開班）':'（未夠4人）'}\n`;
+    out+='  正取：'+(c.active.length?c.active.join('、'):'—')+'\n';
+    if(c.waitlist.length) out+='  候補：'+c.waitlist.join('、')+'\n';
+    out+='\n';
+  });
+  const ta=document.getElementById('exp'); ta.style.display='block'; ta.value=out; ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  const msg=document.getElementById('msg'); msg.className='msg ok'; msg.textContent='名冊已生成（已嘗試複製到剪貼簿）。';
+}
+function exportCSV(){
+  const recs=(window._recs||[]).filter(r=>String(r['備註']).indexOf('測試')<0);
+  if(!recs.length){ const m=document.getElementById('msg'); m.className='msg err'; m.textContent='未有記錄。'; return; }
+  const cols=['記錄編號','時間戳','學生姓名','家長電話','報名課程','實收','狀態','付款截圖','確認PDF'];
+  let csv=cols.join(',')+'\n';
+  recs.forEach(r=>{ csv+=cols.map(c=>'"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"').join(',')+'\n'; });
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='報名記錄_'+(window._sum?window._sum.period:'')+'.csv'; a.click();
 }
 async function setStatus(id,status){
   const msg=document.getElementById('msg');
