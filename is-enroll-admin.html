@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#28B8C8">
+<title>INITIATE SPORTS 報名管理</title>
+<style>
+:root{ --teal:#28B8C8; --teal-dark:#1F9DAC; --teal-dim:rgba(40,184,200,0.10); --ink:#1f2a30; --mut:#66757c; --line:#e3e9ec; --bg:#f5f8f9; --ok:#1a9e6a; --warn:#c47f00; --err:#c0392b; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 60px;}
+header.top{display:flex;align-items:center;gap:10px;padding:6px 2px 12px;}
+header.top .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);}
+header.top h1{font-size:16px;margin:0;font-weight:800;}
+header.top .rf{margin-left:auto;font-size:13px;color:var(--teal);background:none;border:1px solid var(--teal);border-radius:8px;padding:5px 10px;cursor:pointer;}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:13px;}
+.card h2{font-size:15px;margin:0 0 10px;font-weight:800;}
+.fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;}
+.fld input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;}
+.btn{background:var(--teal);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;padding:10px 14px;cursor:pointer;}
+.btn:active{background:var(--teal-dark);} .btn.sm{padding:6px 10px;font-size:12.5px;}
+.btn.gray{background:#eef2f3;color:var(--mut);} .btn.ok{background:var(--ok);} .btn.err{background:var(--err);}
+.stats{display:flex;flex-wrap:wrap;gap:8px;}
+.stat{flex:1;min-width:90px;background:var(--teal-dim);border-radius:10px;padding:10px;text-align:center;}
+.stat .n{font-size:20px;font-weight:800;color:var(--teal-dark);} .stat .l{font-size:11.5px;color:var(--mut);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{font-size:11.5px;color:var(--mut);font-weight:700;}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;}
+.tag.full{background:#fdecea;color:var(--err);} .tag.ok{background:#e8f7ef;color:var(--ok);} .tag.warn{background:#fff6e0;color:var(--warn);}
+.names{font-size:12px;color:#3a464c;}
+.st{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;}
+.st.待核實{background:#fff6e0;color:var(--warn);} .st.已核實{background:#e8f7ef;color:var(--ok);} .st.候補{background:#eef2f3;color:var(--mut);} .st.取消{background:#fdecea;color:var(--err);}
+a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;}
+.msg{font-size:13px;padding:9px 11px;border-radius:9px;margin-top:8px;display:none;}
+.msg.err{background:#fdecea;color:var(--err);display:block;} .msg.ok{background:#e8f7ef;color:var(--ok);display:block;}
+.scroll{overflow-x:auto;} .mut{color:var(--mut);font-size:12px;} .load{text-align:center;color:var(--mut);padding:30px;}
+.rowact{display:flex;gap:5px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS 報名管理</h1><button class="rf" id="rfbtn" style="display:none" onclick="loadAll()">🔄 重新整理</button></header>
+  <div id="app"><div class="load">…</div></div>
+</div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
+const app=document.getElementById('app');
+let CP='';
+async function apiGet(p){ const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
+async function apiPost(b){ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); return r.json(); }
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>'$'+(Number(n)||0).toLocaleString();
+
+function renderLogin(err){
+  app.innerHTML=`<div class="card"><h2>教練登入</h2>
+    <div class="fld"><label>教練密碼</label><input id="cp" type="password" placeholder="密碼"></div>
+    <button class="btn" id="go">登入</button>
+    <div class="msg ${err?'err':''}" style="${err?'display:block':''}">${esc(err||'')}</div></div>`;
+  document.getElementById('go').onclick=async()=>{
+    CP=document.getElementById('cp').value.trim();
+    const r=await apiGet({action:'enrollSummary',coachPass:CP});
+    if(!r||r.ok===false){ renderLogin('密碼錯誤'); CP=''; return; }
+    document.getElementById('rfbtn').style.display='';
+    render(r,null);
+    loadRecords();
+  };
+}
+async function loadAll(){ const r=await apiGet({action:'enrollSummary',coachPass:CP}); render(r, window._recs); loadRecords(); }
+async function loadRecords(){ const r=await apiGet({action:'enrollRecords',coachPass:CP}); window._recs=(r&&r.records)||[]; render(window._sum, window._recs); }
+
+function render(sum, recs){
+  window._sum=sum||window._sum; recs=recs||window._recs||[];
+  const s=window._sum; if(!s) return;
+  const st=s.stat||{};
+  const openBadge = s.open ? '<span class="tag ok">已開放</span>' : '<span class="tag warn">預覽（未開放）</span>';
+  // 課程表
+  const courseRows=(s.courses||[]).map(c=>{
+    const seat = c.full?'<span class="tag full">滿</span>':(c.enrolled>=4?'<span class="tag ok">可開班</span>':'<span class="tag warn">未夠4</span>');
+    const names = c.active.length?`<div class="names">${c.active.map(esc).join('、')}</div>`:'<span class="mut">—</span>';
+    const wl = c.waitlist.length?`<div class="names" style="color:var(--warn)">候補：${c.waitlist.map(esc).join('、')}</div>`:'';
+    return `<tr><td><b>${esc(c.sport)}</b><div class="mut">${esc(c.day)} ${esc(c.time)}</div></td>
+      <td>${c.enrolled}/${c.cap} ${seat}</td><td>${money(c.price)}</td><td>${names}${wl}</td></tr>`;
+  }).join('');
+  // 報名逐筆
+  const recRows=recs.filter(r=>String(r['備註']).indexOf('測試')<0).map(r=>{
+    const id=r['記錄編號'], stt=String(r['狀態']||'');
+    const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" href="${esc(r['付款截圖'])}" target="_blank">截圖</a>`:'<span class="mut">無</span>';
+    const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" href="${esc(r['確認PDF'])}" target="_blank">PDF</a>`:'';
+    let act='';
+    if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${id}','已核實')">核實</button>`;
+    if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${id}','待核實')">轉正取</button>`;
+    if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${id}','取消')">取消</button>`;
+    return `<tr><td>${esc(r['學生姓名'])}<div class="mut">${esc(id)}</div></td>
+      <td>${esc(r['報名課程'])}</td><td>${money(r['實收'])}</td>
+      <td><span class="st ${stt}">${esc(stt)}</span></td><td>${pay}${pdf}</td>
+      <td><div class="rowact">${act}</div></td></tr>`;
+  }).join('') || '<tr><td colspan="6" class="mut">未有報名記錄</td></tr>';
+
+  app.innerHTML=`
+  <div class="card">
+    <h2>${esc(s.period)} 報名概況 ${openBadge}</h2>
+    <div class="stats">
+      <div class="stat"><div class="n">${st.total||0}</div><div class="l">總報名</div></div>
+      <div class="stat"><div class="n">${st.verified||0}</div><div class="l">已核實</div></div>
+      <div class="stat"><div class="n">${st.pending||0}</div><div class="l">待核實</div></div>
+      <div class="stat"><div class="n">${st.waitlist||0}</div><div class="l">候補</div></div>
+      <div class="stat"><div class="n">${money(st.revenue||0)}</div><div class="l">已收入</div></div>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="card"><h2>逐課程名額（最低 4 人開班）</h2>
+    <div class="scroll"><table><tr><th>課程</th><th>名額</th><th>學費</th><th>正取學生 / 候補</th></tr>${courseRows}</table></div>
+  </div>
+  <div class="card"><h2>逐筆報名審核</h2>
+    <div class="scroll"><table><tr><th>學生</th><th>課程</th><th>實收</th><th>狀態</th><th>付款</th><th>操作</th></tr>${recRows}</table></div>
+  </div>`;
+}
+async function setStatus(id,status){
+  const msg=document.getElementById('msg');
+  const r=await apiPost({action:'enrollSetStatus',coachPass:CP,id,status});
+  if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' → '+status; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  loadAll();
+}
+renderLogin();
+</script>
+</body>
+</html>
