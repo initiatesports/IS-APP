@@ -67,7 +67,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 報名系統 · <span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-07-22-v3';
+const FRONTEND_VERSION='enroll-2026-07-23-v4';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -104,8 +104,16 @@ async function boot(){
 }
 /* ════ ① 登入 / 認人 ════ */
 function renderLogin(){
-  const openBanner = S.cfg.open ? '' :
-    `<div class="banner">📅 ${esc(S.cfg.period)} 恆常班報名將於 <b>8 月中</b> 正式開放。你可以先預覽流程；課程時間及收費稍後公佈。</div>`;
+  let openBanner='';
+  const daysTo = d => { if(!d) return null; const t=new Date(d+'T23:59:59')-new Date(); return Math.ceil(t/86400000); };
+  if(!S.cfg.open){
+    const od=S.cfg.openDate, cd=S.cfg.closeDate;
+    const closed = cd && daysTo(cd)<0;
+    openBanner = `<div class="banner">📅 ${esc(S.cfg.period)} 恆常班報名${closed?'已於 <b>'+esc(cd)+'</b> 截止。':'將於 <b>'+esc(od||'8 月中')+'</b> 開放'+(cd?'，<b>'+esc(cd)+'</b> 截止':'')+'。'}你可以先預覽流程；課程時間及收費稍後公佈。</div>`;
+  }else if(S.cfg.closeDate){
+    const n=daysTo(S.cfg.closeDate);
+    openBanner = `<div class="banner">⏰ 報名進行中！截止日：<b>${esc(S.cfg.closeDate)}</b>${n>=0?'（尚餘 <b>'+n+'</b> 日）':''}。</div>`;
+  }
   app.innerHTML=`
   <div class="card">
     ${steps(1)}
