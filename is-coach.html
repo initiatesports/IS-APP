@@ -67,6 +67,7 @@ input:focus{border-color:var(--accent)}
 .cancelpanel textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;margin-bottom:10px;color:var(--ink)}
 .cancelpanel .btn{width:100%}
 .att{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.att.saving,.grp.saving{opacity:.5;transition:opacity .1s}
 .att:first-of-type{border-top:none}
 .att .nm{font-weight:500}
 .att .tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:var(--makeup-bg);color:var(--makeup)}
@@ -105,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-23-instant';
+const FRONTEND_VERSION = 'coach9-2026-07-23-batch';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -357,27 +358,30 @@ function row(r,gi,ri,key,date){
     </div></div>`;
 }
 async function mark(name,key,date,status,btn,gi,mk){
-  // ⚡ 樂觀更新：撳落即刻反映，背景寫入，失敗先還原
-  const row=btn.closest(".att"); const mks=[...row.querySelectorAll(".mk")]; const prev=mks.map(m=>m.classList.contains("on"));
-  mks.forEach(m=>m.classList.remove("on")); btn.classList.add("on"); recount(gi);
+  // 誠實：顯示「儲存中」（淡化），只喺伺服器確認咗先變綠 → 唔會假成功
+  const row=btn.closest(".att"); row.classList.add("saving");
   let r; try{ r=await api("markAttendance",{name,key,date,status,makeup:!!mk}); }catch(e){ r=null; }
-  if(r&&r.err==="密碼錯誤"){ mks.forEach((m,i)=>m.classList.toggle("on",prev[i])); recount(gi); COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
-  if(!r||!r.ok){ mks.forEach((m,i)=>m.classList.toggle("on",prev[i])); recount(gi); toast(r&&r.err? "存唔到："+r.err : "儲存失敗，請再試"); return; }
+  row.classList.remove("saving");
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
+  if(!r||!r.ok){ toast(r&&r.err? "存唔到："+r.err : "儲存失敗，請再試"); return; }
+  row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); btn.classList.add("on"); recount(gi);
   row.dataset.st=status; patchDaily9(name,key,status,mk);
 }
 async function markAll(gi,key,date,status,btn){
   const grp=$("#g"+gi); const rows=[...grp.querySelectorAll(".att")];
   const targets=rows.filter(row=>{ const st=row.dataset.st||""; const lvOn=row.querySelector(".mk.lv")?.classList.contains("on"); return !(st==="請假"||st==="停課"||lvOn); });
-  // ⚡ 樂觀：即刻標晒，背景逐個寫入
-  targets.forEach(row=>{ row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); row.querySelector(status==="出席"?".mk.go":".mk.no").classList.add("on"); });
+  // ⚡ 一個 request 一次過寫全班（唔會半途死）；只把伺服器確認咗嘅變綠
+  const marks=targets.map(row=>({name:row.querySelector(".nm").textContent, status, mk:row.dataset.mk==="1"}));
+  const skipped=rows.length-targets.length, old=btn.textContent; btn.textContent="儲存中…"; grp.classList.add("saving");
+  let r; try{ r=await api("markBatch",{key,date,marks}); }catch(e){ r=null; }
+  grp.classList.remove("saving"); btn.textContent=old;
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
+  if(!r||!r.ok){ toast(r&&r.err? "存唔到："+r.err : "儲存失敗，請再試"); return; }
+  const savedSet=new Set(r.saved||[]);
+  targets.forEach(row=>{ const nm=row.querySelector(".nm").textContent; if(savedSet.has(nm)){ row.querySelectorAll(".mk").forEach(m=>m.classList.remove("on")); row.querySelector(status==="出席"?".mk.go":".mk.no").classList.add("on"); row.dataset.st=status; patchDaily9(nm,key,status,row.dataset.mk==="1"); } });
   recount(gi);
-  const skipped=rows.length-targets.length, old=btn.textContent; btn.textContent="儲存中…"; let fail=0;
-  for(const row of targets){
-    const name=row.querySelector(".nm").textContent, mk=row.dataset.mk==="1";
-    try{ const r=await api("markAttendance",{name,key,date,status,makeup:mk}); if(r&&r.ok){ row.dataset.st=status; patchDaily9(name,key,status,mk); } else fail++; }catch(e){ fail++; }
-  }
-  btn.textContent=old;
-  toast((status==="出席"?"已全部標出席":"已全部標缺席")+(skipped?`（跳過 ${skipped} 個請假）`:"")+(fail?`・${fail} 個失敗`:""));
+  const fail=(r.failed||[]).length;
+  toast((status==="出席"?"已全部標出席":"已全部標缺席")+(skipped?`（跳過 ${skipped} 個請假）`:"")+(fail?`・${fail} 個未存（睇未點，請再撳）`:` ✓`));
 }
 function recount(gi){
   const grp=$("#g"+gi); const atts=[...grp.querySelectorAll(".att")];
