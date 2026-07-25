@@ -254,6 +254,7 @@ html,body{
 .ccount .miss{color:var(--amber);font-weight:700;}
 .allrow{display:flex;gap:8px;padding:0 14px 10px;}
 .att{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);}
+.att.saving,.cgrp.saving{opacity:.5;transition:opacity .1s;}   /* 儲存中：淡化，未確認前唔會當已完成 */
 .att .nm{font-size:15px;font-weight:600;}
 .att .tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--purple-dim);color:var(--purple);}
 .att .marks{margin-left:auto;display:flex;gap:6px;}
@@ -435,7 +436,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-23-instant';
+const FRONTEND_VERSION = 'coach-2026-07-23-batch';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2096,38 +2097,42 @@ function recountDaily(gi){
 async function markDaily(name, key, date, status, btn, mk){
   const wrap = btn.closest('.att');
   const gi = wrap.closest('.cgrp').id.replace('cg','');
-  // ⚡ 樂觀更新：撳落即刻反映（唔使等 server），背景寫入，失敗先還原
-  const mks = [...wrap.querySelectorAll('.mk')];
-  const prev = mks.map(m => m.classList.contains('on'));
-  mks.forEach(m => m.classList.remove('on'));
-  btn.classList.add('on');
-  recountDaily(gi);
+  // 誠實：顯示「儲存中」（唔預先變綠），只喺伺服器確認咗先變綠 → 唔會假成功
+  wrap.classList.add('saving');
   let r;
   try { r = await apiPost({ action:'markAttendance', name, key, date, status, makeup:!!mk }); }
   catch(e){ r = null; }
-  if (!r || !r.ok) {                                    // 失敗 → 還原剛才嘅狀態
-    mks.forEach((m,i) => m.classList.toggle('on', prev[i]));
-    recountDaily(gi);
-    toast('儲存失敗' + (r&&r.err?'：'+r.err:'，請再試'), '⚠'); return;
-  }
-  patchCoachCache(name, key, status, mk);              // 成功 → 同步快取
+  wrap.classList.remove('saving');
+  if (!r || !r.ok) { toast('儲存失敗' + (r&&r.err?'：'+r.err:'，請再試'), '⚠'); return; }
+  wrap.querySelectorAll('.mk').forEach(m => m.classList.remove('on'));
+  btn.classList.add('on');
+  recountDaily(gi);
+  patchCoachCache(name, key, status, mk);              // 確認成功 → 同步快取
 }
 async function markAllDaily(gi, key, date, status, btn){
   const grp = document.getElementById('cg' + gi);
   const rows = [...grp.querySelectorAll('.att')];
-  // ⚡ 樂觀：即刻全部反映，背景逐個寫入
-  rows.forEach(row => { row.querySelectorAll('.mk').forEach(m=>m.classList.remove('on')); const sel=row.querySelector(status==='出席'?'.mk.go':'.mk.no'); if(sel) sel.classList.add('on'); });
-  recountDaily(gi);
+  // ⚡ 一個 request 一次過寫全班（唔會半途死）；只把伺服器確認咗嘅變綠 → 唔會假成功
+  const marks = rows.map(row => ({ name: row.dataset.name, status, mk: row.dataset.mk === '1' }));
   const old = btn.textContent; btn.textContent = '儲存中…'; btn.disabled = true;
-  let okn = 0, fail = 0;
-  for (const row of rows){
-    const name = row.dataset.name, mk = row.dataset.mk === '1';
-    try { const r = await apiPost({ action:'markAttendance', name, key, date, status, makeup:mk });
-      if (r && r.ok){ okn++; patchCoachCache(name, key, status, mk); } else fail++;
-    } catch(e){ fail++; }
-  }
+  grp.classList.add('saving');
+  let r;
+  try { r = await apiPost({ action:'markBatch', key, date, marks }); }
+  catch(e){ r = null; }
+  grp.classList.remove('saving');
   btn.textContent = old; btn.disabled = false;
-  toast(fail ? `${status}：已存 ${okn} 人、${fail} 人失敗（請個別重試）` : `${status}：已存 ${okn} 人`, fail?'⚠':'✓');
+  if (!r || !r.ok) { toast('儲存失敗' + (r&&r.err?'：'+r.err:'，請再試'), '⚠'); return; }
+  const savedSet = new Set(r.saved || []);
+  rows.forEach(row => {
+    if (savedSet.has(row.dataset.name)) {
+      row.querySelectorAll('.mk').forEach(m => m.classList.remove('on'));
+      const sel = row.querySelector(status === '出席' ? '.mk.go' : '.mk.no'); if (sel) sel.classList.add('on');
+      patchCoachCache(row.dataset.name, key, status, row.dataset.mk === '1');
+    }
+  });
+  recountDaily(gi);   // 未存到嘅會顯示喺「未點 N」→ 一望就知邊個仲要點
+  const fail = (r.failed || []).length;
+  toast(fail ? `已存 ${(r.saved||[]).length} 人・${fail} 人未存（睇「未點」，請再撳一次）` : `全部 ${(r.saved||[]).length} 人已存 ✓`, fail ? '⚠' : '✓');
 }
 
 /* ── 天氣停課 ── */
