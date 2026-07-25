@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-22-sameday';
+const FRONTEND_VERSION = 'lm-2026-07-23-instantcache';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -478,7 +478,7 @@ function renderNav(){
   } else { n.innerHTML=""; }
 }
 function setMode(m){ if(m==="coach"&&!S.coachOk){ return askCoach(); } S.mode=m; renderNav(); routeMain(); }
-function logout(){ S.session=null; S.coachOk=false; S.coachPass=null; S.mode="parent"; renderNav(); renderLogin(); }
+function logout(){ S.session=null; S.coachOk=false; S.coachPass=null; S.mode="parent"; try{ localStorage.removeItem('is_lm_cache'); }catch(e){} renderNav(); renderLogin(); }
 
 /* ---------- 登入 ---------- */
 function renderLogin(){
@@ -523,6 +523,9 @@ async function ensureLatestBeforeLogin(){
 async function doLogin(){
   if(!(await ensureLatestBeforeLogin())) return;            // 有新版 → 強制載入最新版，唔畀舊版登入
   const name=$("#li-name").value.trim(), last4=$("#li-last4").value.trim();
+  // ⚡ 家長快取秒開：有中文名 + 身分吻合上次 → 即刻顯示（放喺 verifyCoach 之前，唔使等嗰個 round-trip）
+  if(name && last4.length===4){ const cachedLM=readLMCache(name,last4);
+    if(cachedLM){ applyLMResp(cachedLM,name,last4); S.mode="parent"; renderNav(); routeMain(); toast("🔄 更新緊…"); bgRefreshLM(name,last4); return; } }
   // 先試教練密碼:交後端 verifyCoach 驗證,啱即入教練模式(唔需要中文名)
   if(last4){
     try{ const cr=await api("verifyCoach",{coachPass:last4});
@@ -533,13 +536,20 @@ async function doLogin(){
   const r=await api("login",{name,last4});
   $("#li-go").disabled=false; $("#li-go").textContent="登入";
   if(!r.ok) return toast(r.err||"登入失敗");
-  const kids = (r.children&&r.children.length) ? r.children
-    : [{name:(r.student&&r.student.name)||name, classes:r.classes||[]}];
-  S.family={ authName:name, last4, children:kids };
-  S.venues=r.venues||{};
-  S.session={name, last4};            // 保留俾確認碼用
+  applyLMResp(r,name,last4); saveLMCache(name,last4,r);
   S.mode="parent"; renderNav(); routeMain();
 }
+// 套入 login 回應（doLogin / 快取 / 背景刷新 共用）
+function applyLMResp(r,name,last4){
+  const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
+  S.family={authName:name,last4,children:kids}; S.venues=r.venues||{}; S.session={name,last4};
+}
+/* ⚡ 即時快取：只喺身分吻合上次先用（安全）；背景刷新永遠行，幾秒校正 */
+function saveLMCache(name,last4,r){ try{ localStorage.setItem('is_lm_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
+function readLMCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('is_lm_cache')||'null'); if(c&&c.name===name&&c.last4===last4&&c.r&&(Date.now()-c.t<7*864e5)) return c.r; }catch(e){} return null; }
+async function bgRefreshLM(name,last4){ try{ const r=await api("login",{name,last4});
+  if(r&&r.ok){ applyLMResp(r,name,last4); saveLMCache(name,last4,r); routeMain(); }
+  else if(r&&r.ok===false){ try{ localStorage.removeItem('is_lm_cache'); }catch(e){} } }catch(e){} }
 
 /* ---------- 路由 ---------- */
 function routeMain(){ S.mode==="coach"?renderCoach():renderParent(); }
@@ -721,12 +731,9 @@ function sessRow(s,cid){
 }
 async function refresh(){
   if(!S.family) return;
-  const r=await api("login",{name:S.family.authName,last4:S.family.last4});
-  if(r&&r.ok){
-    S.family.children=(r.children&&r.children.length)?r.children
-      :[{name:(r.student&&r.student.name)||S.family.authName,classes:r.classes||[]}];
-    renderParent();
-  }
+  const nm=S.family.authName, l4=S.family.last4;
+  const r=await api("login",{name:nm,last4:l4});
+  if(r&&r.ok){ applyLMResp(r,nm,l4); saveLMCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取
 }
 
 /* ---------- 請假 sheet ---------- */
