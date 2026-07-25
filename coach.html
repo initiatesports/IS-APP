@@ -436,7 +436,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-23-batch';
+const FRONTEND_VERSION = 'coach-2026-07-23-loadcache';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -503,59 +503,54 @@ async function apiPost(body){
   return j;
 }
 
+// 把 load 回應套入所有全域（fetch / 快取 共用）。ATT_LOG 每次全清重填 → fresh 為準、無 stale。
+function applyCoachLoadData(data){
+  function ensureDateStr(val){
+    if (!val) return null;
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return dateToStr(d);
+  }
+  restoreSettings(data.settings || []);
+  PERIOD_VOID_MAP = data.periodVoid || {};
+  TRANSFERS_MAP = {};
+  (data.transfers || []).forEach(t => { if(t && t.cid && t.date && t.name){ const k=t.cid+'|'+t.date; (TRANSFERS_MAP[k]=TRANSFERS_MAP[k]||[]).push(t.name); } });
+  STUDENT_LEAVE_MAP = data.studentLeave || {};
+  for (var _k in ATT_LOG) delete ATT_LOG[_k];               // 全清 → 用 fresh 覆蓋，唔會殘留舊值
+  (data.attendance || []).forEach(row => {
+    const key = row.key;
+    if (!ATT_LOG[key]) ATT_LOG[key] = {};
+    ATT_LOG[key][row.name] = row.status;
+  });
+  ABSENCES.length = 0;
+  (data.absences || []).forEach(row => {
+    ABSENCES.push({ id:row.id, name:row.name, classId:row.classId,
+      absDate:ensureDateStr(row.absDate), deadline:ensureDateStr(row.deadline), madeUpDate:ensureDateStr(row.madeUpDate) });
+  });
+  MEDNOTES = Array.isArray(data.medNotes) ? data.medNotes.map(m=>({
+    name:String(m.name||''), classId:String(m.classId||''), date:ensureDateStr(m.date), link:String(m.link||'')
+  })).filter(m=>m.name&&m.link) : [];
+}
+function saveCoachLoad(data){ try{ localStorage.setItem('is_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
+function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('is_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
 async function loadFromSheets(){
+  // ⚡ 快取秒開：入密碼即刻用上次資料填滿（唔再彈「未載入雲端資料」+ 重新載入），背景 fetch 覆蓋到最新
+  if(!CLOUD_LOADED){ const cached=readCoachLoad(); if(cached){ try{ applyCoachLoadData(cached); CLOUD_LOADED=true; setSyncIndicator('ok'); renderHome(); }catch(e){} } }
   setSyncIndicator('loading');
   try{
-    const data = await apiPost({ action:'load' });   // 改用 POST：教練密碼隨 body 送出，不出現在網址；後端要密碼先回
+    const data = await apiPost({ action:'load' });   // POST：教練密碼隨 body 送出，不出現在網址
     if (data.error || data.err) throw new Error(data.error || data.err);
-
-    function ensureDateStr(val){
-      if (!val) return null;
-      const s = String(val).trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      const d = new Date(s);
-      if (isNaN(d.getTime())) return s;
-      return dateToStr(d);
-    }
-
-    restoreSettings(data.settings || []);
-    PERIOD_VOID_MAP = data.periodVoid || {};   // 後端暫停/退出名單（單一真相）→ 點名清單自動隱藏
-    // 調堂(轉堂)記錄 → 逐班點名 openRoll 據此喺該日目標班顯示轉入嘅學生（如周莉晶 c7→c3；轉堂唔喺 attendance）
-    TRANSFERS_MAP = {};
-    (data.transfers || []).forEach(t => { if(t && t.cid && t.date && t.name){ const k=t.cid+'|'+t.date; (TRANSFERS_MAP[k]=TRANSFERS_MAP[k]||[]).push(t.name); } });
-    STUDENT_LEAVE_MAP = data.studentLeave || {};   // 離班日（如周莉晶 c7 7/12 起唔再喺 c7 點名清單）
-
-    (data.attendance || []).forEach(row => {
-      const key = row.key;
-      if (!ATT_LOG[key]) ATT_LOG[key] = {};
-      ATT_LOG[key][row.name] = row.status;
-    });
-
-    if (data.absences && data.absences.length) {
-      ABSENCES.length = 0;
-      data.absences.forEach(row => {
-        ABSENCES.push({
-          id:row.id, name:row.name, classId:row.classId,
-          absDate:ensureDateStr(row.absDate),
-          deadline:ensureDateStr(row.deadline),
-          madeUpDate:ensureDateStr(row.madeUpDate),
-        });
-      });
-    }
-
-    MEDNOTES = Array.isArray(data.medNotes) ? data.medNotes.map(m=>({
-      name:String(m.name||''), classId:String(m.classId||''),
-      date:ensureDateStr(m.date), link:String(m.link||'')
-    })).filter(m=>m.name&&m.link) : [];
-
+    applyCoachLoadData(data);
+    saveCoachLoad(data);                              // 存快取，下次入密碼秒開
     CLOUD_LOADED = true;
     setSyncIndicator('ok');
     renderHome();
-    toast('資料已從雲端載入', '☁');
     setTimeout(silentValidate, 2000);
   }catch(e){
     const hasData = Object.keys(ATT_LOG).length > 0;
-    CLOUD_LOADED = hasData;                          // 已經有資料就唔當失敗（避免背景重試失敗誤報橫額）
+    CLOUD_LOADED = hasData;                          // 已經有資料（快取或上次）就唔當失敗
     setSyncIndicator(hasData ? 'ok' : 'error');
     if (!hasData) toast('未能載入雲端資料，請重新整理', '⚠');
     renderHome();
@@ -2289,7 +2284,8 @@ async function coachGateSubmit(){
   showScreen('home', false); await loadFromSheets(); checkHealth();
 }
 function coachLogout(){
-  COACH_PASS_RT=''; try{ localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); sessionStorage.removeItem('is_cpass'); }catch(e){}
+  COACH_PASS_RT=''; try{ localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); localStorage.removeItem('is_coach_load'); sessionStorage.removeItem('is_cpass'); }catch(e){}
+  CLOUD_LOADED=false;
   const g=document.getElementById('coach-gate'); g.style.display='flex';
   document.getElementById('cg-pass').value='';
 }
