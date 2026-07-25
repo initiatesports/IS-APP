@@ -435,7 +435,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-18-testhide';
+const FRONTEND_VERSION = 'coach-2026-07-23-instant';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2016,15 +2016,32 @@ function coachToday(){
   if (inp) inp.value = coachDate;
   loadDaily();
 }
+/* ⚡ 教練端快取（每日點名）：安全，因 markAttendance 冪等——顯示快取幾秒後背景 fetch 覆蓋，
+   就算嗰陣重標都只係覆寫、無害。只快取「載入完成」嘅回應，唔快取「點名中」狀態。 */
+let coachDailyData = null;   // 當前日期已載入嘅點名資料（供樂觀更新後同步快取）
+function saveCoachDaily(date,r){ try{ localStorage.setItem('is_coach_daily_'+date, JSON.stringify({r,t:Date.now()})); }catch(e){} }
+function readCoachDaily(date){ try{ const c=JSON.parse(localStorage.getItem('is_coach_daily_'+date)||'null'); if(c&&c.r&&c.r.ok&&(Date.now()-c.t<2*864e5)) return c.r; }catch(e){} return null; }
+// 點名後同步更新快取，令下次秒開已反映（唔會嚇親以為冇存到）
+function patchCoachCache(name, key, status, mk){
+  if(!coachDailyData||!coachDailyData.list) return;
+  coachDailyData.list.forEach(g=>{ if((g.c.key||g.c.sport)===key) (g.rows||[]).forEach(row=>{ if(row.name===name && (!!row.makeup)===(!!mk)) row.status=status; }); });
+  saveCoachDaily(coachDate, coachDailyData);
+}
 async function loadDaily(){
   const inp = document.getElementById('today-date');
   coachDate = inp ? inp.value : todayStr();
   const box = document.getElementById('daily-list');
-  box.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>載入中…</p></div>`;
+  const cached = readCoachDaily(coachDate);
+  if(cached){ coachDailyData=cached; renderDailyList(cached, box); }   // ⚡ 秒開：先渲染上次資料
+  else box.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>載入中…</p></div>`;
   let r;
   try { r = await apiPost({ action:'dailyList', date:coachDate, coachPass:cpass() }); }
-  catch(e){ box.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>連線錯誤，請再試<br><span style="font-size:12px">（確認已部署統一後端並填好 API_URL）</span></p></div>`; return; }
-  if (!r || !r.ok) { box.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>${(r&&r.err)||'載入失敗'}</p></div>`; return; }
+  catch(e){ if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>連線錯誤，請再試<br><span style="font-size:12px">（確認已部署統一後端並填好 API_URL）</span></p></div>`; return; }
+  if (!r || !r.ok) { if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>${(r&&r.err)||'載入失敗'}</p></div>`; return; }
+  coachDailyData = r; saveCoachDaily(coachDate, r);          // 背景 fetch 成功 → 更新快取 + 重新渲染最新
+  renderDailyList(r, box);
+}
+function renderDailyList(r, box){
   if (!r.list || !r.list.length) {
     const d = new Date(coachDate + 'T00:00:00');
     box.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${d.getMonth()+1}月${d.getDate()}日（星期${'日一二三四五六'[d.getDay()]}）<br>當日冇班別上課</p></div>`;
@@ -2079,36 +2096,38 @@ function recountDaily(gi){
 async function markDaily(name, key, date, status, btn, mk){
   const wrap = btn.closest('.att');
   const gi = wrap.closest('.cgrp').id.replace('cg','');
-  let r;
-  try { r = await apiPost({ action:'markAttendance', name, key, date, status, makeup:!!mk }); }
-  catch(e){ toast('連線錯誤，請再試', '⚠'); return; }
-  if (!r || !r.ok) { toast('儲存失敗' + (r&&r.err?'：'+r.err:''), '⚠'); return; }
-  wrap.querySelectorAll('.mk').forEach(m => m.classList.remove('on'));
+  // ⚡ 樂觀更新：撳落即刻反映（唔使等 server），背景寫入，失敗先還原
+  const mks = [...wrap.querySelectorAll('.mk')];
+  const prev = mks.map(m => m.classList.contains('on'));
+  mks.forEach(m => m.classList.remove('on'));
   btn.classList.add('on');
   recountDaily(gi);
-  toast(`${name}：${status}`, '✓');
+  let r;
+  try { r = await apiPost({ action:'markAttendance', name, key, date, status, makeup:!!mk }); }
+  catch(e){ r = null; }
+  if (!r || !r.ok) {                                    // 失敗 → 還原剛才嘅狀態
+    mks.forEach((m,i) => m.classList.toggle('on', prev[i]));
+    recountDaily(gi);
+    toast('儲存失敗' + (r&&r.err?'：'+r.err:'，請再試'), '⚠'); return;
+  }
+  patchCoachCache(name, key, status, mk);              // 成功 → 同步快取
 }
 async function markAllDaily(gi, key, date, status, btn){
   const grp = document.getElementById('cg' + gi);
   const rows = [...grp.querySelectorAll('.att')];
+  // ⚡ 樂觀：即刻全部反映，背景逐個寫入
+  rows.forEach(row => { row.querySelectorAll('.mk').forEach(m=>m.classList.remove('on')); const sel=row.querySelector(status==='出席'?'.mk.go':'.mk.no'); if(sel) sel.classList.add('on'); });
+  recountDaily(gi);
   const old = btn.textContent; btn.textContent = '儲存中…'; btn.disabled = true;
-  let okn = 0;
+  let okn = 0, fail = 0;
   for (const row of rows){
-    const name = row.dataset.name;
-    const mk = row.dataset.mk === '1';
-    try {
-      const r = await apiPost({ action:'markAttendance', name, key, date, status, makeup:mk });
-      if (r && r.ok){
-        row.querySelectorAll('.mk').forEach(m => m.classList.remove('on'));
-        const sel = row.querySelector(status === '出席' ? '.mk.go' : '.mk.no');
-        if (sel) sel.classList.add('on');
-        okn++;
-      }
-    } catch(e){}
+    const name = row.dataset.name, mk = row.dataset.mk === '1';
+    try { const r = await apiPost({ action:'markAttendance', name, key, date, status, makeup:mk });
+      if (r && r.ok){ okn++; patchCoachCache(name, key, status, mk); } else fail++;
+    } catch(e){ fail++; }
   }
   btn.textContent = old; btn.disabled = false;
-  recountDaily(gi);
-  toast(`${status}：已存 ${okn} 人`, '✓');
+  toast(fail ? `${status}：已存 ${okn} 人、${fail} 人失敗（請個別重試）` : `${status}：已存 ${okn} 人`, fail?'⚠':'✓');
 }
 
 /* ── 天氣停課 ── */
