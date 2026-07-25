@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-19-referral';
+const FRONTEND_VERSION = 'parent-2026-07-23-instantcache';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -490,21 +490,50 @@ async function ensureLatestBeforeLogin(){
   }catch(e){}
   return true;
 }
+// 把 login 回應套入狀態（doLogin / 快取 / 背景刷新 共用）
+function applyLoginResp(r, name, last4){
+  const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
+  S.family={authName:name,last4,children:kids}; S.session={name,last4};
+  S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
+  S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{};
+}
+/* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
+   秒開上次資料，背景刷新永遠會行，幾秒內自動校正到最新。 */
+function saveParentCache(name,last4,r){ try{ localStorage.setItem('is_parent_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
+function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('is_parent_cache')||'null');
+  if(c && c.name===name && c.last4===last4 && c.r && (Date.now()-c.t < 7*864e5)) return c.r; }catch(e){} return null; }
+async function bgRefresh(name,last4){
+  try{ const r=await api('login',{name,last4});
+    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); renderParent(); }
+    else if(r&&r.ok===false){ try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
+  }catch(e){}
+}
 async function doLogin(){
   const name=$('li-name').value.trim(), last4=$('li-last4').value.trim();
   if(!name||last4.length!==4) return toast(t('fillNameCode'));
   if(!(await ensureLatestBeforeLogin())) return;            // 有新版 → 強制載入最新版，唔畀舊版登入
+  // ⚡ 快取秒開：輸入身分同上次一致 → 即刻顯示上次資料 + 背景刷新
+  const cached=readParentCache(name,last4);
+  if(cached){
+    applyLoginResp(cached,name,last4);
+    try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,t:Date.now()})); }catch(e){}
+    $('logout-btn').style.display='block';
+    renderParent();
+    toast(LANG==='en'?'🔄 Updating…':'🔄 更新緊…');
+    bgRefresh(name,last4);
+    return;
+  }
   const btn=$('li-go'); btn.disabled=true; btn.textContent=t('loggingIn');
   let r; try{ r=await api('login',{name,last4}); }catch(e){ btn.disabled=false; btn.textContent=t('login'); return toast(t('netFail')); }
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
-  const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.session={name,last4}; S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{};
+  applyLoginResp(r,name,last4);
   try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,t:Date.now()})); }catch(e){}
+  saveParentCache(name,last4,r);
   $('logout-btn').style.display='block';
   renderParent();
 }
-function logout(){ S.family=null; S.session=null; try{ localStorage.removeItem('is_parent_auth'); }catch(e){} renderLogin(); }
+function logout(){ S.family=null; S.session=null; try{ localStorage.removeItem('is_parent_auth'); localStorage.removeItem('is_parent_cache'); }catch(e){} renderLogin(); }
 /* 暑期班橋接：同源（同 GitHub Pages 目錄）用 localStorage 交接登入身分，避免把姓名/電話放入網址；
    暑期頁讀取後即時刪除。失敗會自動退回手動登入。 */
 function openSummer(){
@@ -516,8 +545,9 @@ function openSummer(){
 }
 async function refresh(){
   if(!S.family) return;
-  const r=await api('login',{name:S.family.authName,last4:S.family.last4});
-  if(r&&r.ok){ S.family.children=(r.children&&r.children.length)?r.children:[{name:S.family.authName,classes:r.classes||[]}]; if(r.payNumber)S.payNumber=r.payNumber; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.venues=r.venues||S.venues||{}; renderParent(); }
+  const nm=S.family.authName, l4=S.family.last4;
+  const r=await api('login',{name:nm,last4:l4});
+  if(r&&r.ok){ applyLoginResp(r,nm,l4); saveParentCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取，令下次秒開係最新
 }
 
 /* ═══════════ 家長主頁 ═══════════ */
