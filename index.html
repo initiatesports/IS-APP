@@ -2070,7 +2070,7 @@ async function loadFromSheets(manual=false) {
     // 🔒 學生資料(排行榜/補堂提醒)改用 POST homeStudent + 家庭身分(中文名+電話後4位),後端跨驗 #4 先回;
     //    匿名 GET home 只回公開 CMS,唔再洩漏缺席/成績。
     var _au = {}; try { _au = JSON.parse(localStorage.getItem('is_parent_auth') || '{}') || {}; } catch(e){}
-    const data = await apiPost({ action: 'homeStudent', name: _au.name, last4: _au.last4 });
+    const data = await apiPost({ action: 'homeStudent', name: _au.name, last4: _au.last4, token: _au.token });
     // 若 homeStudent 未授權（例：#11 缺 external_request）→ 優雅降級：只載公開 settings、
     // 唔顯示個人出席/成績（個人資料家長喺 is-parent 睇）、唔報錯，官網 home 照常運作。
     if (data.error) {
