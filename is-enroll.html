@@ -73,8 +73,9 @@ document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
 const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'' };
 
-async function apiGet(p){ const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
-async function apiPost(body){ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); return r.json(); }
+async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
+async function apiPost(body){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
 function steps(n){ let h='<div class="steps">'; for(let i=1;i<=6;i++) h+=`<div class="s ${i<=n?'on':''}"></div>`; return h+'</div>'; }
@@ -343,10 +344,13 @@ async function submitEnroll(){
   btn.disabled=true; btn.textContent='提交中…';
   const q=S.quote||{};
   const coursesTxt=(q.courses||[]).map(c=>esc(c.sport)+(c.day&&c.day!=='待定'?('|'+c.day+' '+c.time):'')).join('、');
-  const res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
-    courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
-    feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
-    payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId, agree:'同意' });
+  let res;
+  try{
+    res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
+      courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
+      feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
+      payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId, agree:'同意' });
+  }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.textContent='網絡逾時／中斷，未提交。請確認網絡後再撳一次（唔會重複收費）。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
   renderDone(res);

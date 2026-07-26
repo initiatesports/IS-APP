@@ -56,8 +56,9 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;}
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 const app=document.getElementById('app');
 let CP='';
-async function apiGet(p){ const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
-async function apiPost(b){ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); return r.json(); }
+async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
+async function apiPost(b){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
 
