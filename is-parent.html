@@ -504,7 +504,7 @@ function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getIt
   if(c && c.name===name && c.last4===last4 && c.r && (Date.now()-c.t < 7*864e5)) return c.r; }catch(e){} return null; }
 async function bgRefresh(name,last4){
   try{ const r=await api('login',{name,last4});
-    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); renderParent(); }
+    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); }
     else if(r&&r.ok===false){ try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
   }catch(e){}
 }
@@ -516,7 +516,7 @@ async function doLogin(){
   const cached=readParentCache(name,last4);
   if(cached){
     applyLoginResp(cached,name,last4);
-    try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,t:Date.now()})); }catch(e){}
+    try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(cached&&cached.homeToken)||'',t:Date.now()})); }catch(e){}
     $('logout-btn').style.display='block';
     renderParent();
     toast(LANG==='en'?'🔄 Updating…':'🔄 更新緊…');
@@ -528,7 +528,7 @@ async function doLogin(){
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   applyLoginResp(r,name,last4);
-  try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,t:Date.now()})); }catch(e){}
+  try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){}
   saveParentCache(name,last4,r);
   $('logout-btn').style.display='block';
   renderParent();
