@@ -1340,6 +1340,7 @@ function switchPanel(id) {
 // ═══════════════════════
 const API_URL='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 async function apiGet(p){const r=await fetch(API_URL+'?'+new URLSearchParams(p)+'&_='+Date.now(),{cache:'no-store'});return r.json();}
+async function apiPost(b){const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});return r.json();}
 
 // ═══════════════════════
 //  DATA
@@ -2066,7 +2067,10 @@ function showToast(msg) {
 async function loadFromSheets(manual=false) {
   setSyncState('loading');
   try {
-    const data = await apiGet({ action: 'home' });   // 家長專區只攞可公開展示資料(班名/相片/星之學員/排行榜/補堂提醒);不含身高體重/醫療/繳費
+    // 🔒 學生資料(排行榜/補堂提醒)改用 POST homeStudent + 家庭身分(中文名+電話後4位),後端跨驗 #4 先回;
+    //    匿名 GET home 只回公開 CMS,唔再洩漏缺席/成績。
+    var _au = {}; try { _au = JSON.parse(localStorage.getItem('is_parent_auth') || '{}') || {}; } catch(e){}
+    const data = await apiPost({ action: 'homeStudent', name: _au.name, last4: _au.last4 });
     if (data.error) throw new Error(data.error);
 
     // 1. Settings (class names, star history, photos)
