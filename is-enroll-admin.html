@@ -68,15 +68,15 @@ function renderLogin(err){
     <div class="msg ${err?'err':''}" style="${err?'display:block':''}">${esc(err||'')}</div></div>`;
   document.getElementById('go').onclick=async()=>{
     CP=document.getElementById('cp').value.trim();
-    const r=await apiGet({action:'enrollSummary',coachPass:CP});
+    const r=await apiPost({action:'enrollSummary',coachPass:CP});
     if(!r||r.ok===false){ renderLogin('密碼錯誤'); CP=''; return; }
     document.getElementById('rfbtn').style.display='';
     render(r,null);
     loadRecords();
   };
 }
-async function loadAll(){ const r=await apiGet({action:'enrollSummary',coachPass:CP}); render(r, window._recs); loadRecords(); }
-async function loadRecords(){ const r=await apiGet({action:'enrollRecords',coachPass:CP}); window._recs=(r&&r.records)||[]; render(window._sum, window._recs); }
+async function loadAll(){ const r=await apiPost({action:'enrollSummary',coachPass:CP}); render(r, window._recs); loadRecords(); }
+async function loadRecords(){ const r=await apiPost({action:'enrollRecords',coachPass:CP}); window._recs=(r&&r.records)||[]; render(window._sum, window._recs); }
 
 function render(sum, recs){
   window._sum=sum||window._sum; recs=recs||window._recs||[];
