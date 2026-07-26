@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-23-instantcache';
+const FRONTEND_VERSION = 'parent-2026-07-26-timeout';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -441,10 +441,10 @@ function openHistory(ki){
 async function api(action,payload={}){
   const body={action,...payload};
   if(body.code===undefined && S.family && S.family.last4) body.code=S.family.last4;  // 後端驗證家庭身分
-  const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
-  return r.json();
+  const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);
+  try{ const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); }
 }
-async function apiGet(p){const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p));return r.json();}
+async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal});return await r.json();}finally{clearTimeout(tm);}}
 async function syncHolidays(){
   // 只攞公眾假期（輕量、非敏感）；唔再拉成個 load，避免匿名攞到全校資料。
   try{ const d=await apiGet({action:'holidays'});
