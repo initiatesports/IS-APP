@@ -59,6 +59,18 @@ let CP='';
 async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
 async function apiPost(b){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); }
+// C2：付款截圖/確認PDF 已改私有 → 用教練密碼經 getSecureFile 攞 base64 再開,唔直連 Drive。
+async function viewSecureFile(ref){
+  if(!ref) return;
+  try{
+    const r=await apiPost({action:'getSecureFile',coachPass:CP,id:ref});
+    if(!r||!r.ok||!r.b64){ alert((r&&r.err)||'讀取檔案失敗'); return; }
+    const bin=atob(r.b64), bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([bytes],{type:r.mime||'application/octet-stream'}));
+    window.open(url,'_blank'); setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){ alert('讀取檔案失敗，請再試'); }
+}
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
 
@@ -95,8 +107,8 @@ function render(sum, recs){
   // 報名逐筆
   const recRows=recs.filter(r=>String(r['備註']).indexOf('測試')<0).map(r=>{
     const id=r['記錄編號'], stt=String(r['狀態']||'');
-    const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" href="${esc(r['付款截圖'])}" target="_blank">截圖</a>`:'<span class="mut">無</span>';
-    const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" href="${esc(r['確認PDF'])}" target="_blank">PDF</a>`:'';
+    const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" href="#" onclick="viewSecureFile('${esc(r['付款截圖'])}');return false" style="cursor:pointer">截圖</a>`:'<span class="mut">無</span>';
+    const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" href="#" onclick="viewSecureFile('${esc(r['確認PDF'])}');return false" style="cursor:pointer">PDF</a>`:'';
     let act='';
     if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${id}','已核實')">核實</button>`;
     if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${id}','待核實')">轉正取</button>`;

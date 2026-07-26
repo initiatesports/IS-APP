@@ -436,7 +436,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-26-timeout';
+const FRONTEND_VERSION = 'coach-2026-07-26-securefile';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -502,6 +502,20 @@ async function apiPost(body){
   const j = await res.json();
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
   return j;
+}
+
+// C2：敏感檔案（付款截圖/醫生紙）已改私有,唔可以直接 <a href=drive>。用教練密碼經 getSecureFile 攞 base64 再開。
+async function viewSecureFile(ref){
+  if(!ref){ return; }
+  try{
+    const r=await apiPost({action:'getSecureFile', id:ref});
+    if(!r||!r.ok||!r.b64){ alert((r&&r.err)||'讀取檔案失敗'); return; }
+    const bin=atob(r.b64), bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([bytes],{type:r.mime||'application/octet-stream'}));
+    window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e){ alert('讀取檔案失敗，請再試'); }
 }
 
 // 把 load 回應套入所有全域（fetch / 快取 共用）。ATT_LOG 每次全清重填 → fresh 為準、無 stale。
@@ -1627,7 +1641,7 @@ async function renderFees(){
     const isPaid=f.status==='已繳';
     const col=isPaid?'var(--green,#34d399)':((f.overdue)?'var(--danger,#e66)':(f.status==='待核實'?'var(--cyan)':'var(--amber)'));
     const stTxt=(f.overdue&&!isPaid)?('逾期·'+f.status):f.status;
-    const scr=f.hasScreenshot?`<a href="${f.link}" target="_blank" style="color:var(--cyan);font-size:12px">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
+    const scr=f.hasScreenshot?`<a href="#" onclick="viewSecureFile('${f.link}');return false" style="color:var(--cyan);font-size:12px;cursor:pointer">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
     const adj=(f.adj&&f.adj!==0)?` · <span style="color:${f.adj<0?'var(--green)':'var(--amber)'}">調整 ${f.adj>0?'+':''}$${f.adj}${f.adjNote?'('+f.adjNote+')':''}</span>`:'';
     const nm=String(f.name).replace(/'/g,"\\'");
     const btns=`<div style="display:flex;flex-direction:column;gap:6px">
@@ -1651,7 +1665,7 @@ async function renderFees(){
     html+=`<div class="class-list">`;
     addons.forEach(a=>{
       const ap=a.status==='已繳';
-      const scr=a.hasScreenshot?`<a href="${a.link}" target="_blank" style="color:var(--cyan);font-size:12px">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
+      const scr=a.hasScreenshot?`<a href="#" onclick="viewSecureFile('${a.link}');return false" style="color:var(--cyan);font-size:12px;cursor:pointer">📄 截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>';
       const nm=String(a.name).replace(/'/g,"\\'");
       const btn=ap?'':`<button class="btn-makeup-done" onclick="verifyAddon('${nm}','${a.to}','${a.date}')">核實已繳</button>`;
       html+=`<div class="class-row" style="align-items:center">
