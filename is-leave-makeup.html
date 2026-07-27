@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-26-timeout';
+const FRONTEND_VERSION = 'lm-2026-07-27-notice';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -543,7 +543,7 @@ async function doLogin(){
 // 套入 login 回應（doLogin / 快取 / 背景刷新 共用）
 function applyLMResp(r,name,last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.venues=r.venues||{}; S.session={name,last4};
+  S.family={authName:name,last4,children:kids}; S.venues=r.venues||{}; S.session={name,last4}; S.notices=r.notices||[];
 }
 /* ⚡ 即時快取：只喺身分吻合上次先用（安全）；背景刷新永遠行，幾秒校正 */
 function saveLMCache(name,last4,r){ try{ localStorage.setItem('is_lm_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
@@ -612,6 +612,28 @@ function renderParent(){
     if(h) html+=h;
   });
   html+=`</div>`; view.innerHTML=html;
+  try{ showModalNotices(); }catch(e){}
+}
+/* ---------- 重要通知彈窗（modal，家長要撳「知道了」；已讀記 localStorage） ---------- */
+function ackedNotices(){ try{ return new Set(JSON.parse(localStorage.getItem('is_lm_acked_notices')||'[]')); }catch(e){ return new Set(); } }
+function markNoticeAcked(id){ try{ const s=ackedNotices(); s.add(id); localStorage.setItem('is_lm_acked_notices', JSON.stringify([...s].slice(-150))); }catch(e){} }
+function showModalNotices(){
+  if(document.querySelector('.notice-modal-ov')) return;
+  const acked=ackedNotices();
+  const pending=(S.notices||[]).filter(n=>n.modal && n.id && !acked.has(n.id));
+  if(!pending.length) return;
+  const n=pending[pending.length-1];
+  const ov=document.createElement('div'); ov.className='notice-modal-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:1000000;background:rgba(20,40,45,.55);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:24px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.28);text-align:center">
+    <div style="font-size:34px">📣</div>
+    <div style="font-size:17px;font-weight:800;color:#14303a;margin:6px 0 12px">重要通知</div>
+    <div style="font-size:15px;line-height:1.65;color:#2b3a42;text-align:left;white-space:pre-wrap">${(n.text||'').replace(/</g,'&lt;')}</div>
+    ${n.at?`<div style="font-size:11px;color:#8aa;margin-top:10px;text-align:left">${n.at}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}</div>`:''}
+    <button class="nm-ok" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">知道了</button>
+  </div>`;
+  ov.querySelector('.nm-ok').onclick=function(){ markNoticeAcked(n.id); ov.remove(); showModalNotices(); };
+  document.body.appendChild(ov);
 }
 function classCard(child,ki,c,ci){
   const sp=SPORT[c.sport], owed=c.owed||0;
@@ -728,7 +750,8 @@ function sessRow(s,cid){
   else if(d<today) pill=`<span class="pill p-up">已過</span>`;
   const v=venueAt(s.date,cid);
   const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
-  return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span>${vLine}</span>${pill}</div>`;
+  const tLine=s.time?`<div class="vn" style="color:#0E8A96;font-weight:800">⏰ 特別時間：${s.time}</div>`:'';
+  return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">星期${WDN[d.getDay()]}</span>${tLine}${vLine}</span>${pill}</div>`;
 }
 async function refresh(){
   if(!S.family) return;
