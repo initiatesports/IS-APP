@@ -436,7 +436,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-26-securefile';
+const FRONTEND_VERSION = 'coach-2026-07-26-notice';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1109,15 +1109,20 @@ async function renderNoticesAdmin(){
   let r; try{ r=await apiPost({action:'notices', n:10}); }catch(e){ r=null; }
   NOTICES_CACHE=(r&&r.ok&&r.notices)?r.notices:[];
   let html=`<div class="section-header">📣 每週通知（場地／時間／天氣）</div>
-    <div style="display:flex;gap:8px;margin:0 4px 10px">
-      <input id="nt-input" placeholder="例：本週六改青衣西南體育館 / 黑雨暫停" style="flex:1;padding:11px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
-      <button class="btn-makeup-done" onclick="postNotice()">發佈</button>
+    <div style="margin:0 4px 10px">
+      <input id="nt-input" placeholder="例：本週一 c1 改 4-5pm / 黑雨暫停" style="width:100%;padding:11px;border-radius:10px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px">
+      <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <label style="font-size:12px;color:#bbb">顯示到 <input id="nt-until" type="date" style="background:#1b1b1b;color:#eee;border:1px solid #333;border-radius:8px;padding:6px;font-size:13px"></label>
+        <label style="font-size:12px;color:#bbb;display:flex;align-items:center;gap:5px"><input id="nt-modal" type="checkbox"> 彈窗提醒（家長要撳「知道了」先入頁）</label>
+        <button class="btn-makeup-done" onclick="postNotice()" style="margin-left:auto">發佈</button>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:5px">「顯示到」= 過咗嗰日自動唔再顯示（例：27/7 嘅通知揀 27/7，28/7 起自動消失）</div>
     </div>`;
   if(NOTICES_CACHE.length){
     html+=`<div class="class-list">`+NOTICES_CACHE.map(n=>`
       <div class="class-row" style="align-items:flex-start">
-        <div class="class-row-info"><h3 style="font-size:14px;font-weight:600;white-space:normal">${(n.text||'').replace(/</g,'&lt;')}</h3>
-          <p>${n.at||''}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}</p></div>
+        <div class="class-row-info"><h3 style="font-size:14px;font-weight:600;white-space:normal">${(n.text||'').replace(/</g,'&lt;')}${n.modal?' 🔔':''}</h3>
+          <p>${n.at||''}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}${n.until?' · 顯示到 '+n.until:''}${n.modal?' · 彈窗':''}</p></div>
         <button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="delNotice(${n.row})">刪除</button>
       </div>`).join('')+`</div>`;
   } else {
@@ -1128,8 +1133,10 @@ async function renderNoticesAdmin(){
 async function postNotice(){
   const inp=document.getElementById('nt-input'); const text=(inp.value||'').trim();
   if(!text){ toast('請輸入內容','⚠'); return; }
-  let r; try{ r=await apiPost({action:'addNotice', coachPass:cpass(), text}); }catch(e){ r=null; }
-  if(r&&r.ok){ inp.value=''; toast('已發佈','✓'); renderNoticesAdmin(); } else toast('發佈失敗','⚠');
+  const until=(document.getElementById('nt-until')||{}).value||'';
+  const modal=(document.getElementById('nt-modal')||{}).checked?'1':'';
+  let r; try{ r=await apiPost({action:'addNotice', coachPass:cpass(), text, until, modal}); }catch(e){ r=null; }
+  if(r&&r.ok){ inp.value=''; try{document.getElementById('nt-until').value='';document.getElementById('nt-modal').checked=false;}catch(e){} toast('已發佈','✓'); renderNoticesAdmin(); } else toast('發佈失敗','⚠');
 }
 async function delNotice(row){
   if(!confirm('刪除呢條通知？')) return;
