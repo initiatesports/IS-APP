@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-26-owedperiod';
+const FRONTEND_VERSION = 'parent-2026-07-26-modal';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -652,6 +652,28 @@ function renderParent(){
   // 推廣按鈕仍生效期間，三個功能按鈕暫放底部
   if(promoActive) html+=`<div style="height:6px"></div>`+featureLinks();
   html+=`</div>`; view().innerHTML=html;
+  try{ showModalNotices(); }catch(e){}
+}
+// 📣 重要通知彈窗：有標記「彈窗」而又未讀嘅通知 → 開頁跳 blocking modal，撳「知道了」先入頁（每個通知每部機認一次）。
+function ackedNotices(){ try{ return new Set(JSON.parse(localStorage.getItem('is_acked_notices')||'[]')); }catch(e){ return new Set(); } }
+function markNoticeAcked(id){ try{ const s=ackedNotices(); s.add(id); localStorage.setItem('is_acked_notices', JSON.stringify([...s].slice(-150))); }catch(e){} }
+function showModalNotices(){
+  if(document.querySelector('.notice-modal-ov')) return;
+  const acked=ackedNotices();
+  const pending=(S.notices||[]).filter(n=>n.modal && n.id && !acked.has(n.id));
+  if(!pending.length) return;
+  const n=pending[pending.length-1];   // S.notices 最新喺前 → 由最舊未讀嗰個開始彈，逐個嚟
+  const ov=document.createElement('div'); ov.className='notice-modal-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:1000000;background:rgba(20,40,45,.55);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:24px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.28);text-align:center">
+    <div style="font-size:34px">📣</div>
+    <div style="font-size:17px;font-weight:800;color:#14303a;margin:6px 0 12px">${LANG==='en'?'Important notice':'重要通知'}</div>
+    <div style="font-size:15px;line-height:1.65;color:#2b3a42;text-align:left;white-space:pre-wrap">${(n.text||'').replace(/</g,'&lt;')}</div>
+    ${n.at?`<div style="font-size:11px;color:#8aa;margin-top:10px;text-align:left">${n.at}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}</div>`:''}
+    <button class="nm-ok" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">${LANG==='en'?'Got it':'知道了'}</button>
+  </div>`;
+  ov.querySelector('.nm-ok').onclick=function(){ markNoticeAcked(n.id); ov.remove(); showModalNotices(); };   // 仲有下一個未讀 → 繼續彈
+  document.body.appendChild(ov);
 }
 function classCard(child,ki,c,ci){
   // 總堂／已上／請假：只計當前選定期數（例如 5-6月），由 c.sessions 按期過濾即時計算
@@ -1387,13 +1409,17 @@ function showUpdateBanner(latest){
       return;
     }
   }catch(e){}
-  const bar=document.createElement('div'); bar.id='update-banner';
-  bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#1b8d9b;color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.25)';
-  bar.innerHTML='<span style="flex:1;font-weight:600">🔄 系統有新版本</span>';
-  const btn=document.createElement('button'); btn.textContent='立即更新'; btn.style.cssText='background:#fff;color:#1b8d9b;border:0;border-radius:9px;padding:8px 15px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer';
-  btn.onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
-  const x=document.createElement('button'); x.setAttribute('aria-label','關閉'); x.textContent='✕'; x.style.cssText='background:transparent;color:#fff;border:0;font-size:17px;line-height:1;cursor:pointer;padding:0 4px'; x.onclick=function(){ bar.remove(); };
-  bar.appendChild(btn); bar.appendChild(x); document.body.appendChild(bar);
+  // 自動 reload 都刷唔到（iOS 主畫面頑固快取）→ 彈 blocking modal，家長一定要撳「立即更新」先入到頁 → 直接刷新到最新版。
+  const ov=document.createElement('div'); ov.id='update-banner';
+  ov.style.cssText='position:fixed;inset:0;z-index:1000001;background:rgba(20,40,45,.6);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:400px;width:100%;padding:26px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.3);text-align:center">
+    <div style="font-size:34px">🔄</div>
+    <div style="font-size:17px;font-weight:800;color:#14303a;margin:6px 0 8px">系統有新版本</div>
+    <div style="font-size:14px;line-height:1.6;color:#5a6b72">為確保你睇到最新課堂資料，請即更新。</div>
+    <button class="upd-now" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">立即更新</button>
+  </div>`;
+  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  document.body.appendChild(ov);
 }
 document.addEventListener('DOMContentLoaded', async function(){
   installManifest();
