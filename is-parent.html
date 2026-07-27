@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-26-timeout';
+const FRONTEND_VERSION = 'parent-2026-07-26-owedperiod';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -654,17 +654,19 @@ function renderParent(){
   html+=`</div>`; view().innerHTML=html;
 }
 function classCard(child,ki,c,ci){
-  const owed=c.owed||0;   // 待補：跨所有期數的總和（不限當期）
   // 總堂／已上／請假：只計當前選定期數（例如 5-6月），由 c.sessions 按期過濾即時計算
   const pSess=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period);
   const pTotal=pSess.length;
   const pAtt=pSess.filter(s=>s.status==='出席'||s.status==='補堂').length;
   const pLeave=pSess.filter(s=>s.status==='請假').length;
-  // 待補提示嘅限期 = 最舊未補請假嘅「有效限期」（含教練延期覆寫 c.mkExt）。
-  // ⚠️ 唔可以用 c.deadline —— 後端 c.deadline = 該班 grid 最後一堂（如 c5 = 10/30），唔係補堂限期。
-  const _lv=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
+  // 🔧 待補（owed）改為「當期」：只計本期內、請假、未過期、且未被已約補堂覆蓋嘅堂。
+  //    （c.owed 係跨所有期數總和 → 會令過去期數明明補完都顯示待補，例：何芯蕾 5-6月全補完卻顯示 3。）
+  //    已約補堂覆蓋 = makeups 有原請假日 from 且非缺席/停課（含已出席及待出席）。預約上限 openMakeup 仍用班級總 c.owed（補堂可補任何期，正確）。
+  const _bookedFrom=new Set((c.makeups||[]).filter(m=>m.from && m.status!=='缺席' && m.status!=='停課').map(m=>m.from));
   const _ext=c.mkExt||{};
-  const _dls=_lv.slice(Math.max(0,_lv.length-owed)).map(d=>_ext[d]||addMonths(d,CONFIG.MAKEUP_MONTHS||2)).filter(dl=>dl>=todayStr()).sort();
+  const owedLeavesP=pSess.filter(s=>s.status==='請假' && !s.expired && !_bookedFrom.has(s.date)).map(s=>s.date).sort();
+  const owed=owedLeavesP.length;
+  const _dls=owedLeavesP.map(d=>_ext[d]||addMonths(d,CONFIG.MAKEUP_MONTHS||2)).filter(dl=>dl>=todayStr()).sort();
   const mkDl=_dls.length?_dls[0]:null;
   return `<div class="card">
     <div class="topline"><span class="dot"></span><h3>${classLabel(c.key||c.sport)}</h3></div>
