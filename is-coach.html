@@ -106,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-27-timeadj';
+const FRONTEND_VERSION = 'coach9-2026-07-27-dayarrows';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -189,7 +189,9 @@ function renderMain(){
   view.innerHTML=`<div class="wrap">
     <div style="font-family:'Bricolage Grotesque';font-weight:700;font-size:22px;margin:2px 2px 12px">每日點名</div>
     <div class="coach-bar">
+      <button class="mini" onclick="shiftDate(-1)" title="前一天">⬅️</button>
       <input type="date" id="d" value="${S.date}">
+      <button class="mini" onclick="shiftDate(1)" title="後一天">➡️</button>
       <button class="mini" onclick="setToday()">今日</button>
       <button class="mini" onclick="load()">↻</button>
     </div>
@@ -348,6 +350,7 @@ function copyWa(){
   else { try{document.execCommand('copy');ok();}catch(e){} }
 }
 function setToday(){S.date=todayIso();$("#d").value=S.date;load();}
+function shiftDate(n){ const d=new Date((S.date||todayIso())+"T00:00:00"); d.setDate(d.getDate()+n); S.date=d.toLocaleDateString('en-CA'); $("#d").value=S.date; load(); }
 /* ⚡ 教練端快取（安全，markAttendance 冪等）：顯示快取幾秒後背景 fetch 覆蓋 */
 let daily9Data=null;
 function saveDaily9(date,r){ try{ localStorage.setItem('is_coach9_daily_'+date, JSON.stringify({r,t:Date.now()})); }catch(e){} }
