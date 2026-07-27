@@ -106,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-26-timeout';
+const FRONTEND_VERSION = 'coach9-2026-07-27-timeadj';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -195,10 +195,49 @@ function renderMain(){
     </div>
     <button class="wxbtn" onclick="weatherCancel()">🌧 天氣停課（當日全部）</button>
     <div id="venuePanel" style="margin:0 0 14px"></div>
+    <div id="timePanel" style="margin:0 0 14px"></div>
     <div class="daysum" id="sum"></div>
     <div id="list"></div></div>`;
   $("#d").addEventListener("change",e=>{S.date=e.target.value;load();});
-  load(); renderVenuePanel();
+  load(); renderVenuePanel(); renderTimePanel();
+}
+/* ---- 特別時間安排（教練自助）：改某日某班時間 → 家長端顯示新時間＋彈窗＋橫額 ---- */
+function renderTimePanel(){
+  const host=$("#timePanel"); if(!host) return;
+  host.innerHTML=`<div style="border:1px solid var(--line,#e3e3e3);border-radius:14px;padding:13px;background:var(--card,#fff)">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px">⏰ 特別時間安排</div>
+    <div style="font-size:12px;color:#888;margin-bottom:9px">改某日某班上課時間（訂唔到原本時段時用）→ 家長端即時顯示新時間，並自動彈窗＋橫額通知，過咗當日自動消失。</div>
+    <input type="date" id="ta-date" value="${VN_LAST_DATE||vnDefaultDate()}" onchange="taLoadClasses()" style="${VN_INS}">
+    <select id="ta-cls" style="${VN_INS}"><option value="">— 先揀日期 —</option></select>
+    <input id="ta-time" placeholder="新時間，例如 12:00–14:00" style="${VN_INS}">
+    <button class="mini" style="width:100%;padding:11px" onclick="postTimeAdj()">💾 設定並通知家長</button>
+  </div>`;
+  taLoadClasses();
+}
+async function taLoadClasses(){
+  const sel=gid('ta-cls'); if(!sel) return;
+  const date=gid('ta-date').value; if(!date){ sel.innerHTML='<option value="">— 先揀日期 —</option>'; return; }
+  sel.innerHTML='<option value="">載入緊…</option>';
+  let r; try{ r=await api("dailyList",{date}); }catch(e){ r=null; }
+  const list=(r&&r.ok&&r.list)?r.list:[];
+  if(!list.length){ sel.innerHTML='<option value="">當日冇課堂</option>'; return; }
+  sel.innerHTML='<option value="">— 揀班別 —</option>'+list.map(g=>{
+    const cid=g.c.sport+'|'+g.c.wd, lbl=(SPORT[g.c.sport]?SPORT[g.c.sport].name:g.c.sport)+'・星期'+g.c.wd+(g.c.time?' '+g.c.time:'');
+    return `<option value="${cid}">${vnEsc(lbl)}</option>`;
+  }).join('');
+}
+async function postTimeAdj(){
+  const date=gid('ta-date').value, cid=gid('ta-cls').value, time=(gid('ta-time').value||'').trim();
+  if(!date){ toast('請揀日期'); return; }
+  if(!cid){ toast('請揀班別'); return; }
+  if(!time){ toast('請輸入新時間'); return; }
+  const a=String(cid).split('|'), sport=a[0], wd=a[1];
+  VN_LAST_DATE=date;
+  let r; try{ r=await api("setSessionTime",{date,sport,wd,time}); }catch(e){ r=null; }
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
+  if(!r||!r.ok){ toast(r&&r.err?"失敗："+r.err:"設定失敗，請再試"); return; }
+  toast('✓ 已設定，家長端會即時顯示新時間＋彈窗＋橫額');
+  gid('ta-time').value='';
 }
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
 const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室','主場館'];
