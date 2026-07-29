@@ -363,6 +363,7 @@ html,body{
           style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-family:inherit;font-size:15px;padding:11px 14px;outline:none;margin:0 0 8px">
         <div id="mkroll-list"></div>
       </div>
+      <div class="makeup-section" id="mkblock-panel" style="margin-bottom:10px"></div>
       <div class="makeup-filter-bar" id="makeup-filters"></div>
       <div class="makeup-section">
         <div id="makeup-class-filter-wrap" style="display:none"></div>
@@ -436,7 +437,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-26-notice';
+const FRONTEND_VERSION = 'coach-2026-07-29-mkblock';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1464,6 +1465,7 @@ function renderMakeup(){
   document.getElementById('header-subtitle-text').textContent = '所有班別';
   const mkd=document.getElementById('mkroll-date');
   if(mkd){ if(!mkd.value) mkd.value=todayStr(); loadMakeupRoll(); }
+  try{ renderMkBlockPanel(); }catch(e){}
 
   const filters = [
     { key:'pending', label:'待補堂' },
@@ -2289,6 +2291,48 @@ let COACH_PASS_RT = (function(){ try{
   return v;
 }catch(e){ return ''; } })();
 function cpass(){ return COACH_PASS_RT; }
+/* ── 逐節封鎖補堂：封鎖某「班|日期」唔畀學生揀嚟補堂（只封補堂，正規班照上）── */
+function renderMkBlockPanel(){
+  const host=document.getElementById('mkblock-panel'); if(!host) return;
+  const opts=Object.entries(CLASSES).map(([cid,c])=>`<option value="${cid}">${vnEsc((c.label||cid)+(c.time?(' '+c.time):''))}</option>`).join('');
+  host.innerHTML=`
+    <div style="font-size:14px;font-weight:800;margin:2px 4px 8px">🔒 逐節封鎖補堂</div>
+    <div style="font-size:12px;color:var(--muted);margin:0 4px 9px">封鎖某一節課，唔畀學生揀嚟補堂（例：該節已滿／特別安排）。<b>只封補堂</b>，正規學生照常上堂、學費不受影響。</div>
+    <input type="date" id="mkb-date" style="${VN_INS}">
+    <select id="mkb-cid" style="${VN_INS}">${opts}</select>
+    <button class="weather-btn" style="background:rgba(224,80,80,.14);border-color:rgba(224,80,80,.5);color:#e05050" onclick="mkBlockAdd()">🔒 封鎖此節補堂</button>
+    <div id="mkb-list" style="margin-top:10px"></div>`;
+  mkBlockRefresh();
+}
+async function mkBlockRefresh(){
+  const box=document.getElementById('mkb-list'); if(!box) return;
+  box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">載入緊…</div>';
+  let r; try{ r=await apiPost({action:'mkBlocks'}); }catch(e){ r=null; }
+  const list=(r&&r.ok&&Array.isArray(r.mkBlock))?r.mkBlock:[];
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">未有任何封鎖。</div>'; return; }
+  box.innerHTML='<div style="font-size:11px;color:var(--muted);margin:2px 4px 6px">現有封鎖（撳解封移除）：</div>'+list.map(k=>{
+    const p=String(k).split('|'), cid=p[0], date=p[1]||'';
+    const lbl=(CLASSES[cid]&&CLASSES[cid].label)||cid, tm=(CLASSES[cid]&&CLASSES[cid].time)||'';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:13.5px">
+      <span>🔒 <b>${vnEsc(lbl)}</b> ${vnEsc(tm)}　<span style="color:var(--muted)">${vnEsc(date)}</span></span>
+      <button class="today-mini" onclick="mkBlockRemove('${vnEsc(cid)}','${vnEsc(date)}')">解封</button></div>`;
+  }).join('');
+}
+async function mkBlockAdd(){
+  const date=document.getElementById('mkb-date').value, cid=document.getElementById('mkb-cid').value;
+  if(!date){ toast('請揀日期','⚠️'); return; }
+  if(!cid){ toast('請揀班別','⚠️'); return; }
+  let r; try{ r=await apiPost({action:'setMkBlock', cid, date, on:true}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast(r&&r.err?('失敗：'+r.err):'封鎖失敗','⚠️'); return; }
+  toast('已封鎖，家長揀唔到呢節補堂');
+  mkBlockRefresh();
+}
+async function mkBlockRemove(cid,date){
+  let r; try{ r=await apiPost({action:'setMkBlock', cid, date, on:false}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('解封失敗','⚠️'); return; }
+  toast('已解封，家長可再揀呢節補堂');
+  mkBlockRefresh();
+}
 async function coachGateSubmit(){
   const v=document.getElementById('cg-pass').value.trim();
   if(!v){ document.getElementById('cg-err').textContent='請輸入密碼'; return; }
