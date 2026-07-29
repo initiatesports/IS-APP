@@ -364,6 +364,7 @@ html,body{
         <div id="mkroll-list"></div>
       </div>
       <div class="makeup-section" id="mkblock-panel" style="margin-bottom:10px"></div>
+      <div class="makeup-section" id="transferPanel" style="margin-bottom:10px"></div>
       <div class="makeup-filter-bar" id="makeup-filters"></div>
       <div class="makeup-section">
         <div id="makeup-class-filter-wrap" style="display:none"></div>
@@ -437,7 +438,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-29-mkblock';
+const FRONTEND_VERSION = 'coach-2026-07-29-transfer';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1466,6 +1467,7 @@ function renderMakeup(){
   const mkd=document.getElementById('mkroll-date');
   if(mkd){ if(!mkd.value) mkd.value=todayStr(); loadMakeupRoll(); }
   try{ renderMkBlockPanel(); }catch(e){}
+  try{ renderTransferPanel(); }catch(e){}
 
   const filters = [
     { key:'pending', label:'待補堂' },
@@ -2332,6 +2334,66 @@ async function mkBlockRemove(cid,date){
   if(!r||!r.ok){ toast('解封失敗','⚠️'); return; }
   toast('已解封，家長可再揀呢節補堂');
   mkBlockRefresh();
+}
+/* ── 學生調班（教練自助；只搬班別/出席，學費維持舊班由老闆人手跟）── */
+let TF_CLASSES=[];
+async function renderTransferPanel(){
+  const host=document.getElementById('transferPanel'); if(!host) return;
+  host.innerHTML=`
+    <div style="font-size:14px;font-weight:800;margin:2px 4px 8px">🔄 學生調班</div>
+    <div style="font-size:12px;color:var(--muted);margin:0 4px 9px">幫學生由一班轉去另一班。生效日起：新班開始計、舊班唔再計，之前出席歷史保留。<b>學費唔會自動改</b>（維持舊班），轉完記得人手檢視該期學費。</div>
+    <select id="tf-from" onchange="tfFromChange()" style="${VN_INS}"><option value="">— 揀原班 —</option></select>
+    <select id="tf-stu" style="${VN_INS}"><option value="">— 先揀原班 —</option></select>
+    <select id="tf-to" style="${VN_INS}"><option value="">— 揀新班 —</option></select>
+    <input type="date" id="tf-date" value="${todayStr()}" style="${VN_INS}">
+    <button class="today-mini" style="width:100%;padding:11px;background:#1b8d9b;color:#fff;border:none" onclick="postTransfer()">🔄 確認調班</button>
+    <div id="tf-list" style="margin-top:10px"></div>`;
+  await tfLoadRoster(); tfRenderList();
+}
+async function tfLoadRoster(){
+  let r; try{ r=await apiPost({action:'rosterList'}); }catch(e){ r=null; }
+  TF_CLASSES=(r&&r.ok&&r.classes)?r.classes:[];
+  const from=document.getElementById('tf-from'), to=document.getElementById('tf-to');
+  if(from) from.innerHTML='<option value="">— 揀原班 —</option>'+TF_CLASSES.map(c=>`<option value="${c.cid}">${vnEsc(c.label)}（${(c.students||[]).length}人）</option>`).join('');
+  if(to) to.innerHTML='<option value="">— 揀新班 —</option>'+TF_CLASSES.map(c=>`<option value="${c.cid}">${vnEsc(c.label)}</option>`).join('');
+}
+function tfFromChange(){
+  const v=document.getElementById('tf-from').value, stu=document.getElementById('tf-stu');
+  const c=TF_CLASSES.find(x=>x.cid===v);
+  if(!c){ stu.innerHTML='<option value="">— 先揀原班 —</option>'; return; }
+  stu.innerHTML='<option value="">— 揀學生 —</option>'+(c.students||[]).map(n=>`<option value="${vnEsc(n)}">${vnEsc(n)}</option>`).join('');
+}
+async function postTransfer(){
+  const fromCid=document.getElementById('tf-from').value, name=document.getElementById('tf-stu').value, toCid=document.getElementById('tf-to').value, date=document.getElementById('tf-date').value;
+  if(!fromCid){ toast('請揀原班','⚠️'); return; }
+  if(!name){ toast('請揀學生','⚠️'); return; }
+  if(!toCid){ toast('請揀新班','⚠️'); return; }
+  if(!date){ toast('請揀生效日期','⚠️'); return; }
+  if(fromCid===toCid){ toast('新班同原班一樣','⚠️'); return; }
+  let r; try{ r=await apiPost({action:'transfer', name, fromCid, toCid, date}); }catch(e){ r=null; }
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼","⚠️"); renderGate(); return; }
+  if(!r||!r.ok){ toast(r&&r.err?"失敗："+r.err:"調班失敗","⚠️"); return; }
+  if(r.dup) toast('呢個調班已經設過');
+  else { toast('已調班：'+r.name); alert('✓ 已調班：'+r.name+'\n'+r.from+' → '+r.to+'（'+r.date+' 起）\n\n'+(r.feeNote||'')); }
+  await tfLoadRoster(); tfRenderList();
+  document.getElementById('tf-stu').innerHTML='<option value="">— 先揀原班 —</option>';
+}
+async function tfRenderList(){
+  const box=document.getElementById('tf-list'); if(!box) return;
+  let r; try{ r=await apiPost({action:'transfersList'}); }catch(e){ r=null; }
+  const list=(r&&r.ok&&r.transfers)?r.transfers:[];
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">未有調班紀錄。</div>'; return; }
+  box.innerHTML='<div style="font-size:11px;color:var(--muted);margin:2px 2px 6px">現有調班（撳解除還原）：</div>'+list.map(t=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:13px">
+      <span>🔄 <b>${vnEsc(t.name)}</b>　${vnEsc(t.from)} → ${vnEsc(t.to)}　<span style="color:var(--muted)">${t.date}起</span></span>
+      <button class="today-mini" onclick="tfUndo(${t.row})">解除</button></div>`).join('');
+}
+async function tfUndo(row){
+  if(!confirm('解除呢個調班？會還原返原本班別安排。')) return;
+  let r; try{ r=await apiPost({action:'undoTransfer', row}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('解除失敗','⚠️'); return; }
+  toast('已解除調班');
+  await tfLoadRoster(); tfRenderList();
 }
 async function coachGateSubmit(){
   const v=document.getElementById('cg-pass').value.trim();
