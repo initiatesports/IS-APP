@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-26-modal';
+const FRONTEND_VERSION = 'parent-2026-07-29-mkblock';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -495,7 +495,7 @@ function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids}; S.session={name,last4};
   S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
-  S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{};
+  S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[];
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
    秒開上次資料，背景刷新永遠會行，幾秒內自動校正到最新。 */
@@ -1260,7 +1260,8 @@ function openMakeup(ki,ci){
   const mkExt=c.mkExt||{};
   const deadline=oldestUnmade?(mkExt[oldestUnmade]||addMonths(oldestUnmade,CONFIG.MAKEUP_MONTHS||2)):(c.deadline||CONFIG.TERM_END);
   const cands=[];
-  makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline) cands.push({toKey:s.key,date:d,time:s.time}); }); });
+  const _mkBlk=new Set(S.mkBlock||[]);   // 逐節封鎖：某「班|日期」唔畀揀嚟補堂（教練自訂）
+  makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline && !_mkBlk.has(s.key+"|"+d)) cands.push({toKey:s.key,date:d,time:s.time}); }); });
   cands.sort((a,b)=>a.date.localeCompare(b.date));
   // 按日期分組 → 家長先揀日期、再揀該日班別（唔使碌長 list）
   const byDate={}; cands.forEach(cd=>{ (byDate[cd.date]=byDate[cd.date]||[]).push(cd); });
