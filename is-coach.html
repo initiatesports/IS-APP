@@ -106,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-27-dayarrows';
+const FRONTEND_VERSION = 'coach9-2026-07-29-transfer';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -198,10 +198,11 @@ function renderMain(){
     <button class="wxbtn" onclick="weatherCancel()">🌧 天氣停課（當日全部）</button>
     <div id="venuePanel" style="margin:0 0 14px"></div>
     <div id="timePanel" style="margin:0 0 14px"></div>
+    <div id="transferPanel" style="margin:0 0 14px"></div>
     <div class="daysum" id="sum"></div>
     <div id="list"></div></div>`;
   $("#d").addEventListener("change",e=>{S.date=e.target.value;load();});
-  load(); renderVenuePanel(); renderTimePanel();
+  load(); renderVenuePanel(); renderTimePanel(); renderTransferPanel();
 }
 /* ---- 特別時間安排（教練自助）：改某日某班時間 → 家長端顯示新時間＋彈窗＋橫額 ---- */
 function renderTimePanel(){
@@ -240,6 +241,69 @@ async function postTimeAdj(){
   if(!r||!r.ok){ toast(r&&r.err?"失敗："+r.err:"設定失敗，請再試"); return; }
   toast('✓ 已設定，家長端會即時顯示新時間＋彈窗＋橫額');
   gid('ta-time').value='';
+}
+/* ── 學生調班（教練自助）：資料驅動，即時生效，免 deploy ── */
+let TF_CLASSES=[];
+async function renderTransferPanel(){
+  const host=$("#transferPanel"); if(!host) return;
+  host.innerHTML=`<div style="border:1px solid var(--line,#e3e3e3);border-radius:14px;padding:13px;background:var(--card,#fff)">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px">🔄 學生調班</div>
+    <div style="font-size:12px;color:#888;margin-bottom:9px">幫學生由一班轉去另一班（改星期／運動）。生效日起：新班開始計、舊班唔再計，之前出席歷史保留。</div>
+    <select id="tf-from" onchange="tfFromChange()" style="${VN_INS}"><option value="">— 揀原班 —</option></select>
+    <select id="tf-stu" style="${VN_INS}"><option value="">— 先揀原班 —</option></select>
+    <select id="tf-to" style="${VN_INS}"><option value="">— 揀新班 —</option></select>
+    <input type="date" id="tf-date" value="${todayIso()}" style="${VN_INS}">
+    <button class="mini" style="width:100%;padding:11px" onclick="postTransfer()">🔄 確認調班</button>
+    <div id="tf-list" style="margin-top:10px"></div>
+  </div>`;
+  await tfLoadRoster();
+  tfRenderList();
+}
+async function tfLoadRoster(){
+  let r; try{ r=await api("rosterList"); }catch(e){ r=null; }
+  TF_CLASSES=(r&&r.ok&&r.classes)?r.classes:[];
+  const from=gid('tf-from'), to=gid('tf-to');
+  if(from) from.innerHTML='<option value="">— 揀原班 —</option>'+TF_CLASSES.map(c=>`<option value="${c.sport}|${c.wd}">${vnEsc(c.label)}（${c.students.length}人）</option>`).join('');
+  if(to) to.innerHTML='<option value="">— 揀新班 —</option>'+TF_CLASSES.map(c=>`<option value="${c.sport}|${c.wd}">${vnEsc(c.label+(c.time?' '+c.time:''))}</option>`).join('');
+}
+function tfFromChange(){
+  const v=gid('tf-from').value, stu=gid('tf-stu');
+  const c=TF_CLASSES.find(x=>x.sport+'|'+x.wd===v);
+  if(!c){ stu.innerHTML='<option value="">— 先揀原班 —</option>'; return; }
+  stu.innerHTML='<option value="">— 揀學生 —</option>'+(c.students||[]).map(n=>`<option value="${vnEsc(n)}">${vnEsc(n)}</option>`).join('');
+}
+async function postTransfer(){
+  const fromV=gid('tf-from').value, name=gid('tf-stu').value, toV=gid('tf-to').value, date=gid('tf-date').value;
+  if(!fromV){ toast('請揀原班'); return; }
+  if(!name){ toast('請揀學生'); return; }
+  if(!toV){ toast('請揀新班'); return; }
+  if(!date){ toast('請揀生效日期'); return; }
+  if(fromV===toV){ toast('新班同原班一樣'); return; }
+  const f=String(fromV).split('|'), t=String(toV).split('|');
+  let r; try{ r=await api("transfer",{name, fromSport:f[0], fromWd:f[1], toSport:t[0], toWd:t[1], date}); }catch(e){ r=null; }
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼"); renderGate(); return; }
+  if(!r||!r.ok){ toast(r&&r.err?"失敗："+r.err:"調班失敗"); return; }
+  if(r.dup) toast('呢個調班已經設過');
+  else toast('✓ 已調班：'+r.name+' → '+r.to+(r.over?('（⚠️已超'+r.cap+'人上限）'):''));
+  await tfLoadRoster(); tfRenderList();
+  gid('tf-stu').innerHTML='<option value="">— 先揀原班 —</option>';
+}
+async function tfRenderList(){
+  const box=gid('tf-list'); if(!box) return;
+  let r; try{ r=await api("transfersList"); }catch(e){ r=null; }
+  const list=(r&&r.ok&&r.transfers)?r.transfers:[];
+  if(!list.length){ box.innerHTML='<div style="font-size:12px;color:#888;padding:4px">未有調班紀錄。</div>'; return; }
+  box.innerHTML='<div style="font-size:11px;color:#888;margin:2px 2px 6px">現有調班（撳解除還原）：</div>'+list.map(t=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border:1px solid var(--line,#e3e3e3);border-radius:10px;margin-bottom:6px;font-size:13px">
+      <span>🔄 <b>${vnEsc(t.name)}</b>　${vnEsc(t.from)} → ${vnEsc(t.to)}　<span style="color:#888">${t.date}起</span></span>
+      <button class="mini" onclick="tfUndo(${t.row})">解除</button></div>`).join('');
+}
+async function tfUndo(row){
+  if(!confirm('解除呢個調班？會還原返原本班別安排。')) return;
+  let r; try{ r=await api("undoTransfer",{row}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('解除失敗'); return; }
+  toast('✓ 已解除調班');
+  await tfLoadRoster(); tfRenderList();
 }
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
 const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室','主場館'];
