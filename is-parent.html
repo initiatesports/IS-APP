@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-30-owedfix';
+const FRONTEND_VERSION = 'parent-2026-07-30-mkperiod';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -718,8 +718,9 @@ function classCard(child,ki,c,ci){
     })()}
     ${(function(){
       const today=todayStr();
-      // 已約補堂：所有「未來」預約一律顯示（唔再淨係當前期，避免跨期補堂喺缺席嗰期睇唔到）＋本期歷史
-      const up=(c.makeups||[]).filter(m=> m.date>=today || biMonthOf(m.date)===S.period ).sort((a,b)=>a.date<b.date?-1:1);
+      // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂顯示喺佢對應請假嗰期；早過最早可見 tab 嘅請假(如3-4月)歸入最早 tab。避免 7-8月補堂撈落 5-6月。
+      const _visP=visiblePeriods(), _earlyP=_visP[0];
+      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period || (S.period===_earlyP && lp<_earlyP); }).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
         ${up.map(m=>{
