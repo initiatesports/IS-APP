@@ -704,6 +704,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
       <button class="nav-link"        id="nav-news"     onclick="switchPanel('news')">✨ 訓練特色</button>
       <button class="nav-link"        id="nav-pt"        onclick="switchPanel('pt')">⭐ 私人訓練</button>
       <button class="nav-link"        id="nav-ach"       onclick="switchPanel('ach')">🏆 學生成就</button>
+      <button class="nav-link"        id="nav-verify"    onclick="switchPanel('verify')">🎓 證書驗證</button>
       <button class="nav-link"        id="nav-courses"   onclick="switchPanel('courses')">課程</button>
       <button class="nav-link"        id="nav-knowledge" onclick="switchPanel('knowledge')">知識分享</button>
       <button class="nav-link"        id="nav-equipment" onclick="switchPanel('equipment')">器材銷售</button>
@@ -1005,6 +1006,28 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
           <p>恭喜各位學員在比賽中屢創佳績・AIM HIGH JUMP HIGH</p>
         </div>
         <div id="ach-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ CERTIFICATE VERIFY ══ -->
+    <div class="panel" id="panel-verify">
+      <div class="content-wrap">
+        <div class="section-header">
+          <h2>🎓 證書驗證</h2>
+          <p>輸入證書上的編號，查看該學員在 INITIATE SPORTS 獲頒的所有證書。<br>Enter the certificate number to view all certificates earned at INITIATE SPORTS.</p>
+        </div>
+        <div style="max-width:560px;margin:0 auto">
+          <div style="background:rgba(62,207,207,0.08);border:1.5px solid rgba(62,207,207,0.25);border-radius:14px;padding:16px">
+            <div class="search-row">
+              <input class="search-input" id="cert-q" type="text" placeholder="輸入證書編號，例：IS-XXXXX"
+                autocomplete="off" autocapitalize="characters" spellcheck="false"
+                onkeydown="if(event.key==='Enter'){this.blur();doCertVerify()}">
+              <button class="btn-search" onclick="doCertVerify()">驗證</button>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:8px">編號印於證書右下角二維碼下方，可掃描二維碼直接查詢。</div>
+          </div>
+          <div id="cert-results" style="margin-top:16px"></div>
+        </div>
       </div>
     </div>
 
@@ -1384,6 +1407,9 @@ const METRICS=[
 ];
 
 let ABSENCES=[],PERF_RECORDS={},STUDENT_PHOTOS={},STAR_HISTORY=[],STUDENT_GRADES={};
+// 證書登記庫（編號→學生→證書）。內建預設 = 2025-2026 獎學金 17 張；#11 settings.cert_registry 可覆寫/擴充（免改前端加新證書）。
+const CERT_REGISTRY_DEFAULT=[{"no":"IS-MSLC3","name":"陳曉瑩","nameEn":"Chan Hiu Ying","title":"年度躍卓大獎","titleEn":"Athlete of the Year","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-DMX7Y","name":"孔善盈","nameEn":"Hung Sin Ying","title":"年度躍卓大獎","titleEn":"Athlete of the Year","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-ERUZN","name":"余悅","nameEn":"Lettice Yu","title":"飛躍進步獎","titleEn":"Most Improved Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-Q3TRE","name":"郭栩澄","nameEn":"Kwok Hui Ching","title":"飛躍進步獎","titleEn":"Most Improved Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-E823Q","name":"黃梓昕","nameEn":"Wong Tsz Yan","title":"飛躍進步獎","titleEn":"Most Improved Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-4396C","name":"曾愛斯","nameEn":"Tsang Oi Sze","title":"飛躍進步獎","titleEn":"Most Improved Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-YGHJT","name":"何芯蕾","nameEn":"Ho Sum Lui","title":"飛躍進步獎","titleEn":"Most Improved Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-RSY9H","name":"陳思允","nameEn":"Chan Sze Wan","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-MTAYE","name":"周莉晶","nameEn":"Chau Li Jing","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-9Z5FY","name":"胡苡晨","nameEn":"Wu Yee Sun","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-W72XQ","name":"鄧可澄","nameEn":"Tang Ho Ching","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-3CTT3","name":"羅靖誼","nameEn":"Law Ching Yi","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-N33QU","name":"梁正宇","nameEn":"Leung Ching Yu","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-5S2FJ","name":"方鎮浩","nameEn":"Fong Chun Ho","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-A7GQ2","name":"吳瑋軒","nameEn":"Ng Wai Hin","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-HH8J8","name":"劉鎮碩","nameEn":"Lau Chun Shek","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"},{"no":"IS-AT6TG","name":"郭可昕","nameEn":"Kwok Ho Yan","title":"躍動優異獎","titleEn":"Excellence Award","program":"2025-2026 年度獎學金計劃","programEn":"2025-2026 Scholarship Programme","year":"2026","type":"scholarship"}];
+let CERT_REGISTRY=CERT_REGISTRY_DEFAULT.slice();
 let BADGE_DATA={
   title:'INITIATE SPORTS 花式跳繩技術考核章別計劃',
   subtitle:'彩虹章別（Level 1–7）＋ 進階技術能力考核（Level 8–14）',
@@ -1835,6 +1861,38 @@ function doGradeSearch(){
   }).join('');
 }
 
+// 證書驗證：輸入編號 → 該學員全部證書（獎學金登記庫 + 花式跳繩章別）
+function certNorm_(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function doCertVerify(){
+  const inp=document.getElementById('cert-q'), out=document.getElementById('cert-results');
+  const key=certNorm_(inp.value);
+  if(!key){ out.innerHTML=''; return; }
+  const recs=CERT_REGISTRY.filter(r=>{const rn=certNorm_(r.no);return rn===key||rn==='IS'+key;});  // 寬鬆：可省略「IS」前綴
+  if(!recs.length){
+    out.innerHTML='<div class="no-result">找不到證書編號「'+inp.value.trim()+'」<br><span style="font-size:12px">請檢查編號是否正確，或 WhatsApp 6331 7403 查詢。</span></div>';
+    return;
+  }
+  const name=recs[0].name, nameEn=recs[0].nameEn||'', no=recs[0].no;
+  // 收集所有證書：登記庫（獎學金等）＋ 花式跳繩章別（由 STUDENT_GRADES 已考證書等級推出）
+  const certs=recs.map(r=>({title:r.title,titleEn:r.titleEn||'',sub:r.program||'',subEn:r.programEn||'',year:r.year||''}));
+  const g=STUDENT_GRADES[name];
+  if(g&&g.certified>0){
+    certs.push({title:'花式跳繩技術章別 · Level '+g.certified,titleEn:'Rope Skipping Grading · Level '+g.certified,
+      sub:'INITIATE SPORTS 花式跳繩章別考核計劃',subEn:'Rope Skipping Grading Programme',year:''});
+  }
+  const rows=certs.map(c=>`<div style="border:1px solid rgba(62,207,207,.28);border-radius:12px;padding:14px 16px;margin-top:10px;background:#fff;text-align:left">
+      <div style="font-size:16px;font-weight:800;color:var(--ink)">${c.title}${c.year?` <span style="font-size:12px;color:var(--muted);font-weight:600">${c.year}</span>`:''}</div>
+      ${c.titleEn?`<div style="font-size:12.5px;color:var(--cyan-deep,#0d7d8a);font-weight:600;font-style:italic;margin-top:2px">${c.titleEn}</div>`:''}
+      ${c.sub?`<div style="font-size:12px;color:var(--muted);margin-top:6px">${c.sub}</div>`:''}
+    </div>`).join('');
+  out.innerHTML=`<div class="grade-card" style="text-align:left">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(40,180,120,.12);color:#1f8f5f;font-size:12px;font-weight:800;padding:4px 10px;border-radius:20px;margin-bottom:10px">✓ 已驗證 · VERIFIED</div>
+    <div class="grade-name" style="text-align:left">${name}${nameEn?` <span style="font-size:14px;color:var(--muted);font-weight:600">${nameEn}</span>`:''}</div>
+    <div style="font-size:12px;color:var(--muted);margin:2px 0 4px">證書編號 <b>${no}</b>　·　共 ${certs.length} 張證書</div>
+    ${rows}
+  </div>`;
+}
+
 // ═══════════════════════
 //  MAKEUP SEARCH
 // ═══════════════════════
@@ -2049,6 +2107,8 @@ function restoreSettings(rows) {
   if (map['badge_data'] && typeof map['badge_data']==='object' && Object.keys(map['badge_data']).length) BADGE_DATA = map['badge_data'];
   // 學生成就 / 賽果（achievements）
   if (Array.isArray(map['achievements']) && map['achievements'].length) ACHIEVEMENTS = map['achievements'];
+  // 證書登記庫（cert_registry）：#11 有就覆寫內建預設（免改前端加新證書）
+  if (Array.isArray(map['cert_registry']) && map['cert_registry'].length) CERT_REGISTRY = map['cert_registry'];
 }
 
 function showToast(msg) {
@@ -2307,7 +2367,11 @@ async function loadPublicCMS(){
     if((a=arr('course_items')))    COURSE_ITEMS=a;
     if((a=arr('equipment_items'))) EQUIPMENT_ITEMS=a;
     if((a=arr('achievements')))    ACHIEVEMENTS=a;
+    if((a=arr('cert_registry')))   CERT_REGISTRY=a;
+    // 花式跳繩章別等級（證書驗證要用；已含喺公開 home settings，非敏感個資）
+    try{ const sg=JSON.parse(map['student_grades']); if(sg&&typeof sg==='object') Object.assign(STUDENT_GRADES,sg); }catch(e){}
     const active=id=>{const p=document.getElementById('panel-'+id);return p&&p.classList.contains('active');};
+    if(active('verify') && document.getElementById('cert-q') && document.getElementById('cert-q').value.trim()) doCertVerify();
     if(active('knowledge')) renderKnowledgeScreen();
     if(active('equipment')) renderEquipmentScreen();
     if(active('courses') && typeof renderCoursesPanel==='function') renderCoursesPanel();
@@ -2318,7 +2382,10 @@ async function loadPublicCMS(){
 if (isParentAuthed()) { loadFromSheets(); }
 else { var _si=document.getElementById('sync-icon'); if(_si) _si.style.display='none'; loadPublicCMS(); }
 // 深層連結：請假補堂家長頁帶 ?view=lb/star/badge 過嚟，直接開該頁（未登入會被 switchPanel 帶去登入頁）
-(function(){var v=new URLSearchParams(location.search).get('view');var ok=['lb','star','badge','ach','courses','news','knowledge','equipment','pt'];if(v&&ok.indexOf(v)>=0)switchPanel(v);})();
+(function(){var sp=new URLSearchParams(location.search);var v=sp.get('view');var ok=['lb','star','badge','ach','courses','news','knowledge','equipment','pt','verify'];if(v&&ok.indexOf(v)>=0)switchPanel(v);
+  // 證書二維碼 deep-link：?view=verify&no=IS-XXXXX → 自動填入編號並查詢
+  if(v==='verify'){var no=sp.get('no');if(no){var el=document.getElementById('cert-q');if(el){el.value=no;try{doCertVerify();}catch(e){}}}}
+})();
 
 </script>
 <!-- ══ 私人訓練彈出層（自包含；全部 .ptx 前綴，唔會撞到本頁原有樣式）══ -->
