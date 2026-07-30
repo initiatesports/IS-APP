@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-29-promo';
+const FRONTEND_VERSION = 'parent-2026-07-30-promocap';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -1003,10 +1003,13 @@ async function applyPromo(ki,period){
   let r; try{ r=await api('applyPromo',{name:child.name,period,promo:code}); }catch(e){ r=null; }
   if(!r||!r.ok) return toast((r&&r.err)||(LANG==='en'?'Failed, please retry':'套用失敗，請再試'));
   await refresh();
-  showReceipt(LANG==='en'?'✅ Promo applied':'✅ 優惠碼已套用',[
-    `${t('child')}：<b>${child.name}</b>`,
-    `${LANG==='en'?'Discount':'優惠'}：<b>−$${r.amount}</b>`,
-    `${LANG==='en'?'New total due':'新應繳'}：<b>$${r.net}</b>`],'');
+  const lines=[`${t('child')}：<b>${child.name}</b>`,
+    `${LANG==='en'?'Discount this period':'本期折扣'}：<b>−$${r.amount||0}</b>`,
+    `${LANG==='en'?'New total due':'新應繳'}：<b>$${r.net}</b>`];
+  if(r.deferred>0) lines.push(`<span style="color:var(--amber)">${LANG==='en'?'Recorded for next period':'已記錄，下期使用'}：<b>$${r.deferred}</b></span>`);
+  if(r.message) lines.push(`<div style="margin-top:4px;padding:10px 12px;border-radius:10px;background:rgba(224,169,58,.1);border:1px solid rgba(224,169,58,.35);font-size:12.5px;color:#8a5a00;line-height:1.55;text-align:left">🎟️ ${r.message}</div>`);
+  const title=r.capped?(LANG==='en'?'✅ Recorded':'✅ 已記錄'):(LANG==='en'?'✅ Promo applied':'✅ 優惠碼已套用');
+  showReceipt(title, lines, '');
 }
 function openPay(ki,period){
   const child=S.family.children[ki]; PAY={name:child.name,period,fileData:null};
