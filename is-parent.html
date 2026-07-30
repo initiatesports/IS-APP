@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-30-mkperiod';
+const FRONTEND_VERSION = 'parent-2026-07-30-mkownclass';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -372,7 +372,8 @@ function sessionsFor(cid){
   while(cur<=end){ const s=iso(cur); if(!hol.has(s)) out.push(s); cur.setDate(cur.getDate()+7); }
   return out;
 }
-function makeupSlotsFor(cid){ return CLASS_IDS.filter(k=>k!==cid).map(k=>({key:k,time:CLASSES[k].time})); }
+// ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
+function makeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid); return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
 /* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
 function addMonths(isoStr,n){const[y,m,d]=isoStr.split('-').map(Number);const dt=new Date(y,m-1+n,d);return iso(dt);}
 function daysLeft(dl){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=dl.split('-').map(Number);return Math.ceil((new Date(y,m-1,d)-t)/86400000);}
@@ -1265,7 +1266,10 @@ function openMakeup(ki,ci){
   const deadline=oldestUnmade?(mkExt[oldestUnmade]||addMonths(oldestUnmade,CONFIG.MAKEUP_MONTHS||2)):(c.deadline||CONFIG.TERM_END);
   const cands=[];
   const _mkBlk=new Set(S.mkBlock||[]);   // 逐節封鎖：某「班|日期」唔畀揀嚟補堂（教練自訂）
-  makeupSlotsFor(c.key||c.sport).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline && !_mkBlk.has(s.key+"|"+d)) cands.push({toKey:s.key,date:d,time:s.time}); }); });
+  // 排除學生所有現役班（仲有今日或之後嘅堂）→ 補堂唔會撞返自己另一堂正課（同 #9 潘洛詩式修正一致）
+  const _tS=todayStr();
+  const _ownCids=(child.classes||[]).filter(x=>(x.sessions||[]).some(s=>s.date>=_tS)).map(x=>x.key||x.sport);
+  makeupSlotsFor(c.key||c.sport, _ownCids).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline && !_mkBlk.has(s.key+"|"+d)) cands.push({toKey:s.key,date:d,time:s.time}); }); });
   cands.sort((a,b)=>a.date.localeCompare(b.date));
   // 按日期分組 → 家長先揀日期、再揀該日班別（唔使碌長 list）
   const byDate={}; cands.forEach(cd=>{ (byDate[cd.date]=byDate[cd.date]||[]).push(cd); });
