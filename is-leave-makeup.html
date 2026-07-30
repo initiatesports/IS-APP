@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-30-hotfix';
+const FRONTEND_VERSION = 'lm-2026-07-30-mkownday';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -289,10 +289,13 @@ try{ DEMO.log = JSON.parse(LS.get("demo_log")||"[]"); }catch(e){ DEMO.log=[]; }
 function classKey(c){ return c.sport+"|"+c.wd; }
 function lastSession(c){ const s=sessionsFor(c.wd); return s[s.length-1]; }
 
-function makeupSlotsFor(c){
+function makeupSlotsFor(c,ownWds){
   // 回傳可補嘅 {sport,wd,time,cap} 列表（同一學生嘅 leave class c）
+  // ownWds：學生所有現役同項目日（含 c.wd），全部排除→補堂唔會撞返自己正課（如潘洛詩羽毛球二＋四→只可補三）；唔傳就只排 c.wd
   const sp=c.sport;
-  if(sp==="rope") return ROPE_SLOTS.filter(s=>s.wd!==c.wd).map(s=>({sport:"rope",wd:s.wd,time:s.time,cap:SPORT.rope.cap}));   // 排除學生自己嗰日（如黃信晴 rope|六 唔應見到「六 11-12」撞自己正規堂）
+  const own=(ownWds&&ownWds.length)?ownWds.slice():[c.wd];
+  if(own.indexOf(c.wd)<0) own.push(c.wd);
+  if(sp==="rope") return ROPE_SLOTS.filter(s=>own.indexOf(s.wd)<0).map(s=>({sport:"rope",wd:s.wd,time:s.time,cap:SPORT.rope.cap}));   // 排除學生所有現役日（如黃信晴 rope|六 唔應見到「六 11-12」撞自己正規堂）
   if(sp==="pickleball"){
     // 五班請假→補二班(1hr)；二班請假→補五班（可分兩次）
     return c.wd==="五"
@@ -307,7 +310,7 @@ function makeupSlotsFor(c){
     const times = sp==="badminton"
       ? {"二":"13:00–15:00","三":"11:00–13:00","四":"10:00–12:00"}
       : {"一":"14:00–15:00","四":"15:00–16:00"};
-    return all.filter(w=>w!==c.wd).map(w=>({sport:sp,wd:w,time:times[w],cap:SPORT[sp].cap}));
+    return all.filter(w=>own.indexOf(w)<0).map(w=>({sport:sp,wd:w,time:times[w],cap:SPORT[sp].cap}));
   }
   if(sp==="basketball") return [
       {sport:"basketball",wd:"六",time:"17:00–18:00",fixed:["2026-08-08","2026-08-15"],note:"後備日"},
@@ -946,7 +949,10 @@ let MF={};
 function openMakeup(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci], owed=c.owed||0;
   if(owed<=0){ openSheet(`<h2>申請補堂</h2><p class="sd">暫時冇待補堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
-  const slots=makeupSlotsFor(c);
+  // 排除學生喺同項目所有「現役」班日（本班最後一堂喺今日或之後＝現役）→ 補堂唔會撞自己另一堂正課
+  const _tIso=iso(new Date());
+  const _ownWds=(child.classes||[]).filter(x=>x.sport===c.sport && x.deadline && x.deadline>=_tIso).map(x=>x.wd);
+  const slots=makeupSlotsFor(c,_ownWds);
   if(!slots.length){ openSheet(`<h2>申請補堂 · ${SPORT[c.sport].name}</h2>
      <div class="notice warn">呢個班別暫未設網上補堂時段，請 WhatsApp 張 Sir 另約。</div>
      <button class="btn ghost" onclick="closeSheet()">關閉</button>`); return; }
