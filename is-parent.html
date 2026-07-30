@@ -204,7 +204,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-07-30-promocap';
+const FRONTEND_VERSION = 'parent-2026-07-30-owedfix';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -686,7 +686,7 @@ function classCard(child,ki,c,ci){
   //    已約補堂覆蓋 = makeups 有原請假日 from 且非缺席/停課（含已出席及待出席）。預約上限 openMakeup 仍用班級總 c.owed（補堂可補任何期，正確）。
   const _bookedFrom=new Set((c.makeups||[]).filter(m=>m.from && m.status!=='缺席' && m.status!=='停課').map(m=>m.from));
   const _ext=c.mkExt||{};
-  const owedLeavesP=pSess.filter(s=>s.status==='請假' && !s.expired && !_bookedFrom.has(s.date)).map(s=>s.date).sort();
+  const owedLeavesP=pSess.filter(s=>s.status==='請假' && !s.expired && !s.madeUp && !_bookedFrom.has(s.date)).map(s=>s.date).sort();   // !s.madeUp：ledger 已補(教練標「已補堂」)嘅請假唔當待補，同 grid 狀態＋後端 owed 對齊
   const owed=owedLeavesP.length;
   const _dls=owedLeavesP.map(d=>_ext[d]||addMonths(d,CONFIG.MAKEUP_MONTHS||2)).filter(dl=>dl>=todayStr()).sort();
   const mkDl=_dls.length?_dls[0]:null;
