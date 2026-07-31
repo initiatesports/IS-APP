@@ -2371,7 +2371,7 @@ async function postTransfer(){
   if(!date){ toast('請揀生效日期','⚠️'); return; }
   if(fromCid===toCid){ toast('新班同原班一樣','⚠️'); return; }
   let r; try{ r=await apiPost({action:'transfer', name, fromCid, toCid, date}); }catch(e){ r=null; }
-  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼","⚠️"); renderGate(); return; }
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼","⚠️"); coachLogout(); return; }
   if(!r||!r.ok){ toast(r&&r.err?"失敗："+r.err:"調班失敗","⚠️"); return; }
   if(r.dup) toast('呢個調班已經設過');
   else { toast('已調班：'+r.name); alert('✓ 已調班：'+r.name+'\n'+r.from+' → '+r.to+'（'+r.date+' 起）\n\n'+(r.feeNote||'')); }
