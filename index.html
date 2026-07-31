@@ -2175,6 +2175,8 @@ async function loadFromSheets(manual=false) {
     if (typeof renderAchPanel==='function') renderAchPanel();
     try{ renderKnowledgeScreen(); }catch(e){}
     try{ renderEquipmentScreen(); }catch(e){}
+    // 證書驗證：QR deep-link 開頁時 doCertVerify 可能喺 #11 cert_registry 載入前跑(embedded 預設無新證書)→ 載入後重跑一次
+    try{ const _cq=document.getElementById('cert-q'); const _vp=document.getElementById('panel-verify'); if(_vp && _vp.classList.contains('active') && _cq && _cq.value.trim()) doCertVerify(); }catch(e){}
     if (manual) showToast('數據已更新 ☁');
   } catch(e) {
     setSyncState('error');
