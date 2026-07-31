@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-30-mkownday';
+const FRONTEND_VERSION = 'lm-2026-07-31-audit';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -660,7 +660,7 @@ function classCard(child,ki,c,ci){
     <div style="margin-top:6px">${(c.sessions||[]).map(s=>sessRow(s,classKey(c))).join("")}</div>
     ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
       <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
-      ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const past=m.date<iso(new Date());const done=(m.status==='出席')||((m.status==='補堂'||!m.status)&&past);const lbl=(m.status==='出席')?'已出席':(m.status==='缺席'?'缺席':(m.status==='停課'?'停課':(past?'已補堂':'待出席')));return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
+      ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const past=m.date<iso(new Date());const done=(m.status==='出席');const lbl=(m.status==='出席')?'已出席':(m.status==='缺席'?'缺席':(m.status==='停課'?'停課':(past?'待教練確認':'待出席')));return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
         <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）${m.time?'　'+m.time:''}</span>
         <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
       ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">取消補堂（${cancellableMakeups(c).length}）</button>`:''}

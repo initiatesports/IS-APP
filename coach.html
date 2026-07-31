@@ -438,7 +438,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-07-29-transfer';
+const FRONTEND_VERSION = 'coach-2026-07-31-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2074,7 +2074,7 @@ function renderDailyList(r, box){
     const label = (g.c.dayZh || g.c.wd || '') + ' ' + (g.c.time || '');
     const realRows = g.rows.filter(x => !x.summer);       // 暑期補堂只提示、唔計入點名數
     const summerRows = g.rows.filter(x => x.summer);
-    const present = realRows.filter(x => x.status === '出席' || x.status === '補堂').length;
+    const present = realRows.filter(x => x.status === '出席').length;   // 補堂未算出席(待確認)→ 只計喺未點,唔虛高出席數
     const miss = realRows.filter(x => !x.status || x.status === '補堂').length;
     return `<div class="cgrp" id="cg${gi}">
       <div class="grp-h"><span class="dot"></span>${label}<span class="t">${realRows.length} 人</span></div>
@@ -2100,7 +2100,7 @@ function attRowHTML(g, row, key){
   const tag = row.makeup ? '<span class="tag">補堂</span>'
     : cc ? '<span class="tag" style="background:rgba(255,255,255,0.1);color:var(--muted)">停課</span>'
     : lv ? '<span class="tag" style="background:var(--amber-dim);color:var(--amber)">請假</span>' : '';
-  return `<div class="att" data-mk="${mk}" data-name="${row.name}">
+  return `<div class="att" data-mk="${mk}" data-name="${row.name}" data-st="${row.status||''}">
     <span class="nm">${row.name}</span>${tag}
     <div class="marks">
       <button class="mk go ${go?'on':''}" onclick="markDaily('${row.name}','${key}','${coachDate}','出席',this,${mk})">出</button>
@@ -2133,8 +2133,11 @@ async function markDaily(name, key, date, status, btn, mk){
 async function markAllDaily(gi, key, date, status, btn){
   const grp = document.getElementById('cg' + gi);
   const rows = [...grp.querySelectorAll('.att')];
+  // 🔒 排除家長請假/停課學生，「全部出席/缺席」唔會覆蓋佢哋（否則抹走請假連帶補堂資格）——對齊 is-coach markAll
+  const targets = rows.filter(row => { const st = row.dataset.st || ''; return st !== '請假' && st !== '停課'; });
+  const skipped = rows.length - targets.length;
   // ⚡ 一個 request 一次過寫全班（唔會半途死）；只把伺服器確認咗嘅變綠 → 唔會假成功
-  const marks = rows.map(row => ({ name: row.dataset.name, status, mk: row.dataset.mk === '1' }));
+  const marks = targets.map(row => ({ name: row.dataset.name, status, mk: row.dataset.mk === '1' }));
   const old = btn.textContent; btn.textContent = '儲存中…'; btn.disabled = true;
   grp.classList.add('saving');
   let r;
@@ -2144,7 +2147,7 @@ async function markAllDaily(gi, key, date, status, btn){
   btn.textContent = old; btn.disabled = false;
   if (!r || !r.ok) { toast('儲存失敗' + (r&&r.err?'：'+r.err:'，請再試'), '⚠'); return; }
   const savedSet = new Set(r.saved || []);
-  rows.forEach(row => {
+  targets.forEach(row => {
     if (savedSet.has(row.dataset.name)) {
       row.querySelectorAll('.mk').forEach(m => m.classList.remove('on'));
       const sel = row.querySelector(status === '出席' ? '.mk.go' : '.mk.no'); if (sel) sel.classList.add('on');
@@ -2153,7 +2156,7 @@ async function markAllDaily(gi, key, date, status, btn){
   });
   recountDaily(gi);   // 未存到嘅會顯示喺「未點 N」→ 一望就知邊個仲要點
   const fail = (r.failed || []).length;
-  toast(fail ? `已存 ${(r.saved||[]).length} 人・${fail} 人未存（睇「未點」，請再撳一次）` : `全部 ${(r.saved||[]).length} 人已存 ✓`, fail ? '⚠' : '✓');
+  toast(fail ? `已存 ${(r.saved||[]).length} 人・${fail} 人未存（睇「未點」，請再撳一次）` : `全部 ${(r.saved||[]).length} 人已存 ✓${skipped?`（請假/停課 ${skipped} 人已跳過）`:''}`, fail ? '⚠' : '✓');
 }
 
 /* ── 天氣停課 ── */
