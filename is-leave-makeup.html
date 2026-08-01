@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-07-31-audit';
+const FRONTEND_VERSION = 'lm-2026-07-31-audit2';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -768,7 +768,8 @@ let LF={};
 function openLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   const today=new Date(); today.setHours(0,0,0,0);
-  const opts=(c.sessions||[]).filter(s=> new Date(s.date+"T00:00:00")>today && !s.status).map(s=>s.date);
+  // 收今日（同恆常對齊）：當日病假可請（後端 leaveType=病假→請假可補）；當日事假後端會轉缺席並通知
+  const opts=(c.sessions||[]).filter(s=> new Date(s.date+"T00:00:00")>=today && !s.status).map(s=>s.date);
   // 兄弟姊妹：其他小朋友有「同一星期」嘅班（同一日可一齊請假）
   const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
     .map(o=>{ const sc=(o.ch.classes||[]).find(x=>x.wd===c.wd); return sc?{idx:o.idx,name:o.ch.name,sc}:null; }).filter(Boolean);
