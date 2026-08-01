@@ -173,7 +173,9 @@ async function sweep(label, exec, rows, withPin) {
 (async () => {
   console.log(`# QA 家長登入自動測試  （日期基準 ${TODAY}，香港時區；名冊來源 ${ROSTER_SRC}）\n`);
   const s4 = await sweep("恆常#4", EXEC4, R4, true);
-  const s9 = await sweep("暑期#9", EXEC9, R9, false);
+  // withPin=true：#9 credOK9_ 同 #4 一樣尊重共用嘅自訂登入密碼（有自訂密碼就「只」收自訂密碼），
+  // 所以掃 #9 一樣要用 PIN4，否則有設自訂密碼嘅家庭（如尾4位 9158）會被當「登入失敗」誤報 ⚪ERR。
+  const s9 = await sweep("暑期#9", EXEC9, R9, true);
 
   console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}`);
   console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}\n`);
