@@ -67,7 +67,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 報名系統 · <span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-07-23-v4';
+const FRONTEND_VERSION='enroll-2026-08-01-newstudent';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -123,12 +123,25 @@ function renderLogin(){
     <p class="hint">已報過暑期班嘅同學，資料會自動帶出，唔使重複填。</p>
     <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
     <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
-    <button class="btn" id="li_go">下一步</button>
+    <button class="btn" id="li_go">下一步（已報過暑期／恆常）</button>
+    <button class="btn ghost" id="li_new" style="margin-top:10px">🆕 新生第一次報名（未報過）</button>
     <button class="btn ghost" id="li_look" style="margin-top:10px">查詢我嘅報名狀態</button>
     <div class="msg" id="li_msg"></div>
   </div>`;
   document.getElementById('li_go').onclick=doLogin;
+  document.getElementById('li_new').onclick=startNew;
   document.getElementById('li_look').onclick=lookupMine;
+}
+/* 新生第一次報名：唔使對現有名冊，直接去填檔案（後端 saveProfile 准全新學生建檔）。 */
+function startNew(){
+  const name=document.getElementById('li_name').value.trim();
+  const last4=document.getElementById('li_last4').value.trim();
+  const msg=document.getElementById('li_msg');
+  if(!name||!last4){ msg.className='msg err'; msg.textContent='請先填學生中文姓名同家長電話後 4 位。'; return; }
+  if(!/^\d{4}$/.test(last4)){ msg.className='msg err'; msg.textContent='電話後 4 位要係 4 個數字。'; return; }
+  S.family={name,last4}; S.profile=null; S.isNew=true;
+  S.credit={remaining:0,summer:0,referral:0};   // 新生無優惠券／推薦
+  renderProfile();
 }
 async function lookupMine(){
   const name=document.getElementById('li_name').value.trim();
