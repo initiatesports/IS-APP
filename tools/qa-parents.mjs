@@ -128,14 +128,16 @@ async function sweep(label, exec, rows, withPin) {
         // 3) 學費負數
         const net = cls.net != null ? cls.net : (cls.owed != null ? cls.owed : null);
         if (net != null && Number(net) < 0) add("FEE", label, c.name, `${cls.cid || cls.key} 應繳負數 ${net}`);
-        // 3b) 補堂完整性（信任重災）：未來請假被顯示「已補堂」＝補堂日期對唔上原缺席日，家長會覺得騙咗一堂。
-        //     用同 is-parent 一致嘅 madeUp 邏輯（makeups 出席+from）。
-        const mkMade = new Set((cls.makeups || []).filter(m => m.status === "出席" && m.from).map(m => m.from));
+        // 3b) 補堂完整性（信任重災）：未來請假被顯示「已補堂」但冇任何補堂綁定該缺席日＝陳思允式錯配 bug，
+        //     家長會覺得騙咗一堂。有補堂明確綁定該日（#4 用 from、#9 用 absDate）＝合法「提前補堂」（先補後請假），
+        //     唔算異常 —— 同 #4/#9 後端 apiAudit 嘅 bookedFor 檢查一致，避免日日誤報合法安排。
+        const covered = new Set((cls.makeups || [])
+          .filter(m => m.status !== "缺席" && m.status !== "停課" && !m.extra)
+          .map(m => m.from || m.absDate).filter(Boolean));
         for (const s of (cls.sessions || [])) {
-          if (s.status === "請假" && s.date > TODAY && (mkMade.has(s.date) || s.madeUp)) {
-            // 多數＝合法提前補堂（有真出席補堂＋明確原缺席日）；但若補堂日對唔上／無真補堂＝陳思允式錯配 bug。agent 需核對。
+          if (s.status === "請假" && s.date > TODAY && s.madeUp && !covered.has(s.date)) {
             const clsId = cls.cid || cls.key || (cls.sport ? cls.sport + "|" + cls.wd : "?");
-            add("MKMADEUP", label, c.name, `${clsId} ${s.date} 未來請假顯示已補堂（核對：有無對應真出席補堂；多數係提前補堂則正常）`);
+            add("MKMADEUP", label, c.name, `${clsId} ${s.date} 未來請假顯示已補堂但無補堂綁定該日（錯配）`);
           }
         }
         // 4) 歷史補完（只恆常#4）：截止日前嘅過往堂應已補完，唔應再有空白
