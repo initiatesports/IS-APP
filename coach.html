@@ -3,6 +3,9 @@
 <head>
 <meta name="robots" content="noindex,nofollow">
 <meta charset="UTF-8">
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="dns-prefetch" href="https://script.google.com">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -298,6 +301,7 @@ html,body{
       <h1 id="header-title-text">IS 出席管理</h1>
       <div id="header-subtitle-text">Initiate Sports</div>
     </div>
+    <button id="refresh-btn" onclick="forceRefresh()" aria-label="更新最新版" title="更新最新版（強制攞最新版本）" style="font-size:15px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 9px;cursor:pointer;margin-right:6px">🔄</button>
     <div id="sync-indicator" title="雲端同步狀態">☁</div>
   </div>
 
@@ -438,7 +442,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-01-term910';
+const FRONTEND_VERSION = 'coach-2026-08-03-refresh';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1908,6 +1912,7 @@ function renderSettings(){
         <button onclick="exportCsv('attendance')" style="flex:1;min-width:120px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:13px;font-weight:700;cursor:pointer">⬇ 點名 CSV</button>
         <button onclick="exportCsv('addons')" style="flex:1;min-width:120px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-size:13px;font-weight:700;cursor:pointer">⬇ 加操 CSV</button>
       </div>
+      <div style="text-align:center;font-size:11px;color:var(--muted);padding:6px 0 0">版本 ${FRONTEND_VERSION} · <span onclick="forceRefresh()" style="color:var(--cyan);cursor:pointer;text-decoration:underline">強制更新最新版</span></div>
     </div>
     <div class="settings-section-title">⚙️ 班別管理</div>
     <p style="padding:0 4px 12px;font-size:13px;color:var(--muted);line-height:1.6">修改後即時生效並同步至雲端。學生名單、上課星期、時間都可以直接在這裡調整。</p>
@@ -2423,6 +2428,12 @@ function coachLogout(){
 /* 自動更新檢查：iOS 加咗主畫面嘅 Web App 會無視 no-cache meta、serve 舊版 HTML。
    開頁時用「防快取」fetch 攞返伺服器最新版 HTML,抽出佢 FRONTEND_VERSION 同本頁比對;
    唔同 = 本頁係舊快取 → 彈「立即更新」橫額,撳一下用 cache-bust 網址重載攞新版。 */
+/* 手動刷新：教練撳頂部「🔄」強制攞最新版（cache-bust 重載，繞過 iOS 主畫面 icon 頑固快取）。 */
+function forceRefresh(){
+  try{ toast('🔄 更新緊…'); }catch(e){}
+  try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+  location.replace(location.pathname + '?_r=' + Date.now());   // 全新 URL → 一定攞伺服器最新版
+}
 async function checkForUpdate(){
   try{
     const base = location.pathname;

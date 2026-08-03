@@ -16,8 +16,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # 要完整歷史先可以同 base 比 FRONTEND_VERSION
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: 跑一致性檢查
         run: node tools/check-consistency.mjs
+      - name: 前端版本升級守衛（HTML改咗但 FRONTEND_VERSION 冇升 → fail，防 client 跑 stale 舊版）
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$BASE" ]; then BASE="${{ github.event.before }}"; fi
+          if [ -z "$BASE" ] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            git fetch origin main --depth=50 2>/dev/null || true; BASE="origin/main"
+          fi
+          echo "比對 base = $BASE"
+          fail=0
+          for f in $(git diff --name-only "$BASE" HEAD -- '*.html'); do
+            [ -f "$f" ] || continue
+            cur=$(grep -oE "FRONTEND_VERSION *= *'[^']+'" "$f" | head -1)
+            [ -z "$cur" ] && continue                                   # 呢個 HTML 冇版本機制,跳過
+            old=$(git show "$BASE:$f" 2>/dev/null | grep -oE "FRONTEND_VERSION *= *'[^']+'" | head -1)
+            [ -z "$old" ] && { echo "✓ $f 新檔案(無需比)"; continue; }
+            if [ "$cur" = "$old" ]; then
+              echo "✗ $f 改咗但 FRONTEND_VERSION 冇升(仍 $cur) — client 偵測唔到新版會跑 stale 舊版！請遞增版本字串再 push"
+              fail=1
+            else
+              echo "✓ $f 版本已升: $old → $cur"
+            fi
+          done
+          exit $fail
