@@ -1665,6 +1665,26 @@ let ACHIEVEMENTS=[
 ];
 const MEDAL_EMOJI={1:'🥇',2:'🥈',3:'🥉',4:'🎖'};
 const MEDAL_NAME ={1:'冠軍',2:'亞軍',3:'季軍',4:'殿軍'};
+/* ── 年度獎學金（獨立區塊，非比賽獎牌，唔計入獎牌統計）── */
+const SCHOLARSHIP_2026={ title:'2026 年度獎學金計劃', sub:'總值超過 HK$6,900 獎學金及禮品', tiers:[
+  {m:1,badge:'🏆',name:'年度躍卓大獎',names:['陳曉瑩','孔善盈']},
+  {m:2,badge:'🌟',name:'飛躍進步獎',names:['余悅','郭栩澄','黃梓昕','曾愛斯','何芯蕾']},
+  {m:3,badge:'🎖',name:'躍動優異獎',names:['陳思允','周莉晶','胡苡晨','鄧可澄','羅靖誼','梁正宇','方鎮浩','吳瑋軒','劉鎮碩','郭可昕']},
+]};
+function scholarshipBlockHTML(){
+  const cards=SCHOLARSHIP_2026.tiers.map(t=>`<div class="ach-card m${t.m}">
+    <div class="ach-medal">${t.badge}</div>
+    <div class="ach-info">
+      <div class="ach-names">${t.names.join('・')}</div>
+      <div class="ach-meta">${t.names.length} 位得獎學員</div>
+    </div>
+    <div class="ach-prize m${t.m}">${t.name}</div>
+  </div>`).join('');
+  return `<div class="ach-block">
+    <div class="ach-block-head"><h3>🏅 ${SCHOLARSHIP_2026.title}</h3><span class="sub">${SCHOLARSHIP_2026.sub}</span></div>
+    <div class="ach-grid">${cards}</div>
+  </div>`;
+}
 function renderAchPanel(){
   const tally={1:0,2:0,3:0,4:0};
   ACHIEVEMENTS.forEach(b=>b.items.forEach(it=>{tally[it.medal]=(tally[it.medal]||0)+1;}));
@@ -1676,7 +1696,7 @@ function renderAchPanel(){
     (tally[4]?`<div class="tw"><b style="color:#5f6b7e">${tally[4]}</b><span>🎖 殿軍</span></div>`:'');
   const el=document.getElementById('ach-list');
   if(!el) return;
-  el.innerHTML=ACHIEVEMENTS.map(b=>{
+  el.innerHTML=scholarshipBlockHTML()+ACHIEVEMENTS.map(b=>{
     const cards=b.items.map(it=>{
       const m=it.medal, names=it.names.join('・'), solo=it.names.length===1;
       const meta=[it.group, it.event].filter(Boolean).join(' · ');
