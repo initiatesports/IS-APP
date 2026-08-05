@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-05-summermk';
+const FRONTEND_VERSION = 'coach-2026-08-05-notices';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -943,6 +943,7 @@ function renderHome(){
   // 首頁精簡（2026-07）：移除「每週通知 / 即將到期補堂 / 每班摘要」（累贅少用），只保留上課地點+WhatsApp。
   // 即將到期補堂仍可喺「補堂」分頁「即將到期」filter 睇；通知功能移除。
   try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
+  try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }   // regression 修復:發佈/刪除通知面板入口(「首頁精簡」移除咗、重要通知彈窗又啟用但冇補返入口)
 }
 let VENUES_CACHE=[];
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
