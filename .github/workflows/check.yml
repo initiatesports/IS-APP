@@ -23,6 +23,8 @@ jobs:
           node-version: "20"
       - name: 跑一致性檢查
         run: node tools/check-consistency.mjs
+      - name: Regression 守衛（關鍵功能接線被移除 → fail，防加新嘢漏舊嘢）
+        run: node tools/check-regressions.mjs
       - name: 前端版本升級守衛（HTML改咗但 FRONTEND_VERSION 冇升 → fail，防 client 跑 stale 舊版）
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
