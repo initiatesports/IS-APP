@@ -1883,7 +1883,7 @@ function doGradeSearch(){
 
 // 證書驗證：輸入編號 → 該學員全部證書（獎學金登記庫 + 花式跳繩章別）
 function certNorm_(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
-function doCertVerify(){
+async function doCertVerify(){
   const inp=document.getElementById('cert-q'), out=document.getElementById('cert-results');
   const key=certNorm_(inp.value);
   if(!key){ out.innerHTML=''; return; }
@@ -1895,9 +1895,11 @@ function doCertVerify(){
   const name=recs[0].name, nameEn=recs[0].nameEn||'', no=recs[0].no;
   // 收集所有證書：登記庫（獎學金等）＋ 花式跳繩章別（由 STUDENT_GRADES 已考證書等級推出）
   const certs=recs.map(r=>({title:r.title,titleEn:r.titleEn||'',sub:r.program||'',subEn:r.programEn||'',year:r.year||''}));
-  const g=STUDENT_GRADES[name];
-  if(g&&g.certified>0){
-    certs.push({title:'花式跳繩技術章別 · Level '+g.certified,titleEn:'Rope Skipping Grading · Level '+g.certified,
+  // 花式跳繩章別：登入教練用本地 STUDENT_GRADES；公開訪客用 gated certGrade(no)（後端只回嗰個學生，唔匿名公開全部）
+  let certified=(STUDENT_GRADES[name]&&STUDENT_GRADES[name].certified)||0;
+  if(certified<=0){ try{ const gr=await apiGet({action:'certGrade',no}); if(gr&&gr.ok) certified=Number(gr.certified)||0; }catch(e){} }
+  if(certified>0){
+    certs.push({title:'花式跳繩技術章別 · Level '+certified,titleEn:'Rope Skipping Grading · Level '+certified,
       sub:'INITIATE SPORTS 花式跳繩章別考核計劃',subEn:'Rope Skipping Grading Programme',year:''});
   }
   const rows=certs.map(c=>`<div style="border:1px solid rgba(62,207,207,.28);border-radius:12px;padding:14px 16px;margin-top:10px;background:#fff;text-align:left">
