@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-05-notices';
+const FRONTEND_VERSION = 'coach-2026-08-05-returns';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -944,6 +944,37 @@ function renderHome(){
   // 即將到期補堂仍可喺「補堂」分頁「即將到期」filter 睇；通知功能移除。
   try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
   try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }   // regression 修復:發佈/刪除通知面板入口(「首頁精簡」移除咗、重要通知彈窗又啟用但冇補返入口)
+  try{ renderReturnsPanel(); }catch(e){ console.error('renderReturnsPanel',e); }   // 回歸學生:教練核實面板(家長已交回歸付款,教練端核實)
+}
+let RETURNS_CACHE=[];
+/* 退出可回歸學生:家長交回歸付款後,教練喺呢度睇待核實申請+付款截圖→核實即加入班別變正常學生。
+   (後端 returnsAll/returnVerify 一直有,但教練端一直冇 UI → 申請會積住冇人處理) */
+async function renderReturnsPanel(){
+  let host=document.getElementById('home-returns');
+  if(!host){ const dash=document.getElementById('home-dashboard'); if(dash){ host=document.createElement('div'); host.id='home-returns'; dash.parentNode.insertBefore(host, dash); } }
+  if(!host) return;
+  let r; try{ r=await apiPost({action:'returnsAll'}); }catch(e){ r=null; }
+  RETURNS_CACHE=(r&&r.ok&&r.returns)?r.returns:[];
+  const pending=RETURNS_CACHE.filter(x=>x.status!=='已核實');
+  if(!pending.length){ host.innerHTML=''; return; }   // 冇待核實就唔顯示,唔阻住主頁
+  host.innerHTML=`<div class="section-header">🔄 回歸申請待核實（${pending.length}）</div>
+    <div class="class-list">`+pending.map(x=>`
+      <div class="class-row" style="align-items:flex-start">
+        <div class="class-row-info">
+          <h3 style="font-size:15px;font-weight:700">${(x.name||'').replace(/</g,'&lt;')}</h3>
+          <p>${(x.cids||[]).map(vnCidLabel).join('、')} · ${x.period||''} · $${x.fee||0}</p>
+          <div style="margin-top:5px">${x.link?`<a href="#" onclick="viewSecureFile('${x.link}');return false" style="color:var(--cyan);font-size:12px;cursor:pointer">📄 睇付款截圖</a>`:'<span style="color:var(--muted);font-size:12px">無截圖</span>'}</div>
+        </div>
+        <button class="btn-makeup-done" style="background:var(--green-dim,rgba(46,204,113,.15));border-color:var(--green,#2ecc71);color:var(--green,#2ecc71)" onclick="verifyReturn('${(x.name||'').replace(/'/g,"\\'")}')">✓ 核實回歸</button>
+      </div>`).join('')+`</div>`;
+}
+async function verifyReturn(name){
+  if(!confirm('核實 '+name+' 回歸？\n核實後佢會即刻加入所揀班別、變返正常學生（先請睇過付款截圖）。')) return;
+  let r; try{ r=await apiPost({action:'returnVerify', name}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('核實失敗'+((r&&r.err)?'：'+r.err:''),'⚠'); return; }
+  toast(name+' 已核實回歸 ✓','✓');
+  try{ await loadFromSheets(); }catch(e){}   // 重載令新學生入名冊/點名表
+  renderReturnsPanel();
 }
 let VENUES_CACHE=[];
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
