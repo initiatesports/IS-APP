@@ -349,6 +349,7 @@ html,body{
       </div>
       <div class="roll-info-bar" id="roll-info-bar"></div>
       <div class="already-saved-bar" id="roll-already-saved" style="display:none">⚠ 此日期已有記錄，儲存將會覆蓋</div>
+      <div id="roll-summer"></div>
       <div class="student-list" id="student-list"></div>
       <div class="save-bar">
         <div class="save-count" id="save-count"></div>
@@ -442,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-04-sessionauth';
+const FRONTEND_VERSION = 'coach-2026-08-05-summermk';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1317,6 +1318,19 @@ function loadRollSession(){
   const d = new Date(rollSelectedDate + 'T00:00:00');
   document.getElementById('roll-info-bar').textContent = `📅 ${d.getMonth()+1}月${d.getDate()}日 · 預設全部出席，只需標記請假或補堂`;
   renderRollTable();
+  showSummerMakeups(currentClass, rollSelectedDate);   // 暑期跳繩補堂：藍色純提示（出席喺 #9 記，唔喺此點名）
+}
+/* 暑期花式跳繩補堂坐入同時段恆常班（如汪柏叡 星期三5-6pm→c3）：apiDaily 有計、但唔喺 c3 grid，
+   故 getRollStudents(ATT_LOG) 見唔到 → 喺點名表頂加藍色純提示，等教練知道有暑期學生嚟補堂。 */
+async function showSummerMakeups(classId, date){
+  const box=document.getElementById('roll-summer'); if(!box) return;
+  box.innerHTML=''; const token=classId+'|'+date; box.dataset.tok=token;   // 即時清走上次，避免殘留
+  let r; try{ r=await apiPost({action:'dailyList', date, coachPass:cpass()}); }catch(e){ return; }
+  if(box.dataset.tok!==token) return;   // 期間切咗班/日 → 唔好覆蓋
+  if(!r||!r.ok||!Array.isArray(r.list)) return;
+  const g=r.list.find(x=>x.c&&(x.c.key===classId||x.c.sport===classId));
+  const summer=g?(g.rows||[]).filter(x=>x.summer):[];
+  box.innerHTML=summer.map(row=>`<div class="summerinfo">🔵 <b>${vnEsc(row.name)}</b> · ${vnEsc(row.note||'暑期補堂')}<span class="sub">暑期跳繩補堂・出席喺暑期系統(#9)點名，唔喺此處標記</span></div>`).join('');
 }
 function renderRollTable(){
   const list = document.getElementById('student-list');
