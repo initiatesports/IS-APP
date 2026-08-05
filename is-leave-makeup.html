@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-05-mk6h-sick';
+const FRONTEND_VERSION = 'lm-2026-08-05-medcert';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -784,12 +784,17 @@ function openLeave(ki,ci){
   // 兄弟姊妹：其他小朋友有「同一星期」嘅班（同一日可一齊請假）
   const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
     .map(o=>{ const sc=(o.ch.classes||[]).find(x=>x.wd===c.wd); return sc?{idx:o.idx,name:o.ch.name,sc}:null; }).filter(Boolean);
-  LF={ki,ci,type:"事假",dates:[],sibs:[]};
+  LF={ki,ci,type:"事假",dates:[],sibs:[],fileData:null,fileName:""};
   if(!opts.length){ openSheet(`<h2>申請請假</h2><p class="sd">${SPORT[c.sport].name} 已經冇可請假嘅未來堂數。</p><button class="btn ghost" onclick="closeSheet()">關閉</button>`); return;}
   openSheet(`<h2>申請請假 · ${SPORT[c.sport].name}</h2>
     <p class="sd">逢星期${c.wd} ${c.time}　·　可一次揀多堂</p>
     <div class="seg"><button class="on" onclick="setLeaveType('事假',this)">事假</button>
       <button onclick="setLeaveType('病假',this)">病假</button></div>
+    <div id="lf-med" style="display:none;margin:10px 0 12px">
+      <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">病假醫生證明（當日病假須 48 小時內交 · 影相或 PDF）</label>
+      <input type="file" id="lf-file" accept="image/*,application/pdf" onchange="onMedFile(this)" style="width:100%;font-size:13px">
+      <div id="lf-med-status" style="font-size:12px;color:var(--muted);margin-top:5px">可即刻上傳，或稍後喺 48 小時內經此頁補交。</div>
+    </div>
     <div class="lbl" style="font-size:13px;font-weight:500;margin-bottom:6px">揀請假堂數（可多選）</div>
     <div id="lf-opts">${opts.map(di=>{const d=new Date(di+"T00:00:00");return `<div class="opt" onclick="toggleLeave('${di}',this)">
       <div><div class="t">${fmt(d)}（星期${WDN[d.getDay()]}）</div></div>
@@ -798,13 +803,21 @@ function openLeave(ki,ci){
     <div id="lf-sibs">${sibs.map(s=>`<div class="opt" onclick="toggleSib(${s.idx},this)">
       <div><div class="t">${s.name}　·　${SPORT[s.sc.sport]?SPORT[s.sc.sport].name:s.sc.sport}（星期${s.sc.wd}）</div></div>
       <div class="cap" style="display:none">✓</div></div>`).join("")}</div>`:''}
-    <div class="notice warn" style="font-size:12.5px">事假須提前 24 小時，否則該堂計缺席、不設補堂。病假只適用於<b>當日</b>身體不適（可補堂）；如揀將來日期，系統會自動<b>按事假處理</b>（須 24 小時前）。</div>
+    <div class="notice warn" id="lf-notice" style="font-size:12.5px">事假須<b>最少提前一日</b>；<b>當日不可請事假</b>，當日缺席照扣一節、不設補堂。</div>
     <div class="confirm-q" id="lf-count">未揀任何堂</div>
     <input id="lf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
     <button class="btn" id="lf-go" onclick="submitLeave()" disabled>提交請假</button>`);
 }
-function setLeaveType(t,btn){LF.type=t;[...btn.parentNode.children].forEach(b=>b.classList.remove("on"));btn.classList.add("on");}
+function setLeaveType(t,btn){LF.type=t;[...btn.parentNode.children].forEach(b=>b.classList.remove("on"));btn.classList.add("on");
+  const med=$("#lf-med"); if(med) med.style.display=(t==="病假")?"block":"none";
+  const nt=$("#lf-notice"); if(nt) nt.innerHTML=(t==="病假")
+    ? '病假只適用於<b>當日</b>身體不適（可補堂），須於 <b>48 小時內</b>上傳醫生證明，否則改計缺席、扣一節、不設補堂。<br>如揀將來日期，系統會自動<b>按事假處理</b>（可補堂、不需醫生紙）。'
+    : '事假須<b>最少提前一日</b>；<b>當日不可請事假</b>，當日缺席照扣一節、不設補堂。';}
+function onMedFile(input){ const f=input.files&&input.files[0]; const st=$("#lf-med-status");
+  if(!f){ LF.fileData=null; LF.fileName=""; return; }
+  if(f.size>6*1024*1024){ toast("檔案太大（上限 6MB）"); input.value=""; return; }
+  const rd=new FileReader(); rd.onload=()=>{ LF.fileData=rd.result; LF.fileName=f.name; if(st){st.textContent="已選擇："+f.name; st.style.color="var(--green)";} }; rd.readAsDataURL(f); }
 function toggleLeave(di,el){
   const i=LF.dates.indexOf(di);
   if(i>=0){LF.dates.splice(i,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
@@ -821,13 +834,20 @@ async function submitLeave(){
   const code=$("#lf-code").value.trim();
   if(code!==S.family.last4) return toast("後 4 位數字唔啱");
   if(!LF.dates.length) return;
-  const child=S.family.children[LF.ki], c=child.classes[LF.ci], hhmm=(c.time||"00:00").slice(0,5);
+  const child=S.family.children[LF.ki], c=child.classes[LF.ci];
+  const today=iso(new Date());
+  const sameDay=LF.dates.filter(d=>d===today), future=LF.dates.filter(d=>d!==today);
+  // 當日事假：唔可以（跟恆常）→ 剔走當日；若全部係當日就彈窗中止（家長須按 OK）
+  let blocked=[];
+  if(LF.type==="事假" && sameDay.length){
+    blocked=sameDay.slice(); LF.dates=LF.dates.filter(d=>d!==today);
+    if(!LF.dates.length){ alert("當天不可請事假（須最少提前一日）。若當日缺席，將照常扣一節課、不設補堂。如當日身體不適，請改選「病假」。"); return; }
+  }
   const btn=$("#lf-go"); btn.disabled=true; btn.textContent="提交中…";
-  let fail=0, err="";
+  let fail=0, err="", certDeadline="";
   for(const date of LF.dates){
-    const eligible = (LF.type==="病假" && date===iso(new Date())) ? true : ((new Date(date+"T"+hhmm+":00")-new Date())/36e5)>=24;   // 病假只限當日可補；提前病假按事假(需24h)
-    try{ const r=await api("applyLeave",{name:child.name,key:classKey(c),date,leaveType:LF.type,eligible});
-      if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
+    try{ const r=await api("applyLeave",{name:child.name,key:classKey(c),date,leaveType:LF.type});
+      if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } else if(date===today && r.certDeadline) certDeadline=r.certDeadline; }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
   }
   // 兄弟姊妹一齊請假：同一星期嘅班、同一日有堂先請
@@ -835,23 +855,29 @@ async function submitLeave(){
   for(const sidx of (LF.sibs||[])){
     const sib=S.family.children[sidx]; if(!sib) continue;
     const sc=(sib.classes||[]).find(x=>x.wd===c.wd); if(!sc) continue;
-    const shh=(sc.time||"00:00").slice(0,5); let did=0;
+    let did=0;
     for(const date of LF.dates){
       if(!(sc.sessions||[]).some(x=>x.date===date && !x.status)) continue;   // 該日冇未上堂 → 跳過
-      const el2= (LF.type==="病假" && date===iso(new Date())) ? true : ((new Date(date+"T"+shh+":00")-new Date())/36e5)>=24;   // 同上：病假只限當日可補
-      try{ const r=await api("applyLeave",{name:sib.name,key:classKey(sc),date,leaveType:LF.type,eligible:el2}); if(r&&r.ok) did++; else fail++; }catch(e){ fail++; }
+      try{ const r=await api("applyLeave",{name:sib.name,key:classKey(sc),date,leaveType:LF.type}); if(r&&r.ok) did++; else fail++; }catch(e){ fail++; }
     }
     if(did) sibDone.push(sib.name);
+  }
+  // 醫生紙：只喺「當日病假」上傳，連到當日；提前病假已按事假，不需醫生紙
+  let medMsg=""; const sickToday=(LF.type==="病假" && sameDay.length>0);
+  if(sickToday && LF.fileData){
+    try{ const u=await api("uploadMedNote",{name:child.name,key:classKey(c),date:sameDay[0],dataUrl:LF.fileData}); medMsg=(u&&u.ok)?"（已附醫生證明）":"（醫生證明上載失敗，請稍後補交）"; }
+    catch(e){ medMsg="（醫生證明上載失敗，請稍後補交）"; }
   }
   closeSheet(); await refresh();
   if(fail){ toast(`有 ${fail} 堂提交失敗${err?'：'+err:'，請重試'}`); return; }
   const ds=LF.dates.map(d=>fmt(new Date(d+"T00:00:00"))).join("、");
-  showLeaveReceipt("✅ 已提交請假", [
-    `小朋友：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,
-    `班別：${SPORT[c.sport].name}（星期${c.wd}）`,
-    `日期：${ds}（${LF.dates.length} 堂）`,
-    `假別：${LF.type}`
-  ], `INITIATE 請假申請\n小朋友：${child.name}${sibDone.length?('、'+sibDone.join('、')):''}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
+  const lines=[`小朋友：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,
+    `班別：${SPORT[c.sport].name}（星期${c.wd}）`, `日期：${ds}（${LF.dates.length} 堂）`, `假別：${LF.type}${medMsg}`];
+  if(sickToday && !LF.fileData){ lines.push(`<span style="color:#c0392b">⚠️ 當日病假：請於 48 小時內${certDeadline?('（限 '+certDeadline+' 前）'):''}上傳醫生證明，否則此堂改計缺席、扣一節、不設補堂。</span>`); }
+  if(LF.type==="病假" && future.length){ lines.push(`<span style="color:var(--muted)">註：${future.map(d=>fmt(new Date(d+"T00:00:00"))).join("、")} 為將來日期，病假已按事假處理（可補堂、不需醫生紙）。</span>`); }
+  if(blocked.length){ lines.push(`<span style="color:#c0392b">註：${blocked.map(d=>fmt(new Date(d+"T00:00:00"))).join("、")} 為當日事假，未獲提交（當日不可請事假）。</span>`); }
+  showLeaveReceipt("✅ 已提交請假", lines,
+    `INITIATE 請假申請\n小朋友：${child.name}${sibDone.length?('、'+sibDone.join('、')):''}\n班別：${SPORT[c.sport].name}（星期${c.wd}）\n日期：${ds}\n假別：${LF.type}`, LF.ki, LF.ci);
 }
 
 /* ---------- 取消請假 ---------- */

@@ -32,6 +32,9 @@ const CHECKS = [
   { file:'is-parent.html', fn:'submitCancelMakeup', must:'lateCancelBlock', why:'恆常：距開課<6h批量取消補堂被攔+彈窗' },
   { file:'is-leave-makeup.html', fn:'submitMakeup', must:'mkHrsToStart9', why:'暑期：少於開課前6h申請補堂彈窗提示' },
   { file:'is-leave-makeup.html', fn:'submitCancelMakeup', must:'mkHrsToStart9', why:'暑期：距開課<6h取消補堂被攔+彈窗' },
+  // 暑期病假完整跟恆常（老闆 2026-08-05）：當日病假可上載醫生紙，48h逾期自動改缺席
+  { file:'is-leave-makeup.html', fn:'submitLeave', must:'uploadMedNote', why:'暑期當日病假醫生紙上載（跟恆常，逾48h未交自動改缺席）' },
+  { file:'is-leave-makeup.html', fn:'onMedFile', must:'FileReader', why:'暑期病假醫生紙選檔讀取（onMedFile）' },
 ];
 
 let fail = 0;
