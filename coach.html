@@ -442,7 +442,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-03-refresh';
+const FRONTEND_VERSION = 'coach-2026-08-04-sessionauth';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2252,7 +2252,7 @@ saveRoll = async function(){
   if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
   if(a&&a.ok){
     const badge=document.getElementById('roll-already-saved'); if(badge) badge.style.display='flex';
-    try{ if(cpass()) localStorage.setItem('is_cpass_t', String(Date.now())); }catch(e){}  // 滑動延長：活躍使用唔會 14 日過期
+    // （已移除舊「14 日滑動延長」：密碼只存 session，唔再持久記住）
     // 核對：後端實際寫入人數 vs 送出人數。少咗 = 有學生冇存到（舊版/異常）→ 大聲提示，唔會靜靜雞漏data
     const sent = Object.keys(ATT_LOG[key]||{}).length;
     const wrote = (a.att && typeof a.att.wrote === 'number') ? a.att.wrote : sent;
@@ -2295,10 +2295,10 @@ function installManifest(){
   }catch(e){}
 }
 let COACH_PASS_RT = (function(){ try{
-  var v=localStorage.getItem('is_cpass')||sessionStorage.getItem('is_cpass')||'';
-  var t=Number(localStorage.getItem('is_cpass_t')||0);
-  if(v && (!t || (Date.now()-t) > 14*864e5)){ localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); return ''; }  // 記住密碼 14 日,過期要重新輸入(安全)
-  return v;
+  // 🔒 安全：唔再持久記住密碼。只喺當前 session 有效（App 一閂再開就要重新輸入密碼），
+  //    防止「淨係有連結就直接打開」。清走舊版 localStorage 記住嘅密碼。
+  localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t');
+  return sessionStorage.getItem('is_cpass')||'';
 }catch(e){ return ''; } })();
 function cpass(){ return COACH_PASS_RT; }
 /* ── 逐節封鎖補堂：封鎖某「班|日期」唔畀學生揀嚟補堂（只封補堂，正規班照上）── */
@@ -2410,7 +2410,7 @@ async function coachGateSubmit(){
   let r; try{ r=await apiPost({action:'coachLogin', coachPass:v}); }catch(e){ r=null; }
   btn.disabled=false; btn.textContent='登入';
   if(!r||!r.ok){ document.getElementById('cg-err').textContent='密碼錯誤'; return; }
-  COACH_PASS_RT=v; try{ localStorage.setItem('is_cpass',v); localStorage.setItem('is_cpass_t',String(Date.now())); sessionStorage.removeItem('is_cpass'); }catch(e){}
+  COACH_PASS_RT=v; try{ sessionStorage.setItem('is_cpass',v); localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); }catch(e){}  // 🔒 只存 session，唔持久記住
   document.getElementById('cg-err').textContent='';
   document.getElementById('coach-gate').style.display='none';
   // 若有待補交嘅點名（密碼過期時暫存），趁 loadFromSheets 覆蓋前先補交返上伺服器
