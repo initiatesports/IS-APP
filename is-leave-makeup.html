@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-05-notices';
+const FRONTEND_VERSION = 'lm-2026-08-05-mk6h-sick';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -289,6 +289,9 @@ try{ DEMO.log = JSON.parse(LS.get("demo_log")||"[]"); }catch(e){ DEMO.log=[]; }
 function classKey(c){ return c.sport+"|"+c.wd; }
 function lastSession(c){ const s=sessionsFor(c.wd); return s[s.length-1]; }
 
+// 補堂各時段（sport|wd → 開課時間）供「開課前 6 小時不可取消」計算；與後端 TIMES 對齊
+const TIMES9={"badminton|二":"13:00–15:00","badminton|三":"11:00–13:00","badminton|四":"10:00–12:00","basketball|三":"09:00–10:00","gym|一":"14:00–15:00","gym|四":"15:00–16:00","athletics|二":"17:15–18:15","athletics|四":"17:15–18:15","rope|四":"14:00–15:00","rope|六":"15:00–16:00","pickleball|二":"10:00–11:00","pickleball|五":"13:00–15:00","fitness|五":"15:00–16:00"};
+function mkHrsToStart9(dateIso,timeStr){ const hm=String(timeStr||"00:00").slice(0,5); return (new Date(dateIso+"T"+hm+":00")-new Date())/36e5; }
 function makeupSlotsFor(c,ownWds){
   // 回傳可補嘅 {sport,wd,time,cap} 列表（同一學生嘅 leave class c）
   // ownWds：學生所有現役同項目日（含 c.wd），全部排除→補堂唔會撞返自己正課（如潘洛詩羽毛球二＋四→只可補三）；唔傳就只排 c.wd
@@ -795,7 +798,7 @@ function openLeave(ki,ci){
     <div id="lf-sibs">${sibs.map(s=>`<div class="opt" onclick="toggleSib(${s.idx},this)">
       <div><div class="t">${s.name}　·　${SPORT[s.sc.sport]?SPORT[s.sc.sport].name:s.sc.sport}（星期${s.sc.wd}）</div></div>
       <div class="cap" style="display:none">✓</div></div>`).join("")}</div>`:''}
-    <div class="notice warn" style="font-size:12.5px">事假需提前 24 小時，否則該堂計缺席、不設補堂；病假需 48 小時內交醫生證明。</div>
+    <div class="notice warn" style="font-size:12.5px">事假須提前 24 小時，否則該堂計缺席、不設補堂。病假只適用於<b>當日</b>身體不適（可補堂）；如揀將來日期，系統會自動<b>按事假處理</b>（須 24 小時前）。</div>
     <div class="confirm-q" id="lf-count">未揀任何堂</div>
     <input id="lf-code" inputmode="text" maxlength="12" class="codein" placeholder="輸入手機後 4 位確認">
     <div style="height:12px"></div>
@@ -822,7 +825,7 @@ async function submitLeave(){
   const btn=$("#lf-go"); btn.disabled=true; btn.textContent="提交中…";
   let fail=0, err="";
   for(const date of LF.dates){
-    const eligible = LF.type==="病假" ? true : ((new Date(date+"T"+hhmm+":00")-new Date())/36e5)>=24;
+    const eligible = (LF.type==="病假" && date===iso(new Date())) ? true : ((new Date(date+"T"+hhmm+":00")-new Date())/36e5)>=24;   // 病假只限當日可補；提前病假按事假(需24h)
     try{ const r=await api("applyLeave",{name:child.name,key:classKey(c),date,leaveType:LF.type,eligible});
       if(!r||!r.ok){ fail++; err=(r&&r.err)||""; } }
     catch(e){ fail++; err=(e&&e.message)||String(e); }
@@ -835,7 +838,7 @@ async function submitLeave(){
     const shh=(sc.time||"00:00").slice(0,5); let did=0;
     for(const date of LF.dates){
       if(!(sc.sessions||[]).some(x=>x.date===date && !x.status)) continue;   // 該日冇未上堂 → 跳過
-      const el2= LF.type==="病假"?true:((new Date(date+"T"+shh+":00")-new Date())/36e5)>=24;
+      const el2= (LF.type==="病假" && date===iso(new Date())) ? true : ((new Date(date+"T"+shh+":00")-new Date())/36e5)>=24;   // 同上：病假只限當日可補
       try{ const r=await api("applyLeave",{name:sib.name,key:classKey(sc),date,leaveType:LF.type,eligible:el2}); if(r&&r.ok) did++; else fail++; }catch(e){ fail++; }
     }
     if(did) sibDone.push(sib.name);
@@ -936,6 +939,10 @@ async function submitCancelMakeup(){
   if(code!==S.family.last4) return toast("後 4 位數字唔啱");
   if(!XF.picks.length) return;
   const child=S.family.children[XF.ki], c=child.classes[XF.ci], fromKey=classKey(c);
+  // ⏱️ 距開課少於 6 小時嘅補堂唔畀取消 → 彈窗（家長須按 OK），整批中止
+  if(XF.picks.map(i=>XF.opts[i]).some(m=>mkHrsToStart9(m.date, TIMES9[m.to])<6)){
+    alert("距離補堂開課少於 6 小時，無法取消。若屆時未能出席，將照常扣一節課。"); return;
+  }
   const btn=$("#xf-go"); btn.disabled=true; btn.textContent="處理中…";
   let fail=0, err="", done=[];
   for(const i of XF.picks){
@@ -1052,6 +1059,10 @@ async function submitMakeup(){
   const code=$("#mf-code").value.trim();
   if(code!==S.family.last4) return toast("後 4 位數字唔啱");
   if(!MF.picks.length) return;
+  // ⏱️ 少於開課前 6 小時嘅補堂：可以申請，但一經提交即不可取消 → 先彈窗（家長須按 OK 確認）
+  if(MF.picks.some(i=>mkHrsToStart9(MF.cands[i].date, MF.cands[i].slot.time)<6)){
+    if(!confirm("你所揀嘅補堂距開課少於 6 小時，一經提交將不可取消；若屆時未能出席，會照扣一節課。確定提交？")) return;
+  }
   const child=S.family.children[MF.ki], c=child.classes[MF.ci]; const btn=$("#mf-go"); btn.disabled=true; btn.textContent="提交中…";
   let fail=0, err="";
   for(const i of MF.picks){

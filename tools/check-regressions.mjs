@@ -26,6 +26,12 @@ const CHECKS = [
   { file:'coach.html', fn:'renderHome', must:'renderReturnsPanel(', why:'教練回歸核實面板入口（家長交回歸付款後教練核實）' },
   { file:'is-leave-makeup.html', fn:'renderParent', must:'S.notices', why:'暑期家長端顯示通知（曾只彈 modal 通知、漏咗普通通知 inline 顯示）' },
   { file:'is-parent.html', fn:'renderParent', must:'S.notices', why:'恆常家長端顯示通知' },
+  // 補堂「開課前 6 小時不可取消 + 少於6h申請要提示」彈窗（老闆 2026-08-05 定；所有彈窗要按 OK）
+  { file:'is-parent.html', fn:'submitMakeup', must:'lateBookWarn', why:'恆常：少於開課前6h申請補堂彈窗提示（一經提交不可取消、否則照扣）' },
+  { file:'is-parent.html', fn:'cancelOneMakeup', must:'lateCancelBlock', why:'恆常：距開課<6h單筆取消補堂被攔+彈窗' },
+  { file:'is-parent.html', fn:'submitCancelMakeup', must:'lateCancelBlock', why:'恆常：距開課<6h批量取消補堂被攔+彈窗' },
+  { file:'is-leave-makeup.html', fn:'submitMakeup', must:'mkHrsToStart9', why:'暑期：少於開課前6h申請補堂彈窗提示' },
+  { file:'is-leave-makeup.html', fn:'submitCancelMakeup', must:'mkHrsToStart9', why:'暑期：距開課<6h取消補堂被攔+彈窗' },
 ];
 
 let fail = 0;
