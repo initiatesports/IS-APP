@@ -23,6 +23,7 @@ const CHECKS = [
   { file:'coach.html', fn:'renderHome', must:'renderNoticesAdmin(', why:'教練發佈/刪除通知面板入口（曾被「首頁精簡」移除，重要通知彈窗又啟用但冇補返入口）' },
   { file:'coach.html', fn:'renderHome', must:'renderVenueAdmin(',   why:'教練「上課地點」設定入口（曾一度消失）' },
   { file:'coach.html', fn:'loadRollSession', must:'showSummerMakeups(', why:'主點名表 openRoll 顯示暑期跳繩補堂生（曾只加喺另一 view 漏咗主點名）' },
+  { file:'coach.html', fn:'renderHome', must:'renderReturnsPanel(', why:'教練回歸核實面板入口（家長交回歸付款後教練核實）' },
   { file:'is-leave-makeup.html', fn:'renderParent', must:'S.notices', why:'暑期家長端顯示通知（曾只彈 modal 通知、漏咗普通通知 inline 顯示）' },
   { file:'is-parent.html', fn:'renderParent', must:'S.notices', why:'恆常家長端顯示通知' },
 ];
