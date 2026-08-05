@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-08-03-verbadge';
+const FRONTEND_VERSION = 'parent-2026-08-05-sibmk';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -1277,7 +1277,13 @@ function openMakeup(ki,ci){
   cands.sort((a,b)=>a.date.localeCompare(b.date));
   // 按日期分組 → 家長先揀日期、再揀該日班別（唔使碌長 list）
   const byDate={}; cands.forEach(cd=>{ (byDate[cd.date]=byDate[cd.date]||[]).push(cd); });
-  MF={ki,ci,byDate,picks:[],owed};
+  // 👨‍👩‍👧‍👦 兄弟姊妹一齊補堂：同一電話下、同一班(同 cid)、亦有待補堂嘅其他小朋友
+  const _cKey=c.key||c.sport, sibList=[];
+  (S.family.children||[]).forEach((ch,idx)=>{ if(idx===ki) return;
+    const sc=(ch.classes||[]).find(x=>(x.key||x.sport)===_cKey && (x.owed||0)>0);
+    if(sc) sibList.push({idx, name:ch.name, sc});
+  });
+  MF={ki,ci,byDate,picks:[],owed,sibs:[],sibList};
   if(!cands.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
   const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
   openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
@@ -1285,6 +1291,8 @@ function openMakeup(ki,ci){
     <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfPickDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${dateOpts}</select>
     <div id="mf-classes" style="margin-top:8px"></div>
     <div id="mf-picks" style="margin-top:10px"></div>
+    ${sibList.length?`<div class="sd" style="margin:14px 2px 6px">${LANG==='en'?'👨‍👩‍👧‍👦 Also book for sibling(s) — same class, same dates':'👨‍👩‍👧‍👦 同時幫兄弟姊妹一齊補堂（同一班・同上面日子）'}</div>
+    <div id="mf-sibs">${sibList.map(s=>`<div class="opt" onclick="toggleMkSib(${s.idx},this)"><div class="t">${s.name}・${classLabel(s.sc.key||s.sc.sport)}・${LANG==='en'?'owes':'待補'} ${s.sc.owed}</div><div class="cap" style="display:none">✓</div></div>`).join('')}</div>`:''}
     <input id="mf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="mf-go" onclick="submitMakeup()" disabled>${t('submitMk')}</button>`);
   renderMfPicks();
@@ -1311,6 +1319,7 @@ function renderMfPicks(){
   if($('mf-go')) $('mf-go').disabled=MF.picks.length===0;
 }
 function mfRemove(i){ MF.picks.splice(i,1); mfPickDate(); renderMfPicks(); }
+function toggleMkSib(idx,el){ const i=MF.sibs.indexOf(idx); if(i>=0){MF.sibs.splice(i,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}else{MF.sibs.push(idx);el.classList.add('on');el.querySelector('.cap').style.display='';} }
 async function submitMakeup(){
   const code=$('mf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong')); if(!MF.picks.length) return;
   const child=S.family.children[MF.ki], c=child.classes[MF.ci]; const btn=$('mf-go'); btn.disabled=true; btn.textContent=t('submitting');
@@ -1318,10 +1327,21 @@ async function submitMakeup(){
   for(const p of MF.picks){
     try{ const r=await api('bookMakeup',{name:child.name,fromKey:classKey(c),fromDate:'',toKey:p.toKey,toDate:p.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
   }
+  // 👨‍👩‍👧‍👦 兄弟姊妹一齊補堂：同班(同cid)、同上面日子；每個 sibling 只book唔超過佢 owed 數(防過度預約)
+  const sibDone=[];
+  for(const sidx of (MF.sibs||[])){
+    const sib=S.family.children[sidx]; if(!sib) continue;
+    const sc=(sib.classes||[]).find(x=>(x.key||x.sport)===(c.key||c.sport)&&(x.owed||0)>0); if(!sc) continue;
+    let sok=0;
+    for(const p of MF.picks.slice(0, sc.owed)){
+      try{ const r=await api('bookMakeup',{name:sib.name,fromKey:classKey(sc),fromDate:'',toKey:p.toKey,toDate:p.date}); if(r&&r.ok)sok++; }catch(e){}
+    }
+    if(sok) sibDone.push(sib.name);
+  }
   closeSheet(); await refresh();
   if(fail) return toast(t('failN',fail,err));
   const picks=MF.picks.map(p=>{const d=new Date(p.date+'T00:00:00');return `${classLabel(p.toKey)}・${fmt(d)}${dow(d)}`;});
-  showReceipt(t('rcMk'),[`${t('child')}：<b>${child.name}</b>`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...picks.map(p=>t('mkTo',p)),`<span style="color:var(--muted)">${t('mkReviewHint')}</span>`],
+  showReceipt(t('rcMk'),[`${t('child')}：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...picks.map(p=>t('mkTo',p)),`<span style="color:var(--muted)">${t('mkReviewHint')}</span>`],
     `INITIATE 補堂預約\n小朋友：${child.name}\n原班：${classLabel(c.key||c.sport)}\n${picks.map(p=>'補去：'+p).join('\n')}`);
 }
 
