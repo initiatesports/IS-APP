@@ -38,6 +38,11 @@ const CHECKS = [
   // 特別時間安排：家長端要反映該日 override（下一堂）＋通知去重（老闆 2026-08-09 撞到重複通知＋下一堂冇跟改）
   { file:'is-leave-makeup.html', fn:'nextClassInfo', must:'s.time||c.time', why:'下一堂要顯示該日特別時間 override（唔係淨正規 c.time）' },
   { file:'is-leave-makeup.html', fn:'renderParent', must:'_seen', why:'最新通知同文案去重，防重複轟炸' },
+  // 恆常班特別時間安排（2026-08-09 加，同暑期一致）：教練面板入口 + 家長端顯示 + 通知去重
+  { file:'coach.html', fn:'renderHome', must:'renderTimeAdjAdmin(', why:'恆常教練端「特別時間安排」面板入口' },
+  { file:'coach.html', fn:'postTimeAdj', must:'setSessionTime', why:'恆常特別時間安排提交（setSessionTime）' },
+  { file:'is-parent.html', fn:'nextClassInfo', must:'time:s.time', why:'恆常下一堂要帶該日特別時間' },
+  { file:'is-parent.html', fn:'sessRow', must:'特別時間', why:'恆常 session 卡顯示該日特別時間' },
 ];
 
 let fail = 0;

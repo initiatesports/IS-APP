@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-08-05-mk6h';
+const FRONTEND_VERSION = 'parent-2026-08-09-timeadj';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -597,8 +597,9 @@ function renderParent(){
   html+=socialCard();
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
   html+=`<div style="display:flex;justify-content:flex-end;margin:2px 0 6px"><button class="btn ghost" style="width:auto;padding:7px 14px;font-size:13px" onclick="openPin()">${t('pinBtn')}</button></div>`;
-  // 📣 通知
-  const nts=(S.notices||[]);
+  // 📣 通知（同文案去重，防重複轟炸）
+  const _seen=new Set();
+  const nts=(S.notices||[]).filter(n=>{ const k=(n.text||'')+'|'+(n.until||''); if(_seen.has(k)) return false; _seen.add(k); return true; });
   if(nts.length){
     html+=`<div class="card" style="border-color:rgba(217,138,31,.35)"><div class="topline"><span class="dot" style="background:var(--amber)"></span><h3>${t('noticeHdr')}</h3></div>
       ${nts.map(n=>`<div style="padding:8px 0;border-top:1px solid var(--line,#eee)"><div style="font-size:14px;line-height:1.5">${(n.text||'').replace(/</g,'&lt;')}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${n.at||''}${n.scope&&n.scope!=='全部'?' · '+n.scope:''}</div></div>`).join('')}
@@ -640,7 +641,7 @@ function renderParent(){
     const nx=nextClassInfo(child);
     if(nx){ const d=new Date(nx.date+'T00:00:00');
       html+=`<div class="banner next"><div class="nx-l"><div class="nx-k">${t('nextClass')}</div>
-        <div class="nx-v">${classLabel(nx.cid)}・${fmt(d)}${dow(d)}</div></div>
+        <div class="nx-v">${classLabel(nx.cid)}・${fmt(d)}${dow(d)}${nx.time?' <span style="color:#0E8A96;font-weight:800">'+nx.time+'</span>':''}</div></div>
         <button class="nx-btn" onclick="downloadICS(${ki})">${t('addCal')}</button></div>`;
     }
     // 📅 已約補堂摘要（置頂、一開就見；解決家長唔知去邊睇已約補堂）
@@ -794,7 +795,8 @@ function sessRow(s,cid,madeUp){
   else if(d<today)pill=`<span class="pill p-up">${L('已過','Past')}</span>`;
   const v=venueAt(s.date,cid);
   const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
-  return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span>${vLine}</span>${pill}</div>`;
+  const tLine=s.time?`<div class="vn" style="color:#0E8A96;font-weight:800">⏰ ${LANG==='en'?'Special time':'特別時間'}：${s.time}</div>`:'';
+  return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span>${tLine}${vLine}</span>${pill}</div>`;
 }
 function socialCard(){
   const ig='https://www.instagram.com/initiate_sports.2023';
@@ -1075,8 +1077,8 @@ function cancelToday(child){
 function nextClassInfo(child){
   const t=todayStr(); let best=null;
   (child.classes||[]).forEach(c=>{
-    (c.sessions||[]).forEach(s=>{ if(s.date>=t&&s.status!=='請假'&&s.status!=='停課'&&s.status!=='缺席'){ if(!best||s.date<best.date) best={date:s.date,cid:c.key||c.sport}; }});
-    (c.makeups||[]).forEach(m=>{ if(m.date>=t&&m.status!=='停課'&&m.status!=='缺席'){ if(!best||m.date<best.date) best={date:m.date,cid:m.to}; }});
+    (c.sessions||[]).forEach(s=>{ if(s.date>=t&&s.status!=='請假'&&s.status!=='停課'&&s.status!=='缺席'){ if(!best||s.date<best.date) best={date:s.date,cid:c.key||c.sport,time:s.time||''}; }});
+    (c.makeups||[]).forEach(m=>{ if(m.date>=t&&m.status!=='停課'&&m.status!=='缺席'){ if(!best||m.date<best.date) best={date:m.date,cid:m.to,time:''}; }});
   });
   return best;
 }
