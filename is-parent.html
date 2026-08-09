@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-08-09-timeadj';
+const FRONTEND_VERSION = 'parent-2026-08-09-timeadj2';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -382,6 +382,8 @@ function sessionsFor(cid){
 }
 // ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
 function makeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid); return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
+// 某日某班特別時間（後端回傳 map，key=cid|date）；有就用嚟覆寫顯示，令補堂/記錄/摘要對得上證據
+function taTime(cid,date){ return (S.timeAdj&&S.timeAdj[cid+'|'+date])||''; }
 /* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
 function addMonths(isoStr,n){const[y,m,d]=isoStr.split('-').map(Number);const dt=new Date(y,m-1+n,d);return iso(dt);}
 function daysLeft(dl){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=dl.split('-').map(Number);return Math.ceil((new Date(y,m-1,d)-t)/86400000);}
@@ -402,7 +404,7 @@ function payOpen(idx){return idx<=currentPeriodIdx() ? true : todayStr()>=payOpe
 function upcomingMakeups(child){
   const t=todayStr(), out=[];
   (child.classes||[]).forEach(c=>{
-    (c.makeups||[]).forEach(m=>{ if(m.date>=t && m.status!=='出席' && m.status!=='缺席' && m.status!=='停課') out.push({date:m.date,to:m.to}); });
+    (c.makeups||[]).forEach(m=>{ if(m.date>=t && m.status!=='出席' && m.status!=='缺席' && m.status!=='停課') out.push({date:m.date,to:m.to,adj:taTime(m.to,m.date)}); });
   });
   return out.sort((a,b)=>a.date<b.date?-1:1);
 }
@@ -504,7 +506,7 @@ function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids}; S.session={name,last4};
   S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
-  S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[];
+  S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
    秒開上次資料，背景刷新永遠會行，幾秒內自動校正到最新。 */
@@ -649,7 +651,7 @@ function renderParent(){
     if(upMk.length){
       html+=`<div class="banner" style="margin-top:8px;background:var(--teal-dim,#e6f6f8);border-color:#bfe3e7;color:#0a6b74">
         <div style="font-weight:700">${t('upMkBanner',upMk.length)}</div>
-        <div style="font-size:13px;margin-top:3px">${upMk.map(m=>{const d=new Date(m.date+'T00:00:00');return `${fmt(d)}${dow(d)}・${classLabel(m.to)}`;}).join('<br>')}</div>
+        <div style="font-size:13px;margin-top:3px">${upMk.map(m=>{const d=new Date(m.date+'T00:00:00');return `${fmt(d)}${dow(d)}・${classLabel(m.to)}${m.adj?' <span style="color:#0E8A96;font-weight:800">⏰'+m.adj+'</span>':''}`;}).join('<br>')}</div>
         <div style="font-size:11.5px;opacity:.85;margin-top:4px">${t('upMkHint')}</div></div>`;
     }
     html+=`<div class="cards-grid">`;
@@ -919,7 +921,7 @@ function openAddon(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   // 候選：所有班別未來上課日（同一課程）
   const cands=[]; const seen={};
-  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time});} } }); });
+  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });
   cands.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   const byDate={}; cands.forEach(x=>{ (byDate[x.date]=byDate[x.date]||[]).push(x); });
   AD={ki,ci,name:child.name,pick:null,byDate};
@@ -937,7 +939,7 @@ function openAddon(ki,ci){
 function adPickDate(){
   const d=$('ad-date').value, area=$('ad-opts'); AD.pick=null; $('ad-price').innerHTML=''; $('ad-go').disabled=true;
   if(!d){ area.innerHTML=''; return; }
-  area.innerHTML=(AD.byDate[d]||[]).map(x=>`<div class="opt" onclick="pickAddon('${x.date}','${x.toKey}',this)"><div><div class="t">${classLabel(x.toKey)}</div><div style="font-size:12px;color:var(--muted)">${x.time||''}</div></div><div class="cap" style="display:none">✓</div></div>`).join('');
+  area.innerHTML=(AD.byDate[d]||[]).map(x=>`<div class="opt" onclick="pickAddon('${x.date}','${x.toKey}',this)"><div><div class="t">${classLabel(x.toKey)}</div><div style="font-size:12px;color:${x.adj?'#0E8A96':'var(--muted)'};font-weight:${x.adj?'800':'400'}">${x.adj?'⏰ '+x.adj+'（'+(LANG==='en'?'special time':'特別時間')+'）':(x.time||'')}</div></div><div class="cap" style="display:none">✓</div></div>`).join('');
 }
 function pickAddon(date,toKey,el){
   [...el.parentNode.children].forEach(c=>{c.classList.remove('on');const cap=c.querySelector('.cap');if(cap)cap.style.display='none';});
@@ -1279,7 +1281,7 @@ function openMakeup(ki,ci){
   // 排除學生所有現役班（仲有今日或之後嘅堂）→ 補堂唔會撞返自己另一堂正課（同 #9 潘洛詩式修正一致）
   const _tS=todayStr();
   const _ownCids=(child.classes||[]).filter(x=>(x.sessions||[]).some(s=>s.date>=_tS)).map(x=>x.key||x.sport);
-  makeupSlotsFor(c.key||c.sport, _ownCids).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline && !_mkBlk.has(s.key+"|"+d)) cands.push({toKey:s.key,date:d,time:s.time}); }); });
+  makeupSlotsFor(c.key||c.sport, _ownCids).forEach(s=>{ sessionsFor(s.key).forEach(d=>{ if(d>=todayStr()&&d<=deadline && !_mkBlk.has(s.key+"|"+d)) cands.push({toKey:s.key,date:d,time:s.time,adj:taTime(s.key,d)}); }); });
   cands.sort((a,b)=>a.date.localeCompare(b.date));
   // 按日期分組 → 家長先揀日期、再揀該日班別（唔使碌長 list）
   const byDate={}; cands.forEach(cd=>{ (byDate[cd.date]=byDate[cd.date]||[]).push(cd); });
@@ -1308,7 +1310,7 @@ function mfPickDate(){
   if(!d){ area.innerHTML=''; return; }
   area.innerHTML=(MF.byDate[d]||[]).map(cd=>{
     const taken=MF.picks.some(p=>p.date===cd.date&&p.toKey===cd.toKey);
-    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${classLabel(cd.toKey)}</div><div class="s">${cd.time||''}</div></div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
+    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${classLabel(cd.toKey)}</div><div class="s">${cd.adj?'<span style="color:#0E8A96;font-weight:800">⏰ '+cd.adj+'（'+(LANG==='en'?'special time':'特別時間')+'）</span>':(cd.time||'')}</div></div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
   }).join('');
 }
 function mfAdd(date,toKey){
