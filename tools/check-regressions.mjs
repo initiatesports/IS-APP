@@ -43,6 +43,9 @@ const CHECKS = [
   { file:'coach.html', fn:'postTimeAdj', must:'setSessionTime', why:'恆常特別時間安排提交（setSessionTime）' },
   { file:'is-parent.html', fn:'nextClassInfo', must:'time:s.time', why:'恆常下一堂要帶該日特別時間' },
   { file:'is-parent.html', fn:'sessRow', must:'特別時間', why:'恆常 session 卡顯示該日特別時間' },
+  // 特別時間要貫穿補堂揀時段/記錄/摘要（老闆 2026-08-09：所有東西都要對得上證據，兩系統）
+  { file:'is-parent.html', fn:'openMakeup', must:'adj:taTime', why:'恆常補堂揀時段顯示該日特別時間' },
+  { file:'is-leave-makeup.html', fn:'openMakeup', must:'taTime9', why:'暑期補堂揀時段顯示該日特別時間' },
 ];
 
 let fail = 0;
