@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-05-returns';
+const FRONTEND_VERSION = 'coach-2026-08-09-timeadj';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -943,6 +943,7 @@ function renderHome(){
   // 首頁精簡（2026-07）：移除「每週通知 / 即將到期補堂 / 每班摘要」（累贅少用），只保留上課地點+WhatsApp。
   // 即將到期補堂仍可喺「補堂」分頁「即將到期」filter 睇；通知功能移除。
   try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
+  try{ renderTimeAdjAdmin(); }catch(e){ console.error('renderTimeAdjAdmin',e); }   // ⏰ 某日某班特別時間安排（同暑期一致）
   try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }   // regression 修復:發佈/刪除通知面板入口(「首頁精簡」移除咗、重要通知彈窗又啟用但冇補返入口)
   try{ renderReturnsPanel(); }catch(e){ console.error('renderReturnsPanel',e); }   // 回歸學生:教練核實面板(家長已交回歸付款,教練端核實)
 }
@@ -1136,6 +1137,41 @@ async function delVenue(date,cid){
   if(!confirm('清除 '+date+'（'+vnCidLabel(cid||'')+'）嘅地點？')) return;
   let r; try{ r=await apiPost({action:'setVenue', coachPass:cpass(), date, cid:cid||'', centre:'', room:''}); }catch(e){ r=null; }
   if(r&&r.ok){ toast('已清除','✓'); renderVenueAdmin(); } else toast('清除失敗','⚠');
+}
+/* ⏰ 特別時間安排（教練自助）：某日某班改時間（只此一天）→ 家長端即時顯示新時間＋彈窗，過咗當日自動消失。同暑期一致。 */
+let TA_LAST_DATE='';
+function renderTimeAdjAdmin(){
+  let host=document.getElementById('home-timeadj');
+  if(!host){ const anchor=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-timeadj'; anchor.parentNode.insertBefore(host, anchor); } }
+  if(!host) return;
+  host.innerHTML=`<div class="section-header">⏰ 特別時間安排（某日某班改時間）</div>
+    <div style="margin:0 4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5">改某一日某班嘅上課時間（<b>只此一天</b>，唔影響其他堂）→ 家長端即時顯示新時間＋彈窗通知，過咗當日自動消失。長期改時間請用下面「班別管理」。</div>
+      <input type="date" id="ta-date" value="${TA_LAST_DATE||vnDefaultDate()}" onchange="taRenderClasses()" style="${VN_INS}">
+      <select id="ta-cid" style="${VN_INS}"><option value="">— 先揀日期 —</option></select>
+      <input id="ta-time" placeholder="新時間，例如 6–7pm" style="${VN_INS}">
+      <button class="btn-makeup-done" style="width:100%" onclick="postTimeAdj()">💾 設定並通知家長</button>
+    </div>`;
+  taRenderClasses();
+}
+function taRenderClasses(){
+  const sel=document.getElementById('ta-cid'); if(!sel) return;
+  const date=(document.getElementById('ta-date')||{}).value||'';
+  if(!date){ sel.innerHTML='<option value="">— 先揀日期 —</option>'; return; }
+  const cls=vnDayClasses(date);
+  sel.innerHTML = cls.length ? ('<option value="">— 揀班別 —</option>'+cls.map(c=>{ const cc=CLASSES[c.cid]||{}; const lbl=('花式跳繩 '+(cc.dayZh||'')+' '+(cc.time||'')).trim(); return `<option value="${c.cid}">${vnEsc(lbl)}</option>`; }).join('')) : '<option value="">當日冇課堂</option>';
+}
+async function postTimeAdj(){
+  const date=(document.getElementById('ta-date')||{}).value||'', cid=(document.getElementById('ta-cid')||{}).value||'', time=((document.getElementById('ta-time')||{}).value||'').trim();
+  if(!date){ toast('請揀日期','⚠'); return; }
+  if(!cid){ toast('請揀班別','⚠'); return; }
+  if(!time){ toast('請輸入新時間','⚠'); return; }
+  TA_LAST_DATE=date;
+  let r; try{ r=await apiPost({action:'setSessionTime', coachPass:cpass(), date, cid, time}); }catch(e){ r=null; }
+  if(r&&r.err==='密碼錯誤'){ toast('請重新輸入教練密碼','⚠'); return; }
+  if(!r||!r.ok){ toast(r&&r.err?'失敗：'+r.err:'設定失敗，請再試','⚠'); return; }
+  toast('✓ 已設定，家長端即時顯示新時間＋通知','✓');
+  const ti=document.getElementById('ta-time'); if(ti) ti.value='';
 }
 let NOTICES_CACHE=[];
 async function renderNoticesAdmin(){
