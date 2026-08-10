@@ -49,6 +49,14 @@ const CHECKS = [
   // 已約補堂顯示地點 + 申請記錄請假↔補堂配成同一行（老闆 2026-08-09）
   { file:'is-leave-makeup.html', fn:'classCard', must:'venueAt(m.date,m.to)', why:'暑期已約補堂顯示地點' },
   { file:'is-leave-makeup.html', fn:'historyHTML', must:'absDate===s.date', why:'暑期申請記錄請假↔補堂同一行(按absDate配對)' },
+  // 9-10月恆常班報名系統（老闆 2026-08-11 全面重製）——關鍵接線唔可以漏
+  { file:'is-enroll.html', fn:'doIdentify', must:'enrollIdentify', why:'入場靠姓名自動分辨新/舊生（唔再用兩個按鈕）' },
+  { file:'is-enroll.html', fn:'doIdentify', must:'renderProfilePreview', why:'舊生入場走預覽流程（資料帶出逐項可改）' },
+  { file:'is-enroll.html', fn:'renderProfilePreview', must:'editField', why:'舊生資料逐項「修改」（少填）' },
+  { file:'is-enroll.html', fn:'renderCourses', must:'isOld', why:'課程卡只顯示登入者身份嘅價（新生睇唔到價差）' },
+  { file:'is-enroll.html', fn:'renderFee', must:'學費（全期', why:'新生單科無折淨顯示一行學費、唔用「原價」（免察覺價差）' },
+  { file:'is-enroll.html', fn:'renderPay', must:'請勿現在過數', why:'未開放(預覽)時隱藏FPS/截圖+明確勿過數（防提早付款）' },
+  { file:'is-enroll.html', fn:'saveProfileGo', must:'slice(-4)', why:'新生電話最後4位要同登入一致（令enrollAuth認得,防報唔到名）' },
 ];
 
 let fail = 0;
