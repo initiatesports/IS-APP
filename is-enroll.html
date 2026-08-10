@@ -67,7 +67,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 報名系統 · <span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-01-newstudent';
+const FRONTEND_VERSION='enroll-2026-08-11-pricing';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -213,6 +213,8 @@ function renderCourses(){
   const list=cs.map(c=>{
     const on=S.courses.indexOf(c.id)>=0;
     const priceTxt = c.price>0 ? money(c.price) : '待定';
+    const oldTxt = (c.price>0 && c.priceOld>0 && c.priceOld<c.price)
+      ? `舊學員 ${money(c.priceOld)}` : (c.bundle ? '任跳 1 小時 bundle' : '');
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
       .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
     const left = c.cap - (c.enrolled||0);
@@ -221,7 +223,7 @@ function renderCourses(){
     return `<label class="course ${on?'on':''}" data-id="${c.id}">
       <input type="checkbox" ${on?'checked':''} data-id="${c.id}">
       <div><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜${seat}</div></div>
-      <div class="cp">${priceTxt}</div></label>`;
+      <div class="cp">${priceTxt}${oldTxt?`<div class="cm" style="font-weight:400;color:var(--mut)">${oldTxt}</div>`:''}</div></label>`;
   }).join('');
   app.innerHTML=`
   <div class="card">
@@ -259,11 +261,14 @@ async function renderFee(){
   if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(4)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
   S.quote=res;
   const priced = res.base>0;
+  const tierTxt = res.tier ? `<span class="pill">${esc(res.tier)}${res.isOld?'・每節已減 $20':''}</span>` : '';
+  const multiLine = res.multiDisc>0 ? `<div class="q credit"><span>多堂折扣（報 ${res.multiCount} 班）</span><span>− ${money(res.multiDisc)}</span></div>` : '';
   const creditLine = res.credit>0 ? `<div class="q credit"><span>優惠券／推薦折扣</span><span>− ${money(res.credit)}</span></div>` : '';
   const pendNote = res.creditRemaining>0 ? `<p class="hint">你仲有 ${money(res.creditRemaining)} 優惠餘額（每期最多抵 $200，餘額自動順延下期）。</p>` : '';
   const body = priced ? `
     <div class="quote">
-      <div class="q dim"><span>原價（${(res.courses||[]).length} 項課程）</span><span>${money(res.base)}</span></div>
+      <div class="q dim"><span>原價（${(res.courses||[]).length} 項課程）${tierTxt}</span><span>${money(res.base)}</span></div>
+      ${multiLine}
       ${creditLine}
       <div class="q net"><span>實付</span><span>${money(res.net)}</span></div>
     </div>${pendNote}` :
