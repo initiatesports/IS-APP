@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-08-09-timeadj2';
+const FRONTEND_VERSION = 'parent-2026-08-09-mkvenue';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -741,12 +741,15 @@ function classCard(child,ki,c,ci){
           const canEdit=(m.date>=today && m.status!=='出席' && m.status!=='缺席');
           const lbl=done?t('attendedS'):(m.status==='缺席'?t('absentS'):t('pendingS'));
           const fromD=m.from?new Date(m.from+'T00:00:00'):null;   // 原請假嗰節
+          const _adj=taTime(m.to,m.date);
+          const _v=venueAt(m.date,m.to);
           return `<div style="padding:4px 0">
               ${fromD?`<div style="font-size:12px;color:var(--amber);font-weight:600">📅 ${fmt(fromD)}${dow(fromD)} ${t('leaveTag')}</div>`:''}
               <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2)">
-                <span>${fromD?'↳ ':''}${t('mkToShort')} ${classLabel(m.to)}・${fmt(d)}${dow(d)}</span>
+                <span>${fromD?'↳ ':''}${t('mkToShort')} ${classLabel(m.to)}・${fmt(d)}${dow(d)}${_adj?' <span style="color:#0E8A96;font-weight:800">⏰'+_adj+'</span>':''}</span>
                 <span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700;white-space:nowrap;margin-left:8px">${lbl}</span>
               </div>
+              ${_v?`<div style="font-size:12px;color:#666;margin-top:1px">📍 ${_v.centre||''}${_v.room?'・'+_v.room:''}</div>`:''}
             </div>`
             + (canEdit?`<div style="display:flex;gap:8px;margin:0 0 6px">
                 <button class="btn ghost sm" style="flex:1" onclick="rescheduleMakeup(${ki},${ci},'${m.to}','${m.date}')">🔁 ${t('reschedMk')}</button>

@@ -46,6 +46,9 @@ const CHECKS = [
   // 特別時間要貫穿補堂揀時段/記錄/摘要（老闆 2026-08-09：所有東西都要對得上證據，兩系統）
   { file:'is-parent.html', fn:'openMakeup', must:'adj:taTime', why:'恆常補堂揀時段顯示該日特別時間' },
   { file:'is-leave-makeup.html', fn:'openMakeup', must:'taTime9', why:'暑期補堂揀時段顯示該日特別時間' },
+  // 已約補堂顯示地點 + 申請記錄請假↔補堂配成同一行（老闆 2026-08-09）
+  { file:'is-leave-makeup.html', fn:'classCard', must:'venueAt(m.date,m.to)', why:'暑期已約補堂顯示地點' },
+  { file:'is-leave-makeup.html', fn:'historyHTML', must:'absDate===s.date', why:'暑期申請記錄請假↔補堂同一行(按absDate配對)' },
 ];
 
 let fail = 0;

@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-09-timeadj2';
+const FRONTEND_VERSION = 'lm-2026-08-09-histpair';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -674,9 +674,9 @@ function classCard(child,ki,c,ci){
     <div style="margin-top:6px">${(c.sessions||[]).map(s=>sessRow(s,classKey(c))).join("")}</div>
     ${(c.makeups&&c.makeups.length)?`<div style="margin-top:10px;background:#EAF6FF;border-radius:12px;padding:10px 12px">
       <div style="font-weight:600;font-size:13px;color:#1F4E79;margin-bottom:4px">已約補堂</div>
-      ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const past=m.date<iso(new Date());const done=(m.status==='出席');const lbl=(m.status==='出席')?'已出席':(m.status==='缺席'?'缺席':(m.status==='停課'?'停課':(past?'待教練確認':'待出席')));return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0">
-        <span>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）${(function(){const a=(m.to||'').split('|'),o=taTime9(a[0],a[1],m.date);return o?'　<span style="color:#0E8A96;font-weight:800">⏰'+o+'</span>':(m.time?'　'+m.time:'');})()}</span>
-        <span style="color:${done?'#157347':'#1F4E79'};font-weight:600">${lbl}</span></div>`;}).join("")}
+      ${c.makeups.map(m=>{const d=new Date(m.date+"T00:00:00");const past=m.date<iso(new Date());const done=(m.status==='出席');const lbl=(m.status==='出席')?'已出席':(m.status==='缺席'?'缺席':(m.status==='停課'?'停課':(past?'待教練確認':'待出席')));const tm=(function(){const a=(m.to||'').split('|'),o=taTime9(a[0],a[1],m.date);return o?'　<span style="color:#0E8A96;font-weight:800">⏰'+o+'</span>':(m.time?'　'+m.time:'');})();const v=venueAt(m.date,m.to);const vl=v?`<div style="font-size:12px;color:#666;margin-top:1px">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';return `<div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:14px;padding:3px 0">
+        <span><div>${classLabel(m.to)}・${fmt(d)}（星期${WDN[d.getDay()]}）${tm}</div>${vl}</span>
+        <span style="color:${done?'#157347':'#1F4E79'};font-weight:600;white-space:nowrap">${lbl}</span></div>`;}).join("")}
       ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelMakeup(${ki},${ci})">取消補堂（${cancellableMakeups(c).length}）</button>`:''}
     </div>`:''}
   </div>`;
@@ -718,15 +718,28 @@ function nextClassInfo(child){
 }
 /* 申請紀錄：請假 + 已約補堂，按日期排 */
 function historyHTML(child){
-  const items=[];
+  const mkLbl=st=>st==="出席"?"已出席":(st==="缺席"?"缺席":(st==="停課"?"停課":"待出席"));
+  const mkTimeHtml=m=>{const a=(m.to||'').split('|'),o=taTime9(a[0],a[1],m.date);return o?'<span style="color:#0E8A96;font-weight:800">⏰'+o+'</span>':(m.time||'');};
+  const rows=[];
   child.classes.forEach(c=>{
-    (c.sessions||[]).forEach(s=>{ if(s.status==="請假") items.push({date:s.date,kind:"請假",text:`${SPORT[c.sport].name}（星期${c.wd}）請假`,color:"#9C6500"}); });
-    (c.makeups||[]).forEach(m=>{ const lbl=m.status==="出席"?"補堂已出席":(m.status==="缺席"?"補堂缺席":"已約補堂"); const _a=(m.to||'').split('|'),_o=taTime9(_a[0],_a[1],m.date); items.push({date:m.date,kind:"補堂",text:`補堂 → ${classLabel(m.to)}${_o?'　⏰'+_o:(m.time?'　'+m.time:'')}（${lbl}）`,color:"#1F4E79"}); });
+    const mks=(c.makeups||[]).filter(m=>!m.extra), used=new Set();
+    // 每個請假一行，配對佢嘅補堂（補堂 absDate === 請假日）→ 同一行顯示「X 請假 → Y 補堂」
+    (c.sessions||[]).forEach(s=>{ if(s.status!=="請假") return;
+      const mk=mks.find(m=>m.absDate===s.date && !used.has(m)); let mkHtml='<span style="color:#b06a00">・未約補堂</span>';
+      if(mk){ used.add(mk); const md=new Date(mk.date+"T00:00:00"); const tt=mkTimeHtml(mk);
+        mkHtml=`<span style="color:#1F4E79"> → 補堂 ${fmt(md)}（星期${WDN[md.getDay()]}）${tt?'　'+tt:''}（${mkLbl(mk.status)}）</span>`; }
+      const sd=new Date(s.date+"T00:00:00");
+      rows.push({date:s.date, html:`<div class="hist-row"><span class="hist-d">${fmt(sd)}（星期${WDN[sd.getDay()]}）</span><span class="hist-t"><span style="color:#9C6500;font-weight:600">${SPORT[c.sport].name}（星期${c.wd}）請假</span>${mkHtml}</span></div>`});
+    });
+    // 補堂配唔到本班請假（提前補/跨期）→ 單獨一行
+    mks.forEach(m=>{ if(used.has(m)||(c.sessions||[]).some(s=>s.status==="請假"&&s.date===m.absDate)) return;
+      const md=new Date(m.date+"T00:00:00"); const tt=mkTimeHtml(m);
+      rows.push({date:m.date, html:`<div class="hist-row"><span class="hist-d">${fmt(md)}（星期${WDN[md.getDay()]}）</span><span class="hist-t" style="color:#1F4E79">補堂 → ${classLabel(m.to)}${tt?'　'+tt:''}（${mkLbl(m.status)}）</span></div>`});
+    });
   });
-  if(!items.length) return "";
-  items.sort((a,b)=> a.date<b.date?-1:1);
-  return `<div class="hist"><div class="hist-h">📋 申請紀錄</div>${items.map(it=>{const d=new Date(it.date+"T00:00:00");
-    return `<div class="hist-row"><span class="hist-d">${fmt(d)}（星期${WDN[d.getDay()]}）</span><span class="hist-t" style="color:${it.color}">${it.text}</span></div>`;}).join("")}</div>`;
+  if(!rows.length) return "";
+  rows.sort((a,b)=> a.date<b.date?-1:1);
+  return `<div class="hist"><div class="hist-h">📋 申請紀錄</div>${rows.map(r=>r.html).join("")}</div>`;
 }
 /* 產生並下載該小朋友所有未來課堂嘅 .ics 行事曆檔 */
 function downloadICS(ki){
