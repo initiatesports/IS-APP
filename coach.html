@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-09-timeadj';
+const FRONTEND_VERSION = 'coach-2026-08-12-enrolllink';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -928,7 +928,8 @@ function renderHome(){
     <div class="stat-card"><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
     <div class="stat-card"><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待補堂節數</div></div>
     <div class="stat-card"><div class="num ${expired>0?'danger':''}">${expired}</div><div class="lbl">已過期未補</div></div>
-    <div class="stat-card"><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>`;
+    <div class="stat-card"><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>
+    <a href="is-enroll-admin.html" style="grid-column:1/-1;background:var(--teal,#28B8C8);color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:10px"><span>📋 9-10月恆常班 報名管理</span><span style="font-size:12px;font-weight:600;opacity:.9">報名 / 核實付款 / 名額 →</span></a>`;
 
   const todayDow = hkDow();
   const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);

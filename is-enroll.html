@@ -75,7 +75,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 青衣兒童運動教學<br>查詢 WhatsApp 6331 7403 · <span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-11-identify';
+const FRONTEND_VERSION='enroll-2026-08-12-flow';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -87,6 +87,17 @@ async function apiPost(body){ return fetchT(API,{method:'POST',headers:{'Content
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
 function steps(n){ let h='<div class="steps">'; for(let i=1;i<=6;i++) h+=`<div class="s ${i<=n?'on':''}"></div>`; return h+'</div>'; }
+// WhatsApp 帶 context 快查（一人公司靠 WhatsApp 收單）
+function waLink(txt){ return 'https://wa.me/85263317403?text='+encodeURIComponent(txt||'我想查詢 INITIATE SPORTS 恆常班報名'); }
+function copyTxt(t,btn){ try{ navigator.clipboard.writeText(String(t)); if(btn){ const o=btn.textContent; btn.textContent='✓ 已複製'; setTimeout(()=>btn.textContent=o,1500); } }catch(e){} }
+// ── 草稿自動儲存（中途走唔使重頭；只存非敏感：家庭+已揀課程，唔存健康/證件/截圖）──
+const DRAFT_KEY='is_enroll_draft_v1';
+function saveDraft(){ try{ if(!S.family||!S.courses.length) return;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name:S.family.name, last4:S.family.last4, courses:S.courses, ts:Date.now() })); }catch(e){} }
+function loadDraft(){ try{ const s=localStorage.getItem(DRAFT_KEY); if(!s) return null;
+  const d=JSON.parse(s); if(!d||!d.ts||Date.now()-d.ts>86400000){ localStorage.removeItem(DRAFT_KEY); return null; }
+  return (d.courses&&d.courses.length)?d:null; }catch(e){ return null; } }
+function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
 
 // ── 檔案欄位（label / key＝saveProfile參數 / sheet header＝profile帶出）──
 const PFIELDS=[
@@ -115,6 +126,8 @@ async function boot(){
 /* ════ ① 登入 / 認人 ════ */
 function renderLogin(){
   let openBanner='';
+  const draft=loadDraft();
+  const resumeBtn = draft ? `<button class="btn ghost" id="li_resume" style="margin-top:10px">↩️ 繼續上次報名（揀咗 ${draft.courses.length} 項）</button>` : '';
   const daysTo = d => { if(!d) return null; const t=new Date(d+'T23:59:59')-new Date(); return Math.ceil(t/86400000); };
   if(!S.cfg.open){
     const od=S.cfg.openDate, cd=S.cfg.closeDate;
@@ -133,10 +146,14 @@ function renderLogin(){
     <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
     <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
     <button class="btn" id="li_go">下一步</button>
+    ${resumeBtn}
     <button class="btn ghost" id="li_look" style="margin-top:10px">查詢我嘅報名狀態</button>
     <div class="msg" id="li_msg"></div>
   </div>`;
   document.getElementById('li_go').onclick=doIdentify;
+  if(draft){ const rb=document.getElementById('li_resume'); if(rb) rb.onclick=async()=>{
+    document.getElementById('li_name').value=draft.name; document.getElementById('li_last4').value=draft.last4;
+    await doIdentify(); S.courses=draft.courses.slice(); renderCourses(); }; }
   document.getElementById('li_look').onclick=lookupMine;
   document.getElementById('li_last4').addEventListener('keydown',e=>{ if(e.key==='Enter') doIdentify(); });
 }
@@ -157,8 +174,7 @@ async function doIdentify(){
   S.profile=res.profile||null;
   S.courses=[]; S.quote=null; S.payImg='';   // 換學生時清空上一位嘅揀選
   S.credit={remaining:res.creditRemaining||0, summer:res.summer||0, referral:res.referral||0};
-  if(res.known) renderProfilePreview();   // 舊生：預覽已有資料，逐項可改
-  else renderProfile();                    // 新生：填一次基本資料
+  renderCourses();   // 新次序：入場即揀課睇價，之後先填/核對資料（新生未見價唔使先交個資）
 }
 async function lookupMine(){
   const name=document.getElementById('li_name').value.trim();
@@ -189,12 +205,12 @@ function renderProfilePreview(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(2)}
+    ${steps(4)}
     <h2>核對資料 · <em>${esc(S.family.name)}</em>${S.family.isOld?'<span class="pill">舊學員</span>':''}</h2>
     <p class="hint">以下係你之前登記嘅資料，已自動帶出。核對一次即可，有需要先按「修改」改嗰一項；電話等資料一般唔使再填。</p>
     <div class="pvlist">${rows}</div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
+      <button class="btn ghost sm" onclick="renderFee()">返回</button>
       <button class="btn" id="pf_go">核對無誤，繼續</button>
     </div>
     <div class="msg" id="pf_msg"></div>
@@ -225,12 +241,12 @@ function renderProfile(){
   const known = '<p class="hint">第一次報名，填一次基本資料就得（<span style="color:var(--err)">*</span> 為必填），之後報其他課程都唔使再填。下一步就會見到<b>課程、名額同全部收費</b>，你可以睇清楚先決定。</p>';
   app.innerHTML=`
   <div class="card">
-    ${steps(2)}
+    ${steps(4)}
     <h2>學生資料 · <em>${esc(S.family.name)}</em></h2>
     ${known}
     ${fieldsHtml}
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
+      <button class="btn ghost sm" onclick="renderFee()">返回</button>
       <button class="btn" id="pf_go">儲存並繼續</button>
     </div>
     <div class="msg" id="pf_msg"></div>
@@ -263,7 +279,8 @@ async function saveProfileGo(){
   btn.disabled=false; btn.textContent='繼續';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'儲存失敗，請再試。'; return; }
   S.profile=S.profile||{}; Object.keys(edited).forEach(h=>{ S.profile[h]=edited[h]; });
-  renderCourses();
+  saveDraft();   // 資料填好即存草稿
+  renderTerms();
 }
 function renderProfileScreen(){ if(S.isNew) renderProfile(); else renderProfilePreview(); }
 /* ════ ③ 揀課程 ════ */
@@ -287,21 +304,26 @@ function renderCourses(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(3)}
+    ${steps(2)}
     <h2>揀課程 <span class="pill">可多選</span></h2>
     <p class="hint">揀你要報嘅恆常班，可一次過報多項（報 2 班或以上，每多一班即減 $100）。價錢為 2026 9-10 月全期 8 堂。</p>
     ${list}
     <div class="msg" id="cs_msg"></div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderProfileScreen()">返回</button>
+      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
       <button class="btn" id="cs_go">下一步（睇費用）</button>
     </div>
   </div>`;
   app.querySelectorAll('.course input').forEach(cb=>cb.onchange=()=>{
     const id=cb.getAttribute('data-id');
+    const c=(S.cfg.courses||[]).find(x=>x.id===id);
+    if(cb.checked && c && c.bundle){   // 進階班需遴選：勾選前確認
+      if(!confirm('花式跳繩進階班需要技術遴選及教練批准，剔選＝報名意向，未必即時取錄；學費為每期 $2000（含任跳 1 小時）。確定報名意向？')){ cb.checked=false; return; }
+    }
     if(cb.checked){ if(S.courses.indexOf(id)<0) S.courses.push(id); }
     else S.courses=S.courses.filter(x=>x!==id);
     cb.closest('.course').classList.toggle('on',cb.checked);
+    saveDraft();
   });
   document.getElementById('cs_go').onclick=()=>{
     const msg=document.getElementById('cs_msg');
@@ -316,9 +338,9 @@ function renderCourses(){
 }
 /* ════ ④ 費用 ════ */
 async function renderFee(){
-  app.innerHTML=`<div class="card">${steps(4)}<div class="load">計緊費用…</div></div>`;
+  app.innerHTML=`<div class="card">${steps(3)}<div class="load">計緊費用…</div></div>`;
   const res=await apiGet({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
-  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(4)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
+  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(3)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
   S.quote=res;
   const cs = res.courses||[];
   const priced = res.base>0;
@@ -332,7 +354,9 @@ async function renderFee(){
   const multiLine = res.multiDisc>0 ? `<div class="q credit"><span>多堂折扣（報 ${res.multiCount} 班，每多一班減 $100）</span><span>− ${money(res.multiDisc)}</span></div>` : '';
   const creditLine = res.credit>0 ? `<div class="q credit"><span>優惠券／推薦折扣</span><span>− ${money(res.credit)}</span></div>` : '';
   const pendNote = res.creditRemaining>0 ? `<p class="hint">你仲有 ${money(res.creditRemaining)} 優惠餘額（每期最多抵 $200，餘額自動順延下期）。</p>` : '';
-  const sessNote = `<p class="hint">全期學費（共 ${res.sessions||8} 堂）${anyWait?'。<b>候補課程暫免付費</b>，有位轉正先通知補收。':''}</p>`;
+  const perNote = (chargedN===1 && !anyWait && res.net>0) ? `（約每堂 $${Math.round(res.net/(res.sessions||8))}）` : '';
+  const sessNote = `<p class="hint">全期學費（共 ${res.sessions||8} 堂）${perNote}${anyWait?'。<b>候補課程暫免付費</b>，有位轉正先通知補收':''}。</p>
+    <div class="banner" style="background:#e8f7ef;border-color:#1a9e6a;color:#127a51">✅ 4 人成班保證：如人數不足未能開班，已繳學費<b>全額退還</b>。</div>`;
   let quoteInner;
   if(chargedN===1 && !hasDisc && !anyWait){
     // 單科無折：淨顯示一行「學費」，唔用「原價」字眼（免新生察覺有折）
@@ -347,16 +371,16 @@ async function renderFee(){
     `<div class="banner">課程收費老闆稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
   app.innerHTML=`
   <div class="card">
-    ${steps(4)}
+    ${steps(3)}
     <h2>費用</h2>
     <p class="hint">${esc(S.cfg.period)}｜${cs.map(c=>esc(c.sport)).join('、')||'未選'}</p>
     ${body}
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderCourses()">返回</button>
-      <button class="btn" id="fee_go">下一步（同意條款）</button>
+      <button class="btn" id="fee_go">下一步（填 / 核對資料）</button>
     </div>
   </div>`;
-  document.getElementById('fee_go').onclick=renderTerms;
+  document.getElementById('fee_go').onclick=renderProfileScreen;
 }
 /* ════ ⑤ 條款 ════ */
 function renderTerms(){
@@ -375,7 +399,7 @@ function renderTerms(){
     <div class="fld"><label>家長證件號碼首 4 位（英文字母+首3數字，e.g. A123）<span style="font-weight:400">— 只用於核實簽署人身份，不作其他用途</span></label><input id="tm_signId" value="${sId}" maxlength="8"></div>
     <div class="msg" id="tm_msg"></div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderFee()">返回</button>
+      <button class="btn ghost sm" onclick="renderProfileScreen()">返回</button>
       <button class="btn" id="tm_go">下一步（付款）</button>
     </div>
   </div>`;
@@ -408,9 +432,10 @@ function renderPay(){
     amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（優惠券全額抵扣）</b></span></div>`;
     payBox=`<div class="banner" style="margin-top:12px">🎉 你嘅優惠券已抵扣全部學費，<b>無需付款</b>，直接提交即可。</div>`;
   }else if(net>0){
-    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b>${money(net)}</b></span></div>`;
-    payBox=`<p class="hint" style="margin-top:12px">請以 FPS／PayMe 轉數至 <b>${esc(S.cfg.fps)}</b>（收款人：<b>INITIATE SPORTS</b>），然後上載轉帳截圖。提交後即有記錄編號及 PDF 存底；如未能開班全額退還。</p>
-      <div class="fld"><label>上載付款截圖</label><input type="file" id="py_file" accept="image/*"><div id="py_thumb" class="hint" style="margin-top:6px"></div></div>`;
+    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b>${money(net)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${net}',this)">複製</button></span></div>`;
+    payBox=`<p class="hint" style="margin-top:12px">請以 FPS／PayMe 轉數，然後上載轉帳截圖。提交後即有記錄編號及 PDF 存底；如未能開班全額退還。</p>
+      <div class="sumline"><span class="k">FPS／PayMe 號碼（收款人 INITIATE SPORTS）</span><span><b>${esc(S.cfg.fps)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${esc(S.cfg.fps).replace(/\s/g,'')}',this)">複製</button></span></div>
+      <div class="fld" style="margin-top:12px"><label>上載付款截圖</label><input type="file" id="py_file" accept="image/*"><div id="py_thumb" class="hint" style="margin-top:6px"></div></div>`;
   }else{
     amtLine=`<div class="banner">收費稍後公佈；如已知金額可先付款上傳，或稍後補交。</div>`;
     payBox=`<p class="hint" style="margin-top:12px">如已知金額，可轉數至 <b>${esc(S.cfg.fps)}</b>（收款人：INITIATE SPORTS）並上載截圖（選填）。</p>
@@ -424,9 +449,12 @@ function renderPay(){
     <h2>${isOpen?'付款':'預覽・提交'}</h2>
     <div class="sumline"><span class="k">學生</span><span>${esc(S.family.name)}</span></div>
     <div class="sumline"><span class="k">課程</span><span>${(q.courses||[]).map(c=>esc(c.sport)+(c.full?'（候補）':'')).join('、')}</span></div>
+    <div class="sumline"><span class="k">收確認電郵</span><span>${esc((S.profile&&S.profile['電郵'])||'—')}</span></div>
+    <div class="sumline"><span class="k">聯絡電話</span><span>${esc((S.profile&&S.profile['聯絡電話'])||'—')}</span></div>
     ${amtLine}
     ${waitNote}
     ${payBox}
+    <p class="hint" style="margin-top:10px">資料有錯？<a href="javascript:void(0)" onclick="renderProfileScreen()" style="color:var(--teal);font-weight:700">返回修改</a>　·　有疑問？<a href="${waLink('我想查詢報名：'+esc(S.family.name)+'｜'+(q.courses||[]).map(c=>esc(c.sport)).join('、'))}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
     <div class="msg" id="py_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderTerms()">返回</button>
@@ -448,13 +476,14 @@ async function submitEnroll(){
   if(!S.cfg.open){ msg.className='msg err'; msg.textContent='報名將於 8 月中開放，暫時未可提交。（你已可預覽整個流程）'; return; }
   if(!S._payFree && ((S.quote&&S.quote.net)>0) && !S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
   btn.disabled=true; btn.textContent='提交中…';
+  if(!S.clientToken) S.clientToken='ct_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);   // 防重複：逾時重撳用同一 token
   const q=S.quote||{};
   const coursesTxt=(q.courses||[]).map(c=>esc(c.sport)+(c.day&&c.day!=='待定'?('|'+c.day+' '+c.time):'')).join('、');
   let res;
   try{
     res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
       courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
-      phone:(S.profile&&S.profile['聯絡電話'])||'',
+      phone:(S.profile&&S.profile['聯絡電話'])||'', clientToken:S.clientToken,
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
       payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId, agree:'同意' });
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.textContent='網絡逾時／中斷，未提交。請確認網絡後再撳一次（唔會重複收費）。'; return; }
@@ -464,16 +493,28 @@ async function submitEnroll(){
 }
 /* ════ 完成 ════ */
 function renderDone(res){
-  const wl = res.waitlisted ? `<div class="banner" style="margin-top:12px">⚠️ 以下課程已滿，你已加入<b>候補</b>：${esc((res.fullCourses||[]).join('、'))}。有位會盡快通知你。</div>` : '';
+  clearDraft(); S.clientToken='';   // 完成即清草稿+token
+  const dedup = res.dedupe ? `<div class="banner" style="margin-top:12px">ℹ️ 呢個報名之前已經提交過，冇重複收費。</div>` : '';
+  const wl = res.waitlisted ? `<div class="banner" style="margin-top:12px">⚠️ 以下課程已滿，你已加入<b>候補</b>（暫免付費，有位轉正先通知）：${esc((res.fullCourses||[]).join('、'))}。</div>` : '';
+  const last4=S.family&&S.family.last4;
   app.innerHTML=`
   <div class="card done">
     <div class="big">${res.waitlisted?'📝':'✅'}</div>
     <h2>${res.waitlisted?'報名已收到（部分候補）':'報名已收到！'}</h2>
     <div class="rid">${esc(res.id||'')}</div>
-    ${wl}
-    <p class="hint">我哋已收到你嘅報名及付款截圖，會盡快核實。確認後會以電郵通知。多謝報名 INITIATE SPORTS！</p>
-    <button class="btn ghost" style="margin-top:14px" onclick="location.reload()">再報一位學生</button>
+    ${dedup}${wl}
+    <p class="hint">我哋已收到你嘅報名${res.dedupe?'':'及付款截圖'}，會盡快核實，確認後以電郵通知。開課詳情、請假補堂會另行通知。多謝報名 INITIATE SPORTS！</p>
+    <a class="btn" style="margin-top:14px;display:block;text-decoration:none;box-sizing:border-box" href="${waLink('報名確認 '+esc(res.id||'')+'：'+esc((S.family&&S.family.name)||''))}" target="_blank">WhatsApp 查詢 / 傳收據</a>
+    <button class="btn ghost" style="margin-top:10px" onclick="reportAnother()">➕ 再報一位學生（免重新輸入電話）</button>
   </div>`;
+}
+// 多子女：保留家長電話，只換學生
+function reportAnother(){
+  const last4=(S.family&&S.family.last4)||'';
+  S.family=null; S.profile=null; S.courses=[]; S.quote=null; S.payImg=''; S.isNew=false; S.agree=false; S.signEn=''; S.signId=''; S.clientToken='';
+  renderLogin();
+  const el=document.getElementById('li_last4'); if(el) el.value=last4;
+  const nm=document.getElementById('li_name'); if(nm) nm.focus();
 }
 boot();
 </script>
