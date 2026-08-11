@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parentsports-2026-08-12-v1';
+const FRONTEND_VERSION = 'parentsports-2026-08-12-v2';
 const CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm',venue:'青衣',students:['示範學員']},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm',venue:'青衣',students:[]},
@@ -575,11 +575,7 @@ function setKid(i){ S.kid=i; renderParent(); }
 /* 🏅📊⭐ 章別考核計劃／成績排行榜／優秀學員：三個按鈕（連去公開官網但需登入嘅分頁）。
    位置邏輯：當「6–7月特別課程」同「暑期班請假補堂」按鈕仲喺度時放底部；兩者都過期後自動升上頂部。*/
 function featureLinks(){
-  var base='display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;text-decoration:none;font-weight:800;color:#fff;';
-  return ''
-  + `<a class="btn" style="${base}background:linear-gradient(135deg,#f0a73a,#d98a1f);box-shadow:0 6px 18px rgba(217,138,31,.22)" href="is-home.html?view=badge"><span>🏅 ${LANG==='en'?'Badge Assessment Plan':'章別考核計劃'}</span><span style="font-size:18px">›</span></a>`
-  + `<a class="btn" style="${base}background:linear-gradient(135deg,#3ecfcf,#1b8d9b);box-shadow:0 6px 18px rgba(27,141,155,.22)" href="is-home.html?view=lb"><span>📊 ${LANG==='en'?'Leaderboard':'成績排行榜'}</span><span style="font-size:18px">›</span></a>`
-  + `<a class="btn" style="${base}background:linear-gradient(135deg,#8c6cff,#5b3fd6);box-shadow:0 6px 18px rgba(91,63,214,.22)" href="is-home.html?view=star"><span>⭐ ${LANG==='en'?'Outstanding Students':'優秀學員'}</span><span style="font-size:18px">›</span></a>`;
+  return '';   // 恆常運動班系統：章別/成績排行榜/優秀學員屬跳繩專屬(章別為之後 backlog)，此系統暫時唔顯示
 }
 function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
@@ -1535,7 +1531,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 @keyframes ptxfade{from{opacity:0;}to{opacity:1;}}
 @media(max-width:560px){.ptx-info-grid{grid-template-columns:1fr 1fr;}.ptx-body{padding:18px;}.ptx-header{padding:24px 20px 20px;}.ptx-tab{font-size:12px;padding:10px 6px;}}
 </style>
-<button class="ptx-fab" onclick="openPtx()">⭐ 私人訓練</button>
+<button class="ptx-fab" onclick="openPtx()" style="display:none">⭐ 私人訓練</button>
 <div id="ptx-modal" onclick="if(event.target===this)closePtx()">
   <div class="ptx">
     <button class="ptx-close" onclick="closePtx()" aria-label="關閉">✕</button>
