@@ -414,7 +414,7 @@ html,body{
     <button class="nav-item" onclick="showScreen('makeup')" id="nav-makeup">
       <span class="nav-icon">📋</span><span class="nav-label">補堂</span>
     </button>
-    <button class="nav-item" onclick="showScreen('pt')" id="nav-pt">
+    <button class="nav-item" onclick="showScreen('pt')" id="nav-pt" style="display:none">
       <span class="nav-icon">⭐</span><span class="nav-label">私訓</span>
     </button>
     <button class="nav-item" onclick="showScreen('fees')" id="nav-fees">
@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coachsports-2026-08-12-v1';
+const FRONTEND_VERSION = 'coachsports-2026-08-12-v2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
