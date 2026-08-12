@@ -113,17 +113,8 @@ const anomalies = [];
 const add = (sev, sys, who, msg) => anomalies.push({ sev, sys, who, msg });
 const clsDate = {};   // 恆常#4 班別×日期點名覆蓋：偵測整班漏點
 
-async function sweep(label, exec, rows, withPin) {
-  const students = uniqByName(rows);
-  let okCount = 0, idx = 0;
-  for (const [name, last4] of students) {
-    const cred = (withPin && PIN4[pad4(last4)]) ? PIN4[pad4(last4)] : pad4(last4);
-    // 進度寫 stderr（唔影響 stdout 尾行嘅 JSON 解析）；只出序號唔出姓名（私隱）。
-    // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
-    process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
-    const r = await callLogin(exec, name, cred);
-    if (!r || !r.ok) { add("ERR", label, name, "登入失敗：" + ((r && r.err) || "?")); continue; }
-    okCount++;
+// 單個家長登入結果嘅分析；第一輪掃描同第二輪重試共用同一份邏輯。
+function analyze(label, name, r) {
     const surn = name.trim().charAt(0);
 
     // 1) 資料洩漏：children 含唔同姓（非真兄弟姊妹）；私訓 pseudo-student（如 Keith & Elaine）唔計
@@ -181,6 +172,35 @@ async function sweep(label, exec, rows, withPin) {
         const f = r.retFees[k];
         if (f && Number(f.net) < 0) add("FEE", label, name, `下期 ${k} 應繳負數 ${f.net}`);
       }
+    }
+}
+
+async function sweep(label, exec, rows, withPin) {
+  const students = uniqByName(rows);
+  let okCount = 0, idx = 0;
+  const failed = [];
+  for (const [name, last4] of students) {
+    const cred = (withPin && PIN4[pad4(last4)]) ? PIN4[pad4(last4)] : pad4(last4);
+    // 進度寫 stderr（唔影響 stdout 尾行嘅 JSON 解析）；只出序號唔出姓名（私隱）。
+    // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
+    process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
+    const r = await callLogin(exec, name, cred);
+    if (!r || !r.ok) { failed.push([name, cred, (r && r.err) || "?"]); continue; }
+    okCount++;
+    analyze(label, name, r);
+  }
+  // 第二輪重試：Apps Script 偶然有幾十秒嘅短暫故障窗口，令連續一批學生同時 fetch failed。
+  // callLogin 內部 3 次重試只覆蓋約 3.6 秒，蓋唔住呢種窗口 → 2026-08-13 實測連續 15 個
+  // 「登入失敗」、窗口過咗逐個重試 15/15 即刻成功，成功率被拉低到 74% 觸發假警報。
+  // 所以整輪掃完（窗口多數已過）之後，隔一陣再試一次先當真失敗。
+  if (failed.length) {
+    process.stderr.write(`\r[${label}] 第二輪重試 ${failed.length} 個…   `);
+    await new Promise(r => setTimeout(r, 20000));
+    for (const [name, cred, err0] of failed) {
+      const r = await callLogin(exec, name, cred);
+      if (!r || !r.ok) { add("ERR", label, name, "登入失敗（已重試兩輪）：" + ((r && r.err) || err0)); continue; }
+      okCount++;
+      analyze(label, name, r);
     }
   }
   return { tested: students.length, ok: okCount };
