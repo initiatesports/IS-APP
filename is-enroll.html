@@ -82,10 +82,12 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 <div class="wrap">
   <header class="top"><span class="dot"></span><h1>INITIATE SPORTS</h1><span class="sub" id="periodLbl"></span></header>
   <div id="app"><div class="load">載入中…</div></div>
-  <div class="foot">INITIATE SPORTS · 青衣兒童運動教學<br>查詢 WhatsApp 6331 7403 · <span id="ver" style="color:#c3ccd0"></span></div>
+  <div class="foot">INITIATE SPORTS · 查詢 WhatsApp 6331 7403<br>
+    追蹤我哋睇課堂資訊：<a href="https://www.instagram.com/initiate_sports.2023" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;text-decoration:none">📷 Instagram</a> · <a href="https://www.facebook.com/InitiateSport" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;text-decoration:none">👍 Facebook</a>
+    <br><span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-cleanhdr';
+const FRONTEND_VERSION='enroll-2026-08-12-social2';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -339,8 +341,9 @@ async function boot(){
   renderHome();
 }
 /* ════ ⓪ 首頁：課程介紹 ════ */
+const HOME_HIDE=['pickleball','tt','basketball'];   // 匹克球/乒乓球/籃球唔喺報名首頁出現（可自組班）
 function renderHome(){
-  const cards=COURSE_ITEMS.map((co,i)=>{
+  const cards=COURSE_ITEMS.map((co,i)=>({co,i})).filter(x=>HOME_HIDE.indexOf(x.co.id)<0).map(({co,i})=>{
     const d=COURSE_DETAIL[co.id]||{};
     return `<div class="course" onclick="openCourseDetail(${i})" style="cursor:pointer">
       <div style="flex:1;min-width:0">
