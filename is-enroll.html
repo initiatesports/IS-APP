@@ -80,12 +80,12 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 </head>
 <body>
 <div class="wrap">
-  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS</h1><span class="sub" id="periodLbl">恆常班報名</span></header>
+  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS</h1><span class="sub" id="periodLbl"></span></header>
   <div id="app"><div class="load">載入中…</div></div>
   <div class="foot">INITIATE SPORTS · 青衣兒童運動教學<br>查詢 WhatsApp 6331 7403 · <span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-logincopy';
+const FRONTEND_VERSION='enroll-2026-08-12-cleanhdr';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -334,7 +334,7 @@ async function loadOfficialCourses(){
 async function boot(){
   try{ S.cfg=await apiGet({action:'enrollConfig'}); }
   catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div></div>'; return; }
-  document.getElementById('periodLbl').textContent=(S.cfg.period||'恆常班')+' 報名';
+  document.getElementById('periodLbl').textContent='';   // 右上角唔顯示期數
   await loadOfficialCourses();   // 同步官網課程介紹（失敗＝用內置 fallback）
   renderHome();
 }
@@ -418,10 +418,8 @@ function renderLogin(){
     const od=S.cfg.openDate, cd=S.cfg.closeDate;
     const closed = cd && daysTo(cd)<0;
     openBanner = `<div class="banner">📅 ${esc(S.cfg.period)} 恆常班報名${closed?'已於 <b>'+esc(cd)+'</b> 截止。':'將於 <b>'+esc(od||'8 月中')+'</b> 開放。'}你而家可以先預覽課程、名額同收費，開放後返嚟提交即可（<b>暫時請勿過數</b>）。</div>`;
-  }else if(S.cfg.closeDate){
-    const n=daysTo(S.cfg.closeDate);
-    openBanner = `<div class="banner">⏰ 報名進行中！截止日：<b>${esc(S.cfg.closeDate)}</b>${n>=0?'（尚餘 <b>'+n+'</b> 日）':''}。</div>`;
   }
+  // 開放時唔顯示截止倒數（滿為止）
   app.innerHTML=`
   <div class="card">
     ${steps(1)}
