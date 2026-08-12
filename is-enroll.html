@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-sizechart';
+const FRONTEND_VERSION='enroll-2026-08-13-jersey';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -657,7 +657,8 @@ const UNIFORM_CHART={ sizes:['7XS','6XS','5XS','4XS','3XS','2XS','XS'],
   bottom:[ ['腰圍 1/2 (cm)','23','24.5','26','27.5','29','30.5','32'],
     ['臀圍 1/2 (cm)','39','41','43.5','46','48.5','51','52'],
     ['褲長含腰 (cm)','27.5','30','32.5','35','37.5','40','40'] ] };
-const JERSEY_SRC='img/uniform/jersey.png';   // 球衣套裝實物圖（老闆提供；未有檔案時自動唔顯示）
+const JERSEY_SRC='img/uniform/jersey.jpg';        // 球衣套裝實物圖（老闆提供）
+const SIZECHART_SRC='img/uniform/sizechart.jpg';  // 品牌尺碼表圖（老闆提供）
 function uniChartTable(rows){ return `<table class="uchart"><thead><tr><th></th>${UNIFORM_CHART.sizes.map(s=>`<th>${s}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td class="rl">${r[0]}</td>${r.slice(1).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
 const UNIFORM_OPTS=[
   {v:1,label:'已有制服，不需購買',cost:0,oldOnly:1},
@@ -685,7 +686,8 @@ function renderUniform(){
     <img class="jersey" src="${JERSEY_SRC}" alt="INITIATE SPORTS 制服套裝" onerror="this.style.display='none'">
     ${optHtml}
     ${sizeHtml}
-    ${needSize?`<details class="uchartwrap"><summary>📏 完整尺碼表（上身短袖／下身短褲）</summary>
+    ${needSize?`<a href="${SIZECHART_SRC}" target="_blank" rel="noopener" title="點擊放大"><img class="jersey" src="${SIZECHART_SRC}" alt="INITIATE SPORTS 制服尺碼表" onerror="this.style.display='none'"></a>
+    <details class="uchartwrap"><summary>📏 尺碼表文字版（可左右捲動）</summary>
       <div class="uchartscroll"><div class="uctitle">上身（短袖）</div>${uniChartTable(UNIFORM_CHART.top)}<div class="uctitle">下身（短褲）</div>${uniChartTable(UNIFORM_CHART.bottom)}</div>
       <p class="hint">尺碼僅供參考，因測量方式不同可能有 1–2cm 誤差，屬正常範圍。</p></details>`:''}
     <div class="msg" id="u_msg"></div>

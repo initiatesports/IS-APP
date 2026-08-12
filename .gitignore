@@ -1,3 +1,6 @@
 .claude/
 tools/audit-parent-system.mjs
 node_modules/
+
+.DS_Store
+**/.DS_Store
