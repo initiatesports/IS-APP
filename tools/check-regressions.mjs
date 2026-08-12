@@ -51,7 +51,10 @@ const CHECKS = [
   { file:'is-leave-makeup.html', fn:'historyHTML', must:'absDate===s.date', why:'暑期申請記錄請假↔補堂同一行(按absDate配對)' },
   // 9-10月恆常班報名系統（老闆 2026-08-11 全面重製）——關鍵接線唔可以漏
   { file:'is-enroll.html', fn:'doIdentify', must:'enrollIdentify', why:'入場靠姓名自動分辨新/舊生（唔再用兩個按鈕）' },
-  { file:'is-enroll.html', fn:'doIdentify', must:'renderCourses', why:'新次序：認人後即入揀課（先揀課睇價、後填資料，減新生放棄）' },
+  { file:'is-enroll.html', fn:'doIdentify', must:'renderPriceTable', why:'認人後→價格表（全部課程按新/舊生價+優惠），再開始報名' },
+  { file:'is-enroll.html', fn:'renderPriceTable', must:'renderCourses', why:'價格表「開始報名」→揀課（先睇齊價再揀）' },
+  { file:'is-enroll.html', fn:'boot', must:'renderHome', why:'首頁課程介紹做入口（睇完先報名）' },
+  { file:'is-enroll.html', fn:'renderHome', must:'openCourseDetail', why:'首頁課程卡可開詳細介紹' },
   { file:'is-enroll.html', fn:'renderFee', must:'renderProfileScreen', why:'新次序：睇費用後先去填/核對資料' },
   { file:'is-enroll.html', fn:'renderProfileScreen', must:'renderProfilePreview', why:'舊生走預覽、新生走填表（renderProfileScreen 分流）' },
   { file:'is-enroll.html', fn:'renderProfilePreview', must:'editField', why:'舊生資料逐項「修改」（少填）' },

@@ -75,7 +75,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 青衣兒童運動教學<br>查詢 WhatsApp 6331 7403 · <span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-flow';
+const FRONTEND_VERSION='enroll-2026-08-12-home';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -116,12 +116,134 @@ const PFIELDS=[
   {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無填「無」）'}
 ];
 
+/* ════ 課程介紹（首頁短介 + 詳情）════ */
+const COURSE_INFO=[
+  { emoji:'🪢', name:'花式跳繩（基礎班）',
+    short:'由零開始學單搖、交叉、開合、雙搖等花式，練協調、心肺同專注。',
+    detail:['花式跳繩係 INITIATE SPORTS 嘅王牌項目，學員屢獲各區及公開賽事佳績。由專業教練帶領，循序漸進由基本跳法到高階花式。',
+      '• 內容：單搖 → 交叉 → 開合 → 雙搖 → 組合花式',
+      '• PRE & POST 體能與技術測試，數據化紀錄進步',
+      '• 章別考核計劃，逐級認證，學員睇得見自己嘅成長',
+      '• 師生比例 1:12，4 人成班'] },
+  { emoji:'🥇', name:'花式跳繩進階班（10月開始・需遴選）',
+    short:'為有基礎、想挑戰比賽同高階花式嘅學員而設，需技術遴選。',
+    detail:['為技術達標、有志參賽嘅跳繩學員而設嘅精英班。2026 年 10 月開始，需通過技術遴選及教練評估先可入班。',
+      '• 高階花式、速度與耐力、比賽套路編排',
+      '• 每期 $2000（bundle，含任跳 1 小時自由練習時段）',
+      '• 名額有限，需達入選要求或經教練批准'] },
+  { emoji:'🧒', name:'幼兒全方位運動啟蒙',
+    short:'為幼稚園學童打好跑、跳、擲、平衡、協調等基礎動作能力。',
+    detail:['專為幼稚園年齡而設，透過遊戲化訓練建立基礎動作技能（Fundamental Movement Skills），為將來各項運動打好底子。',
+      '• 跑、跳、擲、接、平衡、協調',
+      '• 遊戲化教學，培養運動興趣同自信',
+      '• 師生比例 1:8，照顧幼兒需要，4 人成班'] },
+  { emoji:'🏃', name:'綜合運動體能＋田徑',
+    short:'系統化體適能訓練，結合田徑技術同球類基礎，對接呈分試體能。',
+    detail:['以運動科學為本嘅綜合體能班（S&C），全面提升速度、力量、敏捷、協調同耐力，並融入田徑技術同球類基礎動作。',
+      '• 課程核心係體能；因 2026/27 呈分試考體能，訓練同時應用到考試',
+      '• 融入田徑（跑跳擲）同球類基礎',
+      '• ⚠️ 本班不含跳繩教學',
+      '• PRE & POST 體能測試，師生比例 1:12，4 人成班'] },
+  { emoji:'🏅', name:'田徑',
+    short:'跑、跳、擲專項技術訓練，由基礎到比賽備戰。',
+    detail:['專項田徑訓練，由基本跑姿、起跑、跳遠、擲項技術，到比賽策略同備戰。',
+      '• 短跑／跳遠／擲項技術',
+      '• PRE & POST 體能測試，數據化睇進步',
+      '• 青衣運動場上課，師生比例 1:12，4 人成班'] },
+  { emoji:'🏸', name:'羽毛球',
+    short:'步法、揮拍、發球到實戰戰術，小組教學足夠觸球時間。',
+    detail:['由基礎步法、握拍、揮拍、發球，到高階戰術同實戰對練。小組教學確保每位學員足夠觸球同指導時間。',
+      '• 步法 → 基本擊球 → 發球 → 戰術 → 實戰',
+      '• PRE & POST 測試，師生比例 1:6，4 人成班',
+      '• 建議自備個人球拍；初學可先用場地公用拍'] },
+  { emoji:'🤸', name:'體操',
+    short:'翻滾、平衡、支撐等體操基礎，發展柔韌、力量同身體控制。',
+    detail:['體操基礎訓練，發展柔韌度、核心力量、平衡感同身體控制能力，為各項運動打好身體素質底子。',
+      '• 翻滾、平衡、支撐、跳躍基礎',
+      '• PRE & POST 測試，師生比例 1:8，4 人成班'] },
+  { emoji:'🎾', name:'網球（9–10月試行）',
+    short:'基礎握拍、擊球到落場對打；2026 9–10 月試行班。',
+    detail:['2026 年 9–10 月試行嘅網球班，由基礎握拍、正反手擊球、發球，到落場對打。',
+      '• 每節 120 分鐘（試行期）',
+      '• 場地：青衣公園／翠怡花園／盈翠半島網球場',
+      '• 師生比例 1:6，4 人成班；建議自備個人球拍'] },
+  { emoji:'💪', name:'成人增肌減脂班',
+    short:'為成人而設嘅科學化體能訓練，針對增肌、減脂、體態改善。',
+    detail:['專為成人而設嘅科學化體能訓練，由持認證教練帶領，針對增肌、減脂、改善體態同體能。',
+      '• 阻力訓練、代謝條件訓練、動作矯正',
+      '• 訓練紀錄，睇得見力量同體態改善',
+      '• 師生比例 1:8，4 人成班'] },
+  { emoji:'👤', name:'私人訓練（1 對 1）',
+    short:'一對一度身訂造，兒童或成人皆可，時間靈活、進度最快。',
+    detail:['一對一私人訓練，完全按個人目標、程度同時間度身訂造，進度最快、最針對。兒童（任何項目）或成人（體能／增肌減脂／樂齡）皆可。',
+      '• 時間靈活，內容因人而異',
+      '• 收費及時間按需要安排，面議',
+      '• 有興趣請 WhatsApp 6331 7403 查詢'] }
+];
 /* ════ 啟動 ════ */
 async function boot(){
   try{ S.cfg=await apiGet({action:'enrollConfig'}); }
   catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div></div>'; return; }
   document.getElementById('periodLbl').textContent=(S.cfg.period||'恆常班')+' 報名';
-  renderLogin();
+  renderHome();
+}
+/* ════ ⓪ 首頁：課程介紹 ════ */
+function renderHome(){
+  const cards=COURSE_INFO.map((c,i)=>`
+    <div class="course" onclick="openCourseDetail(${i})" style="cursor:pointer">
+      <div style="font-size:26px;flex-shrink:0">${c.emoji}</div>
+      <div style="flex:1;min-width:0"><div class="cn">${esc(c.name)}</div><div class="cm">${esc(c.short)}</div></div>
+      <div class="cp" style="color:var(--teal);font-size:13px">詳情 ›</div>
+    </div>`).join('');
+  app.innerHTML=`
+  <div class="card">
+    <h2>INITIATE SPORTS 課程</h2>
+    <p class="hint">青衣兒童及成人運動教學。撳任何一個課程睇<b>詳細介紹</b>；睇完想報名，撳下面「我要報名」。</p>
+    ${cards}
+    <button class="btn" id="hm_go" style="margin-top:8px">我要報名 →</button>
+    <button class="btn ghost" id="hm_look" style="margin-top:10px">查詢我嘅報名狀態</button>
+  </div>`;
+  document.getElementById('hm_go').onclick=renderLogin;
+  document.getElementById('hm_look').onclick=renderLogin;
+}
+function openCourseDetail(i){
+  const c=COURSE_INFO[i];
+  app.innerHTML=`
+  <div class="card">
+    <div style="font-size:44px;text-align:center;margin-bottom:2px">${c.emoji}</div>
+    <h2 style="text-align:center">${esc(c.name)}</h2>
+    <div class="terms" style="max-height:none;background:#fff;border:none;padding:4px 2px">${c.detail.map(p=>`<p style="${/^•/.test(p)?'margin:2px 0 2px 4px':'margin:0 0 10px'}">${esc(p)}</p>`).join('')}</div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderHome()">‹ 返回課程</button>
+      <button class="btn" onclick="renderLogin()">我要報名 →</button>
+    </div>
+  </div>`;
+}
+/* ════ ①B 價格表（登入後，全部課程 + 優惠）════ */
+function renderPriceTable(){
+  const cs=S.cfg.courses||[];
+  const isOld=!!(S.family&&S.family.isOld);
+  const rows=cs.map(c=>{
+    const p = isOld ? (c.priceOld||c.price) : c.price;
+    const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:''].filter(Boolean).join(' ');
+    const sub = c.bundle ? '每期 bundle・含任跳 1 小時' : `全期 ${c.sessions||8} 堂`;
+    return `<div class="q"><span>${esc(c.sport)}<br><span style="color:var(--mut);font-size:11.5px">${esc(meta)}</span></span>
+      <span style="text-align:right">${p>0?money(p):'待定'}<br><span style="color:var(--mut);font-size:11px;font-weight:400">${sub}</span></span></div>`;
+  }).join('');
+  app.innerHTML=`
+  <div class="card">
+    ${steps(1)}
+    <h2>收費一覽 ${isOld?'<span class="pill">舊學員價</span>':''}</h2>
+    <p class="hint">以下係 <b>${esc(S.family.name)}</b> 報 ${esc(S.cfg.period)} 各課程嘅全期學費。</p>
+    <div class="quote">${rows}</div>
+    <div class="banner" style="margin-top:12px">💡 <b>優惠</b>：報 2 班或以上，每多一班即減 <b>$100</b>（不封頂）；持優惠券／推薦最多再抵 <b>$200</b>，可疊加。</div>
+    <p class="hint">私人訓練（1 對 1）另按需要安排，收費面議，歡迎 WhatsApp 6331 7403 查詢。</p>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderLogin()">‹ 返回</button>
+      <button class="btn" id="pt_go">開始報名 →</button>
+    </div>
+  </div>`;
+  document.getElementById('pt_go').onclick=renderCourses;
 }
 /* ════ ① 登入 / 認人 ════ */
 function renderLogin(){
@@ -142,15 +264,17 @@ function renderLogin(){
     ${steps(1)}
     ${openBanner}
     <h2>報名 <em>${esc(S.cfg.period)}</em> 恆常班</h2>
-    <p class="hint">第一次報名都係喺呢度開始。輸入姓名同電話後 4 位（只用嚟認人／保護你嘅資料，<b>唔會即刻扣費或開戶</b>）。報過暑期／恆常班嘅同學，資料會自動帶出，唔使重複填。</p>
+    <p class="hint">輸入姓名同電話後 4 位，<b>下一頁就會見到全部課程收費同優惠</b>。<br>💡 因為新生同舊學員價錢唔同，我哋要先認得你，先可以顯示啱你嘅價錢——所以要你輸入姓名電話（<b>唔會即刻扣費或開戶</b>）。報過暑期／恆常班嘅同學，資料仲會自動帶出唔使再填。</p>
     <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
     <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
-    <button class="btn" id="li_go">下一步</button>
+    <button class="btn" id="li_go">睇收費 / 下一步 →</button>
     ${resumeBtn}
+    <button class="btn ghost" id="li_home" style="margin-top:10px">‹ 返回課程介紹</button>
     <button class="btn ghost" id="li_look" style="margin-top:10px">查詢我嘅報名狀態</button>
     <div class="msg" id="li_msg"></div>
   </div>`;
   document.getElementById('li_go').onclick=doIdentify;
+  document.getElementById('li_home').onclick=renderHome;
   if(draft){ const rb=document.getElementById('li_resume'); if(rb) rb.onclick=async()=>{
     document.getElementById('li_name').value=draft.name; document.getElementById('li_last4').value=draft.last4;
     await doIdentify(); S.courses=draft.courses.slice(); renderCourses(); }; }
@@ -174,7 +298,7 @@ async function doIdentify(){
   S.profile=res.profile||null;
   S.courses=[]; S.quote=null; S.payImg='';   // 換學生時清空上一位嘅揀選
   S.credit={remaining:res.creditRemaining||0, summer:res.summer||0, referral:res.referral||0};
-  renderCourses();   // 新次序：入場即揀課睇價，之後先填/核對資料（新生未見價唔使先交個資）
+  renderPriceTable();   // 登入後 → 價格表（全部課程 + 優惠），撳「開始報名」先入揀課
 }
 async function lookupMine(){
   const name=document.getElementById('li_name').value.trim();
@@ -310,7 +434,7 @@ function renderCourses(){
     ${list}
     <div class="msg" id="cs_msg"></div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
+      <button class="btn ghost sm" onclick="renderPriceTable()">返回</button>
       <button class="btn" id="cs_go">下一步（睇費用）</button>
     </div>
   </div>`;
