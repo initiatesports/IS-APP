@@ -87,7 +87,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
     <br><span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-social2';
+const FRONTEND_VERSION='enroll-2026-08-12-fullphone';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -105,7 +105,7 @@ function copyTxt(t,btn){ try{ navigator.clipboard.writeText(String(t)); if(btn){
 // ── 草稿自動儲存（中途走唔使重頭；只存非敏感：家庭+已揀課程，唔存健康/證件/截圖）──
 const DRAFT_KEY='is_enroll_draft_v1';
 function saveDraft(){ try{ if(!S.family||!S.courses.length) return;
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name:S.family.name, last4:S.family.last4, courses:S.courses, ts:Date.now() })); }catch(e){} }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name:S.family.name, last4:S.family.last4, phone:S.family.phone||'', courses:S.courses, ts:Date.now() })); }catch(e){} }
 function loadDraft(){ try{ const s=localStorage.getItem(DRAFT_KEY); if(!s) return null;
   const d=JSON.parse(s); if(!d||!d.ts||Date.now()-d.ts>86400000){ localStorage.removeItem(DRAFT_KEY); return null; }
   return (d.courses&&d.courses.length)?d:null; }catch(e){ return null; } }
@@ -428,9 +428,9 @@ function renderLogin(){
     ${steps(1)}
     ${openBanner}
     <h2>報名 <em>${esc(S.cfg.period)}</em> 恆常班</h2>
-    <p class="hint">輸入姓名同電話後 4 位，<b>下一頁即刻見到全部課程收費同優惠</b>。曾經報過我哋課程嘅同學，系統會自動認得你、帶返之前嘅資料，唔使重複填。<br>（只用嚟認人，<b>唔會即刻扣費或開戶</b>。）</p>
-    <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
-    <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
+    <p class="hint">輸入學生中文全名同家長手提電話，<b>下一頁即刻見到全部課程收費同優惠</b>。曾經報過我哋課程嘅同學，系統會自動認得你、帶返之前嘅資料，唔使重複填。<br>（只用嚟認人，<b>唔會即刻扣費或開戶</b>。）</p>
+    <div class="fld"><label>學生中文全名</label><input id="li_name" placeholder="例：陳大文"></div>
+    <div class="fld"><label>家長手提電話（8 位數字）</label><input id="li_phone" inputmode="numeric" maxlength="8" placeholder="例：9123 4567"></div>
     <button class="btn" id="li_go">睇收費 / 下一步 →</button>
     ${resumeBtn}
     <button class="btn ghost" id="li_home" style="margin-top:10px">‹ 返回課程介紹</button>
@@ -440,35 +440,37 @@ function renderLogin(){
   document.getElementById('li_go').onclick=doIdentify;
   document.getElementById('li_home').onclick=renderHome;
   if(draft){ const rb=document.getElementById('li_resume'); if(rb) rb.onclick=async()=>{
-    document.getElementById('li_name').value=draft.name; document.getElementById('li_last4').value=draft.last4;
+    document.getElementById('li_name').value=draft.name; document.getElementById('li_phone').value=draft.phone||'';
     await doIdentify(); S.courses=draft.courses.slice(); renderCourses(); }; }
   document.getElementById('li_look').onclick=lookupMine;
-  document.getElementById('li_last4').addEventListener('keydown',e=>{ if(e.key==='Enter') doIdentify(); });
+  document.getElementById('li_phone').addEventListener('keydown',e=>{ if(e.key==='Enter') doIdentify(); });
 }
 /* 入場：一個 form 打名+電話後4位 → 後端自動分辨新/舊生，前端據結果分流。 */
 async function doIdentify(){
   const name=document.getElementById('li_name').value.trim();
-  const last4=document.getElementById('li_last4').value.trim();
+  const phone=(document.getElementById('li_phone').value||'').replace(/\D/g,'');
   const msg=document.getElementById('li_msg');
-  if(!name||!last4){ msg.className='msg err'; msg.textContent='請先填學生中文姓名同家長電話後 4 位。'; return; }
-  if(!/^\d{4}$/.test(last4)){ msg.className='msg err'; msg.textContent='電話後 4 位要係 4 個數字。'; return; }
+  if(!name||!phone){ msg.className='msg err'; msg.textContent='請先填學生中文全名同家長手提電話。'; return; }
+  if(phone.length<8){ msg.className='msg err'; msg.textContent='請填完整 8 位手提電話。'; return; }
+  const last4=phone.slice(-4);
   const btn=document.getElementById('li_go'); btn.disabled=true; btn.textContent='核對中…';
   let res; try{ res=await apiGet({action:'enrollIdentify', name, last4}); }
   catch(e){ btn.disabled=false; btn.textContent='下一步'; msg.className='msg err'; msg.textContent='連線逾時，請再試。'; return; }
   btn.disabled=false; btn.textContent='下一步';
-  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'核對失敗，請確認姓名同電話後 4 位。'; return; }
-  S.family={name, last4, isOld:!!res.isOld, tier:res.tier||'新生'};
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'核對失敗，請確認姓名同電話。'; return; }
+  S.family={name, phone, last4, isOld:!!res.isOld, tier:res.tier||'新生'};
   S.isNew=!res.known;
   S.profile=res.profile||null;
+  if(S.isNew){ S.profile=S.profile||{}; if(!S.profile['聯絡電話']) S.profile['聯絡電話']=phone; }   // 新生：登入已畀電話，後續預填唔使再入
   S.courses=[]; S.quote=null; S.payImg='';   // 換學生時清空上一位嘅揀選
   S.credit={remaining:res.creditRemaining||0, summer:res.summer||0, referral:res.referral||0};
   renderPriceTable();   // 登入後 → 價格表（全部課程 + 優惠），撳「開始報名」先入揀課
 }
 async function lookupMine(){
   const name=document.getElementById('li_name').value.trim();
-  const last4=document.getElementById('li_last4').value.trim();
+  const last4=((document.getElementById('li_phone').value||'').replace(/\D/g,'')).slice(-4);
   const msg=document.getElementById('li_msg');
-  if(!name||!last4){ msg.className='msg err'; msg.textContent='請填姓名同電話後 4 位。'; return; }
+  if(!name||last4.length<4){ msg.className='msg err'; msg.textContent='請填學生中文全名同家長手提電話。'; return; }
   const btn=document.getElementById('li_look'); btn.disabled=true; btn.textContent='查詢中…';
   const res=await apiGet({action:'enrollMyRecords', name, last4});
   btn.disabled=false; btn.textContent='查詢我嘅報名狀態';
@@ -810,10 +812,10 @@ function renderDone(res){
 }
 // 多子女：保留家長電話，只換學生
 function reportAnother(){
-  const last4=(S.family&&S.family.last4)||'';
+  const phone=(S.family&&S.family.phone)||'';
   S.family=null; S.profile=null; S.courses=[]; S.quote=null; S.payImg=''; S.isNew=false; S.agree=false; S.signEn=''; S.signId=''; S.clientToken='';
   renderLogin();
-  const el=document.getElementById('li_last4'); if(el) el.value=last4;
+  const el=document.getElementById('li_phone'); if(el) el.value=phone;
   const nm=document.getElementById('li_name'); if(nm) nm.focus();
 }
 boot();
