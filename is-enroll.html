@@ -85,7 +85,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 青衣兒童運動教學<br>查詢 WhatsApp 6331 7403 · <span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-formfields';
+const FRONTEND_VERSION='enroll-2026-08-12-logincopy';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -427,7 +427,7 @@ function renderLogin(){
     ${steps(1)}
     ${openBanner}
     <h2>報名 <em>${esc(S.cfg.period)}</em> 恆常班</h2>
-    <p class="hint">輸入姓名同電話後 4 位，<b>下一頁就會見到全部課程收費同優惠</b>。<br>💡 因為新生同舊學員價錢唔同，我哋要先認得你，先可以顯示啱你嘅價錢——所以要你輸入姓名電話（<b>唔會即刻扣費或開戶</b>）。報過暑期／恆常班嘅同學，資料仲會自動帶出唔使再填。</p>
+    <p class="hint">輸入姓名同電話後 4 位，<b>下一頁即刻見到全部課程收費同優惠</b>。曾經報過我哋課程嘅同學，系統會自動認得你、帶返之前嘅資料，唔使重複填。<br>（只用嚟認人，<b>唔會即刻扣費或開戶</b>。）</p>
     <div class="fld"><label>學生中文姓名</label><input id="li_name" placeholder="例：陳大文"></div>
     <div class="fld"><label>家長手提電話後 4 位</label><input id="li_last4" inputmode="numeric" maxlength="4" placeholder="例：1234"></div>
     <button class="btn" id="li_go">睇收費 / 下一步 →</button>
