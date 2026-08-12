@@ -88,6 +88,15 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 .social{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1.5px solid var(--teal);border-radius:20px;color:var(--teal);font-weight:700;font-size:12.5px;text-decoration:none;background:#fff;}
 .social:active{background:var(--teal-dim);}
 .load{text-align:center;color:var(--mut);padding:40px 0;font-size:14px;}
+.jersey{width:100%;max-width:100%;border-radius:12px;border:1px solid var(--line);margin:2px 0 6px;display:block;}
+.uchartwrap{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+.uchartwrap>summary{font-weight:700;color:var(--teal-dark);cursor:pointer;font-size:13px;list-style:revert;}
+.uchartscroll{overflow-x:auto;margin-top:8px;-webkit-overflow-scrolling:touch;}
+.uctitle{font-weight:700;font-size:12px;color:var(--teal-dark);margin:8px 0 4px;}
+table.uchart{border-collapse:collapse;font-size:11px;min-width:520px;}
+table.uchart th,table.uchart td{border:1px solid #dde7e9;padding:4px 6px;text-align:center;white-space:nowrap;}
+table.uchart thead th{background:var(--teal);color:#fff;}
+table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight:700;text-align:left;position:sticky;left:0;}
 </style>
 </head>
 <body>
@@ -111,7 +120,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-health-ui';
+const FRONTEND_VERSION='enroll-2026-08-12-sizechart';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -637,6 +646,19 @@ const UNIFORM_SIZES=[
   {s:'3XS',h:'140–149cm',w:'24–34kg'},{s:'2XS',h:'150–155cm',w:'26–38kg'},
   {s:'XS', h:'155–165cm',w:'40–50kg'}
 ];
+// 完整尺碼表（照 INITIATE SPORTS 制服尺碼表原圖數據）
+const UNIFORM_CHART={ sizes:['7XS','6XS','5XS','4XS','3XS','2XS','XS'],
+  top:[ ['參考身高 (cm)','100–109','110–119','120–129','130–139','140–149','150–155','155–165'],
+    ['參考體重 (kg)','15–16','17–21','18–24','22–26','24–34','26–38','40–50'],
+    ['後衣長 (cm)','45','48','52','56','60','65','66.5'],
+    ['胸圍 (cm)','35','37','40','43','47','50','48.5'],
+    ['袖長 短袖 (cm)','16','17','18','19','20','21','22'],
+    ['袖長 長袖 (cm)','42.5','45.5','48.5','51.5','54.5','57.5','58'] ],
+  bottom:[ ['腰圍 1/2 (cm)','23','24.5','26','27.5','29','30.5','32'],
+    ['臀圍 1/2 (cm)','39','41','43.5','46','48.5','51','52'],
+    ['褲長含腰 (cm)','27.5','30','32.5','35','37.5','40','40'] ] };
+const JERSEY_SRC='img/uniform/jersey.png';   // 球衣套裝實物圖（老闆提供；未有檔案時自動唔顯示）
+function uniChartTable(rows){ return `<table class="uchart"><thead><tr><th></th>${UNIFORM_CHART.sizes.map(s=>`<th>${s}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td class="rl">${r[0]}</td>${r.slice(1).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
 const UNIFORM_OPTS=[
   {v:1,label:'已有制服，不需購買',cost:0,oldOnly:1},
   {v:2,label:'需購買制服',cost:160,note:'$160／套'},
@@ -660,8 +682,12 @@ function renderUniform(){
     ${steps(2)}
     <h2>INITIATE SPORTS 制服</h2>
     <p class="hint">${S.isNew?'新生上堂必須穿著 INITIATE SPORTS 訓練服，請選購。':'請選擇制服安排。'}制服費用會加入最後總數。</p>
+    <img class="jersey" src="${JERSEY_SRC}" alt="INITIATE SPORTS 制服套裝" onerror="this.style.display='none'">
     ${optHtml}
     ${sizeHtml}
+    ${needSize?`<details class="uchartwrap"><summary>📏 完整尺碼表（上身短袖／下身短褲）</summary>
+      <div class="uchartscroll"><div class="uctitle">上身（短袖）</div>${uniChartTable(UNIFORM_CHART.top)}<div class="uctitle">下身（短褲）</div>${uniChartTable(UNIFORM_CHART.bottom)}</div>
+      <p class="hint">尺碼僅供參考，因測量方式不同可能有 1–2cm 誤差，屬正常範圍。</p></details>`:''}
     <div class="msg" id="u_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderProfileScreen()">返回</button>
