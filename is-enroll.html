@@ -66,6 +66,15 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 .terms{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:12.5px;color:#3a464c;background:#fafcfc;margin-bottom:12px;}
 .terms p{margin:0 0 9px;} .terms p b{color:var(--ink);}
 .chk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;margin-bottom:12px;}
+.cbox{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+.cbox .chk{margin-bottom:0;}
+.uopt{display:flex;align-items:flex-start;gap:10px;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;}
+.uopt.on{border-color:var(--teal);background:var(--teal-dim);}
+.uopt input{margin-top:3px;width:18px;height:18px;accent-color:var(--teal);flex-shrink:0;}
+.usize{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.usize button{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-family:inherit;font-size:12px;cursor:pointer;line-height:1.25;text-align:center;}
+.usize button.on{border-color:var(--teal);background:var(--teal-dim);color:var(--teal-dark);font-weight:700;}
+.usize button b{display:block;font-size:13px;}
 .chk input{width:20px;height:20px;accent-color:var(--teal);margin-top:1px;flex-shrink:0;}
 .sumline{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-bottom:1px dashed var(--line);}
 .sumline .k{color:var(--mut);}
@@ -99,7 +108,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-polish';
+const FRONTEND_VERSION='enroll-2026-08-12-uniform';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -127,21 +136,20 @@ function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
 const PFIELDS=[
   {k:'email',    h:'電郵',     label:'家長電郵 Email（收報名確認）', req:1},
   {k:'phone',    h:'聯絡電話', label:'家長聯絡電話（8 位數字）', req:1},
-  {k:'nameEn',   h:'英文姓名', label:'英文姓名 English Name', req:1},
+  {k:'nameEn',   h:'英文姓名', label:'學生英文姓名 English Name（Same as HKID，方便日後印製證書）', req:1},
   {k:'gender',   h:'性別',     label:'性別', sel:['男 Male','女 Female'], req:1},
   {k:'birthYear',h:'出生年',   label:'出生年份 (e.g. 2016)', req:1},
-  {k:'birthMonth',h:'出生月',  label:'出生月份 (e.g. 3)'},
+  {k:'birthMonth',h:'出生月',  label:'出生月份 (e.g. 3)', req:1},
   {k:'school',   h:'就讀學校', label:'就讀學校', req:1},
-  {k:'district', h:'居住地區', label:'居住地區'},
+  {k:'district', h:'居住地區', label:'居住地區', req:1},
   {k:'emgName',  h:'緊急聯絡人',label:'緊急聯絡人姓名', req:1},
   {k:'emgPhone', h:'緊急電話', label:'緊急聯絡人電話', req:1},
-  {k:'emgRel',   h:'關係',     label:'與參加者關係'},
+  {k:'emgRel',   h:'關係',     label:'緊急聯絡人與參加者關係', req:1},
   {k:'grade',    h:'就讀年級', label:'2025 年 9 月起就讀年級（如 一年級）', req:1},
-  {k:'uniform',  h:'訓練隊服SIZE', label:'訓練隊服 Size（如 童裝 M／成人 S，可稍後補）'},
   {k:'parentName',h:'家長姓名', label:'家長／監護人姓名', req:1},
-  {k:'health',   h:'健康狀況', label:'健康狀況（如無填「無」）'},
-  {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無填「無」）'},
-  {k:'source',   h:'認識途徑', label:'怎樣認識我哋？', sel:['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他']},
+  {k:'health',   h:'健康狀況', label:'健康狀況（如無請填「無」）', req:1},
+  {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無請填「無」）', req:1},
+  {k:'source',   h:'認識途徑', label:'怎樣認識我哋？', sel:['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他'], req:1},
   {k:'referrer', h:'推薦人',   label:'推薦人姓名（選填・享推薦獎賞）'}
 ];
 
@@ -508,7 +516,7 @@ function renderProfilePreview(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(4)}
+    ${steps(1)}
     <h2>核對資料 · <em>${esc(S.family.name)}</em>${S.family.isOld?'<span class="pill">舊學員</span>':''}</h2>
     <p class="hint">以下係你之前登記嘅資料，已自動帶出。核對一次即可，有需要先按「修改」改嗰一項；電話等資料一般唔使再填。</p>
     <div class="pvlist">${rows}</div>
@@ -541,7 +549,9 @@ function renderProfile(){
       <option value="">請選擇</option>${f.sel.map(o=>`<option ${cur&&o.indexOf(cur.replace(/\s.*/,''))>=0?'selected':''}>${o}</option>`).join('')}</select></div>`; }
     return `<div class="fld"><label>${lab(f)}</label><input id="pf_${f.k}" value="${val(f)}"></div>`;
   }).join('');
-  const known = '<p class="hint">第一次報名，填一次基本資料就得（<span style="color:var(--err)">*</span> 為必填），之後報其他課程都唔使再填。下一步就會見到<b>課程、名額同全部收費</b>，你可以睇清楚先決定。</p>';
+  const known = S.isNew
+    ? '<p class="hint">第一次報名，填一次基本資料（<span style="color:var(--err)">*</span> 全部必填）。下一步就會見到<b>課程、名額同全部收費</b>。</p>'
+    : '<p class="hint">你之前登記嘅資料已自動帶出，<b>核對一次</b>即可（有錯先改）；但<b>健康問卷每次報名都要重新填</b>，安全所需。<span style="color:var(--err)">*</span> 全部必填。</p>';
   const parqQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
   const parqHtml=`<div class="fld"><label>健康篩查 PAR-Q（未滿 18 歲由家長填）<span style="color:var(--err)">*</span></label>
     <div class="terms" style="max-height:150px;font-size:12px">${parqQ.map((q,i)=>`<p>${i+1}. ${esc(q)}</p>`).join('')}</div>
@@ -550,7 +560,7 @@ function renderProfile(){
   </div>`;
   app.innerHTML=`
   <div class="card">
-    ${steps(4)}
+    ${steps(1)}
     <h2>學生資料 · <em>${esc(S.family.name)}</em></h2>
     ${known}
     ${fieldsHtml}
@@ -579,11 +589,11 @@ async function saveProfileGo(){
   if(phoneEl){ const ph=phoneEl.value.replace(/\D/g,'');
     if(ph){ if(ph.length<8){ msg.className='msg err'; msg.textContent='請填完整 8 位聯絡電話。'; phoneEl.focus(); return; }
       if(ph.slice(-4)!==S.family.last4){ msg.className='msg err'; msg.textContent='聯絡電話最後 4 位要同頭先輸入嘅一致（'+S.family.last4+'）。'; phoneEl.focus(); return; } } }
-  // 新生：基本欄要填（含電話＋緊急聯絡，體育課安全所需）
-  if(S.isNew){ const need=[['phone','家長聯絡電話'],['nameEn','英文姓名'],['gender','性別'],['birthYear','出生年份'],['school','就讀學校'],['grade','就讀年級'],['parentName','家長／監護人姓名'],['emgName','緊急聯絡人姓名'],['emgPhone','緊急聯絡人電話']];
-    for(let i=0;i<need.length;i++){ const el=document.getElementById('pf_'+need[i][0]);
-      if(!el||!el.value.trim()){ msg.className='msg err'; msg.textContent='請填「'+need[i][1]+'」。'; if(el)el.focus(); return; } } }
-  // 健康篩查 PAR-Q（新生表有）：全部否要剔選；如有「是」要註明
+  // 全部必填欄要填（新生同舊生都要，安全所需；推薦人除外）
+  const needReq=PFIELDS.filter(f=>f.req);
+  for(let i=0;i<needReq.length;i++){ const f=needReq[i], el=document.getElementById('pf_'+f.k);
+    if(!el||!el.value.trim()){ msg.className='msg err'; msg.textContent='請填「'+f.label.replace(/\s*[（(].*$/,'')+'」（全部必填）。'; if(el)el.focus(); return; } }
+  // 健康篩查 PAR-Q（每次報名都要，新舊生一律填）：全部否要剔選；如有「是」要註明
   const parqokEl=document.getElementById('pf_parqok');
   if(parqokEl){ const note=(document.getElementById('pf_parqnote')||{}).value||'';
     if(!parqokEl.checked && !note.trim()){ msg.className='msg err'; msg.textContent='請完成健康篩查 PAR-Q：全部答「否」請剔選；如有任何一項為「是」請喺下面註明。'; return; }
@@ -595,9 +605,54 @@ async function saveProfileGo(){
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'儲存失敗，請再試。'; return; }
   S.profile=S.profile||{}; Object.keys(edited).forEach(h=>{ S.profile[h]=edited[h]; });
   saveDraft();   // 資料填好即存草稿
-  renderPriceTable();   // 資料填好 → 顯示收費一覽（老闆調序：先資料後收費）
+  renderUniform();   // 資料填好 → 制服頁（老闆：順序喺資料後），再顯示收費
 }
-function renderProfileScreen(){ if(S.isNew) renderProfile(); else renderProfilePreview(); }
+function renderProfileScreen(){ renderProfile(); }   // 新舊生都用全表單：舊生資料預填免重打，但健康問卷每次都要填(安全)；全部必填
+/* ════ ②B 制服（填資料後；新生一定要買；費用加入最後總數）════ */
+const UNIFORM_SIZES=[
+  {s:'7XS',h:'100–109cm',w:'15–16kg'},{s:'6XS',h:'110–119cm',w:'17–21kg'},
+  {s:'5XS',h:'120–129cm',w:'18–24kg'},{s:'4XS',h:'130–139cm',w:'22–26kg'},
+  {s:'3XS',h:'140–149cm',w:'24–34kg'},{s:'2XS',h:'150–155cm',w:'26–38kg'},
+  {s:'XS', h:'155–165cm',w:'40–50kg'}
+];
+const UNIFORM_OPTS=[
+  {v:1,label:'已有制服，不需購買',cost:0,oldOnly:1},
+  {v:2,label:'需購買制服',cost:160,note:'$160／套'},
+  {v:3,label:'需購買制服 ＋ 跳繩速度訓練器',cost:220,note:'$220'}
+];
+function uniformCost(){ return (S.uniform&&S.uniform.cost)||0; }
+function setUOpt(v){ const o=UNIFORM_OPTS.find(x=>x.v===v); S.uniform={opt:v,cost:o.cost,size:(v===1?'':(S.uniform&&S.uniform.size)||'')}; renderUniform(); }
+function setUSize(s){ S.uniform=S.uniform||{}; S.uniform.size=s; renderUniform(); }
+function renderUniform(){
+  if(!S.uniform) S.uniform={opt:(S.isNew?2:0),cost:(S.isNew?160:0),size:''};
+  const opts=UNIFORM_OPTS.filter(o=>!(o.oldOnly&&S.isNew));   // 新生一定要買 → 唔畀「已有」
+  const optHtml=opts.map(o=>`<label class="uopt ${S.uniform.opt===o.v?'on':''}">
+    <input type="radio" name="uopt" ${S.uniform.opt===o.v?'checked':''} onclick="setUOpt(${o.v})">
+    <div style="flex:1"><div style="font-weight:700">${esc(o.label)}</div>${o.note?`<div class="cm" style="color:var(--teal-dark);font-weight:700">${o.note}</div>`:'<div class="cm" style="color:var(--mut)">免費</div>'}</div></label>`).join('');
+  const needSize=(S.uniform.opt===2||S.uniform.opt===3);
+  const sizeHtml=needSize?`<div class="fld"><label>制服尺碼（按身高／體重參考揀）<span style="color:var(--err)">*</span></label>
+    <div class="usize">${UNIFORM_SIZES.map(z=>`<button type="button" class="${S.uniform.size===z.s?'on':''}" onclick="setUSize('${z.s}')"><b>${z.s}</b>${z.h}<br>${z.w}</button>`).join('')}</div>
+    <p class="hint" style="margin-top:6px">尺碼僅供參考，測量方式不同可能有 1–2cm 誤差。</p></div>`:'';
+  app.innerHTML=`
+  <div class="card">
+    ${steps(2)}
+    <h2>INITIATE SPORTS 制服</h2>
+    <p class="hint">${S.isNew?'新生上堂必須穿著 INITIATE SPORTS 訓練服，請選購。':'請選擇制服安排。'}制服費用會加入最後總數。</p>
+    ${optHtml}
+    ${sizeHtml}
+    <div class="msg" id="u_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderProfileScreen()">返回</button>
+      <button class="btn" id="u_go">下一步（睇收費）</button>
+    </div>
+  </div>`;
+  document.getElementById('u_go').onclick=()=>{
+    const msg=document.getElementById('u_msg');
+    if(!S.uniform.opt){ msg.className='msg err'; msg.textContent='請選擇制服安排。'; return; }
+    if((S.uniform.opt===2||S.uniform.opt===3)&&!S.uniform.size){ msg.className='msg err'; msg.textContent='請揀制服尺碼。'; return; }
+    saveDraft(); renderPriceTable();
+  };
+}
 /* ════ ③ 揀課程 ════ */
 function renderCourses(){
   const cs=S.cfg.courses||[];
@@ -619,7 +674,7 @@ function renderCourses(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(2)}
+    ${steps(4)}
     <h2>揀課程 <span class="pill">可多選</span></h2>
     <p class="hint">揀你要報嘅恆常班，可一次過報多項（報 2 班或以上，每多一班即減 $100）。價錢為 2026 9-10 月全期 8 堂。</p>
     ${list}
@@ -653,9 +708,9 @@ function renderCourses(){
 }
 /* ════ ④ 費用 ════ */
 async function renderFee(){
-  app.innerHTML=`<div class="card">${steps(3)}<div class="load">計緊費用…</div></div>`;
+  app.innerHTML=`<div class="card">${steps(5)}<div class="load">計緊費用…</div></div>`;
   const res=await apiGet({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
-  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(3)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
+  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
   S.quote=res;
   const cs = res.courses||[];
   const priced = res.base>0;
@@ -672,21 +727,24 @@ async function renderFee(){
   const perNote = (chargedN===1 && !anyWait && res.net>0) ? `（約每堂 $${Math.round(res.net/(res.sessions||8))}）` : '';
   const sessNote = `<p class="hint">全期學費（共 ${res.sessions||8} 堂）${perNote}${anyWait?'。<b>候補課程暫免付費</b>，有位轉正先通知補收':''}。</p>
     <div class="banner" style="background:#e8f7ef;border-color:#1a9e6a;color:#127a51">✅ 4 人成班保證：如人數不足未能開班，已繳學費<b>全額退還</b>。</div>`;
+  const uCost=uniformCost();
+  const uLine = uCost>0 ? `<div class="q dim"><span>制服${S.uniform&&S.uniform.opt===3?'＋跳繩速度訓練器':''}${S.uniform&&S.uniform.size?'（'+esc(S.uniform.size)+'）':''}</span><span>${money(uCost)}</span></div>` : '';
+  const grand=(res.net||0)+uCost;
   let quoteInner;
-  if(chargedN===1 && !hasDisc && !anyWait){
-    // 單科無折：淨顯示一行「學費」，唔用「原價」字眼（免新生察覺有折）
+  if(chargedN===1 && !hasDisc && !anyWait && uCost===0){
+    // 單科無折無制服：淨顯示一行「學費」，唔用「原價」字眼（免新生察覺有折）
     quoteInner = `<div class="q net"><span>學費（全期 ${res.sessions||8} 堂）</span><span>${money(res.net)}</span></div>`;
   }else{
     quoteInner = `${itemLines}
       ${hasDisc?`<div class="q dim"><span>小計${tierTxt}</span><span>${money(res.base)}</span></div>`:''}
-      ${multiLine}${creditLine}
-      <div class="q net"><span>實付</span><span>${money(res.net)}</span></div>`;
+      ${multiLine}${creditLine}${uLine}
+      <div class="q net"><span>${uCost>0?'總計應付':'實付'}</span><span>${money(grand)}</span></div>`;
   }
   const body = priced ? `<div class="quote">${quoteInner}</div>${sessNote}${pendNote}` :
     `<div class="banner">課程收費老闆稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
   app.innerHTML=`
   <div class="card">
-    ${steps(3)}
+    ${steps(5)}
     <h2>費用</h2>
     <p class="hint">${esc(S.cfg.period)}｜${cs.map(c=>esc(c.sport)).join('、')||'未選'}</p>
     ${body}
@@ -703,15 +761,22 @@ function renderTerms(){
   const pf=S.profile||{};
   const sEn=esc(S.signEn||pf['簽署人英文名']||'');   // 唔預填學生英文名，聲明人應為家長本人
   const sId=esc(S.signId||pf['證件首4']||'');
+  const st=t.statements||[];
+  const consents=st.slice(0,4);   // 健康聲明／拍攝公開／私隱／資料屬實 —— 逐項分開同意（安全所需）
+  const ops=st.slice(4);          // 營運條款（成班／退款／請假補堂／天氣／器材／接送）
+  const consentBoxes=consents.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="tm_consent" data-i="${i}"><span>${esc(s)}</span></label></div>`).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(5)}
+    ${steps(6)}
     <h2>聲明及同意 <span class="pill">版本 ${esc(t.version)}</span></h2>
-    <div class="banner" style="margin-bottom:10px">重點：4 人成班（不足會退款或改期）；學費按期繳付，除機構取消外不設退款；病假可補、事假需提前；8 號風球／黑雨停課會補課。詳情見下方全文。</div>
-    <div class="terms">${(t.statements||[]).map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div>
-    <label class="chk"><input type="checkbox" id="tm_agree"><span>本人（家長／監護人）已閱讀並<b>同意</b>以上全部聲明。</span></label>
-    <div class="fld"><label>確認聲明人（家長／監護人本人）英文全名</label><input id="tm_signEn" value="${sEn}" placeholder="e.g. Chan Tai Man"></div>
-    <div class="fld"><label>家長證件號碼首 4 位（英文字母+首3數字，e.g. A123）<span style="font-weight:400">— 只用於核實簽署人身份，不作其他用途</span></label><input id="tm_signId" value="${sId}" maxlength="8"></div>
+    <p class="hint">以下每項都要<b>逐項剔選同意</b>先可以報名（安全所需）。</p>
+    ${consentBoxes}
+    <div class="fld" style="margin-top:6px"><label>課程條款（4 人成班／收費退款／請假補堂／惡劣天氣／器材／接送）</label>
+      <div class="terms">${ops.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="tm_ops"><span>本人已閱讀並<b>同意</b>以上課程條款。</span></label></div>
+    <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ <b>必須填寫真實資料</b>：請填家長本人<b>真實英文全名</b>同<b>證件號碼首 4 位</b>。如填寫虛假或亂填資料，學生於課堂發生任何意外，<b>本機構概不負責</b>。</div>
+    <div class="fld"><label>家長／監護人本人英文全名 <span style="color:var(--err)">*</span></label><input id="tm_signEn" value="${sEn}" placeholder="e.g. Chan Tai Man"></div>
+    <div class="fld"><label>家長證件號碼首 4 位（英文字母+首3數字，e.g. A123）<span style="color:var(--err)">*</span></label><input id="tm_signId" value="${sId}" maxlength="8"></div>
     <div class="msg" id="tm_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderFee()">返回</button>
@@ -720,20 +785,22 @@ function renderTerms(){
   </div>`;
   document.getElementById('tm_go').onclick=()=>{
     const msg=document.getElementById('tm_msg');
-    if(!document.getElementById('tm_agree').checked){ msg.className='msg err'; msg.textContent='必須同意聲明先可以報名。'; return; }
+    const allConsent=[...document.querySelectorAll('.tm_consent')].every(c=>c.checked);
+    if(!allConsent){ msg.className='msg err'; msg.textContent='請逐項剔選同意上面每一項聲明。'; return; }
+    if(!document.getElementById('tm_ops').checked){ msg.className='msg err'; msg.textContent='請剔選同意課程條款。'; return; }
     S.signEn=document.getElementById('tm_signEn').value.trim();
     S.signId=document.getElementById('tm_signId').value.trim();
-    if(!S.signEn||!S.signId){ msg.className='msg err'; msg.textContent='請填簽署人英文全名同證件首 4 位。'; return; }
+    if(!S.signEn||!S.signId){ msg.className='msg err'; msg.textContent='請填家長本人真實英文全名同證件首 4 位。'; return; }
     S.agree=true; renderPay();
   };
 }
 /* ════ ⑥ 付款 + 提交 ════ */
 function renderPay(){
   const q=S.quote||{};
-  const net=q.net||0;
+  const courseNet=q.net||0, uCost=uniformCost(), net=courseNet+uCost;   // 付款總數＝課程學費＋制服
   const priced=q.base>0;
-  const free = priced && net<=0;   // 有價錢但被優惠券全數抵扣
-  const allWait = (q.courses||[]).length>0 && (q.courses||[]).every(c=>c.full);
+  const free = priced && courseNet<=0 && uCost===0;   // 全免：課程被券全抵 + 冇買制服
+  const allWait = (q.courses||[]).length>0 && (q.courses||[]).every(c=>c.full) && uCost===0;   // 全候補且冇制服先當 $0
   const isOpen = !!S.cfg.open;
   let amtLine, payBox;
   if(!isOpen){
@@ -764,6 +831,7 @@ function renderPay(){
     <h2>${isOpen?'付款':'預覽・提交'}</h2>
     <div class="sumline"><span class="k">學生</span><span>${esc(S.family.name)}</span></div>
     <div class="sumline"><span class="k">課程</span><span>${(q.courses||[]).map(c=>esc(c.sport)+(c.full?'（候補）':'')).join('、')}</span></div>
+    ${uCost>0?`<div class="sumline"><span class="k">制服${S.uniform&&S.uniform.opt===3?'＋速度器':''}</span><span>${S.uniform&&S.uniform.size?esc(S.uniform.size)+'・':''}${money(uCost)}</span></div>`:''}
     <div class="sumline"><span class="k">收確認電郵</span><span>${esc((S.profile&&S.profile['電郵'])||'—')}</span></div>
     <div class="sumline"><span class="k">聯絡電話</span><span>${esc((S.profile&&S.profile['聯絡電話'])||'—')}</span></div>
     ${amtLine}
@@ -789,7 +857,7 @@ function renderPay(){
 async function submitEnroll(){
   const msg=document.getElementById('py_msg'), btn=document.getElementById('py_go');
   if(!S.cfg.open){ msg.className='msg err'; msg.textContent='報名將於 8 月中開放，暫時未可提交。（你已可預覽整個流程）'; return; }
-  if(!S._payFree && ((S.quote&&S.quote.net)>0) && !S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
+  if(!S._payFree && (((S.quote&&S.quote.net)>0)||uniformCost()>0) && !S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
   btn.disabled=true; btn.textContent='提交中…';
   if(!S.clientToken) S.clientToken='ct_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);   // 防重複：逾時重撳用同一 token
   const q=S.quote||{};
@@ -800,6 +868,7 @@ async function submitEnroll(){
       courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
       phone:(S.profile&&S.profile['聯絡電話'])||'', clientToken:S.clientToken,
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
+      uniformOpt:(S.uniform&&S.uniform.opt)||0, uniformSize:(S.uniform&&S.uniform.size)||'', uniformCost:uniformCost(),
       payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId, agree:'同意' });
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.textContent='網絡逾時／中斷，未提交。請確認網絡後再撳一次（唔會重複收費）。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
