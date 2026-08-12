@@ -24,6 +24,8 @@ const CHECKS = [
   { file:'coach.html', fn:'renderHome', must:'renderVenueAdmin(',   why:'教練「上課地點」設定入口（曾一度消失）' },
   { file:'coach.html', fn:'loadRollSession', must:'showSummerMakeups(', why:'主點名表 openRoll 顯示暑期跳繩補堂生（曾只加喺另一 view 漏咗主點名）' },
   { file:'coach.html', fn:'renderHome', must:'renderReturnsPanel(', why:'教練回歸核實面板入口（家長交回歸付款後教練核實）' },
+  { file:'coach.html', fn:'renderHome', must:'renderManualLeaveMakeup(', why:'手動請假／補堂面板入口（WhatsApp fallback:打名+日期+當日班別）' },
+  { file:'coach.html', fn:'mlSubmit', must:'coachAddMakeup', why:'手動補堂經 coachAddMakeup(教練代加)；請假經 markLeave' },
   { file:'is-leave-makeup.html', fn:'renderParent', must:'S.notices', why:'暑期家長端顯示通知（曾只彈 modal 通知、漏咗普通通知 inline 顯示）' },
   { file:'is-parent.html', fn:'renderParent', must:'S.notices', why:'恆常家長端顯示通知' },
   // 補堂「開課前 6 小時不可取消 + 少於6h申請要提示」彈窗（老闆 2026-08-05 定；所有彈窗要按 OK）
