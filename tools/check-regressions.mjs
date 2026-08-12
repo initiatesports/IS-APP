@@ -68,6 +68,8 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'renderTerms', must:'setupSigPad', why:'聲明頁加家長手寫簽名板(合約PDF嵌入)' },
   { file:'is-enroll.html', fn:'renderTerms', must:'sigDataUrl', why:'未簽名唔可以去付款(手寫簽名必填)' },
   { file:'is-enroll.html', fn:'submitEnroll', must:'signImg', why:'提交把家長手寫簽名+注意事項同意傳後端' },
+  { file:'is-enroll.html', fn:'renderProfile', must:'pf_m_', why:'健康狀況做多選checkbox(跟舊form 11項),唔再淨係text' },
+  { file:'is-enroll.html', fn:'saveProfileGo', must:'pfMultiVal', why:'健康多選收集(checkbox+其他)入 profile' },
   { file:'is-enroll.html', fn:'renderProfileScreen', must:'renderProfile', why:'新舊生都用全表單(舊生預填免重打,健康問卷必填)' },
   { file:'is-enroll.html', fn:'renderProfilePreview', must:'editField', why:'舊生資料逐項「修改」（少填）' },
   { file:'is-enroll.html', fn:'submitEnroll', must:'clientToken', why:'防重複提交：逾時重撳用同一 token（後端 dedupe）' },
