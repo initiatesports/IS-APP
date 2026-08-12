@@ -43,6 +43,12 @@ const FUTURE_BAD = { "出席": 1, "補堂": 1, "加操": 1 };
 // 歷史補完截止日（同後端 INFER_PRESENT_BEFORE 一致）：此日期前嘅過往堂唔應再有空白。
 const HIST_CUTOFF = "2026-06-16";
 
+// ⏱ 每個請求硬性 timeout：Apps Script 偶然會吊死條 socket，冇 timeout 嘅 fetch 會永遠等落去，
+// 令成個每日 QA 靜靜卡死、由頭到尾唔出報告（2026-08-12 實測卡咗 1h55m，CPU 得 0.9s＝純等網絡）。
+// 有 timeout 就會拋 error → 行返原本嘅重試邏輯 → 最壞情況變一個 ERR，唔會拖冧成次檢測。
+const LOGIN_MS = 90000;    // 單個家長登入
+const HEAVY_MS = 180000;   // 教練 load / audit（讀全校 grid，正常較慢）
+
 async function callLogin(exec, name, cred) {
   let lastErr = "";
   for (let attempt = 0; attempt < 3; attempt++) {   // 重試 3 次，防短暫網絡
@@ -52,6 +58,7 @@ async function callLogin(exec, name, cred) {
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "login", name, last4: cred }),
         redirect: "follow",
+        signal: AbortSignal.timeout(LOGIN_MS),
       });
       const txt = await res.text();
       try { return JSON.parse(txt); } catch { lastErr = "NON_JSON:" + txt.slice(0, 80); }
@@ -71,6 +78,7 @@ async function callLoad(exec, coachPass) {
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "load", coachPass }),
         redirect: "follow",
+        signal: AbortSignal.timeout(HEAVY_MS),
       });
       const txt = await res.text();
       try { return JSON.parse(txt); } catch { /* 重試 */ }
@@ -83,7 +91,10 @@ async function callLoad(exec, coachPass) {
 async function callAudit(exec, coachPass) {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      const res = await fetch(exec + "?" + new URLSearchParams({ action: "audit", coachPass }), { redirect: "follow" });
+      const res = await fetch(exec + "?" + new URLSearchParams({ action: "audit", coachPass }), {
+        redirect: "follow",
+        signal: AbortSignal.timeout(HEAVY_MS),
+      });
       const txt = await res.text();
       try { return JSON.parse(txt); } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
@@ -104,9 +115,12 @@ const clsDate = {};   // 恆常#4 班別×日期點名覆蓋：偵測整班漏�
 
 async function sweep(label, exec, rows, withPin) {
   const students = uniqByName(rows);
-  let okCount = 0;
+  let okCount = 0, idx = 0;
   for (const [name, last4] of students) {
     const cred = (withPin && PIN4[pad4(last4)]) ? PIN4[pad4(last4)] : pad4(last4);
+    // 進度寫 stderr（唔影響 stdout 尾行嘅 JSON 解析）；只出序號唔出姓名（私隱）。
+    // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
+    process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
     const r = await callLogin(exec, name, cred);
     if (!r || !r.ok) { add("ERR", label, name, "登入失敗：" + ((r && r.err) || "?")); continue; }
     okCount++;
