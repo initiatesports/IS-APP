@@ -108,7 +108,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-uniform';
+const FRONTEND_VERSION='enroll-2026-08-12-notes-sign';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -753,7 +753,36 @@ async function renderFee(){
       <button class="btn" id="fee_go">下一步（同意條款）</button>
     </div>
   </div>`;
-  document.getElementById('fee_go').onclick=renderTerms;
+  document.getElementById('fee_go').onclick=renderNotes;
+}
+/* ════ ⑤B 課程注意事項（家長逐項閱讀及同意；合約 PDF 會列明）════ */
+function renderNotes(){
+  const common=S.cfg.commonNotes||[];
+  const picked=(S.cfg.courses||[]).filter(c=>S.courses.indexOf(c.id)>=0);
+  const seen={}, blocks=[];
+  picked.forEach(c=>{ if(seen[c.sport]) return; seen[c.sport]=1; const ns=c.notes||[]; if(ns.length) blocks.push({sport:c.sport,notes:ns}); });
+  const commonHtml=common.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="nt_chk" data-k="c${i}"><span>${esc(s)}</span></label></div>`).join('');
+  const sportHtml=blocks.map((bk,bi)=>`<div class="fld" style="margin-top:8px"><label>${esc(bk.sport)}　專屬注意事項</label>
+    ${bk.notes.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="nt_chk" data-k="s${bi}_${i}"><span>${esc(s)}</span></label></div>`).join('')}</div>`).join('');
+  app.innerHTML=`
+  <div class="card">
+    ${steps(5)}
+    <h2>課程注意事項</h2>
+    <p class="hint">為咗學員安全，以下每項都要<b>逐項剔選同意</b>先可以繼續（會列入報名確認書）。</p>
+    ${common.length?`<div class="fld"><label>共通注意事項（所有課程）</label>${commonHtml}</div>`:''}
+    ${sportHtml}
+    <div class="msg" id="nt_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderFee()">返回</button>
+      <button class="btn" id="nt_go">下一步（聲明及簽署）</button>
+    </div>
+  </div>`;
+  document.getElementById('nt_go').onclick=()=>{
+    const msg=document.getElementById('nt_msg');
+    const boxes=[...document.querySelectorAll('.nt_chk')];
+    if(!boxes.every(c=>c.checked)){ msg.className='msg err'; msg.textContent='請逐項剔選同意上面每一項注意事項（安全所需）。'; return; }
+    S.notesAgreed=true; saveDraft(); renderTerms();
+  };
 }
 /* ════ ⑤ 條款 ════ */
 function renderTerms(){
@@ -777,9 +806,14 @@ function renderTerms(){
     <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ <b>必須填寫真實資料</b>：請填家長本人<b>真實英文全名</b>同<b>證件號碼首 4 位</b>。如填寫虛假或亂填資料，學生於課堂發生任何意外，<b>本機構概不負責</b>。</div>
     <div class="fld"><label>家長／監護人本人英文全名 <span style="color:var(--err)">*</span></label><input id="tm_signEn" value="${sEn}" placeholder="e.g. Chan Tai Man"></div>
     <div class="fld"><label>家長證件號碼首 4 位（英文字母+首3數字，e.g. A123）<span style="color:var(--err)">*</span></label><input id="tm_signId" value="${sId}" maxlength="8"></div>
+    <div class="fld"><label>家長／監護人手寫簽名 <span style="color:var(--err)">*</span></label>
+      <canvas id="sigpad" style="width:100%;height:170px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="hint">請用手指或滑鼠喺上面簽名，作正式報名確認之用。</span>
+        <button type="button" class="btn ghost sm" style="padding:3px 10px" onclick="clearSig()">清除重簽</button></div></div>
     <div class="msg" id="tm_msg"></div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderFee()">返回</button>
+      <button class="btn ghost sm" onclick="renderNotes()">返回</button>
       <button class="btn" id="tm_go">下一步（付款）</button>
     </div>
   </div>`;
@@ -791,9 +825,31 @@ function renderTerms(){
     S.signEn=document.getElementById('tm_signEn').value.trim();
     S.signId=document.getElementById('tm_signId').value.trim();
     if(!S.signEn||!S.signId){ msg.className='msg err'; msg.textContent='請填家長本人真實英文全名同證件首 4 位。'; return; }
-    S.agree=true; renderPay();
+    const sig=sigDataUrl();
+    if(!sig){ msg.className='msg err'; msg.textContent='請喺簽名格簽上家長／監護人簽名。'; document.getElementById('sigpad').scrollIntoView({block:'center'}); return; }
+    S.signImg=sig; S.agree=true; renderPay();
   };
+  setupSigPad();
 }
+/* 手寫簽名板：支援滑鼠＋觸控；toDataURL 出 PNG 畀後端嵌入合約 PDF */
+let _sig={draw:false,has:false,ctx:null,cv:null,w:0,h:0};
+function setupSigPad(_retry){
+  const cv=document.getElementById('sigpad'); if(!cv) return;
+  const rect=cv.getBoundingClientRect(); const ratio=window.devicePixelRatio||1;
+  if(rect.width<50){ if(!_retry) requestAnimationFrame(()=>setupSigPad(true)); return; }   // layout 未 ready → 下一幀重試（防 0 闊度爛簽名板）
+  cv.width=Math.round(rect.width*ratio); cv.height=Math.round(rect.height*ratio);
+  const ctx=cv.getContext('2d'); ctx.scale(ratio,ratio); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0f2233';
+  _sig={draw:false,has:false,ctx,cv,w:rect.width,h:rect.height};
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const t=(e.touches&&e.touches[0])?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; };
+  const start=e=>{ e.preventDefault(); _sig.draw=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); };
+  const move=e=>{ if(!_sig.draw) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); _sig.has=true; };
+  const end=()=>{ _sig.draw=false; };
+  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
+  if(S.signImg){ const img=new Image(); img.onload=()=>{ ctx.drawImage(img,0,0,_sig.w,_sig.h); _sig.has=true; }; img.src=S.signImg; }
+}
+function clearSig(){ if(_sig.ctx&&_sig.cv) _sig.ctx.clearRect(0,0,_sig.cv.width,_sig.cv.height); _sig.has=false; S.signImg=''; }
+function sigDataUrl(){ return (_sig.has&&_sig.cv)?_sig.cv.toDataURL('image/png'):''; }
 /* ════ ⑥ 付款 + 提交 ════ */
 function renderPay(){
   const q=S.quote||{};
@@ -869,7 +925,8 @@ async function submitEnroll(){
       phone:(S.profile&&S.profile['聯絡電話'])||'', clientToken:S.clientToken,
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
       uniformOpt:(S.uniform&&S.uniform.opt)||0, uniformSize:(S.uniform&&S.uniform.size)||'', uniformCost:uniformCost(),
-      payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId, agree:'同意' });
+      payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId,
+      signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', agree:'同意' });
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.textContent='網絡逾時／中斷，未提交。請確認網絡後再撳一次（唔會重複收費）。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
