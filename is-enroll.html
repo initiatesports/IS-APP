@@ -85,7 +85,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
   <div class="foot">INITIATE SPORTS · 青衣兒童運動教學<br>查詢 WhatsApp 6331 7403 · <span id="ver" style="color:#c3ccd0"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-12-autosync';
+const FRONTEND_VERSION='enroll-2026-08-12-formfields';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -122,8 +122,13 @@ const PFIELDS=[
   {k:'emgName',  h:'緊急聯絡人',label:'緊急聯絡人姓名', req:1},
   {k:'emgPhone', h:'緊急電話', label:'緊急聯絡人電話', req:1},
   {k:'emgRel',   h:'關係',     label:'與參加者關係'},
+  {k:'grade',    h:'就讀年級', label:'2025 年 9 月起就讀年級（如 一年級）', req:1},
+  {k:'uniform',  h:'訓練隊服SIZE', label:'訓練隊服 Size（如 童裝 M／成人 S，可稍後補）'},
+  {k:'parentName',h:'家長姓名', label:'家長／監護人姓名', req:1},
   {k:'health',   h:'健康狀況', label:'健康狀況（如無填「無」）'},
-  {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無填「無」）'}
+  {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無填「無」）'},
+  {k:'source',   h:'認識途徑', label:'怎樣認識我哋？', sel:['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他']},
+  {k:'referrer', h:'推薦人',   label:'推薦人姓名（選填・享推薦獎賞）'}
 ];
 
 /* ════ 課程介紹（同官網一致：COURSE_ITEMS + COURSE_DETAIL）════ */
@@ -521,12 +526,19 @@ function renderProfile(){
     return `<div class="fld"><label>${lab(f)}</label><input id="pf_${f.k}" value="${val(f)}"></div>`;
   }).join('');
   const known = '<p class="hint">第一次報名，填一次基本資料就得（<span style="color:var(--err)">*</span> 為必填），之後報其他課程都唔使再填。下一步就會見到<b>課程、名額同全部收費</b>，你可以睇清楚先決定。</p>';
+  const parqQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
+  const parqHtml=`<div class="fld"><label>健康篩查 PAR-Q（未滿 18 歲由家長填）<span style="color:var(--err)">*</span></label>
+    <div class="terms" style="max-height:150px;font-size:12px">${parqQ.map((q,i)=>`<p>${i+1}. ${esc(q)}</p>`).join('')}</div>
+    <label class="chk"><input type="checkbox" id="pf_parqok"><span>以上 7 項我全部答「否」，健康良好、適合參加運動。</span></label>
+    <input id="pf_parqnote" placeholder="如有任何一項為「是」，請喺此註明（並先徵詢醫生）">
+  </div>`;
   app.innerHTML=`
   <div class="card">
     ${steps(4)}
     <h2>學生資料 · <em>${esc(S.family.name)}</em></h2>
     ${known}
     ${fieldsHtml}
+    ${parqHtml}
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderFee()">返回</button>
       <button class="btn" id="pf_go">儲存並繼續</button>
@@ -552,9 +564,14 @@ async function saveProfileGo(){
     if(ph){ if(ph.length<8){ msg.className='msg err'; msg.textContent='請填完整 8 位聯絡電話。'; phoneEl.focus(); return; }
       if(ph.slice(-4)!==S.family.last4){ msg.className='msg err'; msg.textContent='聯絡電話最後 4 位要同頭先輸入嘅一致（'+S.family.last4+'）。'; phoneEl.focus(); return; } } }
   // 新生：基本欄要填（含電話＋緊急聯絡，體育課安全所需）
-  if(S.isNew){ const need=[['phone','家長聯絡電話'],['nameEn','英文姓名'],['gender','性別'],['birthYear','出生年份'],['school','就讀學校'],['emgName','緊急聯絡人姓名'],['emgPhone','緊急聯絡人電話']];
+  if(S.isNew){ const need=[['phone','家長聯絡電話'],['nameEn','英文姓名'],['gender','性別'],['birthYear','出生年份'],['school','就讀學校'],['grade','就讀年級'],['parentName','家長／監護人姓名'],['emgName','緊急聯絡人姓名'],['emgPhone','緊急聯絡人電話']];
     for(let i=0;i<need.length;i++){ const el=document.getElementById('pf_'+need[i][0]);
       if(!el||!el.value.trim()){ msg.className='msg err'; msg.textContent='請填「'+need[i][1]+'」。'; if(el)el.focus(); return; } } }
+  // 健康篩查 PAR-Q（新生表有）：全部否要剔選；如有「是」要註明
+  const parqokEl=document.getElementById('pf_parqok');
+  if(parqokEl){ const note=(document.getElementById('pf_parqnote')||{}).value||'';
+    if(!parqokEl.checked && !note.trim()){ msg.className='msg err'; msg.textContent='請完成健康篩查 PAR-Q：全部答「否」請剔選；如有任何一項為「是」請喺下面註明。'; return; }
+    body.parq = parqokEl.checked ? '全部否（適合運動）' : ('有項為是：'+note.trim()); edited['健康問卷(PAR-Q)']=body.parq; }
   btn.disabled=true; btn.textContent='儲存中…';
   let res; try{ res=await apiPost(body); }
   catch(e){ btn.disabled=false; btn.textContent='繼續'; msg.className='msg err'; msg.textContent='網絡逾時，請再試。'; return; }
