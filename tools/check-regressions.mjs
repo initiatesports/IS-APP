@@ -55,6 +55,8 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'renderPriceTable', must:'renderCourses', why:'價格表「開始報名」→揀課（先睇齊價再揀）' },
   { file:'is-enroll.html', fn:'boot', must:'renderHome', why:'首頁課程介紹做入口（睇完先報名）' },
   { file:'is-enroll.html', fn:'renderHome', must:'openCourseDetail', why:'首頁課程卡可開詳細介紹' },
+  { file:'is-enroll.html', fn:'boot', must:'loadOfficialCourses', why:'開頁自動同步官網課程介紹(官網一改報名頁跟住改)' },
+  { file:'is-enroll.html', fn:'loadOfficialCourses', must:'extractLiteral', why:'括號平衡掃描可靠抽官網課程內容(唔用脆弱regex)' },
   { file:'is-enroll.html', fn:'renderFee', must:'renderProfileScreen', why:'新次序：睇費用後先去填/核對資料' },
   { file:'is-enroll.html', fn:'renderProfileScreen', must:'renderProfilePreview', why:'舊生走預覽、新生走填表（renderProfileScreen 分流）' },
   { file:'is-enroll.html', fn:'renderProfilePreview', must:'editField', why:'舊生資料逐項「修改」（少填）' },
