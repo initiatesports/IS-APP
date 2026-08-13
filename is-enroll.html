@@ -26,7 +26,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 .steps .s.on{background:var(--teal);}
 .fld{margin-bottom:12px;}
 .fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;font-weight:600;}
-.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;font-size:15px;font-family:inherit;background:#fff;color:var(--ink);}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--teal);}
 .row2{display:flex;gap:10px;} .row2 .fld{flex:1;}
 .btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;padding:14px;font-family:inherit;cursor:pointer;margin-top:4px;}
@@ -52,7 +52,7 @@ header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 .pvv{display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;text-align:right;min-width:0;}
 .pvtext{font-size:14px;font-weight:600;overflow-wrap:anywhere;}
 .pvedit{background:none;border:none;color:var(--teal);font-size:12.5px;font-weight:700;cursor:pointer;padding:2px 4px;flex-shrink:0;white-space:nowrap;}
-.pvv input,.pvv select{width:100%;padding:8px 10px;border:1.5px solid var(--teal);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
+.pvv input,.pvv select{width:100%;padding:8px 10px;border:1.5px solid var(--teal);border-radius:9px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);}
 .cd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .cd-title{font-size:18px;font-weight:800;color:var(--ink);}
 .cd-sum{font-size:13.5px;color:var(--teal-dark);background:var(--teal-dim);border-radius:11px;padding:11px 13px;margin:10px 0 4px;line-height:1.55;font-weight:600;}
@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-13-jersey';
+const FRONTEND_VERSION='enroll-2026-08-13-security';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -157,7 +157,7 @@ const PFIELDS=[
   {k:'emgName',  h:'緊急聯絡人',label:'緊急聯絡人姓名', req:1},
   {k:'emgPhone', h:'緊急電話', label:'緊急聯絡人電話', req:1},
   {k:'emgRel',   h:'關係',     label:'緊急聯絡人與參加者關係', req:1},
-  {k:'grade',    h:'就讀年級', label:'2025 年 9 月起就讀年級（如 一年級）', req:1},
+  {k:'grade',    h:'就讀年級', label:'2026 年 9 月起就讀年級（如 一年級）', req:1},
   {k:'parentName',h:'家長姓名', label:'家長／監護人姓名', req:1},
   {k:'health',   h:'健康狀況', label:'健康狀況（可多選；如全部沒有，請剔「以上不適用」）', req:1, other:1,
     multi:['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'], none:'以上不適用'},
@@ -421,7 +421,7 @@ function renderPriceTable(){
   // 只顯示每個課程一次（同名去重）、唔顯示時間
   const seen={}, uniq=[]; cs.forEach(c=>{ if(!seen[c.sport]){ seen[c.sport]=1; uniq.push(c); } });
   const rows=uniq.map(c=>{
-    const p = isOld ? (c.priceOld||c.price) : c.price;
+    const p = isOld ? ((S.oldPrices&&S.oldPrices[c.id])||c.priceOld||c.price) : c.price;   // 舊生：優先 identify 送嘅 oldPrices，兼容舊後端 c.priceOld
     const sub = c.bundle ? '每期 bundle・含任跳 1 小時' : `以全期 ${c.sessions||8} 堂為例`;
     return `<div class="q"><span>${esc(c.sport)}</span>
       <span style="text-align:right">${p>0?money(p):'待定'}<br><span style="color:var(--mut);font-size:11px;font-weight:400">${sub}</span></span></div>`;
@@ -432,7 +432,7 @@ function renderPriceTable(){
     <h2>收費一覽 ${isOld?'<span class="pill">舊學員價</span>':''}</h2>
     <p class="hint">以下係 <b>${esc(S.family.name)}</b> 各課程嘅全期學費。</p>
     <div class="quote">${rows}</div>
-    <div class="banner" style="margin-top:12px">💡 <b>多堂優惠</b>：每期報 <b>2 班或以上</b>，每多一班即減 <b>$100</b>（不封頂）；持優惠券／推薦最多再抵 <b>$200</b>，可疊加。</div>
+    <div class="banner" style="margin-top:12px">💡 <b>多堂優惠</b>：<b>同一位學生</b>每期報 <b>2 班或以上</b>，每多一班即減 <b>$100</b>（不封頂）；持優惠券／推薦最多再抵 <b>$200</b>，可疊加。<span style="color:var(--mut)">（多堂折以同一學生報多班計，兄弟姊妹分開報名不合併。）</span></div>
     <div class="banner" style="margin-top:10px">🎁 <b>推薦獎賞</b>（只限被推薦嘅<b>新生第一次</b>報名／購買時適用，唔係每次都送）：
       <br>• 推薦新生報 Group class（團體班）→ 推薦人可獲 <b>$100 學費優惠</b>
       <br>• 推薦新生第一次買 10 堂私人訓練 → 推薦人可獲 <b>1 堂私人訓練</b>
@@ -488,12 +488,13 @@ async function doIdentify(){
   if(phone.length<8){ msg.className='msg err'; msg.textContent='請填完整 8 位手提電話。'; return; }
   const last4=phone.slice(-4);
   const btn=document.getElementById('li_go'); btn.disabled=true; btn.textContent='核對中…';
-  let res; try{ res=await apiGet({action:'enrollIdentify', name, last4}); }
+  let res; try{ res=await apiPost({action:'enrollIdentify', name, last4}); }   // POST：last4(等同密碼)+姓名唔好經 GET query 入伺服器 log
   catch(e){ btn.disabled=false; btn.textContent='下一步'; msg.className='msg err'; msg.textContent='連線逾時，請再試。'; return; }
   btn.disabled=false; btn.textContent='下一步';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'核對失敗，請確認姓名同電話。'; return; }
   S.family={name, phone, last4, isOld:!!res.isOld, tier:res.tier||'新生'};
   S.isNew=!res.known;
+  S.oldPrices=res.oldPrices||null;   // 舊生價 map（只有已驗證舊生先攞到；新生為 null）→ 課程卡/收費一覽用呢個顯示舊生價
   S.profile=res.profile||null;
   if(S.isNew){ S.profile=S.profile||{}; if(!S.profile['聯絡電話']) S.profile['聯絡電話']=phone; }   // 新生：登入已畀電話，後續預填唔使再入
   S.courses=[]; S.quote=null; S.payImg='';   // 換學生時清空上一位嘅揀選
@@ -506,7 +507,7 @@ async function lookupMine(){
   const msg=document.getElementById('li_msg');
   if(!name||last4.length<4){ msg.className='msg err'; msg.textContent='請填學生中文全名同家長手提電話。'; return; }
   const btn=document.getElementById('li_look'); btn.disabled=true; btn.textContent='查詢中…';
-  const res=await apiGet({action:'enrollMyRecords', name, last4});
+  const res=await apiPost({action:'enrollMyRecords', name, last4});
   btn.disabled=false; btn.textContent='查詢我嘅報名狀態';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'查詢失敗。'; return; }
   const recs=res.records||[];
@@ -708,8 +709,8 @@ function renderCourses(){
   const cs=S.cfg.courses||[];
   const list=cs.map(c=>{
     const on=S.courses.indexOf(c.id)>=0;
-    // 只顯示登入者自己身份嘅價錢：舊生用 priceOld，新生用 price；兩者唔並列（新生睇唔到有平過嘅價）
-    const myPrice = (S.family && S.family.isOld) ? (c.priceOld||c.price) : c.price;
+    // 只顯示登入者自己身份嘅價錢：舊生用 oldPrices(驗證後先攞到)，新生用 price；兩者唔並列（新生睇唔到有平過嘅價）
+    const myPrice = (S.family && S.family.isOld) ? ((S.oldPrices&&S.oldPrices[c.id])||c.priceOld||c.price) : c.price;
     const priceTxt = myPrice>0 ? money(myPrice) : '待定';
     const noteTxt = c.bundle ? '含任跳 1 小時・需遴選' : '';
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
@@ -759,7 +760,7 @@ function renderCourses(){
 /* ════ ④ 費用 ════ */
 async function renderFee(){
   app.innerHTML=`<div class="card">${steps(5)}<div class="load">計緊費用…</div></div>`;
-  const res=await apiGet({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
+  const res=await apiPost({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
   if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
   S.quote=res;
   const cs = res.courses||[];
@@ -995,6 +996,7 @@ function renderDone(res){
     <div class="rid">${esc(res.id||'')}</div>
     ${dedup}${wl}
     <p class="hint">我哋已收到你嘅報名${res.dedupe?'':'及付款截圖'}，會盡快核實，確認後以電郵通知。開課詳情、請假補堂會另行通知。多謝報名 INITIATE SPORTS！</p>
+    ${(S.profile&&S.profile['電郵'])?`<p class="hint" style="color:var(--teal-dark)">📧 一封<b>含合約 PDF</b>嘅確認電郵已即時發送到 <b>${esc(S.profile['電郵'])}</b>（如收唔到請檢查垃圾郵件，或 WhatsApp 我哋補發）。</p>`:''}
     <a class="btn" style="margin-top:14px;display:block;text-decoration:none;box-sizing:border-box" href="${waLink('報名確認 '+esc(res.id||'')+'：'+esc((S.family&&S.family.name)||''))}" target="_blank">WhatsApp 查詢 / 傳收據</a>
     <button class="btn ghost" style="margin-top:10px" onclick="reportAnother()">➕ 再報一位學生（免重新輸入電話）</button>
   </div>`;
