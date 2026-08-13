@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-13-manualmk3';
+const FRONTEND_VERSION = 'coach-2026-08-13-genfee';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -948,6 +948,7 @@ function renderHome(){
   try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }   // regression 修復:發佈/刪除通知面板入口(「首頁精簡」移除咗、重要通知彈窗又啟用但冇補返入口)
   try{ renderReturnsPanel(); }catch(e){ console.error('renderReturnsPanel',e); }   // 回歸學生:教練核實面板(家長已交回歸付款,教練端核實)
   try{ renderManualLeaveMakeup(); }catch(e){ console.error('renderManualLeaveMakeup',e); }   // ✍️ 手動請假／補堂(WhatsApp fallback,打名+日期+當日班別)
+  try{ renderGenFeePanel(); }catch(e){ console.error('renderGenFeePanel',e); }   // 🧮 生成本期學費(試算/正式生成)
 }
 let RETURNS_CACHE=[];
 /* 退出可回歸學生:家長交回歸付款後,教練喺呢度睇待核實申請+付款截圖→核實即加入班別變正常學生。
@@ -1036,6 +1037,39 @@ async function mlSubmit(kind){
   toast(name+' '+word+' ✓','✓');
   const ni=document.getElementById('ml-name'); if(ni) ni.value='';
   try{ await loadFromSheets(); }catch(e){}   // 重載令點名表／補堂即時反映
+}
+/* 🧮 生成本期學費（老闆 2026-08-13）：排堂/堂數已定就生成該期學費 → 家長端即刻見到、可繳費。
+   後端 genPeriod(dry=試算唔寫入／正式生成前自動備份)。 */
+function renderGenFeePanel(){
+  let host=document.getElementById('home-genfee');
+  if(!host){ const anchor=document.getElementById('home-manualmk')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-genfee'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
+  if(!host) return;
+  host.innerHTML=`
+  <div class="section-header">🧮 生成本期學費</div>
+  <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">排堂／堂數已定就生成該期學費，家長端即刻見到、可繳費。<b>建議先「試算」核對金額</b>，啱先「正式生成」（會自動先備份）。</div>
+    <input id="gf-period" value="2026 9-10月" placeholder="期數，例：2026 9-10月" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:10px;font-family:inherit;font-size:14px">
+    <div style="display:flex;gap:8px">
+      <button onclick="gfRun(true)" style="flex:1;padding:12px;border:1px solid var(--cyan,#28B8C8);border-radius:10px;background:transparent;color:var(--cyan,#28B8C8);font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🧮 試算</button>
+      <button onclick="gfRun(false)" style="flex:1;padding:12px;border:0;border-radius:10px;background:var(--green,#2ecc71);color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">💾 正式生成</button>
+    </div>
+    <div id="gf-msg" style="margin-top:9px;font-size:13px"></div>
+    <div id="gf-lines" style="margin-top:8px;font-size:12px;max-height:240px;overflow:auto;line-height:1.6"></div>
+  </div>`;
+}
+async function gfRun(dry){
+  const period=((document.getElementById('gf-period')||{}).value||'').trim();
+  const msg=document.getElementById('gf-msg'), lines=document.getElementById('gf-lines');
+  if(!period){ msg.style.color='var(--red,#f87171)'; msg.textContent='請輸入期數'; return; }
+  if(!dry && !confirm('正式生成「'+period+'」學費？\n會覆寫該期學費行（已自動先備份）。建議你已經「試算」核對過金額。')) return;
+  msg.style.color='var(--muted,#888)'; msg.textContent=dry?'試算中…':'生成中…（會先備份，請等一等）'; lines.innerHTML='';
+  let r; try{ r=await apiPost({action:'genPeriod', period, dry:(dry?'1':''), coachPass:cpass()}); }catch(e){ r=null; }
+  if(r&&r.err==='密碼錯誤'){ COACH_PASS_RT=''; try{localStorage.removeItem('is_cpass');}catch(e){} toast('請重新輸入教練密碼','⚠️'); coachLogout(); return; }
+  if(!r||!r.ok){ msg.style.color='var(--red,#f87171)'; msg.textContent='失敗'+((r&&r.err)?'：'+r.err:'，請再試'); return; }
+  msg.style.color='var(--green,#2ecc71)';
+  msg.textContent=(dry?'🧮 試算結果（未寫入）':'✅ 已生成')+'：新增 '+r.added+'、更新 '+r.updated+'、略過 '+r.skipped+(r.voided?('、豁免 '+r.voided):'')+' 筆';
+  lines.innerHTML=(r.lines||[]).map(l=>`<div>${String(l).replace(/</g,'&lt;')}</div>`).join('');
+  if(!dry){ toast(period+' 學費已生成 ✓','✓'); try{ await loadFromSheets(); }catch(e){} }
 }
 let VENUES_CACHE=[];
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
