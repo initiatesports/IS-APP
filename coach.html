@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-13-genfee';
+const FRONTEND_VERSION = 'coach-2026-08-13-c8c9';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -464,9 +464,13 @@ const CLASSES = {
   c6: { label:'星期六 11:00–12:00',  day:'Sat', dayZh:'星期六', time:'11am–12',
         students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅'] },
   c7: { label:'星期六 3:00–4:00 PM', day:'Sat', dayZh:'星期六', time:'3–4pm',
-        students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏','潘洛詩'] }
+        students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏','潘洛詩'] },
+  c8: { label:'星期四 6:00–7:00 PM', day:'Thu', dayZh:'星期四', time:'6–7pm',
+        students:[] },                                   // 2026-09 新開：花式跳繩星期四（rope-thu6）
+  c9: { label:'星期五 6:00–8:00 PM（進階）', day:'Fri', dayZh:'星期五', time:'6–8pm',
+        students:[] }                                    // 花式跳繩進階班（rope-adv-fri，10月開始・需遴選）
 };
-const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6 };
+const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6, c8:4, c9:5 };
 
 const PUBLIC_HOLIDAYS = new Set(['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19']);
 const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
