@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-13-p2';
+const FRONTEND_VERSION='enroll-2026-08-13-weather';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -393,10 +393,44 @@ function renderHome(){
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">我要報名 →</button>
     <button class="btn ghost" id="hm_look" style="margin-top:10px">查詢我嘅報名狀態</button>
+    <button class="btn ghost" id="hm_weather" style="margin-top:10px">🌧 惡劣天氣特別安排</button>
   </div>`;
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_look').onclick=renderLogin;
+  document.getElementById('hm_weather').onclick=renderWeather;
 }
+/* ════ 惡劣天氣特別安排（獨立資訊頁）════ */
+function renderWeather(){
+  const items=[
+    {ic:'🌀',t:'一號及三號風球',d:'所有課程<b>如常進行</b>。',c:'ok'},
+    {ic:'🟡🔴',t:'黃色及紅色暴雨警告',d:'所有課程<b>如常進行</b>。',c:'ok'},
+    {ic:'🛑',t:'八號或以上風球',d:'風球懸掛後<b>立即停課</b>；風球除下後<b>兩小時</b>之課程將如常進行。',c:'stop'},
+    {ic:'⬛🌧',t:'黑色暴雨警告',d:'正在上課之課程<b>繼續進行至完畢</b>；未上課之課程<b>則停課</b>。黑色暴雨除下後<b>兩小時</b>之課程將如常進行。',c:'warn'}
+  ];
+  app.innerHTML=`
+  <div class="card">
+    <h2>🌧 惡劣天氣特別安排</h2>
+    <p class="hint">請家長留意以下安排；如有變動會另以 WhatsApp 群組通知。</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+      ${items.map(x=>`<div class="quote" style="padding:12px 14px">
+        <div style="font-weight:800;font-size:15px;margin-bottom:4px">${x.ic}　${x.t}</div>
+        <div style="font-size:13.5px;color:var(--ink);line-height:1.5">${x.d}</div></div>`).join('')}
+    </div>
+    <div class="banner" style="margin-top:12px;background:#fdecea;border-color:var(--err);color:var(--err)">⚠️ 所有因惡劣天氣而取消之課堂，將<b>不獲補課或退款</b>，導師會因應情況調節課程進度。</div>
+    <p class="hint" style="margin-top:10px">＊熱帶氣旋警告懸掛期間或天氣惡劣時，家長應視乎情況決定是否讓子女上課，安全第一。</p>
+    <div class="navbtns" style="margin-top:14px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回課程</button><button class="btn" onclick="renderLogin()">我要報名 →</button></div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+// 教練資歷（照官網原文；⚠️ NKT×SCS 徒手治療係私人訓練專有，兒童/團體班唔寫）
+const COACH_SECTION={icon:'👨‍🏫',h:'你嘅教練',list:[
+  '香港中文大學 運動科學（Physical Education, Exercise Science and Health）',
+  'NASM 美國國家運動醫學學院 — 國際認證私人教練',
+  'S&C 體能表現教練（Strength & Conditioning Performance Coach）',
+  '前香港隊運動員 · 逾 10 年運動員經驗、5 年教學經驗',
+  '師生比例 1:8、4 人成班，動作有人盯、練得準'
+]};
+const COACH_PRIVATE_IDS=['fit-adult','c5'];   // 私訓/成人詳情已有完整資歷(含 NKT×SCS),唔重複加
 function openCourseDetail(i){
   const co=COURSE_ITEMS[i]; if(!co) return;
   const d=COURSE_DETAIL[co.id]||{};
@@ -406,7 +440,7 @@ function openCourseDetail(i){
     <div class="cd-head"><div class="cd-title">${esc(co.name)}</div>${co.tag?`<span class="pill">${esc(co.tag)}</span>`:''}</div>
     ${meta?`<div class="hint" style="margin:6px 0 2px">${meta}</div>`:''}
     ${d.summary?`<div class="cd-sum">${esc(d.summary)}</div>`:''}
-    <div class="cd-body">${fmtCourseSections(d.sections)}</div>
+    <div class="cd-body">${fmtCourseSections((d.sections||[]).concat(COACH_PRIVATE_IDS.indexOf(co.id)>=0?[]:[COACH_SECTION]))}</div>
     <div class="navbtns" style="margin-top:14px">
       <button class="btn ghost sm" onclick="renderHome()">‹ 返回課程</button>
       <button class="btn" onclick="renderLogin()">我要報名 →</button>
