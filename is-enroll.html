@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-13-security';
+const FRONTEND_VERSION='enroll-2026-08-13-legal';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -842,9 +842,13 @@ function renderTerms(){
   const sEn=esc(S.signEn||pf['簽署人英文名']||'');   // 唔預填學生英文名，聲明人應為家長本人
   const sId=esc(S.signId||pf['證件首4']||'');
   const st=t.statements||[];
-  const consents=st.slice(0,4);   // 健康聲明／拍攝公開／私隱／資料屬實 —— 逐項分開同意（安全所需）
-  const ops=st.slice(4);          // 營運條款（成班／退款／請假補堂／天氣／器材／接送）
-  const consentBoxes=consents.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="tm_consent" data-i="${i}"><span>${esc(s)}</span></label></div>`).join('');
+  const consents=st.slice(0,4);   // 健康聲明／拍攝公開／私隱／資料屬實
+  const ops=st.slice(4);          // 營運條款（成班／退款／請假補堂／天氣／場地／服飾／器材／暫停／接送／風險／PDPO 等）
+  // 拍攝及公開＝選擇性同意（PCPD：同意須自願，不影響報名）；其餘 3 項（健康／私隱／資料屬實）維持必剔
+  const reqConsents=consents.map((s,i)=>({s,i})).filter(x=>!/拍攝/.test(x.s));
+  const photoC=consents.map((s,i)=>({s,i})).find(x=>/拍攝/.test(x.s));
+  const consentBoxes=reqConsents.map(x=>`<div class="cbox"><label class="chk"><input type="checkbox" class="tm_consent" data-i="${x.i}"><span>${esc(x.s)}</span></label></div>`).join('')
+    + (photoC?`<div class="cbox" style="border-color:var(--teal)"><label class="chk"><input type="checkbox" id="tm_photo" checked><span>${esc(photoC.s)}</span></label><div class="hint" style="margin-left:26px;margin-top:4px">📷 此項為<b>選擇性</b>——不同意亦可完成報名，取消勾選即表示<b>不同意</b>拍攝及公開。</div></div>`:'');
   app.innerHTML=`
   <div class="card">
     ${steps(6)}
@@ -872,6 +876,7 @@ function renderTerms(){
     const msg=document.getElementById('tm_msg');
     const allConsent=[...document.querySelectorAll('.tm_consent')].every(c=>c.checked);
     if(!allConsent){ msg.className='msg err'; msg.textContent='請逐項剔選同意上面每一項聲明。'; return; }
+    const _ph=document.getElementById('tm_photo'); S.photoConsent = _ph ? !!_ph.checked : true;   // 拍攝公開＝選擇性
     if(!document.getElementById('tm_ops').checked){ msg.className='msg err'; msg.textContent='請剔選同意課程條款。'; return; }
     S.signEn=document.getElementById('tm_signEn').value.trim();
     S.signId=document.getElementById('tm_signId').value.trim();
@@ -977,7 +982,7 @@ async function submitEnroll(){
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
       uniformOpt:(S.uniform&&S.uniform.opt)||0, uniformSize:(S.uniform&&S.uniform.size)||'', uniformCost:uniformCost(),
       payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId,
-      signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', agree:'同意' });
+      signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', photoConsent:(S.photoConsent===false?'0':'1'), agree:'同意' });
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.textContent='網絡逾時／中斷，未提交。請確認網絡後再撳一次（唔會重複收費）。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
