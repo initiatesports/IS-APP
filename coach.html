@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-13-manualmk';
+const FRONTEND_VERSION = 'coach-2026-08-13-manualmk2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -987,11 +987,11 @@ function renderManualLeaveMakeup(){
   if(!host) return;
   host.innerHTML=`
   <div class="section-header">✍️ 手動請假／補堂（WhatsApp 用）</div>
-  <div style="border:1px solid var(--line,#e3e3e3);border-radius:14px;padding:14px;background:var(--card,#fff)">
-    <div style="font-size:12.5px;color:var(--muted,#888);margin-bottom:10px">家長用 WhatsApp 請假／補堂時，喺呢度打學生名 → 揀日期 → 揀當日班別 → 撳「補堂」或「請假」。</div>
-    <input id="ml-name" placeholder="學生姓名（例：陳大文）" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line,#ddd);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
-    <input type="date" id="ml-date" value="${todayStr()}" onchange="mlLoadClasses()" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line,#ddd);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
-    <select id="ml-cls" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line,#ddd);border-radius:10px;margin-bottom:10px;font-family:inherit;font-size:14px"><option value="">— 先揀日期 —</option></select>
+  <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">家長用 WhatsApp 請假／補堂時，喺呢度打學生名 → 揀日期 → 揀當日班別 → 撳「補堂」或「請假」。</div>
+    <input id="ml-name" placeholder="學生姓名（例：陳大文）" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
+    <input type="date" id="ml-date" value="${todayStr()}" onchange="mlLoadClasses()" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
+    <select id="ml-cls" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:10px;font-family:inherit;font-size:14px"><option value="">— 先揀日期 —</option></select>
     <div style="display:flex;gap:8px">
       <button onclick="mlSubmit('makeup')" style="flex:1;padding:12px;border:0;border-radius:10px;background:var(--cyan,#28B8C8);color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🔵 補堂</button>
       <button onclick="mlSubmit('leave')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#E9A100;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🟡 請假</button>
