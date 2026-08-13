@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-13-weather';
+const FRONTEND_VERSION='enroll-2026-08-13-dates';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -131,6 +131,7 @@ async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
 async function apiPost(body){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
+const fmtMD=iso=>{const p=String(iso||'').split('-');return p.length>=3?(+p[1])+'/'+(+p[2]):String(iso||'');};   // 2026-09-07 → 9/7
 function steps(n){ let h='<div class="steps">'; for(let i=1;i<=6;i++) h+=`<div class="s ${i<=n?'on':''}"></div>`; return h+'</div>'; }
 // WhatsApp 帶 context 快查（一人公司靠 WhatsApp 收單）
 function waLink(txt){ return 'https://wa.me/85263317403?text='+encodeURIComponent(txt||'我想查詢 INITIATE SPORTS 恆常班報名'); }
@@ -753,16 +754,17 @@ function renderCourses(){
     const left = c.cap - (c.enrolled||0);
     const seat = c.full ? '<span style="color:var(--err);font-weight:700">已滿（可候補）</span>'
       : (left<=3 ? `<span style="color:var(--warn);font-weight:700">尚餘 ${left} 位</span>` : `餘 ${left}/${c.cap} 位`);
-    return `<label class="course ${on?'on':''}" data-id="${c.id}">
-      <input type="checkbox" ${on?'checked':''} data-id="${c.id}">
-      <div><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜${seat}</div></div>
+    const datesLine=(c.dates&&c.dates.length)?`<div class="cm" style="color:var(--teal-dark);margin-top:3px">📅 共 ${c.dates.length} 堂：${c.dates.map(fmtMD).join('、')}</div>`:'';
+    return `<label class="course ${on?'on':''}" data-id="${c.id}" style="align-items:flex-start">
+      <input type="checkbox" ${on?'checked':''} data-id="${c.id}" style="margin-top:3px">
+      <div style="flex:1;min-width:0"><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜${seat}</div>${datesLine}</div>
       <div class="cp">${priceTxt}${noteTxt?`<div class="cm" style="font-weight:400;color:var(--mut)">${noteTxt}</div>`:''}</div></label>`;
   }).join('');
   app.innerHTML=`
   <div class="card">
     ${steps(4)}
     <h2>揀課程 <span class="pill">可多選</span></h2>
-    <p class="hint">揀你要報嘅恆常班，可一次過報多項（報 2 班或以上，每多一班即減 $100）。價錢為 2026 9-10 月全期 8 堂。</p>
+    <p class="hint">揀你要報嘅恆常班，可一次過報多項（報 2 班或以上，每多一班即減 $100）。每班已列出<b>${esc(S.cfg.period||'')}上課日期同堂數</b>（大部分全期 8 堂；網球 9 月試辦 3 堂）。</p>
     ${list}
     <div class="msg" id="cs_msg"></div>
     <div class="navbtns">
