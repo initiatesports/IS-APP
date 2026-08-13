@@ -25,6 +25,8 @@ const CHECKS = [
   { file:'coach.html', fn:'loadRollSession', must:'showSummerMakeups(', why:'主點名表 openRoll 顯示暑期跳繩補堂生（曾只加喺另一 view 漏咗主點名）' },
   { file:'coach.html', fn:'renderHome', must:'renderReturnsPanel(', why:'教練回歸核實面板入口（家長交回歸付款後教練核實）' },
   { file:'coach.html', fn:'renderHome', must:'renderManualLeaveMakeup(', why:'手動請假／補堂面板入口（WhatsApp fallback:打名+日期+當日班別）' },
+  { file:'coach.html', fn:'renderHome', must:'renderGenFeePanel(', why:'生成本期學費面板入口' },
+  { file:'coach.html', fn:'gfRun', must:'genPeriod', why:'生成學費經 genPeriod(試算/正式)' },
   { file:'coach.html', fn:'mlSubmit', must:'coachAddMakeup', why:'手動補堂經 coachAddMakeup(教練代加)；請假經 markLeave' },
   { file:'is-leave-makeup.html', fn:'renderParent', must:'S.notices', why:'暑期家長端顯示通知（曾只彈 modal 通知、漏咗普通通知 inline 顯示）' },
   { file:'is-parent.html', fn:'renderParent', must:'S.notices', why:'恆常家長端顯示通知' },
