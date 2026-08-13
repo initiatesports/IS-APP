@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parent-2026-08-09-mkvenue';
+const FRONTEND_VERSION='parent-2026-08-13-payopen';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
@@ -396,7 +396,9 @@ function currentPeriodIdx(){const t=todayStr();const cp=biMonthOf(t);const ps=te
 function visiblePeriods(){const ps=termPeriods();if(ps.length<=3)return ps;const cur=currentPeriodIdx();let start=cur-1;const lo=ps[0],hi=ps[ps.length-1];if(start<lo)start=lo;if(start>hi-2)start=hi-2;return [start,start+1,start+2];}
 // 未來期付款開放日＝該期首月前一個月「倒數第二個星期日」（如 9-10月 → 8月倒數第2個禮拜日 2026-08-23）
 function penultSundayISO(y,m){const last=new Date(y,m,0).getDate();const sun=[];for(let d=1;d<=last;d++)if(new Date(y,m-1,d).getDay()===0)sun.push(d);const dd=sun[sun.length-2]||sun[sun.length-1]||1;return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}
-function payOpenDate(idx){const y=Number(CONFIG.TERM_START.slice(0,4));const firstMonth=idx*2+1;const pm=firstMonth-1;if(pm<1)return `${y}-01-01`;return penultSundayISO(y,pm);}
+// 手動提前開放某期繳費（同後端 PAY_OPEN_OVERRIDE 一致）：老闆已知開課日期,唔使等倒數第2個禮拜日
+const PAY_OPEN_OVERRIDE={'9-10月':'2026-08-13'};
+function payOpenDate(idx){if(PAY_OPEN_OVERRIDE[periodLabel(idx)])return PAY_OPEN_OVERRIDE[periodLabel(idx)];const y=Number(CONFIG.TERM_START.slice(0,4));const firstMonth=idx*2+1;const pm=firstMonth-1;if(pm<1)return `${y}-01-01`;return penultSundayISO(y,pm);}
 // 該期付款是否已開放：現期及之前一律開放；未來期要到 payOpenDate 先開放
 function payOpen(idx){return idx<=currentPeriodIdx() ? true : todayStr()>=payOpenDate(idx);}
 /* 小朋友歷史：已出席 / 可補堂(未過期) / 已過期不能補堂 */
