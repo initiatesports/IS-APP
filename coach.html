@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-13-manualmk2';
+const FRONTEND_VERSION = 'coach-2026-08-13-manualmk3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1008,11 +1008,14 @@ async function mlLoadClasses(){
   let r; try{ r=await apiPost({action:'dailyList', date, coachPass:cpass()}); }catch(e){ r=null; }
   if(r&&r.err==='密碼錯誤'){ sel.innerHTML='<option value="">請先登入</option>'; return; }
   const list=(r&&r.ok&&r.list)?r.list:[];
-  if(!list.length){ sel.innerHTML='<option value="">當日冇恆常班</option>'; return; }
-  sel.innerHTML='<option value="">— 揀當日班別 —</option>'+list.map(g=>{
-    const cid=g.c.key||g.c.sport; const lbl=vnCidLabel(cid)+(g.c.time?(' '+g.c.time):'');
-    return `<option value="${cid}">${lbl.replace(/</g,'&lt;')}</option>`;
-  }).join('');
+  // 當日有堂嘅班先列（標「當日有堂」）；跟住列晒其餘全部 c1–c7，等補堂補去非正課日／其他班都揀得到（補堂本來就可以補去唔同日/班）。
+  const dayCids={}, opts=[];
+  list.forEach(g=>{ const cid=g.c.key||g.c.sport; dayCids[cid]=1;
+    opts.push({cid, lbl:vnCidLabel(cid)+(g.c.time?(' '+g.c.time):'')+'（當日有堂）'}); });
+  Object.keys(CLASSES||{}).forEach(cid=>{ if(dayCids[cid]) return;
+    const c=CLASSES[cid]||{}; opts.push({cid, lbl:vnCidLabel(cid)+(c.time?(' '+c.time):'')}); });
+  if(!opts.length){ sel.innerHTML='<option value="">冇班別可揀（請先載入雲端資料）</option>'; return; }
+  sel.innerHTML='<option value="">— 揀班別 —</option>'+opts.map(o=>`<option value="${o.cid}">${o.lbl.replace(/</g,'&lt;')}</option>`).join('');
 }
 async function mlSubmit(kind){
   const name=((document.getElementById('ml-name')||{}).value||'').trim();
