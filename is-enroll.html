@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-13-legal';
+const FRONTEND_VERSION='enroll-2026-08-13-p2';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -138,7 +138,7 @@ function copyTxt(t,btn){ try{ navigator.clipboard.writeText(String(t)); if(btn){
 // ── 草稿自動儲存（中途走唔使重頭；只存非敏感：家庭+已揀課程，唔存健康/證件/截圖）──
 const DRAFT_KEY='is_enroll_draft_v1';
 function saveDraft(){ try{ if(!S.family||!S.courses.length) return;
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name:S.family.name, last4:S.family.last4, phone:S.family.phone||'', courses:S.courses, ts:Date.now() })); }catch(e){} }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name:S.family.name, phone:S.family.phone||'', courses:S.courses, ts:Date.now() })); }catch(e){} }   // 唔存 last4(credential,由 phone 派生;續報靠 phone 重新認人)
 function loadDraft(){ try{ const s=localStorage.getItem(DRAFT_KEY); if(!s) return null;
   const d=JSON.parse(s); if(!d||!d.ts||Date.now()-d.ts>86400000){ localStorage.removeItem(DRAFT_KEY); return null; }
   return (d.courses&&d.courses.length)?d:null; }catch(e){ return null; } }
@@ -618,6 +618,7 @@ async function saveProfileGo(){
   const parqokEl=document.getElementById('pf_parqok');
   if(parqokEl){ const note=(document.getElementById('pf_parqnote')||{}).value||'';
     if(!parqokEl.checked && !note.trim()){ msg.className='msg err'; msg.textContent='請完成健康篩查 PAR-Q：全部答「否」請剔選；如有任何一項為「是」請喺下面註明。'; return; }
+    if(!parqokEl.checked){ if(!confirm('你喺健康篩查 PAR-Q 有項答「是」。為安全起見，本機構建議先諮詢醫生，確認學員適合參加運動。你已了解並確定繼續報名？')) return; }   // 高風險項→提示諮詢醫生
     body.parq = parqokEl.checked ? '全部否（適合運動）' : ('有項為是：'+note.trim()); edited['健康問卷(PAR-Q)']=body.parq; }
   btn.disabled=true; btn.textContent='儲存中…';
   let res; try{ res=await apiPost(body); }
