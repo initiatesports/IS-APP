@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coachsports-2026-08-12-v2';
+const FRONTEND_VERSION = 'coachsports-2026-08-13-v3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1161,7 +1161,7 @@ function taRenderClasses(){
   const date=(document.getElementById('ta-date')||{}).value||'';
   if(!date){ sel.innerHTML='<option value="">— 先揀日期 —</option>'; return; }
   const cls=vnDayClasses(date);
-  sel.innerHTML = cls.length ? ('<option value="">— 揀班別 —</option>'+cls.map(c=>{ const cc=CLASSES[c.cid]||{}; const lbl=('花式跳繩 '+(cc.dayZh||'')+' '+(cc.time||'')).trim(); return `<option value="${c.cid}">${vnEsc(lbl)}</option>`; }).join('')) : '<option value="">當日冇課堂</option>';
+  sel.innerHTML = cls.length ? ('<option value="">— 揀班別 —</option>'+cls.map(c=>{ const cc=CLASSES[c.cid]||{}; const lbl=(cc.label||((cc.sport||'')+' '+(cc.dayZh||'')+' '+(cc.time||''))).trim(); return `<option value="${c.cid}">${vnEsc(lbl)}</option>`; }).join('')) : '<option value="">當日冇課堂</option>';
 }
 async function postTimeAdj(){
   const date=(document.getElementById('ta-date')||{}).value||'', cid=(document.getElementById('ta-cid')||{}).value||'', time=((document.getElementById('ta-time')||{}).value||'').trim();
