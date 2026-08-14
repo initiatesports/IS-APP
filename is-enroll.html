@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-13-dates';
+const FRONTEND_VERSION='enroll-2026-08-14-batch';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -164,7 +164,7 @@ const PFIELDS=[
     multi:['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'], none:'以上不適用'},
   {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無請填「無」）', req:1},
   {k:'source',   h:'認識途徑', label:'怎樣認識我哋？', sel:['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他'], req:1},
-  {k:'referrer', h:'推薦人',   label:'推薦人姓名（選填・享推薦獎賞）'}
+  {k:'referrer', h:'推薦人',   label:'推薦人中文全名（選填，推薦人享推薦獎賞）'}
 ];
 
 /* ════ 課程介紹（同官網一致：COURSE_ITEMS + COURSE_DETAIL）════ */
@@ -412,6 +412,7 @@ function renderWeather(){
   <div class="card">
     <h2>🌧 惡劣天氣特別安排</h2>
     <p class="hint">請家長留意以下安排；如有變動會另以 WhatsApp 群組通知。</p>
+    <a href="img/weather.jpg" target="_blank" rel="noopener" title="點擊放大"><img class="jersey" src="img/weather.jpg" alt="INITIATE SPORTS 惡劣天氣安排海報" onerror="this.parentNode.style.display='none'"></a>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
       ${items.map(x=>`<div class="quote" style="padding:12px 14px">
         <div style="font-weight:800;font-size:15px;margin-bottom:4px">${x.ic}　${x.t}</div>
@@ -698,7 +699,7 @@ const JERSEY_SRC='img/uniform/jersey.jpg';        // 球衣套裝實物圖（老
 const SIZECHART_SRC='img/uniform/sizechart.jpg';  // 品牌尺碼表圖（老闆提供）
 function uniChartTable(rows){ return `<table class="uchart"><thead><tr><th></th>${UNIFORM_CHART.sizes.map(s=>`<th>${s}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td class="rl">${r[0]}</td>${r.slice(1).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
 const UNIFORM_OPTS=[
-  {v:1,label:'已有制服，不需購買',cost:0,oldOnly:1},
+  {v:1,label:'已有制服，不需額外購買',cost:0},   // 新舊生都可揀（老闆 2026-08-14）；新生揀此會提醒上堂必須著制服
   {v:2,label:'需購買制服',cost:160,note:'$160／套'},
   {v:3,label:'需購買制服 ＋ 跳繩速度訓練器（花式跳繩恆常班適用）',cost:220,note:'$220'}
 ];
@@ -707,7 +708,7 @@ function setUOpt(v){ const o=UNIFORM_OPTS.find(x=>x.v===v); S.uniform={opt:v,cos
 function setUSize(s){ S.uniform=S.uniform||{}; S.uniform.size=s; renderUniform(); }
 function renderUniform(){
   if(!S.uniform) S.uniform={opt:(S.isNew?2:0),cost:(S.isNew?160:0),size:''};
-  const opts=UNIFORM_OPTS.filter(o=>!(o.oldOnly&&S.isNew));   // 新生一定要買 → 唔畀「已有」
+  const opts=UNIFORM_OPTS;   // 新舊生都可揀「已有制服」（老闆 2026-08-14）；新生揀「已有」下面會提醒必須著制服上堂
   const optHtml=opts.map(o=>`<label class="uopt ${S.uniform.opt===o.v?'on':''}">
     <input type="radio" name="uopt" ${S.uniform.opt===o.v?'checked':''} onclick="setUOpt(${o.v})">
     <div style="flex:1"><div style="font-weight:700">${esc(o.label)}</div>${o.note?`<div class="cm" style="color:var(--teal-dark);font-weight:700">${o.note}</div>`:'<div class="cm" style="color:var(--mut)">免費</div>'}</div></label>`).join('');
@@ -719,9 +720,10 @@ function renderUniform(){
   <div class="card">
     ${steps(2)}
     <h2>INITIATE SPORTS 制服</h2>
-    <p class="hint">${S.isNew?'新生上堂必須穿著 INITIATE SPORTS 訓練服，請選購。':'請選擇制服安排。'}制服費用會加入最後總數。</p>
+    <p class="hint">上堂必須穿著 INITIATE SPORTS 訓練服。如未有，請選購；如已有（例如兄／姊留低、之前購買）可選「已有制服」。制服費用會加入最後總數。</p>
     <img class="jersey" src="${JERSEY_SRC}" alt="INITIATE SPORTS 制服套裝" onerror="this.style.display='none'">
     ${optHtml}
+    ${S.uniform.opt===1?`<div class="banner" style="background:#fff8e1;border-color:#e8b923;color:#8a6d00;margin-top:8px">👕 <b>提提你</b>：上堂一定要穿著 INITIATE SPORTS 制服。如未有，請返回選購。</div>`:''}
     ${sizeHtml}
     ${needSize?`<a href="${SIZECHART_SRC}" target="_blank" rel="noopener" title="點擊放大"><img class="jersey" src="${SIZECHART_SRC}" alt="INITIATE SPORTS 制服尺碼表" onerror="this.style.display='none'"></a>
     <details class="uchartwrap"><summary>📏 尺碼表文字版（可左右捲動）</summary>
@@ -746,9 +748,12 @@ function renderCourses(){
   const list=cs.map(c=>{
     const on=S.courses.indexOf(c.id)>=0;
     // 只顯示登入者自己身份嘅價錢：舊生用 oldPrices(驗證後先攞到)，新生用 price；兩者唔並列（新生睇唔到有平過嘅價）
-    const myPrice = (S.family && S.family.isOld) ? ((S.oldPrices&&S.oldPrices[c.id])||c.priceOld||c.price) : c.price;
+    const isOldView = !!(S.family && S.family.isOld);
+    const myPrice = isOldView ? ((S.oldPrices&&S.oldPrices[c.id])||c.priceOld||c.price) : c.price;
     const priceTxt = myPrice>0 ? money(myPrice) : '待定';
     const noteTxt = c.bundle ? '含任跳 1 小時・需遴選' : '';
+    // 舊生價下用小字顯示新生／暫停後重新加入價（條款8：因私人原因暫停後重新加入按新生價；老闆 2026-08-14）
+    const rejoinTxt = (isOldView && c.price>myPrice) ? `<div class="cm" style="font-weight:400;color:var(--mut);font-size:10px;line-height:1.35;margin-top:2px">新生／暫停後<br>重新加入 ${money(c.price)}</div>` : '';
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
       .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
     const left = c.cap - (c.enrolled||0);
@@ -758,7 +763,7 @@ function renderCourses(){
     return `<label class="course ${on?'on':''}" data-id="${c.id}" style="align-items:flex-start">
       <input type="checkbox" ${on?'checked':''} data-id="${c.id}" style="margin-top:3px">
       <div style="flex:1;min-width:0"><div class="cn">${esc(c.sport)}</div><div class="cm">${esc(meta)}｜${seat}</div>${datesLine}</div>
-      <div class="cp">${priceTxt}${noteTxt?`<div class="cm" style="font-weight:400;color:var(--mut)">${noteTxt}</div>`:''}</div></label>`;
+      <div class="cp">${priceTxt}${noteTxt?`<div class="cm" style="font-weight:400;color:var(--mut)">${noteTxt}</div>`:''}${rejoinTxt}</div></label>`;
   }).join('');
   app.innerHTML=`
   <div class="card">
