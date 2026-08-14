@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-14-batch';
+const FRONTEND_VERSION='enroll-2026-08-15-pdf';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -894,7 +894,7 @@ function renderTerms(){
   app.innerHTML=`
   <div class="card">
     ${steps(6)}
-    <h2>聲明及同意 <span class="pill">版本 ${esc(t.version)}</span></h2>
+    <h2>聲明及同意</h2>
     <p class="hint">以下每項都要<b>逐項剔選同意</b>先可以報名（安全所需）。</p>
     ${consentBoxes}
     <div class="fld" style="margin-top:6px"><label>課程條款（4 人成班／收費退款／請假補堂／惡劣天氣／器材／接送）</label>
