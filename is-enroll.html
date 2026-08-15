@@ -120,11 +120,13 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-adult';
+const FRONTEND_VERSION='enroll-2026-08-15-preview';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
 const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'' };
+// 預覽模式（?preview=1）：唔使填資料就可以逐頁揭落去睇 layout；一律唔會真提交/寫入。老闆 2026-08-15
+const PREVIEW = (function(){ try{ return new URLSearchParams(location.search).get('preview')==='1'; }catch(e){ return false; } })();
 
 async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
@@ -395,6 +397,7 @@ function renderHome(){
   app.innerHTML=`
   <div class="card">
     <h2>INITIATE SPORTS 課程</h2>
+    ${PREVIEW?'<div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">👁 <b>預覽模式</b>：唔使填資料，每頁撳「下一步」即可逐頁揭睇 layout；<b>唔會真提交報名</b>。</div>':''}
     <p class="hint">青衣兒童及成人運動教學。撳任何一個課程睇<b>詳細介紹</b>；睇完想報名，撳下面「我要報名」。</p>
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
@@ -442,6 +445,7 @@ function renderAdultForm(){
 }
 async function submitAdult(){
   const msg=document.getElementById('ad_msg');
+  if(PREVIEW){ msg.className='msg'; msg.textContent='（預覽模式）唔會真提交報名。'; return; }
   const ids=[...document.querySelectorAll('.ad_c:checked')].map(c=>c.getAttribute('data-id'));
   const en=document.getElementById('ad_en').value.trim();
   const mob=document.getElementById('ad_mob').value.replace(/\D/g,'');
@@ -591,6 +595,7 @@ function renderLogin(){
 }
 /* 入場：一個 form 打名+電話後4位 → 後端自動分辨新/舊生，前端據結果分流。 */
 async function doIdentify(){
+  if(PREVIEW){ S.family={name:'預覽用戶',phone:'00000000',last4:'0000',isOld:false,tier:'新生'}; S.isNew=true; S.oldPrices=null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderProfileScreen(); return; }
   const name=document.getElementById('li_name').value.trim();
   const phone=(document.getElementById('li_phone').value||'').replace(/\D/g,'');
   const msg=document.getElementById('li_msg');
@@ -703,6 +708,7 @@ function renderProfile(){
   document.getElementById('pf_go').onclick=saveProfileGo;
 }
 async function saveProfileGo(){
+  if(PREVIEW){ renderUniform(); return; }
   const msg=document.getElementById('pf_msg'), btn=document.getElementById('pf_go');
   const body={action:'saveProfile', name:S.family.name, nameZh:S.family.name, last4:S.family.last4};
   // 只收集畫面上有 input 嘅欄（新生＝全部；舊生＝按過「修改」嗰啲）
@@ -811,6 +817,7 @@ function renderUniform(){
     </div>
   </div>`;
   document.getElementById('u_go').onclick=()=>{
+    if(PREVIEW){ S.uniform=S.uniform||{opt:1,cost:0,size:''}; saveDraft(); renderWeather(); return; }
     const msg=document.getElementById('u_msg');
     if(!S.uniform.opt){ msg.className='msg err'; msg.textContent='請選擇制服安排。'; return; }
     if((S.uniform.opt===2||S.uniform.opt===3)&&!S.uniform.size){ msg.className='msg err'; msg.textContent='請揀制服尺碼。'; return; }
@@ -867,6 +874,7 @@ function renderCourses(){
     saveDraft();
   });
   document.getElementById('cs_go').onclick=()=>{
+    if(PREVIEW){ if(!S.courses.length){ const _f=(S.cfg.courses||[])[0]; if(_f) S.courses=[_f.id]; } renderFee(); return; }
     const msg=document.getElementById('cs_msg');
     if(!S.courses.length){ msg.className='msg err'; msg.textContent='請最少揀一項課程。'; return; }
     // 同日同時段衝突檢查
@@ -966,6 +974,7 @@ function renderNotes(){
     </div>
   </div>`;
   document.getElementById('nt_go').onclick=()=>{
+    if(PREVIEW){ S.notesAgreed=true; renderTerms(); return; }
     const msg=document.getElementById('nt_msg');
     const boxes=[...document.querySelectorAll('.nt_chk')];
     if(!boxes.every(c=>c.checked)){ msg.className='msg err'; msg.textContent='請逐項剔選同意上面每一項注意事項（安全所需）。'; return; }
@@ -1010,6 +1019,7 @@ function renderTerms(){
     </div>
   </div>`;
   document.getElementById('tm_go').onclick=()=>{
+    if(PREVIEW){ S.signEn='PREVIEW'; S.signId='P000'; S.signImg=''; S.agree=true; renderPay(); return; }
     const msg=document.getElementById('tm_msg');
     const allConsent=[...document.querySelectorAll('.tm_consent')].every(c=>c.checked);
     if(!allConsent){ msg.className='msg err'; msg.textContent='請逐項剔選同意上面每一項聲明。'; return; }
@@ -1105,6 +1115,7 @@ function renderPay(){
   document.getElementById('py_go').onclick=submitEnroll;
 }
 async function submitEnroll(){
+  if(PREVIEW){ const m=document.getElementById('py_msg'); if(m){ m.className='msg'; m.textContent='（預覽模式）唔會真提交報名。'; } return; }
   const msg=document.getElementById('py_msg'), btn=document.getElementById('py_go');
   if(!S.cfg.open){ msg.className='msg err'; msg.textContent='報名將於 8 月中開放，暫時未可提交。（你已可預覽整個流程）'; return; }
   if(!S._payFree && (((S.quote&&S.quote.net)>0)||uniformCost()>0) && !S.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
