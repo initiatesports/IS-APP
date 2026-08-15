@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-notesfee';
+const FRONTEND_VERSION='enroll-2026-08-15-fitfix';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -762,7 +762,7 @@ function renderCourses(){
     const priceTxt = myPrice>0 ? (_perSess>0 ? `${money(myPrice)}<div class="cm" style="font-weight:400;color:var(--mut);font-size:11px;margin-top:0">（${money(_perSess)}／節）</div>` : money(myPrice)) : '待定';
     const noteTxt = c.bundle ? '含任跳 1 小時・需遴選' : '';
     // 暫停後重新加入：顯示每節價（每節 +$20；條款8 新舊生皆適用；老闆 2026-08-15）
-    const rejoinTxt = (_perSess>0) ? `<div class="cm" style="font-weight:400;color:var(--mut);font-size:10px;line-height:1.35;margin-top:2px">暫停後重新加入<br>每節 ${money(_perSess + 20)}</div>` : '';
+    const rejoinTxt = (_perSess>0 && !c.noRejoin) ? `<div class="cm" style="font-weight:400;color:var(--mut);font-size:10px;line-height:1.35;margin-top:2px">暫停後重新加入<br>每節 ${money(_perSess + 20)}</div>` : '';
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
       .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
     const left = c.cap - (c.enrolled||0);
@@ -874,7 +874,9 @@ function renderNotes(){
     const _s=Number(c.sessions)||8;
     if(_myP>0 && !c.bundle){
       const _per=Math.round(_myP/_s);
-      const _feeNote=`本班學費（${_isOld?'舊生':'新生'}）：每期 ${_s} 堂 ${money(_myP)}（每節 ${money(_per)}）。暫停退出後重新加入：每節 ${money(_per+20)}。`;
+      const _feeNote = c.noRejoin
+        ? `本班學費：每期 ${_s} 堂 ${money(_myP)}（每節 ${money(_per)}）。收費固定，不設暫停後重新加入加價。`
+        : `本班學費（${_isOld?'舊生':'新生'}）：每期 ${_s} 堂 ${money(_myP)}（每節 ${money(_per)}）。暫停退出後重新加入：每節 ${money(_per+20)}。`;
       if(ns.length && /^本班學費/.test(ns[0])) ns[0]=_feeNote; else ns.unshift(_feeNote);
     }
     if(ns.length) blocks.push({sport:c.sport,notes:ns}); });
