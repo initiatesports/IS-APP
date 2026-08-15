@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-gearbuy';
+const FRONTEND_VERSION='enroll-2026-08-16-gearimg';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -413,16 +413,11 @@ function renderHome(){
 }
 /* ════ 器材選購（DM 落單；內容由老闆提供 2026-08-16）════ */
 const GEAR_ITEMS=[
-  {name:'專業硬珠拍子繩', price:'$100／條', sub:'連繩袋', feats:['硬珠耐磨，唔易打結纏繩','防滑坑紋手柄，掌心穩陣','長度可調，大人細路都合用','每條附送繩袋，收納方便'],
-   colorLabel:'13 色任揀', colors:'紫×白、粉紅×黑、黃×黑、黃×白、紫×黑、粉紅×紫、黃×藍、藍×白、藍×黑、粉紅×藍、粉紅×白、綠×白、綠×黑'},
-  {name:'帆布跳繩袋', price:'$20／個', sub:'3 個 $50・335×245mm', feats:['雙層容量，分隔收納','厚身帆布，挺身耐用','手提設計，攜帶方便'],
-   colorLabel:'兩色可選', colors:'米白 Ivory、深藍 Navy'},
-  {name:'速度膠繩', price:'$80／條', sub:'替換繩芯 $30／條', feats:['膠繩輕身，起動靈活','順滑轉軸，甩動穩定','長度可調，大人細路都合用'],
-   colorLabel:'繩柄 × 繩芯 自由配搭', colors:'繩柄 6 色（白／黑／粉／紫／藍／黃）× 繩芯 2 色（白／藍）'},
-  {name:'鋼絲速度繩', price:'$100／條', sub:'替換繩芯 $30／條', feats:['鋼絲繩芯，轉速極快','順滑轉軸，甩動穩定唔絞繩','螺絲調節，長度自訂'],
-   colorLabel:'8 色任揀', colors:'粉紅、綠、黃、藍、紅、黑、紫、橙'},
-  {name:'匹克球拍套裝', price:'$120／套', sub:'×1 球拍＋×2 球＋×1 球拍包', feats:['USA Pickleball Approved 認證拍面','防滑吸汗纏柄，長打唔跣手','連球連袋，一套即開波'],
-   colorLabel:'套裝內容', colors:'匹克球拍 ×1、匹克球 ×2、球拍包 ×1'}
+  {name:'專業硬珠拍子繩', img:'img/gear/beadrope.jpg'},
+  {name:'帆布跳繩袋', img:'img/gear/canvasbag.jpg'},
+  {name:'速度膠繩', img:'img/gear/speedrope.jpg'},
+  {name:'鋼絲速度繩', img:'img/gear/wirerope.jpg'},
+  {name:'匹克球拍套裝', img:'img/gear/pickleset.jpg'}
 ];
 // 可選購 SKU（sku 對應後端 GEAR_CATALOG；server 端固定價，前端只顯示）
 const GEAR_SKUS=[
@@ -468,16 +463,11 @@ function renderGearSelect(){
   </div>`;
 }
 function renderGearShop(){
-  const cards=GEAR_ITEMS.map(g=>`<div class="fld">
-    <div class="q" style="align-items:flex-start"><span style="font-weight:800;font-size:15px">${esc(g.name)}</span>
-      <span style="text-align:right;white-space:nowrap"><b style="color:var(--teal-dark)">${esc(g.price)}</b>${g.sub?`<div class="cm" style="color:var(--mut);font-weight:400">${esc(g.sub)}</div>`:''}</span></div>
-    ${g.feats.map(f=>`<div class="cbox" style="align-items:flex-start"><span>• ${esc(f)}</span></div>`).join('')}
-    <div class="cm" style="margin-top:4px"><b>${esc(g.colorLabel)}</b>：<span style="color:var(--mut)">${esc(g.colors)}</span></div>
-  </div>`).join('');
+  const cards=GEAR_ITEMS.map(g=>`<img src="${g.img}" alt="${esc(g.name)}" loading="lazy" style="width:100%;border-radius:12px;margin:8px 0;display:block" onerror="this.style.display='none'">`).join('');
   app.innerHTML=`
   <div class="card">
     <h2>🛒 器材選購</h2>
-    <p class="hint">現貨即出、售完即止。落單方法：<b>WhatsApp 話我知款式＋顏色＋數量</b>。</p>
+    <p class="hint">現貨即出、售完即止。可於報名時<b>連學費一齊選購付款</b>，或 <b>WhatsApp 落單</b>（話我知款式＋顏色＋數量）。</p>
     ${cards}
     <a class="btn" href="${waLink('我想訂購器材：\n（請填 款式＋顏色＋數量）')}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">WhatsApp 落單（6331 7403）→</a>
     <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>
