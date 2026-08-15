@@ -120,11 +120,11 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-gear';
+const FRONTEND_VERSION='enroll-2026-08-16-gearbuy';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
-const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'' };
+const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'', gear:{} };
 // 預覽模式（?preview=1）：唔使填資料就可以逐頁揭落去睇 layout；一律唔會真提交/寫入。老闆 2026-08-15
 const PREVIEW = (function(){ try{ return new URLSearchParams(location.search).get('preview')==='1'; }catch(e){ return false; } })();
 
@@ -420,8 +420,53 @@ const GEAR_ITEMS=[
   {name:'速度膠繩', price:'$80／條', sub:'替換繩芯 $30／條', feats:['膠繩輕身，起動靈活','順滑轉軸，甩動穩定','長度可調，大人細路都合用'],
    colorLabel:'繩柄 × 繩芯 自由配搭', colors:'繩柄 6 色（白／黑／粉／紫／藍／黃）× 繩芯 2 色（白／藍）'},
   {name:'鋼絲速度繩', price:'$100／條', sub:'替換繩芯 $30／條', feats:['鋼絲繩芯，轉速極快','順滑轉軸，甩動穩定唔絞繩','螺絲調節，長度自訂'],
-   colorLabel:'8 色任揀', colors:'粉紅、綠、黃、藍、紅、黑、紫、橙'}
+   colorLabel:'8 色任揀', colors:'粉紅、綠、黃、藍、紅、黑、紫、橙'},
+  {name:'匹克球拍套裝', price:'$120／套', sub:'×1 球拍＋×2 球＋×1 球拍包', feats:['USA Pickleball Approved 認證拍面','防滑吸汗纏柄，長打唔跣手','連球連袋，一套即開波'],
+   colorLabel:'套裝內容', colors:'匹克球拍 ×1、匹克球 ×2、球拍包 ×1'}
 ];
+// 可選購 SKU（sku 對應後端 GEAR_CATALOG；server 端固定價，前端只顯示）
+const GEAR_SKUS=[
+  {sku:'beadrope', name:'專業硬珠拍子繩', price:100, note:'連繩袋', colors:['紫×白','粉紅×黑','黃×黑','黃×白','紫×黑','粉紅×紫','黃×藍','藍×白','藍×黑','粉紅×藍','粉紅×白','綠×白','綠×黑']},
+  {sku:'canvasbag', name:'帆布跳繩袋', price:20, note:'3 個 $50', colors:['米白','深藍']},
+  {sku:'speedrope', name:'速度膠繩', price:80, note:'繩芯白／藍・落單後夾', colors:['白柄','黑柄','粉柄','紫柄','藍柄','黃柄']},
+  {sku:'speedcord', name:'速度膠繩替換繩芯', price:30, colors:['白','藍']},
+  {sku:'wirerope', name:'鋼絲速度繩', price:100, colors:['粉紅','綠','黃','藍','紅','黑','紫','橙']},
+  {sku:'wirecord', name:'鋼絲速度繩替換繩芯', price:30, colors:[]},
+  {sku:'pickleset', name:'匹克球拍套裝', price:120, note:'×1 球拍＋×2 球＋×1 球拍包', colors:[]}
+];
+function gearUnitCount(sku){ const g=(S.gear&&S.gear[sku])||{}; return Math.max(0,Number(g.qty)||0); }
+function gearCostClient(){ let t=0; GEAR_SKUS.forEach(s=>{ const q=gearUnitCount(s.sku); if(q<=0) return;
+  t += (s.sku==='canvasbag') ? (Math.floor(q/3)*50 + (q%3)*20) : q*s.price; }); return t; }
+function gearItemsClient(){ return GEAR_SKUS.filter(s=>gearUnitCount(s.sku)>0).map(s=>({sku:s.sku, color:(S.gear[s.sku]&&S.gear[s.sku].color)||'', qty:gearUnitCount(s.sku)})); }
+function gearLabelClient(){ return gearItemsClient().map(it=>{ const s=GEAR_SKUS.find(x=>x.sku===it.sku); return s.name+(it.color?('（'+it.color+'）'):'')+'×'+it.qty; }).join('、'); }
+function setGearQty(sku,d){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].qty=Math.max(0,Math.min(20,(Number(S.gear[sku].qty)||0)+d));
+  const s=GEAR_SKUS.find(x=>x.sku===sku); if(s&&s.colors.length&&!S.gear[sku].color&&S.gear[sku].qty>0) S.gear[sku].color=s.colors[0]; renderGearSelect(); }
+function setGearColor(sku,c){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].color=c; }
+function renderGearSelect(){
+  const rows=GEAR_SKUS.map(s=>{ const q=gearUnitCount(s.sku); const g=S.gear[s.sku]||{};
+    const colorSel = (s.colors.length && q>0) ? `<select onchange="setGearColor('${s.sku}',this.value)" style="margin-top:4px;width:100%">${s.colors.map(c=>`<option ${g.color===c?'selected':''}>${esc(c)}</option>`).join('')}</select>` : '';
+    return `<div class="fld"><div class="q" style="align-items:flex-start">
+      <span><b>${esc(s.name)}</b>${s.note?`<div class="cm" style="color:var(--mut)">${esc(s.note)}</div>`:''}</span>
+      <span style="text-align:right;white-space:nowrap"><b style="color:var(--teal-dark)">${money(s.price)}</b>
+        <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:4px">
+          <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="setGearQty('${s.sku}',-1)">−</button>
+          <b style="min-width:18px;text-align:center;font-variant-numeric:tabular-nums">${q}</b>
+          <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="setGearQty('${s.sku}',1)">＋</button>
+        </div></span></div>
+      ${colorSel}</div>`; }).join('');
+  const total=gearCostClient();
+  app.innerHTML=`
+  <div class="card">
+    <h2>🛒 器材選購（可跳過）</h2>
+    <p class="hint">想買嘅器材可以喺呢度揀，費用會<b>連學費一齊付</b>；唔買可以直接撳「下一步」。<br><span style="color:var(--mut)">產品詳情：<a href="javascript:void(0)" onclick="renderGearShop()" style="color:var(--teal);font-weight:700">睇器材介紹</a></span></p>
+    ${rows}
+    <div class="q net" style="margin-top:6px"><span>器材小計</span><span><b>${money(total)}</b></span></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderUniform()">返回</button>
+      <button class="btn" onclick="renderWeather()">下一步 →</button>
+    </div>
+  </div>`;
+}
 function renderGearShop(){
   const cards=GEAR_ITEMS.map(g=>`<div class="fld">
     <div class="q" style="align-items:flex-start"><span style="font-weight:800;font-size:15px">${esc(g.name)}</span>
@@ -928,11 +973,11 @@ function renderUniform(){
     </div>
   </div>`;
   document.getElementById('u_go').onclick=()=>{
-    if(PREVIEW){ S.uniform=S.uniform||{opt:1,cost:0,size:''}; saveDraft(); renderWeather(); return; }
+    if(PREVIEW){ S.uniform=S.uniform||{opt:1,cost:0,size:''}; saveDraft(); renderGearSelect(); return; }
     const msg=document.getElementById('u_msg');
     if(!S.uniform.opt){ msg.className='msg err'; msg.textContent='請選擇制服安排。'; return; }
     if([2,3,4,5].indexOf(S.uniform.opt)>=0&&!S.uniform.size){ msg.className='msg err'; msg.textContent='請揀尺碼。'; return; }
-    saveDraft(); renderWeather();   // 制服後 → 惡劣天氣安排（流程內頁）→ 收費
+    saveDraft(); renderGearSelect();   // 制服後 → 器材選購 → 惡劣天氣 → 收費
   };
 }
 /* ════ ③ 揀課程 ════ */
@@ -1023,16 +1068,18 @@ async function renderFee(){
     <div class="banner" style="background:#e8f7ef;border-color:#1a9e6a;color:#127a51">✅ 4 人成班保證：如人數不足未能開班，已繳學費<b>全額退還</b>。</div>`;
   const uCost=uniformCost();
   const uLine = uCost>0 ? `<div class="q dim"><span>${uShort()}${S.uniform&&S.uniform.size?'（'+esc(S.uniform.size)+'）':''}</span><span>${money(uCost)}</span></div>` : '';
-  const grand=(res.net||0)+uCost;
+  const gearCost=gearCostClient();
+  const gLine = gearCost>0 ? `<div class="q dim"><span>器材（${esc(gearLabelClient())}）</span><span>${money(gearCost)}</span></div>` : '';
+  const grand=(res.net||0)+uCost+gearCost;
   let quoteInner;
-  if(chargedN===1 && !hasDisc && !anyWait && uCost===0){
-    // 單科無折無制服：淨顯示一行「學費」，唔用「原價」字眼（免新生察覺有折）
+  if(chargedN===1 && !hasDisc && !anyWait && uCost===0 && gearCost===0){
+    // 單科無折無制服無器材：淨顯示一行「學費」，唔用「原價」字眼（免新生察覺有折）
     quoteInner = `<div class="q net"><span>學費（全期 ${res.sessions||8} 堂）</span><span>${money(res.net)}</span></div>`;
   }else{
     quoteInner = `${itemLines}
       ${hasDisc?`<div class="q dim"><span>小計${tierTxt}</span><span>${money(res.base)}</span></div>`:''}
-      ${multiLine}${creditLine}${uLine}
-      <div class="q net"><span>${uCost>0?'總計應付':'實付'}</span><span>${money(grand)}</span></div>`;
+      ${multiLine}${creditLine}${uLine}${gLine}
+      <div class="q net"><span>${(uCost>0||gearCost>0)?'總計應付':'實付'}</span><span>${money(grand)}</span></div>`;
   }
   const body = priced ? `<div class="quote">${quoteInner}</div>${sessNote}${pendNote}` :
     `<div class="banner">課程收費老闆稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
@@ -1167,11 +1214,11 @@ function sigDataUrl(){ return (_sig.has&&_sig.cv)?_sig.cv.toDataURL('image/png')
 /* ════ ⑥ 付款 + 提交 ════ */
 function renderPay(){
   const q=S.quote||{};
-  const courseNet=q.net||0, uCost=uniformCost();
+  const courseNet=q.net||0, uCost=uniformCost(), gearCost=gearCostClient();
   const allWait = (q.courses||[]).length>0 && (q.courses||[]).every(c=>c.full);   // 全部課程都候補
-  const net=courseNet+(allWait?0:uCost);   // 付款總數＝課程學費＋制服（全候補時制服費延到轉正先收）
+  const net=courseNet+(allWait?0:uCost)+gearCost;   // 付款總數＝課程學費＋制服（全候補時延後）＋器材（照收）
   const priced=q.base>0;
-  const free = priced && courseNet<=0 && !allWait && uCost===0;   // 全免：課程被券全抵 + 冇買制服
+  const free = priced && courseNet<=0 && !allWait && uCost===0 && gearCost===0;   // 全免：課程被券全抵 + 冇買制服器材
   const isOpen = !!S.cfg.open;
   let amtLine, payBox;
   if(!isOpen){
@@ -1203,6 +1250,7 @@ function renderPay(){
     <div class="sumline"><span class="k">學生</span><span>${esc(S.family.name)}</span></div>
     <div class="sumline"><span class="k">課程</span><span>${(q.courses||[]).map(c=>esc(c.sport)+(c.full?'（候補）':'')).join('、')}</span></div>
     ${uCost>0?`<div class="sumline"><span class="k">${uShort()}</span><span>${S.uniform&&S.uniform.size?esc(S.uniform.size)+'・':''}${money(uCost)}</span></div>`:''}
+    ${gearCost>0?`<div class="sumline"><span class="k">器材</span><span>${esc(gearLabelClient())}・${money(gearCost)}</span></div>`:''}
     <div class="sumline"><span class="k">收確認電郵</span><span>${esc((S.profile&&S.profile['電郵'])||'—')}</span></div>
     <div class="sumline"><span class="k">聯絡電話</span><span>${esc((S.profile&&S.profile['聯絡電話'])||'—')}</span></div>
     ${amtLine}
@@ -1241,6 +1289,7 @@ async function submitEnroll(){
       phone:(S.profile&&S.profile['聯絡電話'])||'', clientToken:S.clientToken,
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
       uniformOpt:(S.uniform&&S.uniform.opt)||0, uniformSize:(S.uniform&&S.uniform.size)||'', uniformCost:uniformCost(),
+      gearItems:JSON.stringify(gearItemsClient()),
       payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId,
       signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', photoConsent:(S.photoConsent===false?'0':'1'), agree:'同意' }, 30000);
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>——請用「查詢我報名狀態」查看，切勿以為失敗而重複提交（就算再交都唔會重複收費）。'; return; }
