@@ -120,15 +120,15 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-pdf';
+const FRONTEND_VERSION='enroll-2026-08-15-expert';
 const API='https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
 const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'' };
 
-async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
-async function apiPost(body){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); }
+async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},ms); }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
 const fmtMD=iso=>{const p=String(iso||'').split('-');return p.length>=3?(+p[1])+'/'+(+p[2]):String(iso||'');};   // 2026-09-07 → 9/7
@@ -369,7 +369,7 @@ async function loadOfficialCourses(){
 /* ════ 啟動 ════ */
 async function boot(){
   try{ S.cfg=await apiGet({action:'enrollConfig'}); }
-  catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div></div>'; return; }
+  catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div><button class="btn" style="margin-top:10px" onclick="boot()">🔄 重試</button></div>'; return; }
   document.getElementById('periodLbl').textContent='';   // 右上角唔顯示期數
   await loadOfficialCourses();   // 同步官網課程介紹（失敗＝用內置 fallback）
   renderHome();
@@ -1024,8 +1024,8 @@ async function submitEnroll(){
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,
       uniformOpt:(S.uniform&&S.uniform.opt)||0, uniformSize:(S.uniform&&S.uniform.size)||'', uniformCost:uniformCost(),
       payImg:S.payImg, parentEmail:(S.profile&&S.profile['電郵'])||'', signEn:S.signEn, signId:S.signId,
-      signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', photoConsent:(S.photoConsent===false?'0':'1'), agree:'同意' });
-  }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.textContent='網絡逾時／中斷，未提交。請確認網絡後再撳一次（唔會重複收費）。'; return; }
+      signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', photoConsent:(S.photoConsent===false?'0':'1'), agree:'同意' }, 30000);
+  }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>——請用「查詢我報名狀態」查看，切勿以為失敗而重複提交（就算再交都唔會重複收費）。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
   renderDone(res);
@@ -1052,6 +1052,7 @@ function renderDone(res){
 function reportAnother(){
   const phone=(S.family&&S.family.phone)||'';
   S.family=null; S.profile=null; S.courses=[]; S.quote=null; S.payImg=''; S.isNew=false; S.agree=false; S.signEn=''; S.signId=''; S.clientToken='';
+  S.uniform=null; S.notesAgreed=false; S.signImg=''; S.photoConsent=undefined;   // 清乾淨:第二個小朋友唔會沿用上一位嘅制服選項/尺碼(防被預設買制服多收$160+錯碼)
   renderLogin();
   const el=document.getElementById('li_phone'); if(el) el.value=phone;
   const nm=document.getElementById('li_name'); if(nm) nm.focus();
