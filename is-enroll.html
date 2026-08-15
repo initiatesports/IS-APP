@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-coach';
+const FRONTEND_VERSION='enroll-2026-08-15-ux';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -551,7 +551,8 @@ async function lookupMine(){
   btn.disabled=false; btn.textContent='查詢我嘅報名狀態';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'查詢失敗。'; return; }
   const recs=res.records||[];
-  const rows = recs.length ? recs.map(r=>`<div class="sumline"><span class="k">${esc(r.courses)}</span><span><span class="pill">${esc(r.status)}</span></span></div>`).join('')
+  const _stHint = s => ({'待核實':'已收到你嘅付款截圖，核實中','待付款':'請去報名系統上載付款截圖','候補':'課程已滿，已為你排隊，有位即通知，暫免付費','已核實':'已確認，多謝報名 ✓','取消':'此報名已取消'})[s]||'';
+  const rows = recs.length ? recs.map(r=>`<div class="sumline" style="align-items:flex-start"><span class="k">${esc(r.courses)}</span><span style="text-align:right"><span class="pill">${esc(r.status)}</span>${_stHint(r.status)?`<div class="cm" style="color:var(--mut);font-size:11px;margin-top:3px;max-width:180px">${_stHint(r.status)}</div>`:''}</span></div>`).join('')
     : '<p class="hint">你未有任何報名記錄。</p>';
   app.innerHTML=`<div class="card">${steps(1)}<h2>${esc(name)} 嘅報名狀態</h2>${rows}
     <button class="btn ghost" style="margin-top:14px" onclick="renderLogin()">返回</button></div>`;
@@ -808,7 +809,7 @@ function renderCourses(){
 async function renderFee(){
   app.innerHTML=`<div class="card">${steps(5)}<div class="load">計緊費用…</div></div>`;
   const res=await apiPost({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
-  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請返回再試。</div><button class="btn ghost" onclick="renderCourses()">返回</button></div>`; return; }
+  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請再試。</div><div class="navbtns"><button class="btn ghost sm" onclick="renderCourses()">返回</button><button class="btn" onclick="renderFee()">🔄 重試</button></div></div>`; return; }
   S.quote=res;
   const cs = res.courses||[];
   const priced = res.base>0;
@@ -823,7 +824,11 @@ async function renderFee(){
   const creditLine = res.credit>0 ? `<div class="q credit"><span>優惠券／推薦折扣</span><span>− ${money(res.credit)}</span></div>` : '';
   const pendNote = res.creditRemaining>0 ? `<p class="hint">你仲有 ${money(res.creditRemaining)} 優惠餘額（每期最多抵 $200，餘額自動順延下期）。</p>` : '';
   const perNote = (chargedN===1 && !anyWait && res.net>0) ? `（約每堂 $${Math.round(res.net/(res.sessions||8))}）` : '';
-  const sessNote = `<p class="hint">全期學費（共 ${res.sessions||8} 堂）${perNote}${anyWait?'。<b>候補課程暫免付費</b>，有位轉正先通知補收':''}。</p>
+  // 混合堂數(如網球3堂+跳繩8堂)唔用單一「共N堂」誤導；逐科堂數已喺上面各行日期顯示。
+  const _selSess = (S.courses||[]).map(id=>{ const cc=(S.cfg.courses||[]).find(x=>x.id===id); return (cc && !cc.bundle) ? (Number(cc.sessions)||8) : null; }).filter(v=>v!=null);
+  const _mixedSess = new Set(_selSess).size>1;
+  const _sessLbl = _mixedSess ? '全期學費（各班堂數見上）' : `全期學費（共 ${res.sessions||8} 堂）`;
+  const sessNote = `<p class="hint">${_sessLbl}${perNote}${anyWait?'。<b>候補課程暫免付費</b>，有位轉正先通知補收':''}。</p>
     <div class="banner" style="background:#e8f7ef;border-color:#1a9e6a;color:#127a51">✅ 4 人成班保證：如人數不足未能開班，已繳學費<b>全額退還</b>。</div>`;
   const uCost=uniformCost();
   const uLine = uCost>0 ? `<div class="q dim"><span>制服${S.uniform&&S.uniform.opt===3?'＋跳繩速度訓練器':''}${S.uniform&&S.uniform.size?'（'+esc(S.uniform.size)+'）':''}</span><span>${money(uCost)}</span></div>` : '';
