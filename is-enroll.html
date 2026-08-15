@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-gearimg';
+const FRONTEND_VERSION='enroll-2026-08-16-gearv2';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -422,47 +422,65 @@ const GEAR_ITEMS=[
 // 可選購 SKU（sku 對應後端 GEAR_CATALOG；server 端固定價，前端只顯示）
 const GEAR_SKUS=[
   {sku:'beadrope', name:'專業硬珠拍子繩', price:100, note:'連繩袋', colors:['紫×白','粉紅×黑','黃×黑','黃×白','紫×黑','粉紅×紫','黃×藍','藍×白','藍×黑','粉紅×藍','粉紅×白','綠×白','綠×黑']},
-  {sku:'canvasbag', name:'帆布跳繩袋', price:20, note:'3 個 $50', colors:['米白','深藍']},
-  {sku:'speedrope', name:'速度膠繩', price:80, note:'繩芯白／藍・落單後夾', colors:['白柄','黑柄','粉柄','紫柄','藍柄','黃柄']},
+  {sku:'canvasbag', name:'帆布跳繩袋', price:20, note:'3 個 $50（可混色湊夠 3 個）', colors:['米白','深藍'], byColor:1},
+  {sku:'speedrope', name:'速度膠繩', price:80, colors:['白','黑','粉','紫','藍','黃'], cordColors:['白','藍']},
   {sku:'speedcord', name:'速度膠繩替換繩芯', price:30, colors:['白','藍']},
   {sku:'wirerope', name:'鋼絲速度繩', price:100, colors:['粉紅','綠','黃','藍','紅','黑','紫','橙']},
   {sku:'wirecord', name:'鋼絲速度繩替換繩芯', price:30, colors:[]},
   {sku:'pickleset', name:'匹克球拍套裝', price:120, note:'×1 球拍＋×2 球＋×1 球拍包', colors:[]}
 ];
-function gearUnitCount(sku){ const g=(S.gear&&S.gear[sku])||{}; return Math.max(0,Number(g.qty)||0); }
+function canvasByColor(){ S.gear.canvasbag=S.gear.canvasbag||{byColor:{}}; S.gear.canvasbag.byColor=S.gear.canvasbag.byColor||{}; return S.gear.canvasbag.byColor; }
+function gearUnitCount(sku){ if(sku==='canvasbag'){ const bc=canvasByColor(); return Object.keys(bc).reduce((t,c)=>t+(Number(bc[c])||0),0); } const g=(S.gear&&S.gear[sku])||{}; return Math.max(0,Number(g.qty)||0); }
 function gearCostClient(){ let t=0; GEAR_SKUS.forEach(s=>{ const q=gearUnitCount(s.sku); if(q<=0) return;
   t += (s.sku==='canvasbag') ? (Math.floor(q/3)*50 + (q%3)*20) : q*s.price; }); return t; }
-function gearItemsClient(){ return GEAR_SKUS.filter(s=>gearUnitCount(s.sku)>0).map(s=>({sku:s.sku, color:(S.gear[s.sku]&&S.gear[s.sku].color)||'', qty:gearUnitCount(s.sku)})); }
-function gearLabelClient(){ return gearItemsClient().map(it=>{ const s=GEAR_SKUS.find(x=>x.sku===it.sku); return s.name+(it.color?('（'+it.color+'）'):'')+'×'+it.qty; }).join('、'); }
-function setGearQty(sku,d){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].qty=Math.max(0,Math.min(20,(Number(S.gear[sku].qty)||0)+d));
-  const s=GEAR_SKUS.find(x=>x.sku===sku); if(s&&s.colors.length&&!S.gear[sku].color&&S.gear[sku].qty>0) S.gear[sku].color=s.colors[0]; renderGearSelect(); }
+function gearItemsClient(){ let out=[];
+  GEAR_SKUS.forEach(s=>{
+    if(s.sku==='canvasbag'){ const bc=canvasByColor(); Object.keys(bc).forEach(c=>{ if(bc[c]>0) out.push({sku:'canvasbag',color:c,qty:Number(bc[c])||0}); }); }
+    else { const q=gearUnitCount(s.sku); if(q>0){ const g=S.gear[s.sku]||{}; const it={sku:s.sku,color:g.color||'',qty:q}; if(s.cordColors) it.cord=g.cord||''; out.push(it); } }
+  }); return out; }
+function gearLabelClient(){ return gearItemsClient().map(it=>{ const s=GEAR_SKUS.find(x=>x.sku===it.sku); return s.name+(it.color?('（'+it.color+(it.cord?('柄／'+it.cord+'芯'):'')+'）'):'')+'×'+it.qty; }).join('、'); }
+function setGearQty(sku,d){ const s=GEAR_SKUS.find(x=>x.sku===sku);
+  S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].qty=Math.max(0,Math.min(20,(Number(S.gear[sku].qty)||0)+d));
+  if(s&&s.colors&&s.colors.length&&!S.gear[sku].color&&S.gear[sku].qty>0) S.gear[sku].color=s.colors[0];
+  if(s&&s.cordColors&&!S.gear[sku].cord&&S.gear[sku].qty>0) S.gear[sku].cord=s.cordColors[0];
+  renderGearSelect(); }
 function setGearColor(sku,c){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].color=c; }
+function setGearCord(sku,c){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].cord=c; }
+function setCanvasQty(color,d){ const bc=canvasByColor(); bc[color]=Math.max(0,Math.min(20,(Number(bc[color])||0)+d)); renderGearSelect(); }
 function renderGearSelect(){
-  const rows=GEAR_SKUS.map(s=>{ const q=gearUnitCount(s.sku); const g=S.gear[s.sku]||{};
-    const colorSel = (s.colors.length && q>0) ? `<select onchange="setGearColor('${s.sku}',this.value)" style="margin-top:4px;width:100%">${s.colors.map(c=>`<option ${g.color===c?'selected':''}>${esc(c)}</option>`).join('')}</select>` : '';
+  const stepper=(minus,plus,val)=>`<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+    <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="${minus}">−</button>
+    <b style="min-width:18px;text-align:center;font-variant-numeric:tabular-nums">${val}</b>
+    <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="${plus}">＋</button></div>`;
+  const rows=GEAR_SKUS.map(s=>{
+    if(s.sku==='canvasbag'){ const bc=canvasByColor();   // 帆布袋：每色數量，可混色湊 3 個 $50
+      return `<div class="fld"><div class="q" style="align-items:flex-start">
+        <span><b>${esc(s.name)}</b><div class="cm" style="color:var(--mut)">${esc(s.note||'')}</div></span>
+        <span style="text-align:right"><b style="color:var(--teal-dark)">${money(s.price)}</b></span></div>
+        ${s.colors.map(c=>`<div class="q" style="align-items:center;padding:3px 0;border:none"><span>${esc(c)}</span>${stepper("setCanvasQty('"+c+"',-1)","setCanvasQty('"+c+"',1)",Number(bc[c])||0)}</div>`).join('')}
+      </div>`; }
+    const q=gearUnitCount(s.sku); const g=S.gear[s.sku]||{};
+    const colorSel = (s.colors&&s.colors.length && q>0) ? `<div style="margin-top:4px"><label class="cm" style="color:var(--mut)">${s.cordColors?'繩柄顏色':'顏色'}</label><select onchange="setGearColor('${s.sku}',this.value)" style="width:100%">${s.colors.map(c=>`<option ${g.color===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>` : '';
+    const cordSel = (s.cordColors && q>0) ? `<div style="margin-top:4px"><label class="cm" style="color:var(--mut)">繩芯顏色</label><select onchange="setGearCord('${s.sku}',this.value)" style="width:100%">${s.cordColors.map(c=>`<option ${g.cord===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>` : '';
     return `<div class="fld"><div class="q" style="align-items:flex-start">
       <span><b>${esc(s.name)}</b>${s.note?`<div class="cm" style="color:var(--mut)">${esc(s.note)}</div>`:''}</span>
       <span style="text-align:right;white-space:nowrap"><b style="color:var(--teal-dark)">${money(s.price)}</b>
-        <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:4px">
-          <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="setGearQty('${s.sku}',-1)">−</button>
-          <b style="min-width:18px;text-align:center;font-variant-numeric:tabular-nums">${q}</b>
-          <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="setGearQty('${s.sku}',1)">＋</button>
-        </div></span></div>
-      ${colorSel}</div>`; }).join('');
+        <div style="margin-top:4px">${stepper("setGearQty('"+s.sku+"',-1)","setGearQty('"+s.sku+"',1)",q)}</div></span></div>
+      ${colorSel}${cordSel}</div>`; }).join('');
   const total=gearCostClient();
   app.innerHTML=`
   <div class="card">
     <h2>🛒 器材選購（可跳過）</h2>
-    <p class="hint">想買嘅器材可以喺呢度揀，費用會<b>連學費一齊付</b>；唔買可以直接撳「下一步」。<br><span style="color:var(--mut)">產品詳情：<a href="javascript:void(0)" onclick="renderGearShop()" style="color:var(--teal);font-weight:700">睇器材介紹</a></span></p>
+    <p class="hint">想買嘅器材可以喺呢度揀，費用會<b>連學費一齊付</b>；唔買可以直接撳「下一步」。<br><span style="color:var(--mut)">產品詳情：<a href="javascript:void(0)" onclick="renderGearShop(true)" style="color:var(--teal);font-weight:700">睇器材介紹</a></span></p>
     ${rows}
     <div class="q net" style="margin-top:6px"><span>器材小計</span><span><b>${money(total)}</b></span></div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderUniform()">返回</button>
-      <button class="btn" onclick="renderWeather()">下一步 →</button>
+      <button class="btn ghost sm" onclick="renderFee()">返回</button>
+      <button class="btn" onclick="renderNotes()">下一步 →</button>
     </div>
   </div>`;
 }
-function renderGearShop(){
+function renderGearShop(inFlow){
   const cards=GEAR_ITEMS.map(g=>`<img src="${g.img}" alt="${esc(g.name)}" loading="lazy" style="width:100%;border-radius:12px;margin:8px 0;display:block" onerror="this.style.display='none'">`).join('');
   app.innerHTML=`
   <div class="card">
@@ -470,7 +488,7 @@ function renderGearShop(){
     <p class="hint">現貨即出、售完即止。可於報名時<b>連學費一齊選購付款</b>，或 <b>WhatsApp 落單</b>（話我知款式＋顏色＋數量）。</p>
     ${cards}
     <a class="btn" href="${waLink('我想訂購器材：\n（請填 款式＋顏色＋數量）')}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">WhatsApp 落單（6331 7403）→</a>
-    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>
+    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="${inFlow?'renderGearSelect()':'renderHome()'}">‹ 返回</button></div>
   </div>`;
 }
 /* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
@@ -495,8 +513,7 @@ function renderMakeupInfo(inFlow){
       <div class="cbox" style="align-items:flex-start"><span>• 已預約補堂於<b>開課前 6 小時內不可取消</b>，否則該堂照扣</span></div>
     </div>
     <a class="btn" href="${MAKEUP_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">前往請假／補堂系統 →</a>
-    <p class="hint" style="margin-top:8px">網址：<a href="${MAKEUP_URL}" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;word-break:break-all">${MAKEUP_URL}</a></p>
-    <p class="hint" style="margin-top:4px">有疑問？<a href="${waLink('我想查詢請假／補堂')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
+    <p class="hint" style="margin-top:8px">有疑問？<a href="${waLink('我想查詢請假／補堂')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
     ${nav}
   </div>`;
 }
@@ -963,11 +980,11 @@ function renderUniform(){
     </div>
   </div>`;
   document.getElementById('u_go').onclick=()=>{
-    if(PREVIEW){ S.uniform=S.uniform||{opt:1,cost:0,size:''}; saveDraft(); renderGearSelect(); return; }
+    if(PREVIEW){ S.uniform=S.uniform||{opt:1,cost:0,size:''}; saveDraft(); renderWeather(); return; }
     const msg=document.getElementById('u_msg');
     if(!S.uniform.opt){ msg.className='msg err'; msg.textContent='請選擇制服安排。'; return; }
     if([2,3,4,5].indexOf(S.uniform.opt)>=0&&!S.uniform.size){ msg.className='msg err'; msg.textContent='請揀尺碼。'; return; }
-    saveDraft(); renderGearSelect();   // 制服後 → 器材選購 → 惡劣天氣 → 收費
+    saveDraft(); renderWeather();   // 制服後 → 惡劣天氣 → 收費 →(揀課)費用 → 器材選購 → 注意事項
   };
 }
 /* ════ ③ 揀課程 ════ */
@@ -1084,7 +1101,7 @@ async function renderFee(){
       <button class="btn" id="fee_go">下一步（同意條款）</button>
     </div>
   </div>`;
-  document.getElementById('fee_go').onclick=renderNotes;
+  document.getElementById('fee_go').onclick=renderGearSelect;   // 費用(學費)後 → 器材選購 → 注意事項
 }
 /* ════ ⑤B 課程注意事項（家長逐項閱讀及同意；合約 PDF 會列明）════ */
 function renderNotes(){
