@@ -78,6 +78,7 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'renderMakeupInfo', must:'renderPriceTable', why:'請假補堂頁（流程內）→收費一覽' },
   { file:'is-enroll.html', fn:'renderHome', must:'renderAdultForm', why:'首頁「成人課程報名」獨立入口' },
   { file:'is-enroll.html', fn:'renderHome', must:'renderMakeupInfo', why:'首頁「請假／補堂」自助入口' },
+  { file:'is-enroll.html', fn:'renderHome', must:'renderGearShop', why:'首頁「器材選購」入口' },
   { file:'is-enroll.html', fn:'renderMakeupInfo', must:'MAKEUP_URL', why:'請假補堂介紹頁→連去家長請假補堂系統(MAKEUP_URL=is-parent.html)' },
   { file:'is-enroll.html', fn:'submitAdult', must:'adultEnroll', why:'成人報名提交→後端 adultEnroll route' },
   { file:'is-enroll.html', fn:'openCourseDetail', must:'COACH_SECTION', why:'課程詳情加教練資歷(NKT×SCS只私訓)' },

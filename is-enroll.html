@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-uniform';
+const FRONTEND_VERSION='enroll-2026-08-16-gear';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -402,12 +402,41 @@ function renderHome(){
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
     <button class="btn" id="hm_adult" style="margin-top:10px;background:#0f766e">成人課程報名 →</button>
     <button class="btn ghost" id="hm_makeup" style="margin-top:10px">🗓 請假 / 補堂（自助辦理）</button>
+    <button class="btn ghost" id="hm_gear" style="margin-top:10px">🛒 器材選購</button>
     <button class="btn ghost" id="hm_look" style="margin-top:10px">查詢我嘅報名狀態</button>
   </div>`;
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_adult').onclick=renderAdultForm;
   document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
+  document.getElementById('hm_gear').onclick=renderGearShop;
   document.getElementById('hm_look').onclick=renderLogin;
+}
+/* ════ 器材選購（DM 落單；內容由老闆提供 2026-08-16）════ */
+const GEAR_ITEMS=[
+  {name:'專業硬珠拍子繩', price:'$100／條', sub:'連繩袋', feats:['硬珠耐磨，唔易打結纏繩','防滑坑紋手柄，掌心穩陣','長度可調，大人細路都合用','每條附送繩袋，收納方便'],
+   colorLabel:'13 色任揀', colors:'紫×白、粉紅×黑、黃×黑、黃×白、紫×黑、粉紅×紫、黃×藍、藍×白、藍×黑、粉紅×藍、粉紅×白、綠×白、綠×黑'},
+  {name:'帆布跳繩袋', price:'$20／個', sub:'3 個 $50・335×245mm', feats:['雙層容量，分隔收納','厚身帆布，挺身耐用','手提設計，攜帶方便'],
+   colorLabel:'兩色可選', colors:'米白 Ivory、深藍 Navy'},
+  {name:'速度膠繩', price:'$80／條', sub:'替換繩芯 $30／條', feats:['膠繩輕身，起動靈活','順滑轉軸，甩動穩定','長度可調，大人細路都合用'],
+   colorLabel:'繩柄 × 繩芯 自由配搭', colors:'繩柄 6 色（白／黑／粉／紫／藍／黃）× 繩芯 2 色（白／藍）'},
+  {name:'鋼絲速度繩', price:'$100／條', sub:'替換繩芯 $30／條', feats:['鋼絲繩芯，轉速極快','順滑轉軸，甩動穩定唔絞繩','螺絲調節，長度自訂'],
+   colorLabel:'8 色任揀', colors:'粉紅、綠、黃、藍、紅、黑、紫、橙'}
+];
+function renderGearShop(){
+  const cards=GEAR_ITEMS.map(g=>`<div class="fld">
+    <div class="q" style="align-items:flex-start"><span style="font-weight:800;font-size:15px">${esc(g.name)}</span>
+      <span style="text-align:right;white-space:nowrap"><b style="color:var(--teal-dark)">${esc(g.price)}</b>${g.sub?`<div class="cm" style="color:var(--mut);font-weight:400">${esc(g.sub)}</div>`:''}</span></div>
+    ${g.feats.map(f=>`<div class="cbox" style="align-items:flex-start"><span>• ${esc(f)}</span></div>`).join('')}
+    <div class="cm" style="margin-top:4px"><b>${esc(g.colorLabel)}</b>：<span style="color:var(--mut)">${esc(g.colors)}</span></div>
+  </div>`).join('');
+  app.innerHTML=`
+  <div class="card">
+    <h2>🛒 器材選購</h2>
+    <p class="hint">現貨即出、售完即止。落單方法：<b>WhatsApp 話我知款式＋顏色＋數量</b>。</p>
+    ${cards}
+    <a class="btn" href="${waLink('我想訂購器材：\n（請填 款式＋顏色＋數量）')}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">WhatsApp 落單（6331 7403）→</a>
+    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>
+  </div>`;
 }
 /* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
 const MAKEUP_URL='https://initiatesports.github.io/IS-APP/is-parent.html';
