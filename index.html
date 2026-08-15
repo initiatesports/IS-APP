@@ -2066,11 +2066,14 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeKnowledgePost
 function renderEquipmentScreen() {
   const el = document.getElementById('equipment-list');
   if (!el) return;
-  if (!EQUIPMENT_ITEMS || !EQUIPMENT_ITEMS.length) {
-    el.innerHTML = '<div class="lb-empty">暫無器材資料</div>';
-    return;
-  }
-  el.innerHTML = EQUIPMENT_ITEMS.map(item => `
+  // IS 器材設計卡（完整卡：含價錢／賣點／顏色；老闆 2026-08-16）— 置頂圖庫
+  const GEAR_CARDS=['beadrope','canvasbag','speedrope','wirerope','pickleset'];
+  const gallery = `<div class="card" style="grid-column:1/-1;margin-bottom:14px">
+    ${GEAR_CARDS.map(g=>`<img src="img/gear/${g}.jpg" alt="IS 器材" loading="lazy" style="width:100%;border-radius:12px;margin:6px 0;display:block" onerror="this.style.display='none'">`).join('')}
+    <div style="margin-top:6px;padding:10px;background:var(--cyan-dim);border-radius:10px;font-size:12px;color:var(--muted)">📩 落單：報名時可連學費一齊選購，或 WhatsApp 6331 7403（話我知款式＋顏色＋數量）</div>
+  </div>`;
+  if (!EQUIPMENT_ITEMS || !EQUIPMENT_ITEMS.length) { el.innerHTML = gallery; return; }
+  el.innerHTML = gallery + EQUIPMENT_ITEMS.map(item => `
     <div class="card" style="margin-bottom:14px">
       ${item.image ? `<img src="${item.image}" style="width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:12px">` : ''}
       <div class="card-title">${item.name}</div>
