@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-adultterms';
+const FRONTEND_VERSION='enroll-2026-08-16-uniform';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -859,19 +859,23 @@ const SIZECHART_SRC='img/uniform/sizechart.jpg';  // 品牌尺碼表圖（老闆
 function uniChartTable(rows){ return `<table class="uchart"><thead><tr><th></th>${UNIFORM_CHART.sizes.map(s=>`<th>${s}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td class="rl">${r[0]}</td>${r.slice(1).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
 const UNIFORM_OPTS=[
   {v:1,label:'已有制服，不需額外購買',cost:0},   // 新舊生都可揀（老闆 2026-08-14）；新生揀此會提醒上堂必須著制服
-  {v:2,label:'需購買制服',cost:160,note:'$160／套'},
-  {v:3,label:'需購買制服 ＋ 跳繩速度訓練器（花式跳繩恆常班適用）',cost:220,note:'$220'}
+  {v:2,label:'需購買制服',cost:180,note:'$180／套'},
+  {v:3,label:'需購買制服 ＋ 跳繩速度訓練器（花式跳繩恆常班適用）',cost:240,note:'$240'},
+  {v:4,label:'只買上衣',cost:100,note:'$100',oldOnly:1},   // 舊生補件（老闆 2026-08-16）
+  {v:5,label:'只買短褲',cost:100,note:'$100',oldOnly:1}
 ];
+function uShort(){ const v=S.uniform&&S.uniform.opt; return v===3?'制服＋速度器':(v===2?'制服':(v===4?'只買上衣':(v===5?'只買短褲':''))); }
 function uniformCost(){ return (S.uniform&&S.uniform.cost)||0; }
 function setUOpt(v){ const o=UNIFORM_OPTS.find(x=>x.v===v); S.uniform={opt:v,cost:o.cost,size:(v===1?'':(S.uniform&&S.uniform.size)||'')}; renderUniform(); }
 function setUSize(s){ S.uniform=S.uniform||{}; S.uniform.size=s; renderUniform(); }
 function renderUniform(){
-  if(!S.uniform) S.uniform={opt:(S.isNew?2:0),cost:(S.isNew?160:0),size:''};
-  const opts=UNIFORM_OPTS;   // 新舊生都可揀「已有制服」（老闆 2026-08-14）；新生揀「已有」下面會提醒必須著制服上堂
+  if(!S.uniform) S.uniform={opt:(S.isNew?2:0),cost:(S.isNew?180:0),size:''};
+  const _isOld=!!(S.family&&S.family.isOld);   // 只買上衣／短褲＝舊生補件專屬（老闆 2026-08-16）；新生一定買整套或已有
+  const opts=UNIFORM_OPTS.filter(o=> !o.oldOnly || _isOld);
   const optHtml=opts.map(o=>`<label class="uopt ${S.uniform.opt===o.v?'on':''}">
     <input type="radio" name="uopt" ${S.uniform.opt===o.v?'checked':''} onclick="setUOpt(${o.v})">
     <div style="flex:1"><div style="font-weight:700">${esc(o.label)}</div>${o.note?`<div class="cm" style="color:var(--teal-dark);font-weight:700">${o.note}</div>`:'<div class="cm" style="color:var(--mut)">免費</div>'}</div></label>`).join('');
-  const needSize=(S.uniform.opt===2||S.uniform.opt===3);
+  const needSize=[2,3,4,5].indexOf(S.uniform.opt)>=0;
   const sizeHtml=needSize?`<div class="fld"><label>制服尺碼（按身高／體重參考揀）<span style="color:var(--err)">*</span></label>
     <div class="usize">${UNIFORM_SIZES.map(z=>`<button type="button" class="${S.uniform.size===z.s?'on':''}" onclick="setUSize('${z.s}')"><b>${z.s}</b>${z.h}<br>${z.w}</button>`).join('')}</div>
     <p class="hint" style="margin-top:6px">尺碼僅供參考，測量方式不同可能有 1–2cm 誤差。</p></div>`:'';
@@ -898,7 +902,7 @@ function renderUniform(){
     if(PREVIEW){ S.uniform=S.uniform||{opt:1,cost:0,size:''}; saveDraft(); renderWeather(); return; }
     const msg=document.getElementById('u_msg');
     if(!S.uniform.opt){ msg.className='msg err'; msg.textContent='請選擇制服安排。'; return; }
-    if((S.uniform.opt===2||S.uniform.opt===3)&&!S.uniform.size){ msg.className='msg err'; msg.textContent='請揀制服尺碼。'; return; }
+    if([2,3,4,5].indexOf(S.uniform.opt)>=0&&!S.uniform.size){ msg.className='msg err'; msg.textContent='請揀尺碼。'; return; }
     saveDraft(); renderWeather();   // 制服後 → 惡劣天氣安排（流程內頁）→ 收費
   };
 }
@@ -989,7 +993,7 @@ async function renderFee(){
   const sessNote = `<p class="hint">${_sessLbl}${perNote}${anyWait?'。<b>候補課程暫免付費</b>，有位轉正先通知補收':''}。</p>
     <div class="banner" style="background:#e8f7ef;border-color:#1a9e6a;color:#127a51">✅ 4 人成班保證：如人數不足未能開班，已繳學費<b>全額退還</b>。</div>`;
   const uCost=uniformCost();
-  const uLine = uCost>0 ? `<div class="q dim"><span>制服${S.uniform&&S.uniform.opt===3?'＋跳繩速度訓練器':''}${S.uniform&&S.uniform.size?'（'+esc(S.uniform.size)+'）':''}</span><span>${money(uCost)}</span></div>` : '';
+  const uLine = uCost>0 ? `<div class="q dim"><span>${uShort()}${S.uniform&&S.uniform.size?'（'+esc(S.uniform.size)+'）':''}</span><span>${money(uCost)}</span></div>` : '';
   const grand=(res.net||0)+uCost;
   let quoteInner;
   if(chargedN===1 && !hasDisc && !anyWait && uCost===0){
@@ -1169,7 +1173,7 @@ function renderPay(){
     <h2>${isOpen?'付款':'預覽・提交'}</h2>
     <div class="sumline"><span class="k">學生</span><span>${esc(S.family.name)}</span></div>
     <div class="sumline"><span class="k">課程</span><span>${(q.courses||[]).map(c=>esc(c.sport)+(c.full?'（候補）':'')).join('、')}</span></div>
-    ${uCost>0?`<div class="sumline"><span class="k">制服${S.uniform&&S.uniform.opt===3?'＋速度器':''}</span><span>${S.uniform&&S.uniform.size?esc(S.uniform.size)+'・':''}${money(uCost)}</span></div>`:''}
+    ${uCost>0?`<div class="sumline"><span class="k">${uShort()}</span><span>${S.uniform&&S.uniform.size?esc(S.uniform.size)+'・':''}${money(uCost)}</span></div>`:''}
     <div class="sumline"><span class="k">收確認電郵</span><span>${esc((S.profile&&S.profile['電郵'])||'—')}</span></div>
     <div class="sumline"><span class="k">聯絡電話</span><span>${esc((S.profile&&S.profile['聯絡電話'])||'—')}</span></div>
     ${amtLine}

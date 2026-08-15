@@ -63,7 +63,7 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'loadOfficialCourses', must:'extractLiteral', why:'括號平衡掃描可靠抽官網課程內容(唔用脆弱regex)' },
   { file:'is-enroll.html', fn:'saveProfileGo', must:'renderUniform', why:'資料填好→制服頁（老闆:順序喺資料後，新生必買）' },
   { file:'is-enroll.html', fn:'renderUniform', must:'renderWeather', why:'制服揀好→惡劣天氣安排（流程內頁；順序:資料→制服→天氣→收費）' },
-  { file:'is-enroll.html', fn:'renderUniform', must:'UNIFORM_OPTS', why:'制服三選項(已有/購買$160/購買+速度器$220)+尺碼' },
+  { file:'is-enroll.html', fn:'renderUniform', must:'UNIFORM_OPTS', why:'制服選項(已有/制服$180/制服+速度器$240/舊生:只買上衣$100/只買短褲$100)+尺碼' },
   { file:'is-enroll.html', fn:'renderFee', must:'uniformCost', why:'費用頁把制服費加入總計應付' },
   { file:'is-enroll.html', fn:'renderPay', must:'uniformCost', why:'付款頁應付金額＝學費＋制服' },
   { file:'is-enroll.html', fn:'submitEnroll', must:'uniformOpt', why:'提交把制服選項/尺碼/費用傳畀後端記錄' },
