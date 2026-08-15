@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-gearwa';
+const FRONTEND_VERSION='enroll-2026-08-16-prevlinks';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -375,6 +375,8 @@ async function boot(){
   catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div><button class="btn" style="margin-top:10px" onclick="boot()">🔄 重試</button></div>'; return; }
   document.getElementById('periodLbl').textContent='';   // 右上角唔顯示期數
   await loadOfficialCourses();   // 同步官網課程介紹（失敗＝用內置 fallback）
+  // 預覽直達成人流程：?preview=1&flow=adult
+  if(PREVIEW && (new URLSearchParams(location.search).get('flow')||'').toLowerCase()==='adult'){ renderAdultForm(); return; }
   renderHome();
 }
 /* ════ ⓪ 首頁：課程介紹 ════ */
