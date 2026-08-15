@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-makeuptweak';
+const FRONTEND_VERSION='enroll-2026-08-16-adulten';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -537,6 +537,8 @@ function renderAdultForm(){
   <div class="card">
     <h2>成人課程報名</h2>
     <p class="hint">歡迎成人／樂齡人士報名。收費固定 <b>$150／節</b>（每期 8 堂 $1,200）；<b>1 對 1／1 對 2 私人訓練</b>另按需要安排、收費面議，歡迎 <a href="${waLink('我想查詢成人私人訓練')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a>。</p>
+    <div class="fld"><label>English Name 英文全名 <span style="color:var(--err)">*</span><br><span class="hint" style="font-weight:400">Same as HKID / Passport，例：Chan Tai Man（成人以英文全名報名，毋須中文名）</span></label><input id="ad_en" placeholder="Chan Tai Man"></div>
+    <div class="fld"><label>暱稱（想上堂時點樣稱呼你？）</label><input id="ad_nick" placeholder="例：Alex／阿文"></div>
     <div class="fld"><label>揀課程（可多選）</label>${opts}
       <label class="chk" style="align-items:flex-start;margin-top:8px"><input type="checkbox" id="ad_self"><span><b>已夠 4 人自組班別</b>（自組時間，教練安排）</span></label>
       <div id="ad_self_box" style="display:none;margin-top:6px;padding-left:6px">
@@ -544,8 +546,6 @@ function renderAdultForm(){
         <label class="chk"><input type="radio" name="ad_selfday" value="晚間（週一至四 8–9pm）"><span>晚間（週一至四 8–9pm）</span></label>
         <div class="fld" style="margin-top:6px"><label>想要具體時間（提交後 WhatsApp 落實）</label><input id="ad_selftime" placeholder="例：星期二 10:00–11:00"></div>
       </div></div>
-    <div class="fld"><label>English Name 英文姓名 <span style="color:var(--err)">*</span><br><span class="hint" style="font-weight:400">Same as HKID / Passport，例：Chan Tai Man</span></label><input id="ad_en" placeholder="Chan Tai Man"></div>
-    <div class="fld"><label>暱稱（想上堂時點樣稱呼你？）</label><input id="ad_nick" placeholder="例：Alex／阿文"></div>
     <div class="fld"><label>Gender 性別</label>
       <select id="ad_gender"><option value="">請選擇</option><option>男 Male</option><option>女 Female</option><option>不透露</option></select></div>
     <div class="fld"><label>Mobile Phone 聯絡電話（WhatsApp）<span style="color:var(--err)">*</span></label><input id="ad_mob" inputmode="numeric" placeholder="例：9123 4567"></div>
@@ -586,7 +586,10 @@ function adultToTerms(){
 }
 function renderAdultTerms(){
   const t=(S.cfg&&S.cfg.terms)||{statements:[],version:''};
-  const ops=(t.statements||[]).slice(4);   // 營運條款（成班／退款／請假補堂／天氣／場地／器材／接送等）
+  // 成人版：本人為自己報名（唔係家長代報）→ 濾走「家長接送」條，其餘「家長／學員／子女」字樣改「本人」
+  const ops=(t.statements||[]).slice(4)
+    .filter(s=>!/^接送及安全/.test(s))
+    .map(s=>s.replace(/家長／監護人|家長/g,'本人').replace(/學員/g,'本人').replace(/小兒／小女|子女/g,'本人').replace(/本人本人/g,'本人'));
   app.innerHTML=`
   <div class="card">
     <h2>課程條款及簽署</h2>
