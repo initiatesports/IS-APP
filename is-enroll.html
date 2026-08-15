@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-prevlinks';
+const FRONTEND_VERSION='enroll-2026-08-16-gearback';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -410,7 +410,7 @@ function renderHome(){
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_adult').onclick=renderAdultForm;
   document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
-  document.getElementById('hm_gear').onclick=renderGearShop;
+  document.getElementById('hm_gear').onclick=()=>renderGearShop(false);
   document.getElementById('hm_look').onclick=renderLogin;
 }
 /* ════ 器材選購（DM 落單；內容由老闆提供 2026-08-16）════ */
