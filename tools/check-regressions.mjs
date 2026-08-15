@@ -68,7 +68,7 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'renderPay', must:'uniformCost', why:'付款頁應付金額＝學費＋制服' },
   { file:'is-enroll.html', fn:'submitEnroll', must:'uniformOpt', why:'提交把制服選項/尺碼/費用傳畀後端記錄' },
   { file:'is-enroll.html', fn:'renderFee', must:'renderNotes', why:'費用後→課程注意事項頁(逐項同意，安全所需)' },
-  { file:'is-enroll.html', fn:'renderNotes', must:'nt_chk', why:'共通+逐課程注意事項逐項剔選同意先可繼續' },
+  { file:'is-enroll.html', fn:'renderNotes', must:'nt_all', why:'共通+逐課程注意事項純顯示＋一個總確認（已閱讀並明白）先可繼續' },
   { file:'is-enroll.html', fn:'renderTerms', must:'setupSigPad', why:'聲明頁加家長手寫簽名板(合約PDF嵌入)' },
   { file:'is-enroll.html', fn:'renderTerms', must:'sigDataUrl', why:'未簽名唔可以去付款(手寫簽名必填)' },
   { file:'is-enroll.html', fn:'submitEnroll', must:'signImg', why:'提交把家長手寫簽名+注意事項同意傳後端' },

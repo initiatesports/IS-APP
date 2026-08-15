@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-preview';
+const FRONTEND_VERSION='enroll-2026-08-15-notes2';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -140,11 +140,10 @@ function waLink(txt){ return 'https://wa.me/85263317403?text='+encodeURIComponen
 function copyTxt(t,btn){ try{ navigator.clipboard.writeText(String(t)); if(btn){ const o=btn.textContent; btn.textContent='✓ 已複製'; setTimeout(()=>btn.textContent=o,1500); } }catch(e){} }
 // ── 草稿自動儲存（中途走唔使重頭；只存非敏感：家庭+已揀課程，唔存健康/證件/截圖）──
 const DRAFT_KEY='is_enroll_draft_v1';
-function saveDraft(){ try{ if(!S.family||!S.courses.length) return;
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name:S.family.name, phone:S.family.phone||'', courses:S.courses, ts:Date.now() })); }catch(e){} }   // 唔存 last4(credential,由 phone 派生;續報靠 phone 重新認人)
-function loadDraft(){ try{ const s=localStorage.getItem(DRAFT_KEY); if(!s) return null;
-  const d=JSON.parse(s); if(!d||!d.ts||Date.now()-d.ts>86400000){ localStorage.removeItem(DRAFT_KEY); return null; }
-  return (d.courses&&d.courses.length)?d:null; }catch(e){ return null; } }
+// 「繼續上次報名」已移除（老闆 2026-08-15，私隱：共用裝置唔應殘留上一位家長嘅姓名／電話）。
+// saveDraft 唔再存任何資料；loadDraft 永遠回 null，並順手清走任何舊殘留。
+function saveDraft(){ /* 已停用：唔再存 draft */ }
+function loadDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} return null; }
 function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
 
 // ── 檔案欄位（label / key＝saveProfile參數 / sheet header＝profile帶出）──
@@ -530,7 +529,7 @@ function openCourseDetail(i){
 }
 /* ════ ①B 價格表（登入後，全部課程 + 優惠）════ */
 function renderPriceTable(){
-  const cs=S.cfg.courses||[];
+  const cs=(S.cfg.courses||[]).filter(c=>c.sport!=='成人增肌減脂班');   // 兒童報名流程唔顯示成人班（成人有獨立入口）
   const isOld=!!(S.family&&S.family.isOld);
   // 只顯示每個課程一次（同名去重）、唔顯示時間
   const seen={}, uniq=[]; cs.forEach(c=>{ if(!seen[c.sport]){ seen[c.sport]=1; uniq.push(c); } });
@@ -826,7 +825,7 @@ function renderUniform(){
 }
 /* ════ ③ 揀課程 ════ */
 function renderCourses(){
-  const cs=S.cfg.courses||[];
+  const cs=(S.cfg.courses||[]).filter(c=>c.sport!=='成人增肌減脂班');   // 兒童報名流程唔顯示成人班（成人有獨立入口）
   const list=cs.map(c=>{
     const on=S.courses.indexOf(c.id)>=0;
     // 只顯示登入者自己身份嘅價錢：舊生用 oldPrices(驗證後先攞到)，新生用 price；兩者唔並列（新生睇唔到有平過嘅價）
@@ -957,16 +956,17 @@ function renderNotes(){
       if(ns.length && /^本班學費/.test(ns[0])) ns[0]=_feeNote; else ns.unshift(_feeNote);
     }
     if(ns.length) blocks.push({sport:c.sport,notes:ns}); });
-  const commonHtml=common.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="nt_chk" data-k="c${i}"><span>${esc(s)}</span></label></div>`).join('');
-  const sportHtml=blocks.map((bk,bi)=>`<div class="fld" style="margin-top:8px"><label>${esc(bk.sport)}　專屬注意事項</label>
-    ${bk.notes.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="nt_chk" data-k="s${bi}_${i}"><span>${esc(s)}</span></label></div>`).join('')}</div>`).join('');
+  const commonHtml=common.map(s=>`<div class="cbox" style="align-items:flex-start"><span>• ${esc(s)}</span></div>`).join('');
+  const sportHtml=blocks.map(bk=>`<div class="fld" style="margin-top:8px"><label>${esc(bk.sport)}　專屬注意事項</label>
+    ${bk.notes.map(s=>`<div class="cbox" style="align-items:flex-start"><span>• ${esc(s)}</span></div>`).join('')}</div>`).join('');
   app.innerHTML=`
   <div class="card">
     ${steps(5)}
     <h2>課程注意事項</h2>
-    <p class="hint">為咗學員安全，以下每項都要<b>逐項剔選同意</b>先可以繼續（會列入報名確認書）。</p>
+    <p class="hint">以下為各課程注意事項，請閱讀（會列入報名確認書）。閱畢請剔選下面一項確認。</p>
     ${common.length?`<div class="fld"><label>共通注意事項（所有課程）</label>${commonHtml}</div>`:''}
     ${sportHtml}
+    <label class="chk" style="margin-top:10px"><input type="checkbox" id="nt_all"><span>本人已<b>閱讀並明白以上所有注意事項</b>。</span></label>
     <div class="msg" id="nt_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderFee()">返回</button>
@@ -976,9 +976,8 @@ function renderNotes(){
   document.getElementById('nt_go').onclick=()=>{
     if(PREVIEW){ S.notesAgreed=true; renderTerms(); return; }
     const msg=document.getElementById('nt_msg');
-    const boxes=[...document.querySelectorAll('.nt_chk')];
-    if(!boxes.every(c=>c.checked)){ msg.className='msg err'; msg.textContent='請逐項剔選同意上面每一項注意事項（安全所需）。'; return; }
-    S.notesAgreed=true; saveDraft(); renderTerms();
+    if(!document.getElementById('nt_all').checked){ msg.className='msg err'; msg.textContent='請剔選「已閱讀並明白以上注意事項」。'; return; }
+    S.notesAgreed=true; renderTerms();
   };
 }
 /* ════ ⑤ 條款 ════ */
