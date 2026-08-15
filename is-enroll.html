@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-prevold';
+const FRONTEND_VERSION='enroll-2026-08-16-gearwa';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -485,9 +485,8 @@ function renderGearShop(inFlow){
   app.innerHTML=`
   <div class="card">
     <h2>🛒 器材選購</h2>
-    <p class="hint">現貨即出、售完即止。可於報名時<b>連學費一齊選購付款</b>，或 <b>WhatsApp 落單</b>（話我知款式＋顏色＋數量）。</p>
+    <p class="hint">現貨即出、售完即止。可於<b>報名時連學費一齊選購付款</b>。</p>
     ${cards}
-    <a class="btn" href="${waLink('我想訂購器材：\n（請填 款式＋顏色＋數量）')}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">WhatsApp 落單（6331 7403）→</a>
     <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="${inFlow?'renderGearSelect()':'renderHome()'}">‹ 返回</button></div>
   </div>`;
 }
