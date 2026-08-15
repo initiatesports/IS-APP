@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-v2cut';
+const FRONTEND_VERSION='enroll-2026-08-15-coach';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -425,14 +425,16 @@ function renderWeather(){
   window.scrollTo(0,0);
 }
 // 教練資歷（照官網原文；⚠️ NKT×SCS 徒手治療係私人訓練專有，兒童/團體班唔寫）
-const COACH_SECTION={icon:'👨‍🏫',h:'你嘅教練',list:[
-  '香港中文大學 運動科學（Physical Education, Exercise Science and Health）',
+const COACH_SECTION={icon:'👨‍🏫',h:'教練資歷',list:[
+  '香港中文大學 體育運動科學系畢業',
   'NASM 美國國家運動醫學學院 — 國際認證私人教練',
   'S&C 體能表現教練（Strength & Conditioning Performance Coach）',
-  '前香港隊運動員 · 逾 10 年運動員經驗、5 年教學經驗',
-  '師生比例 1:8、4 人成班，動作有人盯、練得準'
+  'NeuroKinetic Therapy（神經動能療法）',
+  'Strain Counterstrain（拮抗鬆弛術）',
+  '通過香港體育科中小學老師資歷（PGDE）',
+  '有任教本港中小學體育教學經驗',
+  '前香港隊運動員 · 逾 10 年運動員經驗、5 年教學經驗'
 ]};
-const COACH_PRIVATE_IDS=['fit-adult','c5'];   // 私訓/成人詳情已有完整資歷(含 NKT×SCS),唔重複加
 function openCourseDetail(i){
   const co=COURSE_ITEMS[i]; if(!co) return;
   const d=COURSE_DETAIL[co.id]||{};
@@ -442,7 +444,7 @@ function openCourseDetail(i){
     <div class="cd-head"><div class="cd-title">${esc(co.name)}</div>${co.tag?`<span class="pill">${esc(co.tag)}</span>`:''}</div>
     ${meta?`<div class="hint" style="margin:6px 0 2px">${meta}</div>`:''}
     ${d.summary?`<div class="cd-sum">${esc(d.summary)}</div>`:''}
-    <div class="cd-body">${fmtCourseSections((d.sections||[]).concat(COACH_PRIVATE_IDS.indexOf(co.id)>=0?[]:[COACH_SECTION]))}</div>
+    <div class="cd-body">${fmtCourseSections((d.sections||[]).concat([COACH_SECTION]))}</div>
     <div class="navbtns" style="margin-top:14px">
       <button class="btn ghost sm" onclick="renderHome()">‹ 返回課程</button>
       <button class="btn" onclick="renderLogin()">我要報名 →</button>
@@ -505,10 +507,12 @@ function renderLogin(){
     ${resumeBtn}
     <button class="btn ghost" id="li_home" style="margin-top:10px">‹ 返回課程介紹</button>
     <button class="btn ghost" id="li_look" style="margin-top:10px">查詢我嘅報名狀態</button>
+    <button class="btn ghost" id="li_weather" style="margin-top:10px">🌧 惡劣天氣特別安排</button>
     <div class="msg" id="li_msg"></div>
   </div>`;
   document.getElementById('li_go').onclick=doIdentify;
   document.getElementById('li_home').onclick=renderHome;
+  document.getElementById('li_weather').onclick=renderWeather;
   if(draft){ const rb=document.getElementById('li_resume'); if(rb) rb.onclick=async()=>{
     document.getElementById('li_name').value=draft.name; document.getElementById('li_phone').value=draft.phone||'';
     await doIdentify(); S.courses=draft.courses.slice(); renderCourses(); }; }
@@ -752,8 +756,9 @@ function renderCourses(){
     const myPrice = isOldView ? ((S.oldPrices&&S.oldPrices[c.id])||c.priceOld||c.price) : c.price;
     const priceTxt = myPrice>0 ? money(myPrice) : '待定';
     const noteTxt = c.bundle ? '含任跳 1 小時・需遴選' : '';
-    // 舊生價下用小字顯示新生／暫停後重新加入價（條款8：因私人原因暫停後重新加入按新生價；老闆 2026-08-14）
-    const rejoinTxt = (isOldView && c.price>myPrice) ? `<div class="cm" style="font-weight:400;color:var(--mut);font-size:10px;line-height:1.35;margin-top:2px">新生／暫停後<br>重新加入 ${money(c.price)}</div>` : '';
+    // 價格下用小字顯示暫停後重新加入價（條款8：新舊生都適用，全部課程每節加 $20；老闆 2026-08-15）
+    const _rjSess = Number(c.sessions)||8;
+    const rejoinTxt = (!c.bundle && myPrice>0) ? `<div class="cm" style="font-weight:400;color:var(--mut);font-size:10px;line-height:1.35;margin-top:2px">暫停後<br>重新加入 ${money(myPrice + 20*_rjSess)}</div>` : '';
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
       .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
     const left = c.cap - (c.enrolled||0);
@@ -1027,7 +1032,7 @@ async function submitEnroll(){
       signImg:S.signImg||'', notesAgreed:S.notesAgreed?'1':'', photoConsent:(S.photoConsent===false?'0':'1'), agree:'同意' }, 30000);
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>——請用「查詢我報名狀態」查看，切勿以為失敗而重複提交（就算再交都唔會重複收費）。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
-  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或聯絡張 Sir。'; return; }
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或 WhatsApp 6331 7403。'; return; }
   renderDone(res);
 }
 /* ════ 完成 ════ */
