@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-makeup';
+const FRONTEND_VERSION='enroll-2026-08-15-adultterms';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -406,11 +406,15 @@ function renderHome(){
   </div>`;
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_adult').onclick=renderAdultForm;
-  document.getElementById('hm_makeup').onclick=renderMakeupInfo;
+  document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
   document.getElementById('hm_look').onclick=renderLogin;
 }
 /* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
-function renderMakeupInfo(){
+const MAKEUP_URL='https://initiatesports.github.io/IS-APP/is-parent.html';
+function renderMakeupInfo(inFlow){
+  const nav = inFlow
+    ? `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderWeather()">‹ 返回</button><button class="btn" onclick="renderPriceTable()">下一步（睇收費）→</button></div>`
+    : `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>`;
   app.innerHTML=`
   <div class="card">
     <h2>🗓 請假 · 補堂</h2>
@@ -426,9 +430,10 @@ function renderMakeupInfo(){
       <div class="cbox" style="align-items:flex-start"><span>• 已請假之堂可於<b>請假當月起兩個月內</b>補堂，逾期不設順延</span></div>
       <div class="cbox" style="align-items:flex-start"><span>• 已預約補堂於<b>開課前 6 小時內不可取消</b>，否則該堂照扣</span></div>
     </div>
-    <a class="btn" href="is-parent.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px">前往請假／補堂系統 →</a>
-    <p class="hint" style="margin-top:8px">有疑問？<a href="${waLink('我想查詢請假／補堂')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
-    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>
+    <a class="btn" href="${MAKEUP_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">前往請假／補堂系統 →</a>
+    <p class="hint" style="margin-top:8px">網址：<a href="${MAKEUP_URL}" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;word-break:break-all">${MAKEUP_URL}</a></p>
+    <p class="hint" style="margin-top:4px">有疑問？<a href="${waLink('我想查詢請假／補堂')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
+    ${nav}
   </div>`;
 }
 /* ════ 成人課程報名（獨立表單；成人自己報，欄位同兒童唔同）════ */
@@ -447,7 +452,13 @@ function renderAdultForm(){
   <div class="card">
     <h2>成人課程報名</h2>
     <p class="hint">歡迎成人／樂齡人士報名。收費固定 <b>$150／節</b>（每期 8 堂 $1,200）；<b>1 對 1／1 對 2 私人訓練</b>另按需要安排、收費面議，歡迎 <a href="${waLink('我想查詢成人私人訓練')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a>。</p>
-    <div class="fld"><label>揀課程（可多選）</label>${opts}</div>
+    <div class="fld"><label>揀課程（可多選）</label>${opts}
+      <label class="chk" style="align-items:flex-start;margin-top:8px"><input type="checkbox" id="ad_self"><span><b>已夠 4 人自組班別</b>（自組時間，教練安排）</span></label>
+      <div id="ad_self_box" style="display:none;margin-top:6px;padding-left:6px">
+        <label class="chk"><input type="radio" name="ad_selfday" value="日間（週一至五 9am–4pm）"><span>日間（週一至五 9am–4pm）</span></label>
+        <label class="chk"><input type="radio" name="ad_selfday" value="晚間（週一至四 8–9pm）"><span>晚間（週一至四 8–9pm）</span></label>
+        <div class="fld" style="margin-top:6px"><label>想要具體時間（提交後 WhatsApp 落實）</label><input id="ad_selftime" placeholder="例：星期二 10:00–11:00"></div>
+      </div></div>
     <div class="fld"><label>English Name 英文姓名 <span style="color:var(--err)">*</span><br><span class="hint" style="font-weight:400">Same as HKID / Passport，例：Chan Tai Man</span></label><input id="ad_en" placeholder="Chan Tai Man"></div>
     <div class="fld"><label>暱稱（想上堂時點樣稱呼你？）</label><input id="ad_nick" placeholder="例：Alex／阿文"></div>
     <div class="fld"><label>Gender 性別</label>
@@ -456,46 +467,90 @@ function renderAdultForm(){
     <div class="fld"><label>身體上有否任何舊患 or 經常性會出現痠痛的位置？</label><textarea id="ad_inj" rows="2" placeholder="例：右膝舊患／肩頸經常痠痛；如無可留空"></textarea></div>
     <div class="fld"><label>運動經驗年資？平時有冇做開咩運動？（eg. 瑜伽、Gym、跑步等）</label><textarea id="ad_exp" rows="2" placeholder="例：健身 2 年、偶爾跑步"></textarea></div>
     <div class="fld"><label>想透過呢個訓練班改善什麼問題／達到什麼目標？（eg. 增肌減脂、改善體態、舒緩痛症）</label><textarea id="ad_goal" rows="2" placeholder="例：增肌減脂、改善圓肩寒背"></textarea></div>
-    <div class="fld"><div class="banner"><b>身體狀況聲明及確認</b><br>本人聲明本人健康及體能良好、適合參加上述課程；如有長期病患、受傷、懷孕或身體不適，會先諮詢醫生並主動通知教練。若因隱瞞健康狀況而於活動時傷亡，主辦機構概不負責。本人已閱讀並同意課程條款（收費退款、請假補堂、惡劣天氣、場地、服飾及安全等）。</div>
-      <label class="chk" style="margin-top:6px"><input type="checkbox" id="ad_ack"><span>本人已閱讀並<b>確認以上身體狀況聲明及課程條款</b>。</span></label></div>
     <div class="msg" id="ad_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderHome()">‹ 返回</button>
-      <button class="btn" id="ad_go">提交報名 →</button>
+      <button class="btn" id="ad_go">下一步（條款簽署）→</button>
     </div>
   </div>`;
-  document.getElementById('ad_go').onclick=submitAdult;
+  const a=S.adult;   // 由條款頁返回時帶返已填資料
+  if(a){ const set=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null)el.value=v;};
+    (a.courseIds||[]).forEach(id=>{const cb=document.querySelector('.ad_c[data-id="'+id+'"]'); if(cb)cb.checked=true;});
+    set('ad_en',a.en); set('ad_nick',a.nick); set('ad_mob',a.mob); set('ad_inj',a.injury); set('ad_exp',a.exp); set('ad_goal',a.goal);
+    if(a.gender){const g=document.getElementById('ad_gender'); if(g)g.value=a.gender;}
+    if(a.self){const s=document.getElementById('ad_self'); if(s)s.checked=true; const bx=document.getElementById('ad_self_box'); if(bx)bx.style.display='';
+      const r=document.querySelector('input[name=ad_selfday][value="'+a.selfDay+'"]'); if(r)r.checked=true; set('ad_selftime',a.selfTime); } }
+  const sc=document.getElementById('ad_self'); if(sc)sc.onchange=()=>{const b=document.getElementById('ad_self_box'); if(b)b.style.display=sc.checked?'':'none';};
+  document.getElementById('ad_go').onclick=adultToTerms;
 }
-async function submitAdult(){
+function adultToTerms(){
   const msg=document.getElementById('ad_msg');
-  if(PREVIEW){ msg.className='msg'; msg.textContent='（預覽模式）唔會真提交報名。'; return; }
   const ids=[...document.querySelectorAll('.ad_c:checked')].map(c=>c.getAttribute('data-id'));
+  const self=document.getElementById('ad_self').checked;
+  const selfDay=(document.querySelector('input[name=ad_selfday]:checked')||{}).value||'';
   const en=document.getElementById('ad_en').value.trim();
   const mob=document.getElementById('ad_mob').value.replace(/\D/g,'');
-  if(!ids.length){ msg.className='msg err'; msg.textContent='請最少揀一個成人課程。'; return; }
+  if(!ids.length && !self){ msg.className='msg err'; msg.textContent='請最少揀一個成人課程，或剔選「已夠 4 人自組班別」。'; return; }
+  if(self && !selfDay){ msg.className='msg err'; msg.textContent='請揀自組班時段（日間／晚間）。'; return; }
   if(!en){ msg.className='msg err'; msg.textContent='請填寫英文姓名（English Name）。'; return; }
   if(mob.length<8){ msg.className='msg err'; msg.textContent='請填寫正確聯絡電話（8 位數字）。'; return; }
-  if(!document.getElementById('ad_ack').checked){ msg.className='msg err'; msg.textContent='請確認身體狀況聲明及課程條款。'; return; }
+  S.adult={ courseIds:ids, self, selfDay, selfTime:(document.getElementById('ad_selftime')?document.getElementById('ad_selftime').value.trim():''),
+    en, nick:document.getElementById('ad_nick').value.trim(), gender:document.getElementById('ad_gender').value, mob,
+    injury:document.getElementById('ad_inj').value.trim(), exp:document.getElementById('ad_exp').value.trim(), goal:document.getElementById('ad_goal').value.trim() };
+  renderAdultTerms();
+}
+function renderAdultTerms(){
+  const t=(S.cfg&&S.cfg.terms)||{statements:[],version:''};
+  const ops=(t.statements||[]).slice(4);   // 營運條款（成班／退款／請假補堂／天氣／場地／器材／接送等）
+  app.innerHTML=`
+  <div class="card">
+    <h2>課程條款及簽署</h2>
+    <div class="banner"><b>身體狀況聲明</b><br>本人聲明本人健康及體能良好、適合參加課程；如有長期病患、受傷、懷孕或身體不適，會先諮詢醫生並主動通知教練。若因隱瞞健康狀況而於活動時傷亡，主辦機構概不負責。</div>
+    <div class="fld" style="margin-top:8px"><label>課程條款</label>
+      <div class="terms">${ops.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div></div>
+    <div class="fld"><label>證件號碼首 4 位（英文字母＋首 3 數字，e.g. A123）<span style="color:var(--err)">*</span></label><input id="ad_sid" maxlength="8" placeholder="A123"></div>
+    <div class="fld"><label>本人簽名 <span style="color:var(--err)">*</span></label>
+      <canvas id="sigpad" style="width:100%;height:170px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="hint">請喺上面用手指或滑鼠簽名。</span><button type="button" class="btn ghost sm" style="padding:3px 10px" onclick="clearSig()">清除重簽</button></div></div>
+    <label class="chk" style="margin-top:6px"><input type="checkbox" id="ad_agree"><span>本人已閱讀並<b>同意以上身體狀況聲明及課程條款</b>。</span></label>
+    <div class="msg" id="adt_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderAdultForm()">返回</button>
+      <button class="btn" id="adt_go">提交報名 →</button>
+    </div>
+  </div>`;
+  document.getElementById('adt_go').onclick=submitAdult;
+  setupSigPad();
+}
+async function submitAdult(){
+  const msg=document.getElementById('adt_msg');
+  if(PREVIEW){ if(msg){msg.className='msg'; msg.textContent='（預覽模式）唔會真提交報名。';} return; }
+  const a=S.adult||{};
+  const sid=document.getElementById('ad_sid').value.trim();
+  const sig=(typeof sigDataUrl==='function')?sigDataUrl():'';
+  if(!document.getElementById('ad_agree').checked){ msg.className='msg err'; msg.textContent='請剔選同意課程條款。'; return; }
+  if(!sid){ msg.className='msg err'; msg.textContent='請填寫證件號碼首 4 位。'; return; }
+  if(!sig){ msg.className='msg err'; msg.textContent='請喺簽名格簽名。'; document.getElementById('sigpad').scrollIntoView({block:'center'}); return; }
   msg.className='msg'; msg.textContent='提交中…';
-  const btn=document.getElementById('ad_go'); btn.disabled=true;
-  const body={ action:'adultEnroll', courseIds:ids.join(','), englishName:en, nickname:document.getElementById('ad_nick').value.trim(),
-    gender:document.getElementById('ad_gender').value, mobile:mob, injury:document.getElementById('ad_inj').value.trim(),
-    experience:document.getElementById('ad_exp').value.trim(), goal:document.getElementById('ad_goal').value.trim(),
-    healthAck:'1', clientToken:(S._adTok||(S._adTok='ad'+Date.now()+Math.random().toString(36).slice(2))) };
+  const btn=document.getElementById('adt_go'); btn.disabled=true;
+  const body={ action:'adultEnroll', courseIds:(a.courseIds||[]).join(','), selfClass:a.self?'1':'', selfDay:a.selfDay||'', selfTime:a.selfTime||'',
+    englishName:a.en, nickname:a.nick, gender:a.gender, mobile:a.mob, injury:a.injury, experience:a.exp, goal:a.goal,
+    healthAck:'1', termsAgreed:'1', signId:sid, signImg:sig, clientToken:(S._adTok||(S._adTok='ad'+Date.now()+Math.random().toString(36).slice(2))) };
   try{
-    const r=await apiPost(body, 30000);
+    const r=await apiPost(body, 45000);
     if(!r||!r.ok){ msg.className='msg err'; msg.textContent=(r&&r.err)||'提交失敗，請再試或 WhatsApp 6331 7403。'; btn.disabled=false; return; }
-    renderAdultDone(r);
+    S.adult=null; renderAdultDone(r);
   }catch(e){ msg.className='msg err'; msg.textContent='網絡問題，請再試。'; btn.disabled=false; }
 }
 function renderAdultDone(r){
   const wl = r.waitlisted ? `<div class="banner" style="margin-top:8px">部分課程已滿，已為你<b>候補</b>：${esc(r.waitCourses||'')}（有位會 WhatsApp 通知）。</div>` : '';
+  const selfNote = r.selfClass ? `<div class="banner" style="margin-top:8px">你揀咗<b>自組班別</b>，教練會 WhatsApp 同你落實上課時間及安排。</div>` : '';
+  const payNote = (r.amount||0)>0 ? `<div class="banner" style="margin-top:8px">應繳學費：<b>${money(r.amount||0)}</b><br>請以 <b>FPS 轉數快：${esc(r.fps||'6709 3390')}</b> 過數，並將<b>過數截圖</b> WhatsApp 至 <a href="${waLink('成人報名過數截圖｜編號 '+(r.id||''))}" target="_blank" style="color:var(--teal);font-weight:700">6331 7403</a> 完成確認。</div>` : '';
   app.innerHTML=`
   <div class="card">
     <h2>✅ 成人報名已收到</h2>
     <p class="hint">記錄編號：<b>${esc(r.id||'-')}</b>　課程：${esc(r.courses||'')}</p>
-    ${wl}
-    <div class="banner" style="margin-top:8px">應繳學費：<b>${money(r.amount||0)}</b><br>請以 <b>FPS 轉數快：${esc(r.fps||'6709 3390')}</b> 過數，並將<b>過數截圖</b> WhatsApp 至 <a href="${waLink('成人報名過數截圖｜編號 '+(r.id||''))}" target="_blank" style="color:var(--teal);font-weight:700">6331 7403</a> 完成確認。</div>
+    ${wl}${selfNote}${payNote}
     <div class="navbtns" style="margin-top:12px"><button class="btn" onclick="renderHome()">完成</button></div>
   </div>`;
 }
@@ -519,7 +574,7 @@ function renderWeather(){
     </div>
     <div class="banner" style="margin-top:12px;background:#fdecea;border-color:var(--err);color:var(--err)">⚠️ 所有因惡劣天氣而取消之課堂，將<b>不獲補課或退款</b>，導師會因應情況調節課程進度。</div>
     <p class="hint" style="margin-top:10px">＊熱帶氣旋警告懸掛期間或天氣惡劣時，家長應視乎情況決定是否讓子女上課，安全第一。</p>
-    <div class="navbtns" style="margin-top:14px"><button class="btn ghost sm" onclick="renderUniform()">‹ 返回</button><button class="btn" onclick="renderPriceTable()">下一步（睇收費）→</button></div>
+    <div class="navbtns" style="margin-top:14px"><button class="btn ghost sm" onclick="renderUniform()">‹ 返回</button><button class="btn" onclick="renderMakeupInfo(true)">下一步 →</button></div>
   </div>`;
   window.scrollTo(0,0);
 }
