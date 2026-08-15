@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-ux';
+const FRONTEND_VERSION='enroll-2026-08-15-wait';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -961,10 +961,11 @@ function sigDataUrl(){ return (_sig.has&&_sig.cv)?_sig.cv.toDataURL('image/png')
 /* ════ ⑥ 付款 + 提交 ════ */
 function renderPay(){
   const q=S.quote||{};
-  const courseNet=q.net||0, uCost=uniformCost(), net=courseNet+uCost;   // 付款總數＝課程學費＋制服
+  const courseNet=q.net||0, uCost=uniformCost();
+  const allWait = (q.courses||[]).length>0 && (q.courses||[]).every(c=>c.full);   // 全部課程都候補
+  const net=courseNet+(allWait?0:uCost);   // 付款總數＝課程學費＋制服（全候補時制服費延到轉正先收）
   const priced=q.base>0;
-  const free = priced && courseNet<=0 && uCost===0;   // 全免：課程被券全抵 + 冇買制服
-  const allWait = (q.courses||[]).length>0 && (q.courses||[]).every(c=>c.full) && uCost===0;   // 全候補且冇制服先當 $0
+  const free = priced && courseNet<=0 && !allWait && uCost===0;   // 全免：課程被券全抵 + 冇買制服
   const isOpen = !!S.cfg.open;
   let amtLine, payBox;
   if(!isOpen){
@@ -972,7 +973,7 @@ function renderPay(){
     amtLine = priced ? `<div class="sumline"><span class="k">預計應付</span><span><b>${money(net)}</b></span></div>` : '';
     payBox=`<div class="banner" style="margin-top:12px">🔎 <b>預覽模式</b>：報名將於 <b>${esc(S.cfg.openDate||'8 月中')}</b> 開放。<b>請勿現在過數</b>，開放後返嚟提交先付款。</div>`;
   }else if(allWait){
-    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（全部候補，暫免付費）</b></span></div>`;
+    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（全部候補，暫免付費）</b></span></div>${uCost>0?`<p class="hint">＊制服費 ${money(uCost)} 待有位轉正後連學費一齊補收，暫毋須付款。</p>`:''}`;
     payBox=`<div class="banner" style="margin-top:12px">你揀嘅課程現時已滿，已為你排候補，<b>暫時無需付款</b>；有位轉正會通知你再繳費。</div>`;
   }else if(free){
     amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（優惠券全額抵扣）</b></span></div>`;
