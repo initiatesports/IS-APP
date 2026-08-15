@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-thu';
+const FRONTEND_VERSION='enroll-2026-08-15-b';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -146,6 +146,8 @@ function loadDraft(){ try{ const s=localStorage.getItem(DRAFT_KEY); if(!s) retur
 function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
 
 // ── 檔案欄位（label / key＝saveProfile參數 / sheet header＝profile帶出）──
+// 舊生唔問「認識途徑」同「推薦人」（佢哋已係我哋學生，唔屬新客來源，亦唔涉推薦獎賞）；新生照問。老闆 2026-08-15
+function pFields(){ const old=!!(S.family&&S.family.isOld); return PFIELDS.filter(f=> !(old && (f.k==='source'||f.k==='referrer'))); }
 const PFIELDS=[
   {k:'email',    h:'電郵',     label:'家長電郵 Email（收報名確認）', req:1},
   {k:'phone',    h:'聯絡電話', label:'家長聯絡電話（8 位數字）', req:1},
@@ -426,7 +428,7 @@ function renderWeather(){
 }
 // 教練資歷（照官網原文；⚠️ NKT×SCS 徒手治療係私人訓練專有，兒童/團體班唔寫）
 const COACH_SECTION={icon:'👨‍🏫',h:'教練資歷',list:[
-  '香港中文大學 體育運動科學系畢業',
+  '香港中文大學 體育運動科學系畢業（Sports Science, Physical Education and Health）',
   'NASM 美國國家運動醫學學院 — 國際認證私人教練',
   'S&C 體能表現教練（Strength & Conditioning Performance Coach）',
   'NeuroKinetic Therapy（神經動能療法）',
@@ -560,7 +562,7 @@ async function lookupMine(){
 /* ════ ②A 舊生：預覽已有資料，逐項可改（大部分唔使填） ════ */
 function renderProfilePreview(){
   const pf=S.profile||{};
-  const rows=PFIELDS.map(f=>{
+  const rows=pFields().map(f=>{
     const v=pf[f.h]||'';
     const shown = v ? esc(v) : (f.req ? '<span style="color:var(--warn)">未填（建議補上）</span>' : '<span style="color:#aab4b8">（可留空）</span>');
     return `<div class="pvrow" data-k="${f.k}" data-h="${esc(f.h)}">
@@ -599,7 +601,7 @@ function renderProfile(){
   const pf=S.profile||{};
   const val=(f)=> esc(pf[f.h]||'');
   const lab=f=> f.label+(f.req?' <span style="color:var(--err)">*</span>':' <span style="font-weight:400;color:#aab4b8">(可留空)</span>');
-  let fieldsHtml=PFIELDS.map(f=>{
+  let fieldsHtml=pFields().map(f=>{
     if(f.sel){ const cur=pf[f.h]||''; return `<div class="fld"><label>${lab(f)}</label><select id="pf_${f.k}">
       <option value="">請選擇</option>${f.sel.map(o=>`<option ${cur&&o.indexOf(cur.replace(/\s.*/,''))>=0?'selected':''}>${o}</option>`).join('')}</select></div>`; }
     if(f.multi){ const raw=pf[f.h]||''; const picked=raw.split(/[,、]/).map(s=>s.trim()).filter(Boolean);
@@ -637,7 +639,7 @@ async function saveProfileGo(){
   const body={action:'saveProfile', name:S.family.name, nameZh:S.family.name, last4:S.family.last4};
   // 只收集畫面上有 input 嘅欄（新生＝全部；舊生＝按過「修改」嗰啲）
   const edited={};
-  PFIELDS.forEach(f=>{ if(f.multi){ const v=pfMultiVal(f.k); body[f.k]=v; edited[f.h]=v; return; }
+  pFields().forEach(f=>{ if(f.multi){ const v=pfMultiVal(f.k); body[f.k]=v; edited[f.h]=v; return; }
     const el=document.getElementById('pf_'+f.k); if(el){ const v=el.value.trim(); body[f.k]=v; edited[f.h]=v; } });
   // 電郵（收報名確認）：新生必填；舊生若檔案本身冇又未填 → 即時提醒並開啟嗰格
   const effEmail = (edited['電郵']!==undefined ? edited['電郵'] : ((S.profile&&S.profile['電郵'])||''));
@@ -650,7 +652,7 @@ async function saveProfileGo(){
     if(ph){ if(ph.length<8){ msg.className='msg err'; msg.textContent='請填完整 8 位聯絡電話。'; phoneEl.focus(); return; }
       if(ph.slice(-4)!==S.family.last4){ msg.className='msg err'; msg.textContent='聯絡電話最後 4 位要同頭先輸入嘅一致（'+S.family.last4+'）。'; phoneEl.focus(); return; } } }
   // 全部必填欄要填（新生同舊生都要，安全所需；推薦人除外）
-  const needReq=PFIELDS.filter(f=>f.req);
+  const needReq=pFields().filter(f=>f.req);
   for(let i=0;i<needReq.length;i++){ const f=needReq[i];
     if(f.multi){ if(!pfMultiVal(f.k)){ msg.className='msg err'; msg.textContent='請剔選「健康狀況」（如全部沒有，請剔「以上不適用」）。'; return; } continue; }
     const el=document.getElementById('pf_'+f.k);
