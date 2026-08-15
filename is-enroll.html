@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-gearback';
+const FRONTEND_VERSION='enroll-2026-08-16-makeuptweak';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -512,8 +512,11 @@ function renderMakeupInfo(inFlow){
       <div class="cbox" style="align-items:flex-start"><span>• 當日<b>病假</b>可請，須 <b>48 小時內</b>補交醫生證明（逾期作缺席）</span></div>
       <div class="cbox" style="align-items:flex-start"><span>• 已請假之堂可於<b>請假當月起兩個月內</b>補堂，逾期不設順延</span></div>
       <div class="cbox" style="align-items:flex-start"><span>• 已預約補堂於<b>開課前 6 小時內不可取消</b>，否則該堂照扣</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 為確保學習進度及出席率，除<b>身體原因（須醫生證明）</b>外，<b>恕不接受因考試等私人原因暫停課堂</b>；如暫停後重新加入，須<b>按新收費（每節加 $20）</b>。</span></div>
     </div>
-    <a class="btn" href="${MAKEUP_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">前往請假／補堂系統 →</a>
+    ${inFlow
+      ? `<div class="banner" style="margin-top:8px">📧 報名確認後，你會收到<b>電郵教學</b>，教你點用請假／補堂系統；到時有需要再辦理即可。</div>`
+      : `<a class="btn" href="${MAKEUP_URL}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">前往請假／補堂系統 →</a>`}
     <p class="hint" style="margin-top:8px">有疑問？<a href="${waLink('我想查詢請假／補堂')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
     ${nav}
   </div>`;
@@ -974,7 +977,7 @@ function renderUniform(){
   <div class="card">
     ${steps(2)}
     <h2>INITIATE SPORTS 制服</h2>
-    <p class="hint">上堂必須穿著 INITIATE SPORTS 訓練服。如未有，請選購；如已有（例如兄／姊留低、之前購買）可選「已有制服」。制服費用會加入最後總數。</p>
+    <p class="hint">上堂必須穿著 INITIATE SPORTS 訓練服。如未有，請選購。制服費用會加入最後總數。</p>
     <img class="jersey" src="${JERSEY_SRC}" alt="INITIATE SPORTS 制服套裝" onerror="this.style.display='none'">
     ${optHtml}
     ${S.uniform.opt===1?`<div class="banner" style="background:#fff8e1;border-color:#e8b923;color:#8a6d00;margin-top:8px">👕 <b>提提你</b>：上堂一定要穿著 INITIATE SPORTS 制服。如未有，請返回選購。</div>`:''}
