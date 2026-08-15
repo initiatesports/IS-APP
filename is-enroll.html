@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-uifee';
+const FRONTEND_VERSION='enroll-2026-08-15-notesfee';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -866,7 +866,18 @@ function renderNotes(){
   const common=S.cfg.commonNotes||[];
   const picked=(S.cfg.courses||[]).filter(c=>S.courses.indexOf(c.id)>=0);
   const seen={}, blocks=[];
-  picked.forEach(c=>{ if(seen[c.sport]) return; seen[c.sport]=1; const ns=c.notes||[]; if(ns.length) blocks.push({sport:c.sport,notes:ns}); });
+  const _isOld=!!(S.family&&S.family.isOld);
+  picked.forEach(c=>{ if(seen[c.sport]) return; seen[c.sport]=1;
+    let ns=(c.notes||[]).slice();
+    // 費用行按登入身份動態顯示對應價（新舊生價唔同；新生睇唔到舊生價）。換走後端寫死嘅「本班學費…」首項。
+    const _myP=_isOld?((S.oldPrices&&S.oldPrices[c.id])||c.price):c.price;
+    const _s=Number(c.sessions)||8;
+    if(_myP>0 && !c.bundle){
+      const _per=Math.round(_myP/_s);
+      const _feeNote=`本班學費（${_isOld?'舊生':'新生'}）：每期 ${_s} 堂 ${money(_myP)}（每節 ${money(_per)}）。暫停退出後重新加入：每節 ${money(_per+20)}。`;
+      if(ns.length && /^本班學費/.test(ns[0])) ns[0]=_feeNote; else ns.unshift(_feeNote);
+    }
+    if(ns.length) blocks.push({sport:c.sport,notes:ns}); });
   const commonHtml=common.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="nt_chk" data-k="c${i}"><span>${esc(s)}</span></label></div>`).join('');
   const sportHtml=blocks.map((bk,bi)=>`<div class="fld" style="margin-top:8px"><label>${esc(bk.sport)}　專屬注意事項</label>
     ${bk.notes.map((s,i)=>`<div class="cbox"><label class="chk"><input type="checkbox" class="nt_chk" data-k="s${bi}_${i}"><span>${esc(s)}</span></label></div>`).join('')}</div>`).join('');
