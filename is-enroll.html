@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-gearv2';
+const FRONTEND_VERSION='enroll-2026-08-16-prevold';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -396,7 +396,7 @@ function renderHome(){
   app.innerHTML=`
   <div class="card">
     <h2>INITIATE SPORTS 課程</h2>
-    ${PREVIEW?'<div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">👁 <b>預覽模式</b>：唔使填資料，每頁撳「下一步」即可逐頁揭睇 layout；<b>唔會真提交報名</b>。</div>':''}
+    ${PREVIEW?('<div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">👁 <b>預覽模式（'+((new URLSearchParams(location.search).get("tier")||"").toLowerCase().match(/old|舊/)?"舊學員價":"新生價")+'）</b>：唔使填資料，每頁撳「下一步」即可逐頁揭；<b>唔會真提交</b>。<br>睇舊生版：連結加 <b>&tier=old</b>。</div>'):''}
     <p class="hint">青衣兒童及成人運動教學。撳任何一個課程睇<b>詳細介紹</b>；睇完想報名，撳下面「我要報名」。</p>
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
@@ -754,7 +754,16 @@ function renderLogin(){
 }
 /* 入場：一個 form 打名+電話後4位 → 後端自動分辨新/舊生，前端據結果分流。 */
 async function doIdentify(){
-  if(PREVIEW){ S.family={name:'預覽用戶',phone:'00000000',last4:'0000',isOld:false,tier:'新生'}; S.isNew=true; S.oldPrices=null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderProfileScreen(); return; }
+  if(PREVIEW){
+    const _pt=(new URLSearchParams(location.search).get('tier')||'').toLowerCase();
+    if(_pt==='old'||_pt==='舊生'){   // 舊生預覽：借測試用「示範學員」身份，令揀課同費用頁都顯示舊生價（quote 亦用此名）
+      apiPost({action:'enrollIdentify', name:'示範學員', last4:'1234'}, 20000).then(res=>{
+        S.family={name:'示範學員',phone:'00000000',last4:'1234',isOld:true,tier:'舊生（示範）'}; S.isNew=false;
+        S.oldPrices=(res&&res.oldPrices)||null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderProfileScreen();
+      }).catch(()=>{ S.family={name:'示範學員',phone:'00000000',last4:'1234',isOld:true,tier:'舊生（示範）'}; S.isNew=false; S.oldPrices=null; S.profile={}; S.courses=[]; renderProfileScreen(); });
+      return;
+    }
+    S.family={name:'預覽用戶',phone:'00000000',last4:'0000',isOld:false,tier:'新生'}; S.isNew=true; S.oldPrices=null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderProfileScreen(); return; }
   const name=document.getElementById('li_name').value.trim();
   const phone=(document.getElementById('li_phone').value||'').replace(/\D/g,'');
   const msg=document.getElementById('li_msg');
