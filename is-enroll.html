@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-15-notes2';
+const FRONTEND_VERSION='enroll-2026-08-15-makeup';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -401,11 +401,35 @@ function renderHome(){
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
     <button class="btn" id="hm_adult" style="margin-top:10px;background:#0f766e">成人課程報名 →</button>
+    <button class="btn ghost" id="hm_makeup" style="margin-top:10px">🗓 請假 / 補堂（自助辦理）</button>
     <button class="btn ghost" id="hm_look" style="margin-top:10px">查詢我嘅報名狀態</button>
   </div>`;
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_adult').onclick=renderAdultForm;
+  document.getElementById('hm_makeup').onclick=renderMakeupInfo;
   document.getElementById('hm_look').onclick=renderLogin;
+}
+/* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
+function renderMakeupInfo(){
+  app.innerHTML=`
+  <div class="card">
+    <h2>🗓 請假 · 補堂</h2>
+    <p class="hint">所有<b>請假同補堂</b>都可以喺我哋嘅<b>家長系統自助辦理</b>，即時處理、有紀錄，<b>唔使再 WhatsApp 教練</b>。</p>
+    <div class="fld"><label>喺系統可以做到</label>
+      <div class="cbox" style="align-items:flex-start"><span>• 為學員<b>請假</b>（病假／事假），系統即時記錄</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• <b>預約補堂</b>：揀返其他班別／日子補返請咗假嘅堂</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 查睇<b>出席、補堂限期、繳費狀態</b></span></div>
+    </div>
+    <div class="fld"><label>請假／補堂重點</label>
+      <div class="cbox" style="align-items:flex-start"><span>• 請假須<b>最少開課前一日</b>提出；<b>當日不接受事假</b></span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 當日<b>病假</b>可請，須 <b>48 小時內</b>補交醫生證明（逾期作缺席）</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 已請假之堂可於<b>請假當月起兩個月內</b>補堂，逾期不設順延</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 已預約補堂於<b>開課前 6 小時內不可取消</b>，否則該堂照扣</span></div>
+    </div>
+    <a class="btn" href="is-parent.html" style="display:block;text-align:center;text-decoration:none;margin-top:8px">前往請假／補堂系統 →</a>
+    <p class="hint" style="margin-top:8px">有疑問？<a href="${waLink('我想查詢請假／補堂')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a></p>
+    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>
+  </div>`;
 }
 /* ════ 成人課程報名（獨立表單；成人自己報，欄位同兒童唔同）════ */
 function renderAdultForm(){

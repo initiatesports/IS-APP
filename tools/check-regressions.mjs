@@ -76,6 +76,8 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'saveProfileGo', must:'pfMultiVal', why:'健康多選收集(checkbox+其他)入 profile' },
   { file:'is-enroll.html', fn:'renderWeather', must:'renderPriceTable', why:'惡劣天氣頁（報名流程內，制服後）→收費一覽' },
   { file:'is-enroll.html', fn:'renderHome', must:'renderAdultForm', why:'首頁「成人課程報名」獨立入口' },
+  { file:'is-enroll.html', fn:'renderHome', must:'renderMakeupInfo', why:'首頁「請假／補堂」自助入口' },
+  { file:'is-enroll.html', fn:'renderMakeupInfo', must:'is-parent.html', why:'請假補堂介紹頁→連去家長請假補堂系統' },
   { file:'is-enroll.html', fn:'submitAdult', must:'adultEnroll', why:'成人報名提交→後端 adultEnroll route' },
   { file:'is-enroll.html', fn:'openCourseDetail', must:'COACH_SECTION', why:'課程詳情加教練資歷(NKT×SCS只私訓)' },
   { file:'is-enroll.html', fn:'renderUniform', must:'uchart', why:'制服頁顯示完整尺碼表(上身/下身,照原圖數據)+球衣圖' },
