@@ -97,6 +97,45 @@ table.uchart{border-collapse:collapse;font-size:11px;min-width:520px;}
 table.uchart th,table.uchart td{border:1px solid #dde7e9;padding:4px 6px;text-align:center;white-space:nowrap;}
 table.uchart thead th{background:var(--teal);color:#fff;}
 table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight:700;text-align:left;position:sticky;left:0;}
+/* 私人訓練（照搬官網 .ptx-*）*/
+.ptx{font-family:inherit;text-align:left;color:#222;position:relative;}
+.ptx *{box-sizing:border-box;}
+.ptx-header{border-radius:16px 16px 0 0;padding:26px 24px 22px;color:#fff;background:linear-gradient(135deg,#c89020 0%,#7a5000 100%);}
+.ptx-header .ptx-emoji{font-size:40px;margin-bottom:8px;display:block;}
+.ptx-header h2{font-size:24px;font-weight:900;margin:0 0 8px;color:#fff;}
+.ptx-header .ptx-desc{font-size:13.5px;opacity:0.93;line-height:1.7;margin:0;}
+.ptx-body{background:#fff;border-radius:0 0 16px 16px;padding:22px;}
+.ptx-sec{font-size:15px;font-weight:800;color:#333;margin:22px 0 12px;display:flex;align-items:center;gap:8px;}
+.ptx-sec:first-child{margin-top:0;}
+.ptx-sec::after{content:'';flex:1;height:1px;background:#e5e5e5;}
+.ptx-notice{background:#f0f8ff;border:1.5px solid #90c8f0;border-radius:10px;padding:13px 16px;font-size:13px;color:#1a4a7a;margin-bottom:14px;line-height:1.9;}
+.ptx-notice strong{color:#0f3a63;}
+.ptx-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px;}
+.ptx-info-card{background:#faf7ef;border-radius:10px;padding:12px 14px;border:1px solid #ececec;}
+.ptx-info-card .ptx-label{font-size:12px;color:#7a5000;font-weight:700;margin-bottom:4px;}
+.ptx-info-card .ptx-value{font-size:13px;font-weight:600;color:#333;line-height:1.5;}
+.ptx-trial{background:#f0faf4;border:2px dashed #1a8a4a;border-radius:12px;padding:14px 16px;text-align:center;margin-bottom:16px;}
+.ptx-trial .ptx-tp{font-size:24px;font-weight:900;color:#1a8a4a;}
+.ptx-trial .ptx-tn{font-size:12px;color:#888;margin-top:2px;}
+.ptx-sub{font-size:13px;font-weight:700;color:#7a5000;letter-spacing:0.05em;margin:18px 0 8px;}
+.ptx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:4px;}
+.ptx-card{border-radius:12px;padding:16px;border:2px solid #ececec;text-align:center;position:relative;background:#fff;}
+.ptx-card.feat{border-color:#c89020;background:linear-gradient(135deg,#fffbf0,#fef5d0);}
+.ptx-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#c89020;color:#fff;font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;white-space:nowrap;}
+.ptx-card .ptx-s{font-size:22px;font-weight:900;color:#222;margin-bottom:2px;}
+.ptx-card .ptx-t{font-size:20px;font-weight:800;color:#c89020;margin-bottom:2px;}
+.ptx-card .ptx-p{font-size:12px;color:#888;margin-bottom:6px;line-height:1.6;}
+.ptx-card .ptx-e{font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:6px;margin-top:6px;}
+.ptx-venue{background:#f8f8f8;border:1px solid #ececec;border-radius:10px;padding:13px 16px;font-size:13px;margin-bottom:4px;}
+.ptx-venue .ptx-vm{font-weight:700;color:#222;margin-bottom:4px;}
+.ptx-venue .ptx-vb{color:#666;font-size:12px;margin-top:4px;}
+.ptx-cta{margin-top:24px;padding-top:20px;border-top:1px solid #e5e5e5;text-align:center;}
+.ptx-cta-btn{display:inline-block;padding:15px 36px;border-radius:50px;font-size:16px;font-weight:800;color:#fff;text-decoration:none;background:#25D366;}
+.ptx-cta-note{font-size:12px;color:#999;margin-top:8px;}
+.ptx-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.ptx-tab{flex:1;padding:11px 8px;border:2px solid #ececec;border-radius:12px;background:#faf7ef;color:#999;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1.3;}
+.ptx-tab.active{border-color:#c89020;background:linear-gradient(135deg,#fffbf0,#fef5d0);color:#7a5000;}
+@media(max-width:560px){.ptx-info-grid{grid-template-columns:1fr 1fr;}.ptx-body{padding:16px;}.ptx-header{padding:22px 18px 18px;}.ptx-tab{font-size:12px;padding:10px 6px;}}
 </style>
 </head>
 <body>
@@ -120,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-17-ptinfo';
+const FRONTEND_VERSION='enroll-2026-08-17-ptfull';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -415,70 +454,149 @@ function renderHome(){
   document.getElementById('hm_pt').onclick=()=>renderPtInfo();
   document.getElementById('hm_look').onclick=renderLogin;
 }
-// 私人訓練介紹（官網內容搬入報名系統；含套餐價＋WhatsApp 查詢）。老闆 2026-08-16。
+// 私人訓練介紹（照搬官網完整內容 .ptx-*）。老闆 2026-08-17。
 const PT_WA='https://wa.me/85263317403?text='+encodeURIComponent('你好，我想查詢私人訓練課程詳情');
-function ptPkgCard(s,t,p,e,feat){ return `<div style="flex:1;min-width:132px;background:${feat?'#eef7f5':'#fff'};border:1.5px solid ${feat?'var(--teal)':'var(--line)'};border-radius:12px;padding:12px 10px;text-align:center">${feat?'<div style="font-size:11px;color:var(--teal);font-weight:800;margin-bottom:3px">🔥 抵</div>':''}<div style="font-size:13px;color:var(--mut);font-weight:700">${s}</div><div style="font-size:22px;font-weight:900;color:var(--ink);margin:2px 0">${t}</div><div style="font-size:12px;color:var(--teal);font-weight:700">${p}</div><div style="font-size:11px;color:var(--mut);margin-top:3px">${e}</div></div>`; }
-function renderPtInfo(pane){
-  pane=pane||'kid';
-  const coach=`<div class="sec-t" style="font-weight:800;color:var(--ink);margin:16px 0 8px">🎓 關於教練</div>
-    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--ink)">
-      <li>香港中文大學 體育運動科學系畢業</li>
-      <li>NASM 國際認證私人教練（美國國家運動醫學學院）</li>
-      <li>S&C 肌力與體能教練</li>
-      <li>NKT 神經動能療法 × SCS 拮抗鬆弛術（徒手治療）</li>
-      <li>前香港隊運動員 · 逾 10 年運動員、5 年教學經驗</li>
-    </ul>
-    <div class="banner" style="margin-top:10px;background:#eef7f5;border-color:var(--teal)"><b>🌟 獨家賣點：NKT × SCS 動作矯正</b><br>若學員有姿勢不良、動作代償、舊患或簡單痛症，教練可即場評估並處理，令訓練更安全有效。</div>`;
-  const kid=`
-    <div class="banner">課程融合最新體育教育研究，重點訓練：基礎力量與核心穩定・動作控制與神經肌肉協調・爆發力與速度・靈敏度與平衡・跑跳投基本動作技能。所學技能可靈活應用於各類運動。</div>
-    <div class="sec-t" style="font-weight:800;color:var(--ink);margin:16px 0 8px">📈 訓練目標</div>
-    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--ink)">
-      <li>建立運動員式身體素養，為任何運動專項打好基礎</li>
-      <li>優化動作效率與學習能力，提升自信與紀律</li>
-      <li>定期能力測試與成效分析，按個人目標度身訂造</li>
-    </ul>
-    ${coach}
-    <div class="sec-t" style="font-weight:800;color:var(--ink);margin:16px 0 8px">💰 課程套餐（1 對 1）</div>
-    <div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412"><b>試堂 $450</b>　首次試堂優惠（正價 $600／堂）</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      ${ptPkgCard('1 堂','$600','$600/堂','靈活安排')}
-      ${ptPkgCard('5 堂','$2,750','$550/堂','2個月限期')}
-      ${ptPkgCard('10 堂','$5,000','$500/堂','4個月限期',true)}
-      ${ptPkgCard('20 堂','$9,000','$450/堂','8個月限期',true)}
-    </div>
-    <p class="hint" style="margin-top:10px">＊以上價錢適用青衣／荃灣（已包場租）。其他地區、上門、1 對 2 或小組訓練，請 WhatsApp 查詢。</p>`;
-  const adult=`
-    <div class="banner">以運動科學為本，針對成人與樂齡度身訂造，由評估、訓練到飲食指導一條龍：肌力訓練・增肌減脂・運動表現・壓力舒緩・痛症處理・飲食指導。</div>
-    <div class="sec-t" style="font-weight:800;color:var(--ink);margin:16px 0 8px">🎯 適合對象</div>
-    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--ink)">
-      <li>運動初學者（零基礎，低衝擊起步）</li><li>在職人士（改善身形、紓解久坐痛症）</li>
-      <li>樂齡人士（保持活動力、強化肌力平衡）</li><li>運動愛好者（提升專項表現）</li>
-    </ul>
-    ${coach}
-    <div class="sec-t" style="font-weight:800;color:var(--ink);margin:16px 0 8px">💰 課程套餐（1 對 1）</div>
-    <div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412"><b>試堂 $600</b>　1 對 1 個人化訓練體驗</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      ${ptPkgCard('10 堂','$6,500','$650/堂','4個月限期')}
-      ${ptPkgCard('20 堂','$12,000','$600/堂','6個月限期')}
-      ${ptPkgCard('30 堂','$16,500','$550/堂','9個月限期',true)}
-      ${ptPkgCard('50 堂','$25,000','$500/堂','1年限期',true)}
-    </div>
-    <p class="hint" style="margin-top:10px">＊1 對 2 訓練、3 人以上小組請 WhatsApp 查詢；大學生享學生優惠；可分期付款。</p>`;
+function ptxTab(p){ ['kid','adult'].forEach(function(x){ var pane=document.getElementById('ptx-pane-'+x); if(pane) pane.style.display=(x===p?'block':'none'); var t=document.getElementById('ptx-tab-'+x); if(t) t.classList.toggle('active',x===p); }); }
+function renderPtInfo(){
   app.innerHTML=`
-  <div class="card">
-    <h2>⭐ 私人訓練課程</h2>
-    <p class="hint">由前香港隊運動員、運動科學背景教練親自指導。1 對 1 度身訂造 —— 由兒童青少年運動發展，到成人及樂齡人士體能健康。</p>
-    <div style="display:flex;gap:8px;margin:12px 0">
-      <button class="btn ${pane==='kid'?'':'ghost'} sm" id="pt_kid" style="flex:1">🧒 兒童／青少年</button>
-      <button class="btn ${pane==='adult'?'':'ghost'} sm" id="pt_adult" style="flex:1">🧑 成人＆樂齡</button>
+  <div class="card" style="padding:0;overflow:hidden">
+  <div class="ptx">
+    <div class="ptx-header">
+      <span class="ptx-emoji">⭐</span>
+      <h2>私人訓練課程</h2>
+      <p class="ptx-desc">由前香港隊運動員、運動科學背景教練親自指導。1 對 1 度身訂造 —— 由兒童青少年運動發展，到成人及樂齡人士體能健康，都有合適方案。</p>
     </div>
-    ${pane==='kid'?kid:adult}
-    <a class="btn" href="${PT_WA}" target="_blank" style="margin-top:16px;display:block;text-decoration:none;box-sizing:border-box;background:#25D366;text-align:center">💬 WhatsApp 查詢及預約</a>
-    <p class="hint" style="text-align:center;margin-top:6px">點擊直接開啟 WhatsApp 與教練對話</p>
-    <div class="navbtns" style="margin-top:12px"><button class="btn ghost sm" onclick="renderHome()">← 返回首頁</button></div>
+    <div class="ptx-body">
+      <div class="ptx-tabs">
+        <button class="ptx-tab active" id="ptx-tab-kid" onclick="ptxTab('kid')">🧒 兒童 / 青少年</button>
+        <button class="ptx-tab" id="ptx-tab-adult" onclick="ptxTab('adult')">🧑‍🦱 成人 &amp; 樂齡</button>
+      </div>
+      <div class="ptx-pane" id="ptx-pane-kid">
+      <div class="ptx-sec">🧠 課程特色與訓練內容</div>
+      <div class="ptx-notice">
+        課程融合最新的體育教育研究成果，重點訓練以下能力：<br><br>
+        ✅ <strong>基礎力量與核心穩定性</strong>（Strength &amp; Core Stability）<br>
+        ✅ <strong>動作控制與神經肌肉協調</strong>（Motor Control &amp; Coordination）<br>
+        ✅ <strong>爆發力與速度訓練</strong>（Power &amp; Speed Development）<br>
+        ✅ <strong>靈敏度與平衡力發展</strong>（Agility &amp; Balance）<br>
+        ✅ <strong>跑、跳、投等基本動作技能強化</strong>（Fundamental Movement Skills）<br><br>
+        🟢 課程特別設計讓學員能將所學技能靈活應用於各類球類運動及其他運動，有效提升運動中的身體表現與反應能力。
+      </div>
+      <div class="ptx-sec">📈 訓練目標</div>
+      <div class="ptx-info-grid">
+        <div class="ptx-info-card"><div class="ptx-label">🏅 運動基礎</div><div class="ptx-value">建立運動員式身體素養（Athletic Foundation）</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">💪 全面體能</div><div class="ptx-value">強化全身性體能，為日後任何運動專項打好基礎</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">🎯 動作效率</div><div class="ptx-value">優化動作效率與學習能力，提升自信與紀律</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">🌱 長遠發展</div><div class="ptx-value">培養長期運動習慣與成長型思維</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">📊 進度追蹤</div><div class="ptx-value">定期能力測試與成效分析，協助掌握進度</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">👤 度身訂造</div><div class="ptx-value">按學員個人需要和運動目標制定訓練計劃</div></div>
+      </div>
+      <div class="ptx-sec">🎓 關於教練</div>
+      <div class="ptx-info-grid">
+        <div class="ptx-info-card"><div class="ptx-label">🏫 學歷</div><div class="ptx-value">香港中文大學 體育運動科學系畢業（Sports Science, Physical Education and Health）</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">📜 國際認證</div><div class="ptx-value">Certified International Personal Trainer — NASM（美國國家運動醫學學院）</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">💪 體能專項</div><div class="ptx-value">S&amp;C Performance Coach（肌力與體能教練）</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">🧠 神經肌肉</div><div class="ptx-value">NKT NeuroKinetic Therapy（神經動能療法）</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">🤲 徒手治療</div><div class="ptx-value">SCS Strain Counterstrain（拮抗鬆弛術）</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">🏅 實戰經驗</div><div class="ptx-value">前香港隊運動員 · 逾 10 年運動員經驗及 5 年教學經驗</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">🧒 兒童訓練</div><div class="ptx-value">專長兒童及青少年運動發展，了解不同年齡的成長需要</div></div>
+        <div class="ptx-info-card"><div class="ptx-label">❤️ 教學理念</div><div class="ptx-value">注重安全、興趣與正確動作模式，讓小朋友愛上運動</div></div>
+      </div>
+      <div class="ptx-sec">🌟 獨家賣點：NKT × SCS 動作矯正</div>
+      <div class="ptx-notice">
+        除了體能訓練，教練同時具備 <strong>NKT 神經動能療法</strong> 與 <strong>SCS 拮抗鬆弛術</strong> 兩項專業徒手治療資格。<br><br>
+        🔎 <strong>NKT（NeuroKinetic Therapy）</strong>：從神經與大腦控制層面，找出動作代償與肌肉失衡的「真正源頭」，而非只處理表面酸痛。<br>
+        🤲 <strong>SCS（Strain Counterstrain）</strong>：以溫和的徒手手法，即時放鬆繃緊肌肉、紓緩痛點，安全適合各年齡。<br><br>
+        🟢 在私人訓練中，若學員有 <strong>姿勢不良、動作代償、舊患或簡單痛症</strong>，教練可即場評估並處理，令訓練更安全、更有效。
+      </div>
+      <div class="ptx-sec">💰 課程套餐</div>
+      <div class="ptx-trial">
+        <div class="ptx-tp">試堂 $450</div>
+        <div class="ptx-tn">首次試堂優惠（正價 $600 / 堂）</div>
+      </div>
+      <div class="ptx-sub">👤 1 對 1 私人訓練</div>
+      <div class="ptx-grid">
+        <div class="ptx-card"><div class="ptx-s">1 堂</div><div class="ptx-t">$600</div><div class="ptx-p">$600 / 堂</div><div class="ptx-e">靈活安排</div></div>
+        <div class="ptx-card"><div class="ptx-s">5 堂</div><div class="ptx-t">$2,750</div><div class="ptx-p">$550 / 堂</div><div class="ptx-e">2個月使用限期</div></div>
+        <div class="ptx-card feat"><div class="ptx-badge">🔥 最受歡迎</div><div class="ptx-s">10 堂</div><div class="ptx-t">$5,000</div><div class="ptx-p">$500 / 堂</div><div class="ptx-e">4個月使用限期</div></div>
+        <div class="ptx-card feat"><div class="ptx-badge">💎 最高性價比</div><div class="ptx-s">20 堂</div><div class="ptx-t">$9,000</div><div class="ptx-p">$450 / 堂</div><div class="ptx-e">8個月使用限期</div></div>
+      </div>
+      <div class="ptx-sec">📍 上課地點及安排</div>
+      <div class="ptx-venue">
+        <div class="ptx-vm">以上價錢適用於青衣區 / 荃灣區（已包場租）</div>
+        <div class="ptx-vb">其他地區及上門服務，請 WhatsApp 查詢</div>
+        <div class="ptx-vb">👥 1 對 2 訓練：價格請 WhatsApp 查詢</div>
+        <div class="ptx-vb" style="opacity:0.7">＊為確保私人訓練質素，不建議人數過多，建議以不超過 3 人為宜</div>
+      </div>
+      </div>
+      <div class="ptx-pane" id="ptx-pane-adult" style="display:none">
+        <div class="ptx-sec">🏋️ 訓練方向</div>
+        <div class="ptx-notice">以運動科學為本，針對成人與樂齡人士度身訂造，由評估、訓練到飲食指導一條龍跟進，安全有效達成目標。</div>
+        <div class="ptx-info-grid">
+          <div class="ptx-info-card"><div class="ptx-label">💪 肌力訓練</div><div class="ptx-value">預防肌肉流失、提升日常生活功能與體態</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🔥 增肌減脂</div><div class="ptx-value">改善身形與體脂，建立健康可持續的體能</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🏃 運動表現</div><div class="ptx-value">提升力量、速度與耐力，突破運動樽頸</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🧘 壓力舒緩</div><div class="ptx-value">透過運動釋放生活與工作壓力，改善睡眠</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🩹 痛症處理</div><div class="ptx-value">以徒手治療技術處理簡單痛症及姿勢問題</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🍎 飲食指導</div><div class="ptx-value">附設飲食指導服務，助你更有效達成目標</div></div>
+        </div>
+        <div class="ptx-sec">🎯 適合對象</div>
+        <div class="ptx-info-grid">
+          <div class="ptx-info-card"><div class="ptx-label">🆕 運動初學者</div><div class="ptx-value">零基礎都啱，由低衝擊動作開始，安全建立習慣</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">💼 在職人士</div><div class="ptx-value">想改善身形、體能或紓解久坐痛症的上班族</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">👴 樂齡人士</div><div class="ptx-value">希望保持活動能力、強化肌力與平衡力的長者</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🏆 運動愛好者</div><div class="ptx-value">想提升專項運動表現、突破個人紀錄的人士</div></div>
+        </div>
+        <div class="ptx-sec">📋 訓練流程</div>
+        <div class="ptx-info-grid">
+          <div class="ptx-info-card"><div class="ptx-label">1️⃣ 體能評估</div><div class="ptx-value">了解身體狀況、活動能力與訓練目標</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">2️⃣ 度身計劃</div><div class="ptx-value">按評估結果制定個人化訓練及飲食方案</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">3️⃣ 專人指導</div><div class="ptx-value">教練全程貼身指導，確保動作正確安全</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">4️⃣ 進度檢討</div><div class="ptx-value">定期檢視成效，按需要調整訓練方向</div></div>
+        </div>
+        <div class="ptx-sec">🎓 關於教練</div>
+        <div class="ptx-info-grid">
+          <div class="ptx-info-card"><div class="ptx-label">🏫 學歷</div><div class="ptx-value">香港中文大學 體育運動科學系畢業（Sports Science, Physical Education and Health）</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">📜 國際認證</div><div class="ptx-value">Certified International Personal Trainer — NASM（美國國家運動醫學學院）</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">💪 體能專項</div><div class="ptx-value">S&amp;C Performance Coach</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🤲 徒手治療</div><div class="ptx-value">SCS Strain Counterstrain（拮抗鬆弛術）</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🧠 神經肌肉</div><div class="ptx-value">NKT NeuroKinetic Therapy（神經動能療法）</div></div>
+          <div class="ptx-info-card"><div class="ptx-label">🏅 實戰經驗</div><div class="ptx-value">前香港隊運動員 · 逾 10 年運動員經驗及 5 年教學經驗</div></div>
+        </div>
+        <div class="ptx-sec">🌟 獨家賣點：NKT × SCS 痛症與動作矯正</div>
+        <div class="ptx-notice">
+          教練同時持有 <strong>NKT 神經動能療法</strong> 與 <strong>SCS 拮抗鬆弛術</strong> 兩項專業徒手治療資格，是一般私人教練罕有的組合。<br><br>
+          🔎 <strong>NKT（NeuroKinetic Therapy）</strong>：從神經與大腦控制層面找出肌肉失衡與動作代償的根源，對症處理而非只止痛。<br>
+          🤲 <strong>SCS（Strain Counterstrain）</strong>：以溫和徒手手法即時放鬆繃緊肌肉、紓緩痛點，安全有效。<br><br>
+          🟢 訓練中如遇 <strong>姿勢問題、舊患、久坐痛症或動作受限</strong>，教練可即場評估及處理，讓你練得更安全、更見效。
+        </div>
+        <div class="ptx-sec">💰 課程套餐</div>
+        <div class="ptx-trial">
+          <div class="ptx-tp">試堂 $600</div>
+          <div class="ptx-tn">1 對 1 個人化訓練體驗</div>
+        </div>
+        <div class="ptx-sub">💪🏻 1 對 1 個人化訓練</div>
+        <div class="ptx-grid">
+          <div class="ptx-card"><div class="ptx-s">10 堂</div><div class="ptx-t">$6,500</div><div class="ptx-p">$650 / 堂</div><div class="ptx-e">4個月使用限期</div></div>
+          <div class="ptx-card"><div class="ptx-s">20 堂</div><div class="ptx-t">$12,000</div><div class="ptx-p">$600 / 堂</div><div class="ptx-e">6個月使用限期</div></div>
+          <div class="ptx-card feat"><div class="ptx-badge">🔥 最受歡迎</div><div class="ptx-s">30 堂</div><div class="ptx-t">$16,500</div><div class="ptx-p">$550 / 堂</div><div class="ptx-e">9個月使用限期</div></div>
+          <div class="ptx-card feat"><div class="ptx-badge">💎 最高性價比</div><div class="ptx-s">50 堂</div><div class="ptx-t">$25,000</div><div class="ptx-p">$500 / 堂</div><div class="ptx-e">1年使用限期</div></div>
+        </div>
+        <div class="ptx-venue">
+          <div class="ptx-vm">👥 1 對 2 訓練：價格請 WhatsApp 查詢</div>
+          <div class="ptx-vb">🎓 大學生享學生優惠</div>
+          <div class="ptx-vb">💳 可分期付款</div>
+          <div class="ptx-vb">👥 如需 3 人或以上小組訓練，請 WhatsApp 6331 7403 查詢</div>
+        </div>
+      </div>
+      <div class="ptx-cta">
+        <a class="ptx-cta-btn" href="${PT_WA}" target="_blank" rel="noopener">💬 WhatsApp 查詢及預約</a>
+        <div class="ptx-cta-note">點擊後將直接開啟 WhatsApp 與教練對話</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:14px 20px"><button class="btn ghost sm" onclick="renderHome()">← 返回首頁</button></div>
   </div>`;
-  document.getElementById('pt_kid').onclick=()=>renderPtInfo('kid');
-  document.getElementById('pt_adult').onclick=()=>renderPtInfo('adult');
 }
 /* ════ 器材選購（DM 落單；內容由老闆提供 2026-08-16）════ */
 const GEAR_ITEMS=[
