@@ -87,6 +87,7 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'submitAdult', must:'payImg', why:'成人提交要帶付款截圖(對齊兒童提交前上載)' },
   { file:'is-enroll.html', fn:'renderAdultTerms', must:'adultToPay', why:'成人條款簽名後→付款頁(唔再直接提交)' },
   { file:'is-enroll.html', fn:'renderAdultPay', must:'adp_file', why:'成人付款頁要有上載付款截圖input' },
+  { file:'is-enroll.html', fn:'doIdentify', must:'_as', why:'預覽可指定真實學員身份(?preview=1&as=姓名&pin=後4位)睇實際價/券' },
   { file:'is-enroll.html', fn:'openCourseDetail', must:'COACH_SECTION', why:'課程詳情加教練資歷(NKT×SCS只私訓)' },
   { file:'is-enroll.html', fn:'renderUniform', must:'uchart', why:'制服頁顯示完整尺碼表(上身/下身,照原圖數據)+球衣圖' },
   { file:'is-enroll.html', fn:'renderProfileScreen', must:'renderProfile', why:'新舊生都用全表單(舊生預填免重打,健康問卷必填)' },

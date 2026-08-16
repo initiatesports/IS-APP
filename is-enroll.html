@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-adultpay';
+const FRONTEND_VERSION='enroll-2026-08-16-previewas';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -819,6 +819,17 @@ function renderLogin(){
 /* 入場：一個 form 打名+電話後4位 → 後端自動分辨新/舊生，前端據結果分流。 */
 async function doIdentify(){
   if(PREVIEW){
+    const _as=(new URLSearchParams(location.search).get('as')||'').trim();
+    const _pin=(new URLSearchParams(location.search).get('pin')||'').replace(/\D/g,'').slice(-4);
+    if(_as){   // 預覽指定真實學員（老闆核對用）：用真身 identify 顯示佢實際新/舊生價＋券餘額，但預覽照樣唔會真提交
+      apiPost({action:'enrollIdentify', name:_as, last4:_pin}, 20000).then(res=>{
+        if(!res||res.ok===false){ app.innerHTML='<div class="card"><div class="msg err">預覽身份核對失敗（'+esc(_as)+'）：'+esc((res&&res.err)||'請確認 as=姓名 同 pin=電話後4位')+'</div></div>'; return; }
+        S.family={name:_as,phone:'',last4:_pin,isOld:!!res.isOld,tier:(res.tier||'新生')+'（預覽）'}; S.isNew=!res.isOld;
+        S.oldPrices=res.oldPrices||null; S.profile=res.profile||{}; S.courses=[]; S.quote=null; S.payImg='';
+        S.credit={remaining:res.creditRemaining||0,summer:res.summer||0,referral:res.referral||0}; renderProfileScreen();
+      }).catch(()=>{ app.innerHTML='<div class="card"><div class="msg err">預覽核對連線逾時，請再試。</div></div>'; });
+      return;
+    }
     const _pt=(new URLSearchParams(location.search).get('tier')||'').toLowerCase();
     if(_pt==='old'||_pt==='舊生'){   // 舊生預覽：借測試用「示範學員」身份，令揀課同費用頁都顯示舊生價（quote 亦用此名）
       apiPost({action:'enrollIdentify', name:'示範學員', last4:'1234'}, 20000).then(res=>{
