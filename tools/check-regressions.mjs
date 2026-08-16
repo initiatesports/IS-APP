@@ -82,6 +82,8 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'renderHome', must:'renderAdultForm', why:'首頁「成人課程報名」獨立入口' },
   { file:'is-enroll.html', fn:'renderHome', must:'renderMakeupInfo', why:'首頁「請假／補堂」自助入口' },
   { file:'is-enroll.html', fn:'renderHome', must:'renderGearShop', why:'首頁「器材選購」入口' },
+  { file:'is-enroll.html', fn:'renderHome', must:'renderPtInfo', why:'首頁「私人訓練」入口(官網私訓內容+WhatsApp查詢)' },
+  { file:'is-enroll.html', fn:'renderPtInfo', must:'PT_WA', why:'私訓頁要有WhatsApp查詢預約按鈕' },
   { file:'is-enroll.html', fn:'renderMakeupInfo', must:'MAKEUP_URL', why:'請假補堂介紹頁→連去家長請假補堂系統(MAKEUP_URL=is-parent.html)' },
   { file:'is-enroll.html', fn:'submitAdult', must:'adultEnroll', why:'成人報名提交→後端 adultEnroll route' },
   { file:'is-enroll.html', fn:'submitAdult', must:'payImg', why:'成人提交要帶付款截圖(對齊兒童提交前上載)' },
