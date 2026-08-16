@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-17-ptfull';
+const FRONTEND_VERSION='enroll-2026-08-17-adultemail';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -734,6 +734,7 @@ function renderAdultForm(){
     <div class="fld"><label>Gender 性別</label>
       <select id="ad_gender"><option value="">請選擇</option><option>男 Male</option><option>女 Female</option><option>不透露</option></select></div>
     <div class="fld"><label>Mobile Phone 聯絡電話（WhatsApp）<span style="color:var(--err)">*</span></label><input id="ad_mob" inputmode="numeric" placeholder="例：9123 4567"></div>
+    <div class="fld"><label>Email 電郵 <span style="color:var(--err)">*</span><br><span class="hint" style="font-weight:400">報名確認信會電郵至此地址</span></label><input id="ad_email" type="email" inputmode="email" autocomplete="email" placeholder="例：alex@example.com"></div>
     <div class="fld"><label>身體上有否任何舊患 or 經常性會出現痠痛的位置？</label><textarea id="ad_inj" rows="2" placeholder="例：右膝舊患／肩頸經常痠痛；如無可留空"></textarea></div>
     <div class="fld"><label>運動經驗年資？平時有冇做開咩運動？（eg. 瑜伽、Gym、跑步等）</label><textarea id="ad_exp" rows="2" placeholder="例：健身 2 年、偶爾跑步"></textarea></div>
     <div class="fld"><label>想透過呢個訓練班改善什麼問題／達到什麼目標？（eg. 增肌減脂、改善體態、舒緩痛症）</label><textarea id="ad_goal" rows="2" placeholder="例：增肌減脂、改善圓肩寒背"></textarea></div>
@@ -746,7 +747,7 @@ function renderAdultForm(){
   const a=S.adult;   // 由條款頁返回時帶返已填資料
   if(a){ const set=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null)el.value=v;};
     (a.courseIds||[]).forEach(id=>{const cb=document.querySelector('.ad_c[data-id="'+id+'"]'); if(cb)cb.checked=true;});
-    set('ad_en',a.en); set('ad_nick',a.nick); set('ad_mob',a.mob); set('ad_inj',a.injury); set('ad_exp',a.exp); set('ad_goal',a.goal);
+    set('ad_en',a.en); set('ad_nick',a.nick); set('ad_mob',a.mob); set('ad_email',a.email); set('ad_inj',a.injury); set('ad_exp',a.exp); set('ad_goal',a.goal);
     if(a.gender){const g=document.getElementById('ad_gender'); if(g)g.value=a.gender;}
     if(a.self){const s=document.getElementById('ad_self'); if(s)s.checked=true; const bx=document.getElementById('ad_self_box'); if(bx)bx.style.display='';
       const r=document.querySelector('input[name=ad_selfday][value="'+a.selfDay+'"]'); if(r)r.checked=true; set('ad_selftime',a.selfTime); } }
@@ -760,12 +761,14 @@ function adultToTerms(){
   const selfDay=(document.querySelector('input[name=ad_selfday]:checked')||{}).value||'';
   const en=document.getElementById('ad_en').value.trim();
   const mob=document.getElementById('ad_mob').value.replace(/\D/g,'');
+  const email=document.getElementById('ad_email').value.trim();
   if(!ids.length && !self){ msg.className='msg err'; msg.textContent='請最少揀一個成人課程，或剔選「已夠 4 人自組班別」。'; return; }
   if(self && !selfDay){ msg.className='msg err'; msg.textContent='請揀自組班時段（日間／晚間）。'; return; }
   if(!en){ msg.className='msg err'; msg.textContent='請填寫英文姓名（English Name）。'; return; }
   if(mob.length<8){ msg.className='msg err'; msg.textContent='請填寫正確聯絡電話（8 位數字）。'; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.className='msg err'; msg.textContent='請填寫正確電郵地址（報名確認信會寄到此電郵）。'; return; }
   S.adult={ courseIds:ids, self, selfDay, selfTime:(document.getElementById('ad_selftime')?document.getElementById('ad_selftime').value.trim():''),
-    en, nick:document.getElementById('ad_nick').value.trim(), gender:document.getElementById('ad_gender').value, mob,
+    en, nick:document.getElementById('ad_nick').value.trim(), gender:document.getElementById('ad_gender').value, mob, email,
     injury:document.getElementById('ad_inj').value.trim(), exp:document.getElementById('ad_exp').value.trim(), goal:document.getElementById('ad_goal').value.trim() };
   renderAdultTerms();
 }
@@ -862,7 +865,7 @@ async function submitAdult(){
   msg.className='msg'; msg.textContent='提交中…';
   const btn=document.getElementById('adp_go'); if(btn) btn.disabled=true;
   const body={ action:'adultEnroll', courseIds:(a.courseIds||[]).join(','), selfClass:a.self?'1':'', selfDay:a.selfDay||'', selfTime:a.selfTime||'',
-    englishName:a.en, nickname:a.nick, gender:a.gender, mobile:a.mob, injury:a.injury, experience:a.exp, goal:a.goal,
+    englishName:a.en, nickname:a.nick, gender:a.gender, mobile:a.mob, email:a.email||'', injury:a.injury, experience:a.exp, goal:a.goal,
     healthAck:'1', termsAgreed:'1', signId:a.signId, signImg:a.signImg||'', payImg:a.payImg||'',
     clientToken:(S._adTok||(S._adTok='ad'+Date.now()+Math.random().toString(36).slice(2))) };
   try{
