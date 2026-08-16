@@ -135,6 +135,7 @@ html,body{
 .student-list{padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
 .student-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;}
 .student-card.is-absent{border-color:var(--red);background:var(--red-dim);}
+.student-card.is-noshow{border-color:#9C0006;background:rgba(156,0,6,0.18);}
 .student-card.is-makeup{border-color:var(--purple);background:var(--purple-dim);}
 .student-card.is-present{border-color:var(--green);}
 .student-card.is-exempt{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.03);opacity:0.65;}
@@ -151,6 +152,7 @@ html,body{
 .s-btn:active{transform:scale(0.9);}
 .s-btn.sel-present{background:var(--green-dim);border-color:var(--green);color:var(--green);}
 .s-btn.sel-absent{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+.s-btn.sel-noshow{background:rgba(156,0,6,0.25);border-color:#9C0006;color:#ff8a8a;}
 .s-btn.sel-makeup{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);}
 .s-btn.sel-exempt{background:rgba(100,100,100,0.2);border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.4);}
 .save-bar{position:sticky;bottom:0;padding:10px 16px calc(10px + var(--safe-bot));background:var(--bg);border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;}
@@ -443,7 +445,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-15-thu';
+const FRONTEND_VERSION = 'coach-2026-08-16-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1521,7 +1523,7 @@ function renderRollTable(){
       const oldest = pendingAll.slice().sort((a,b)=>a.absDate.localeCompare(b.absDate))[0];
       makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(oldest.absDate)} 的堂</div>`;
     }
-    const cardCls = st==='absent'?'is-absent':st==='makeup'?'is-makeup':st==='exempt'?'is-exempt':st==='present'?'is-present':'';
+    const cardCls = st==='absent'?'is-absent':st==='noshow'?'is-noshow':st==='makeup'?'is-makeup':st==='exempt'?'is-exempt':st==='present'?'is-present':'';
     return `
     <div class="student-card ${cardCls}" id="sc-${name}">
       <div class="student-name-wrap">
@@ -1531,7 +1533,8 @@ function renderRollTable(){
       </div>
       <div class="student-btns">
         <button class="s-btn ${st==='present'?'sel-present':''}" onclick="setRoll('${name}','present')" title="出席">✓</button>
-        <button class="s-btn ${st==='absent' ?'sel-absent' :''}" onclick="setRoll('${name}','absent')"  title="請假">✗</button>
+        <button class="s-btn ${st==='absent' ?'sel-absent' :''}" onclick="setRoll('${name}','absent')"  title="請假（可補堂）">✗</button>
+        <button class="s-btn ${st==='noshow' ?'sel-noshow' :''}" onclick="setRoll('${name}','noshow')"  title="缺席（無補堂）">✖</button>
         <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" onclick="setRoll('${name}','makeup')"  title="補堂">↩</button>
         <button class="s-btn ${st==='exempt' ?'sel-exempt' :''}" onclick="setRoll('${name}','exempt')"  title="豁免">🚫</button>
       </div>
@@ -1542,12 +1545,13 @@ function renderRollTable(){
 function setRoll(name, status){
   rollSession[name] = status;
   const card = document.getElementById('sc-' + name);
-  card.className = 'student-card ' + (status==='absent'?'is-absent':status==='makeup'?'is-makeup':status==='exempt'?'is-exempt':'is-present');
+  card.className = 'student-card ' + (status==='absent'?'is-absent':status==='noshow'?'is-noshow':status==='makeup'?'is-makeup':status==='exempt'?'is-exempt':'is-present');
   const btns = card.querySelectorAll('.s-btn');
   btns[0].className = 's-btn' + (status==='present'?' sel-present':'');
   btns[1].className = 's-btn' + (status==='absent' ?' sel-absent':'');
-  btns[2].className = 's-btn' + (status==='makeup' ?' sel-makeup':'');
-  if (btns[3]) btns[3].className = 's-btn' + (status==='exempt' ?' sel-exempt':'');
+  btns[2].className = 's-btn' + (status==='noshow' ?' sel-noshow':'');
+  if (btns[3]) btns[3].className = 's-btn' + (status==='makeup' ?' sel-makeup':'');
+  if (btns[4]) btns[4].className = 's-btn' + (status==='exempt' ?' sel-exempt':'');
   const nameWrap = card.querySelector('.student-name-wrap');
   const existing = nameWrap.querySelector('[style*="purple"]');
   if (existing) existing.remove();
@@ -1568,13 +1572,13 @@ function updateSaveCount(){
   if (!el) return;
   if (!currentClass || !rollSelectedDate) { el.textContent = ''; return; }
   const students = getRollStudents(currentClass, rollSelectedDate);
-  let absent=0, makeup=0, exempt=0;
+  let absent=0, makeup=0, exempt=0, noshow=0;
   students.forEach(n => {
     const s = rollSession[n] || 'present';
-    if (s==='absent') absent++; else if (s==='makeup') makeup++; else if (s==='exempt') exempt++;
+    if (s==='absent') absent++; else if (s==='noshow') noshow++; else if (s==='makeup') makeup++; else if (s==='exempt') exempt++;
   });
-  const present = students.length - absent - makeup - exempt;
-  el.innerHTML = `出席 ${present} · 請假 <span>${absent}</span> · 補堂 ${makeup}${exempt?` · 豁免 ${exempt}`:''}`;
+  const present = students.length - absent - makeup - exempt - noshow;
+  el.innerHTML = `出席 ${present} · 請假 <span>${absent}</span>${noshow?` · 缺席 ${noshow}`:''} · 補堂 ${makeup}${exempt?` · 豁免 ${exempt}`:''}`;
 }
 function saveRoll(){
   const date = rollSelectedDate;
@@ -2213,7 +2217,9 @@ function renderToday(){
   document.getElementById('header-subtitle-text').textContent = '直接寫入 Google Sheet · 即時同步';
   if (!coachDate) coachDate = todayStr();
   const inp = document.getElementById('today-date');
-  if (inp) inp.value = coachDate;
+  // 🔒 審計#10：唔畀揀未來日期。舊版冇 max，教練揀得返 2026-08-08 再撳「✓ 全部出席」
+  //    就會蓋走停課順延嘅「豁免」。過去日期照畀改（要補點名）。
+  if (inp) { inp.value = coachDate; inp.max = todayStr(); }
   checkHealth();
   loadDaily();
 }
@@ -2318,8 +2324,11 @@ async function markDaily(name, key, date, status, btn, mk){
 async function markAllDaily(gi, key, date, status, btn){
   const grp = document.getElementById('cg' + gi);
   const rows = [...grp.querySelectorAll('.att')];
-  // 🔒 排除家長請假/停課學生，「全部出席/缺席」唔會覆蓋佢哋（否則抹走請假連帶補堂資格）——對齊 is-coach markAll
-  const targets = rows.filter(row => { const st = row.dataset.st || ''; return st !== '請假' && st !== '停課'; });
+  // 🔒 審計#10：改用白名單——預先安排嘅狀態一律唔覆蓋。舊版只擋「請假/停課」，
+  //    「豁免」走漏咗 → 教練撳「✓ 全部出席」會蓋走 8/8 停課順延（11 人 × $130 = $1,430）。
+  //    後端 apiMarkBatch 亦有同一層保護，前後端兩重閘。
+  const PROTECTED = ['請假','停課','豁免','加操','轉堂'];
+  const targets = rows.filter(row => !PROTECTED.includes(row.dataset.st || ''));
   const skipped = rows.length - targets.length;
   // ⚡ 一個 request 一次過寫全班（唔會半途死）；只把伺服器確認咗嘅變綠 → 唔會假成功
   const marks = targets.map(row => ({ name: row.dataset.name, status, mk: row.dataset.mk === '1' }));
@@ -2341,7 +2350,8 @@ async function markAllDaily(gi, key, date, status, btn){
   });
   recountDaily(gi);   // 未存到嘅會顯示喺「未點 N」→ 一望就知邊個仲要點
   const fail = (r.failed || []).length;
-  toast(fail ? `已存 ${(r.saved||[]).length} 人・${fail} 人未存（睇「未點」，請再撳一次）` : `全部 ${(r.saved||[]).length} 人已存 ✓${skipped?`（請假/停課 ${skipped} 人已跳過）`:''}`, fail ? '⚠' : '✓');
+  const svrSkip = (r.skipped || []).length;   // 後端擋落嚟嘅（例：格仔已經係「豁免」）
+  toast(fail ? `已存 ${(r.saved||[]).length} 人・${fail} 人未存（睇「未點」，請再撳一次）` : `全部 ${(r.saved||[]).length} 人已存 ✓${skipped?`（保留原狀 ${skipped+svrSkip} 人已跳過）`:''}`, fail ? '⚠' : '✓');
 }
 
 /* ── 天氣停課 ── */
