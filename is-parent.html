@@ -208,19 +208,27 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-15-v3pt';
+const FRONTEND_VERSION='parent-2026-08-16-audit';
 const CLASSES={
-  c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:['余悅','孔善盈','何芯蕾','蔡芷彤','羅梓晉','羅君信','羅君浩','示範學員']},
-  c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:['翟悅廷','郭栩澄','陳柏睎','葉宇浩','梁德瑜','梁德澤','許思溢']},
-  c3:{dayZh:'星期三',wd:3,time:'5–6pm',students:['鄧可澄','鄧幗恩','胡苡晨','胡汐森','文柏升','陳曉瑩','何梓程','梁正軒','陳思允']},
-  c4:{dayZh:'星期三',wd:3,time:'6–7pm',students:['陳卓楠','曾愛斯','王一言','王一心','古詩詠','古卓謙','梁心朗','陳信澄','陳澔泓','梁正宇','蘇穎悠']},
-  c5:{dayZh:'星期五',wd:5,time:'6–7pm',students:['吳瑋軒','黎柏言','陳曉瑩','梁正宇','郭可昕','黃玥晴','黃朗程','姚心穎','羅靖誼','黎柏希','陳焯棋','梁正軒']},
-  c6:{dayZh:'星期六',wd:6,time:'11am–12',students:['張爾淳','張雅堯','黃梓昕','王尉鏇','王斯顏','呂洛希','馬仲然','鄧朗森','陳書雅']},
-  c7:{dayZh:'星期六',wd:6,time:'3–4pm',students:['劉家頤','鄭宇喬','鍾皓惟','周莉晶','李灝宏','潘洛詩']}
+  c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
+  c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
+  c3:{dayZh:'星期三',wd:3,time:'5–6pm',students:[]},
+  c4:{dayZh:'星期三',wd:3,time:'6–7pm',students:[]},
+  c5:{dayZh:'星期五',wd:5,time:'6–7pm',students:[]},
+  c6:{dayZh:'星期六',wd:6,time:'11am–12',students:[]},
+  c7:{dayZh:'星期六',wd:6,time:'3–4pm',students:[]},
+  /* 🛡️ 審計#13：後端 8 月已加 c8/c9，家長頁一直只得 c1–c7 →
+     classLabel('c8') 回 raw「c8」（班別卡/下一堂/收據/ICS 全部顯示 c8）、
+     CLASS_IDS 冇佢哋 → makeupSlotsFor 永遠唔提供呢兩班、c8 學生自己亦冇時段可補、
+     CLASS_START_HH['c8'] undefined → 用 '00:00' → 「開課前 6 小時不可取消」由前一日 18:00 就封鎖。 */
+  c8:{dayZh:'星期四',wd:4,time:'5–6pm',students:[]},
+  c9:{dayZh:'星期五',wd:5,time:'6–8pm',students:[]}
 };
-const CLASS_START_HH={c1:'17:00',c2:'18:00',c3:'17:00',c4:'18:00',c5:'18:00',c6:'11:00',c7:'15:00'}; // 補堂開課鐘點(24h)：CLASSES.time 係顯示字("5–6pm")無法運算，另存機器格式供「開課前6h不可取消」計算
+/* 新開班起始日（同後端 CLASS_START 一致）：sessionsFor 由此日起先排堂 */
+const CLASS_START={c8:'2026-09-07',c9:'2026-10-01'};
+const CLASS_START_HH={c1:'17:00',c2:'18:00',c3:'17:00',c4:'18:00',c5:'18:00',c6:'11:00',c7:'15:00',c8:'17:00',c9:'18:00'}; // 補堂開課鐘點(24h)：CLASSES.time 係顯示字("5–6pm")無法運算，另存機器格式供「開課前6h不可取消」計算
 function mkHrsToStart(toKey,dateIso){ const hh=CLASS_START_HH[toKey]||'00:00'; return (new Date(dateIso+'T'+hh+':00')-new Date())/36e5; }
-const CLASS_DOW = { c1:1,c2:1,c3:3,c4:3,c5:5,c6:6,c7:6 };
+const CLASS_DOW = { c1:1,c2:1,c3:3,c4:3,c5:5,c6:6,c7:6,c8:4,c9:5 };
 const CLASS_IDS = Object.keys(CLASSES);
 let PUBLIC_HOLIDAYS = ['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19','2026-07-01'];
 
@@ -377,7 +385,10 @@ function sessionsFor(cid){
   let cur=new Date(a[0],a[1]-1,a[2]); const end=new Date(b[0],b[1]-1,b[2]);
   while(cur.getDay()!==c.wd && cur<=end) cur.setDate(cur.getDate()+1);
   const hol=new Set(PUBLIC_HOLIDAYS), out=[];
-  while(cur<=end){ const s=iso(cur); if(!hol.has(s)) out.push(s); cur.setDate(cur.getDate()+7); }
+  /* 🛡️ 審計#12/#13：新開班要由 CLASS_START 起先排堂，否則家長揀到 c8 9/7 之前嘅日子，
+     後端而家會拒（"該日該班冇堂"），但唔應該畀佢揀到先至彈錯。 */
+  const st=CLASS_START[cid]||null;
+  while(cur<=end){ const s=iso(cur); if(!hol.has(s) && (!st || s>=st)) out.push(s); cur.setDate(cur.getDate()+7); }
   return out;
 }
 // ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
@@ -1091,7 +1102,9 @@ function nextClassInfo(child){
 }
 function downloadICS(ki){
   const child=S.family.children[ki]; if(!child) return;
-  const t=todayStr(); const ev=[];
+  /* 🛡️ 審計#31：舊版 `const t=todayStr()` 遮蔽咗翻譯函數 t()，
+     下面 t('noFuture') / t('icsDone') 就會 TypeError，撳「＋ 行事曆」成個功能死。改名做 today。 */
+  const today=todayStr(); const ev=[];
   const push=(date,cid,time,tag)=>{
     let st=(time||'17:00').replace(/[–—]/g,'-').replace(/(am|pm|AM|PM)/g,'').split('-')[0].trim();
     if(!st.includes(':'))st=st+':00';
@@ -1101,8 +1114,8 @@ function downloadICS(ki){
       'DESCRIPTION:'+child.name,'END:VEVENT'].join('\r\n'));
   };
   (child.classes||[]).forEach(c=>{
-    (c.sessions||[]).forEach(s=>{ if(s.date>=t&&s.status!=='請假'&&s.status!=='停課'&&s.status!=='缺席') push(s.date,c.key||c.sport,c.time,'R'); });
-    (c.makeups||[]).forEach(m=>{ if(m.date>=t&&m.status!=='停課'&&m.status!=='缺席') push(m.date,m.to,CLASSES[m.to]?CLASSES[m.to].time:'',  'MK'); });
+    (c.sessions||[]).forEach(s=>{ if(s.date>=today&&s.status!=='請假'&&s.status!=='停課'&&s.status!=='缺席') push(s.date,c.key||c.sport,c.time,'R'); });
+    (c.makeups||[]).forEach(m=>{ if(m.date>=today&&m.status!=='停課'&&m.status!=='缺席') push(m.date,m.to,CLASSES[m.to]?CLASSES[m.to].time:'',  'MK'); });
   });
   if(!ev.length){ toast(t('noFuture')); return; }
   const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//INITIATE SPORTS//ZH//','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');

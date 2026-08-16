@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-15-pt';
+const FRONTEND_VERSION = 'lm-2026-08-16-audit';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -982,7 +982,9 @@ async function submitCancelMakeup(){
   if(!XF.picks.length) return;
   const child=S.family.children[XF.ki], c=child.classes[XF.ci], fromKey=classKey(c);
   // ⏱️ 距開課少於 6 小時嘅補堂唔畀取消 → 彈窗（家長須按 OK），整批中止
-  if(XF.picks.map(i=>XF.opts[i]).some(m=>mkHrsToStart9(m.date, TIMES9[m.to])<6)){
+  // 🛡️ 審計#19：優先用補堂記錄本身嘅真實時段（m.time），TIMES9[m.to] 係「正課」時間，
+  //    rope|六 補堂實際 11:00–12:00 但 TIMES9 寫 15:00–16:00 → 會放寬咗個 6 小時閘。
+  if(XF.picks.map(i=>XF.opts[i]).some(m=>mkHrsToStart9(m.date, m.time||TIMES9[m.to])<6)){
     alert("距離補堂開課少於 6 小時，無法取消。若屆時未能出席，將照常扣一節課。"); return;
   }
   const btn=$("#xf-go"); btn.disabled=true; btn.textContent="處理中…";
