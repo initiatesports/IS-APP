@@ -120,7 +120,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-16-newfee';
+const FRONTEND_VERSION='enroll-2026-08-16-newfee-audit';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1344,6 +1344,7 @@ function reportAnother(){
   const phone=(S.family&&S.family.phone)||'';
   S.family=null; S.profile=null; S.courses=[]; S.quote=null; S.payImg=''; S.isNew=false; S.agree=false; S.signEn=''; S.signId=''; S.clientToken='';
   S.uniform=null; S.notesAgreed=false; S.signImg=''; S.photoConsent=undefined;   // 清乾淨:第二個小朋友唔會沿用上一位嘅制服選項/尺碼(防被預設買制服多收$160+錯碼)
+  S.gear={}; S.credit=null;   // 🛡️ 審計#26:器材訂單一定要清——舊版淨係清制服,細佬妹會沿用大仔嘅器材數量(硬珠繩×1+帆布袋×3),後端照收多$150,實際只出一套貨
   renderLogin();
   const el=document.getElementById('li_phone'); if(el) el.value=phone;
   const nm=document.getElementById('li_name'); if(nm) nm.focus();

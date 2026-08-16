@@ -1085,6 +1085,13 @@ let VN_COURTS_MAP={};   // cid → Set(揀咗嘅羽毛球場號)  ・逐班獨�
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
 function vnDayZh(dateStr){ const WZ=['日','一','二','三','四','五','六']; if(!dateStr) return ''; return '星期'+WZ[new Date(dateStr+'T00:00:00').getDay()]; }
 function vnCidLabel(cid){ return cid?((CLASSES[cid]&&CLASSES[cid].label)||cid):'全部'; }
+/* 🛡️ 審計#29：classLabel() 喺加操列表（「💳 繳費」頁）用咗，但成個檔從來冇定義過
+   → 第一筆加操一寫入就 ReferenceError，成版死。補返一個同 vnCidLabel 一致嘅實作。 */
+function classLabel(cid){
+  const c=CLASSES[cid];
+  if(!c) return cid||'';
+  return c.label || ((c.dayZh||'')+(c.time?(' '+c.time):'')) || cid;
+}
 function vnDayClasses(dateStr){   // 當日所有課堂
   const day=vnDayZh(dateStr);
   return Object.keys(CLASSES).filter(cid=>{ const c=CLASSES[cid]; return !day || !c.dayZh || c.dayZh===day; })
