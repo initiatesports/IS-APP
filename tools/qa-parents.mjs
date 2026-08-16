@@ -8,7 +8,11 @@
  * 輸出：人類可讀報告 + 最後一行 JSON 摘要（畀排程解析）。
  */
 
-const EXEC4 = "https://script.google.com/macros/s/AKfycbyI6UVHEZNXAr22Y9aZ4yeZrwv_brRG2aI3LMRo5M6hI7biFDQ4a6qNcPTUCnEjz5dX/exec";
+/* 🛡️ 審計#21：呢個 QA 一直打緊一個舊 deployment，同家長真正用嘅 /exec 唔同一個
+   → 每日 08:04 嘅「家長系統自偵測」測緊一個冇人用嘅版本，家長真撞到嘅 bug 永遠綠燈。
+   ⚠️ 呢兩條 URL 必須同 IS-APP/is-parent.html（#4）同 is-leave-makeup.html（#9）一致；
+      日後前端切 /exec，呢度要一齊改。 */
+const EXEC4 = "https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec";
 const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
 
 const TODAY = process.argv[2] || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Hong_Kong" });
