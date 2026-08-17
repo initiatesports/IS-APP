@@ -1,10 +1,13 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <!-- INITIATE SPORTS · 6–7月特別課程報名 -->
 <meta charset="utf-8">
+<title>INITIATE SPORTS · 6–7 月特別課程報名</title>
 <meta name="robots" content="noindex,nofollow">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Noto+Sans+HK:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -335,7 +338,20 @@
     var list=allClasses().filter(function(c){ return (!filterType || c.type===filterType) && !isExpired(c); });
     var order=[], groups={};
     list.forEach(function(c){ if(order.indexOf(c.date)<0){order.push(c.date);groups[c.date]=[];} groups[c.date].push(c); });
-    if(!order.length){ host.innerHTML='<div class="empty" style="text-align:center;padding:30px 0">此項目暫無課堂</div>'; return; }
+    if(!order.length){
+      var _all=allClasses(), _allExpired=(_all.length>0 && _all.every(isExpired));
+      if(_allExpired){   // 全部課程已過期 → 唔好留空死巷，導向 9-10 月恆常班報名
+        host.innerHTML='<div style="text-align:center;padding:34px 20px;background:var(--green-tint);border:1px solid var(--line);border-radius:16px">'
+          +'<div style="font-size:42px;line-height:1">🎓</div>'
+          +'<div style="font-size:19px;font-weight:800;color:var(--green-d);margin:10px 0 6px">6–7 月特別課程已完結</div>'
+          +'<div style="color:var(--muted);font-size:14px;line-height:1.65;margin-bottom:18px">多謝支持！<b>2026 年 9-10 月恆常班</b>報名已開始 —— 花式跳繩、體操、羽毛球、綜合運動體能＋田徑、田徑等多項課程。</div>'
+          +'<a href="is-enroll.html" style="display:inline-block;background:var(--green);color:#fff;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:999px">前往 9-10 月恆常班報名 →</a>'
+          +'<div style="margin-top:16px;font-size:13px;color:var(--muted)">查詢：WhatsApp <b>6331 7403</b></div></div>';
+      } else {
+        host.innerHTML='<div class="empty" style="text-align:center;padding:30px 0">此項目暫無課堂</div>';
+      }
+      return;
+    }
     var html="";
     order.forEach(function(date){
       html+='<div class="dategroup"><div class="datehead"><span class="d">'+esc(date)+'</span>'+(HOLIDAYS[date]?'<span class="holiday">'+esc(HOLIDAYS[date])+'</span>':'')+'<span class="line"></span></div>';
