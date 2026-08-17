@@ -106,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-07-29-transfer';
+const FRONTEND_VERSION = 'coach9-2026-08-17-eol';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -421,7 +421,7 @@ function saveDaily9(date,r){ try{ localStorage.setItem('is_coach9_daily_'+date, 
 function readDaily9(date){ try{ const c=JSON.parse(localStorage.getItem('is_coach9_daily_'+date)||'null'); if(c&&c.r&&c.r.ok&&(Date.now()-c.t<2*864e5)) return c.r; }catch(e){} return null; }
 function patchDaily9(name,key,status,mk){ if(!daily9Data||!daily9Data.list) return; daily9Data.list.forEach(g=>{ if((g.c.sport+'|'+g.c.wd)===key) (g.rows||[]).forEach(row=>{ if(row.name===name&&(!!row.makeup)===(!!mk)) row.status=status; }); }); saveDaily9(S.date,daily9Data); }
 function renderList9(r,box,date){
-  if(!r.list.length){box.innerHTML=`<div class="empty">呢日冇堂（暑期班 7 月 13 日先開始）。<br>請揀返星期一～五嘅上課日，例如 7/16。</div>`;return;}
+  if(!r.list.length){box.innerHTML=`<div class="empty">呢日冇堂。<br>📢 暑期班將於 9 月初結束，之後轉為 <b>9-10 月恆常班</b>，請留意 WhatsApp 群組通知。</div>`;return;}
   box.innerHTML=r.list.map((g,gi)=>grp(g,gi,date)).join("");
 }
 async function load(){

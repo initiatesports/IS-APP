@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-17-polish';
+const FRONTEND_VERSION = 'lm-2026-08-17-eol';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -583,9 +583,14 @@ function socialCard(){
     </div>
   </div>`;
 }
+// 暑期班收線提示（暑期系統 9 月初結束）→ 導向 9-10 月恆常班報名
+function summerEolCard(){
+  return `<a class="card" style="display:block;margin:0 0 12px;padding:13px 16px;text-decoration:none;background:#FFF6E6;border:1px solid #F0C674;border-radius:12px;color:#8a5a00;line-height:1.6;font-size:14px" href="is-enroll.html">📢 <b>暑期班將於 9 月初結束</b> —— 之後轉為 <b>2026 年 9-10 月恆常班</b>（花式跳繩、體操、羽毛球、綜合運動體能＋田徑、田徑等）。<span style="color:#b36b00;font-weight:800;white-space:nowrap">立即報名 ›</span></a>`;
+}
 function renderParent(){
   const kids=(S.family&&S.family.children)||[];
   let html=`<div class="wrap">`;
+  html+=summerEolCard();   // 暑期結束 → 9 月恆常班報名提示（置最頂）
   // 🌐 官網入口 + 📣 社交平台（與恆常班一致，置頂）
   html+=officialSiteCard();
   html+=socialCard();
