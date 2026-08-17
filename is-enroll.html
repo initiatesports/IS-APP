@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-17-audit';
+const FRONTEND_VERSION='enroll-2026-08-17-polish';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1361,7 +1361,7 @@ async function renderFee(){
       <div class="q net"><span>${(uCost>0||gearCost>0)?'總計應付':'實付'}</span><span>${money(grand)}</span></div>`;
   }
   const body = priced ? `<div class="quote">${quoteInner}</div>${sessNote}${pendNote}` :
-    `<div class="banner">課程收費老闆稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
+    `<div class="banner">課程收費稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
   app.innerHTML=`
   <div class="card">
     ${steps(5)}
