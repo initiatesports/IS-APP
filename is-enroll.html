@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-19-warmup';
+const FRONTEND_VERSION='enroll-2026-08-19-selfupdate';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -409,7 +409,24 @@ async function loadOfficialCourses(){
   }catch(e){ /* 保留內置 fallback */ }
 }
 /* ════ 啟動 ════ */
+// 自動偵測新版即刷新：用 no-store 攞返 server 最新 HTML 比對版本，有新版就 cache-bust 強制重載，
+// 唔使等 browser cache(10 分鐘)過期、唔使家長手動清 cache、唔使改網址。同 is-parent ensureLatestBeforeLogin 一致。
+async function ensureLatest(){
+  try{
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return true;                                  // 攞唔到就照行，唔阻報名
+    const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    const latest = m && m[1];
+    if(latest && latest !== FRONTEND_VERSION){
+      app.innerHTML='<div class="card"><div class="msg">🔄 系統已更新，正載入最新版…</div></div>';
+      setTimeout(()=>location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()), 600);
+      return false;
+    }
+  }catch(e){}
+  return true;
+}
 async function boot(){
+  if(await ensureLatest()===false) return;   // 有新版 → 已觸發刷新，唔好再用舊版行落去
   // 提速容錯：後端 cold start 可長達 30 秒；加長 timeout(45s) 之餘再自動重試(第一 call 會喚醒後端，重試就快)，唔好一慢就報失敗。
   app.innerHTML='<div class="card"><div class="msg">連線中…⏳（首次載入需喚醒伺服器，約 30 秒，請稍候）</div></div>';
   var _try=0;
