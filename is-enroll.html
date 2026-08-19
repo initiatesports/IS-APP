@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-17-polish';
+const FRONTEND_VERSION='enroll-2026-08-19-warmup';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -167,7 +167,7 @@ const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:fal
 // 預覽模式（?preview=1）：唔使填資料就可以逐頁揭落去睇 layout；一律唔會真提交/寫入。老闆 2026-08-15
 const PREVIEW = (function(){ try{ return new URLSearchParams(location.search).get('preview')==='1'; }catch(e){ return false; } })();
 
-async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
 async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},ms); }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -410,8 +410,17 @@ async function loadOfficialCourses(){
 }
 /* ════ 啟動 ════ */
 async function boot(){
-  try{ S.cfg=await apiGet({action:'enrollConfig'}); }
-  catch(e){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div><button class="btn" style="margin-top:10px" onclick="boot()">🔄 重試</button></div>'; return; }
+  // 提速容錯：後端 cold start 可長達 30 秒；加長 timeout(45s) 之餘再自動重試(第一 call 會喚醒後端，重試就快)，唔好一慢就報失敗。
+  app.innerHTML='<div class="card"><div class="msg">連線中…⏳（首次載入需喚醒伺服器，約 30 秒，請稍候）</div></div>';
+  var _try=0;
+  while(true){
+    _try++;
+    try{ S.cfg=await apiGet({action:'enrollConfig'}); break; }
+    catch(e){
+      if(_try>=3){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div><button class="btn" style="margin-top:10px" onclick="boot()">🔄 重試</button></div>'; return; }
+      app.innerHTML='<div class="card"><div class="msg">連線中…⏳（正在喚醒伺服器，第 '+_try+' 次，請稍候）</div></div>';
+    }
+  }
   document.getElementById('periodLbl').textContent='';   // 右上角唔顯示期數
   await loadOfficialCourses();   // 同步官網課程介紹（失敗＝用內置 fallback）
   // 預覽直達成人流程：?preview=1&flow=adult

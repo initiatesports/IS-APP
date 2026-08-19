@@ -56,7 +56,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;}
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 const app=document.getElementById('app');
 let CP='';
-async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),18000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
 async function apiPost(b){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); }
 // C2：付款截圖/確認PDF 已改私有 → 用教練密碼經 getSecureFile 攞 base64 再開,唔直連 Drive。
