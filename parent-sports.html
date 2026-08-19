@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parentsports-2026-08-12-v2';
+const FRONTEND_VERSION = 'parentsports-2026-08-19-gymtime';
 const CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm',venue:'青衣',students:['示範學員']},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm',venue:'青衣',students:[]},
@@ -216,7 +216,7 @@ const CLASSES={
   "cond-sat5":{sport:'綜合運動體能＋田徑',dayZh:'星期六',wd:6,time:'5–6pm',venue:'青衣',students:[]},
   "cond-sun11":{sport:'綜合運動體能＋田徑',dayZh:'星期日',wd:0,time:'11am–12',venue:'青衣',students:[]},
   "gym-thu5":{sport:'體操',dayZh:'星期四',wd:4,time:'5–6pm',venue:'青衣',students:[]},
-  "gym-sat2":{sport:'體操',dayZh:'星期六',wd:6,time:'2–3pm',venue:'青衣',students:[]},
+  "gym-sat2":{sport:'體操',dayZh:'星期六',wd:6,time:'4–5pm',venue:'青衣',students:[]},
   "gym-sun10":{sport:'體操',dayZh:'星期日',wd:0,time:'10–11am',venue:'青衣',students:[]},
   "ath-fri":{sport:'田徑',dayZh:'星期五',wd:5,time:'4:50–5:50pm',venue:'青衣運動場',students:[]},
   "bad-sat8":{sport:'羽毛球',dayZh:'星期六',wd:6,time:'8–10am',venue:'青衣',students:[]},
@@ -226,7 +226,7 @@ const CLASSES={
   "fit-adult-fri":{sport:'成人增肌減脂',dayZh:'星期五',wd:5,time:'8–9pm',venue:'青衣',students:[]},
   "fit-adult-sat":{sport:'成人增肌減脂',dayZh:'星期六',wd:6,time:'8–9pm',venue:'青衣',students:[]}
 };
-const CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'17:00',"gym-sat2":'14:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
+const CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'17:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
 function mkHrsToStart(toKey,dateIso){ const hh=CLASS_START_HH[toKey]||'00:00'; return (new Date(dateIso+'T'+hh+':00')-new Date())/36e5; }
 const CLASS_DOW = {"found-tue2":2,"found-tue5":2,"cond-tue6":2,"cond-sat5":6,"cond-sun11":0,"gym-thu5":4,"gym-sat2":6,"gym-sun10":0,"ath-fri":5,"bad-sat8":6,"bad-sun8":0,"bad-sat12":6,"tennis-sat":6,"fit-adult-fri":5,"fit-adult-sat":6};
 const CLASS_IDS = Object.keys(CLASSES);
