@@ -445,7 +445,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-19-warmup';
+const FRONTEND_VERSION = 'coach-2026-08-19-drill';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1002,7 +1002,9 @@ function renderManualLeaveMakeup(){
     <div style="display:flex;gap:8px">
       <button onclick="mlSubmit('makeup')" style="flex:1;padding:12px;border:0;border-radius:10px;background:var(--cyan,#28B8C8);color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🔵 補堂</button>
       <button onclick="mlSubmit('leave')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#E9A100;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🟡 請假</button>
+      <button onclick="mlSubmit('drill')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#7C4DBF;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🟣 加操</button>
     </div>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.5">🟣 加操：學生今日多練一節。系統會自動查佢有冇未補請假 —— 有就當補堂（免費）；冇就按學費收一節落下期（出單前若有請假會自動轉補堂）。</div>
     <div id="ml-msg" style="margin-top:9px;font-size:13px"></div>
   </div>`;
   mlLoadClasses();
@@ -1034,12 +1036,15 @@ async function mlSubmit(kind){
   if(!cid){ msg.style.color='var(--red,#f87171)'; msg.textContent='請揀當日班別'; return; }
   msg.style.color='var(--muted,#888)'; msg.textContent='處理緊…';
   const body = kind==='makeup' ? {action:'coachAddMakeup', name, toKey:cid, toDate:date, coachPass:cpass()}
-                               : {action:'markLeave', name, classId:cid, date, coachPass:cpass()};
+             : kind==='leave'  ? {action:'markLeave', name, classId:cid, date, coachPass:cpass()}
+             :                    {action:'coachDrill', name, cid, date, coachPass:cpass()};
   let r; try{ r=await apiPost(body); }catch(e){ r=null; }
   if(r&&r.err==='密碼錯誤'){ COACH_PASS_RT=''; try{localStorage.removeItem('is_cpass');}catch(e){} toast('請重新輸入教練密碼','⚠️'); coachLogout(); return; }
   if(!r||!r.ok){ msg.style.color='var(--red,#f87171)'; msg.textContent='失敗'+((r&&r.err)?'：'+r.err:'，請再試'); return; }
-  const word = kind==='makeup' ? (r.dup?'已有補堂記錄':'已加補堂') : '已標請假';
-  msg.style.color='var(--green,#2ecc71)'; msg.textContent='✓ '+name+' → '+vnCidLabel(cid)+'　'+date+'　'+word;
+  const word = kind==='makeup' ? (r.dup?'已有補堂記錄':'已加補堂')
+             : kind==='leave'  ? '已標請假'
+             :                    (r.result==='補堂' ? '加操 → 已當補堂（免費）' : ('加操（'+(r.chargePeriod||'下期')+' 收 $'+r.fee+'）'));
+  msg.style.color='var(--green,#2ecc71)'; msg.textContent='✓ '+name+' → '+vnCidLabel(cid)+'　'+date+'　'+word + (kind==='drill'&&r.note?('　'+r.note):'');
   toast(name+' '+word+' ✓','✓');
   const ni=document.getElementById('ml-name'); if(ni) ni.value='';
   try{ await loadFromSheets(); }catch(e){}   // 重載令點名表／補堂即時反映
