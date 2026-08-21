@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parentsports-2026-08-19-gymtime';
+const FRONTEND_VERSION = 'parentsports-2026-08-21-audit';
 const CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm',venue:'青衣',students:['示範學員']},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm',venue:'青衣',students:[]},
@@ -460,10 +460,10 @@ function openHistory(ki){
 async function api(action,payload={}){
   const body={action,...payload};
   if(body.code===undefined && S.family && S.family.last4) body.code=S.family.last4;  // 後端驗證家庭身分
-  const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);
+  const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
   try{ const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); }
 }
-async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal});return await r.json();}finally{clearTimeout(tm);}}
+async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal});return await r.json();}finally{clearTimeout(tm);}}
 async function syncHolidays(){
   // 只攞公眾假期（輕量、非敏感）；唔再拉成個 load，避免匿名攞到全校資料。
   try{ const d=await apiGet({action:'holidays'});
@@ -565,7 +565,7 @@ function openSummer(){
 async function refresh(){
   if(!S.family) return;
   const nm=S.family.authName, l4=S.family.last4;
-  const r=await api('login',{name:nm,last4:l4});
+  let r; try{ r=await api('login',{name:nm,last4:l4}); }catch(e){ return; }   // 背景刷新逾時／網絡錯：靜靜略過，唔拋未捕捉異常。audit#14
   if(r&&r.ok){ applyLoginResp(r,nm,l4); saveParentCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取，令下次秒開係最新
 }
 
@@ -1093,7 +1093,7 @@ function nextClassInfo(child){
 }
 function downloadICS(ki){
   const child=S.family.children[ki]; if(!child) return;
-  const t=todayStr(); const ev=[];
+  const today=todayStr(); const ev=[];   // ⚠️ 唔可叫 t：會遮蔽全域翻譯函數 t()，令下面 toast(t('...')) throw。2026-08-21 audit#6
   const push=(date,cid,time,tag)=>{
     let st=(time||'17:00').replace(/[–—]/g,'-').replace(/(am|pm|AM|PM)/g,'').split('-')[0].trim();
     if(!st.includes(':'))st=st+':00';
@@ -1103,8 +1103,8 @@ function downloadICS(ki){
       'DESCRIPTION:'+child.name,'END:VEVENT'].join('\r\n'));
   };
   (child.classes||[]).forEach(c=>{
-    (c.sessions||[]).forEach(s=>{ if(s.date>=t&&s.status!=='請假'&&s.status!=='停課'&&s.status!=='缺席') push(s.date,c.key||c.sport,c.time,'R'); });
-    (c.makeups||[]).forEach(m=>{ if(m.date>=t&&m.status!=='停課'&&m.status!=='缺席') push(m.date,m.to,CLASSES[m.to]?CLASSES[m.to].time:'',  'MK'); });
+    (c.sessions||[]).forEach(s=>{ if(s.date>=today&&s.status!=='請假'&&s.status!=='停課'&&s.status!=='缺席') push(s.date,c.key||c.sport,c.time,'R'); });
+    (c.makeups||[]).forEach(m=>{ if(m.date>=today&&m.status!=='停課'&&m.status!=='缺席') push(m.date,m.to,CLASSES[m.to]?CLASSES[m.to].time:'',  'MK'); });
   });
   if(!ev.length){ toast(t('noFuture')); return; }
   const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//INITIATE SPORTS//ZH//','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');

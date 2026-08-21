@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-21-dlext';
+const FRONTEND_VERSION = 'lm-2026-08-21-audit';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -359,7 +359,7 @@ async function api(action, payload={}){
   if(isDemo) return demoApi(action,payload);
   // 教練模式自動帶教練密碼；家長模式自動帶家庭登入碼（後端驗證身分，防冒名請假/補堂）
   const base = S.coachPass ? {coachPass:S.coachPass} : (S.family ? {code:S.family.last4} : {});
-  const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);
+  const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);   // 45s：Apps Script 冷啟動可達 60s+，18s 會早 abort 誤報失敗。2026-08-21 audit#14
   try{ const res = await fetch(CONFIG.API_URL, {method:"POST",
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body: JSON.stringify({action,...base,...payload}), signal:c.signal});
@@ -542,9 +542,11 @@ async function doLogin(){
   }
   if(!name||last4.length!==4) return toast("請填中文全名同 4 位數字");
   $("#li-go").disabled=true; $("#li-go").textContent="登入中…";
-  const r=await api("login",{name,last4});
+  let r;
+  try{ r=await api("login",{name,last4}); }
+  catch(e){ $("#li-go").disabled=false; $("#li-go").textContent="登入"; return toast((e&&e.name==='AbortError')?"連線逾時，請檢查網絡後再試":"連線失敗，請檢查網絡後再試"); }   // 🛡️ audit#5：主登入補 try/catch，否則逾時會令按鈕永遠卡「登入中…」且無提示
   $("#li-go").disabled=false; $("#li-go").textContent="登入";
-  if(!r.ok) return toast(r.err||"登入失敗");
+  if(!r||!r.ok) return toast((r&&r.err)||"登入失敗");
   applyLMResp(r,name,last4); saveLMCache(name,last4,r);
   S.mode="parent"; renderNav(); routeMain();
 }
@@ -835,10 +837,26 @@ function setLeaveType(t,btn){LF.type=t;[...btn.parentNode.children].forEach(b=>b
   const nt=$("#lf-notice"); if(nt) nt.innerHTML=(t==="病假")
     ? '病假只適用於<b>當日</b>身體不適（可補堂），須於 <b>48 小時內</b>上傳醫生證明，否則改計缺席、扣一節、不設補堂。<br>如揀將來日期，系統會自動<b>按事假處理</b>（可補堂、不需醫生紙）。'
     : '事假須<b>最少提前一日</b>；<b>當日不可請事假</b>，當日缺席照扣一節、不設補堂。';}
+// 🛡️ audit#15：圖片上載前縮到最闊 1600px、JPEG 0.82，避免手機大相拖慢上載/被拒；PDF 唔縮但保留 6MB 上限。
+function shrinkMed(file, cb){
+  if(!/^image\//.test(file.type)){   // PDF 等：唔縮
+    if(file.size>6*1024*1024){ cb(null,'檔案太大（上限 6MB）'); return; }
+    var rd0=new FileReader(); rd0.onload=function(){ cb(rd0.result); }; rd0.onerror=function(){ cb(null,'讀取檔案失敗'); }; rd0.readAsDataURL(file); return;
+  }
+  var rd=new FileReader();
+  rd.onload=function(){ var img=new Image();
+    img.onload=function(){ var MAX=1600, w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>=h){ h=Math.round(h*MAX/w); w=MAX; } else { w=Math.round(w*MAX/h); h=MAX; } }
+      try{ var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); cb(cv.toDataURL('image/jpeg',0.82)); }
+      catch(err){ cb(rd.result); } };
+    img.onerror=function(){ cb(rd.result); }; img.src=rd.result; };
+  rd.onerror=function(){ cb(null,'讀取圖片失敗'); }; rd.readAsDataURL(file);
+}
 function onMedFile(input){ const f=input.files&&input.files[0]; const st=$("#lf-med-status");
   if(!f){ LF.fileData=null; LF.fileName=""; return; }
-  if(f.size>6*1024*1024){ toast("檔案太大（上限 6MB）"); input.value=""; return; }
-  const rd=new FileReader(); rd.onload=()=>{ LF.fileData=rd.result; LF.fileName=f.name; if(st){st.textContent="已選擇："+f.name; st.style.color="var(--green)";} }; rd.readAsDataURL(f); }
+  if(f.size>6*1024*1024 && !/^image\//.test(f.type)){ toast("檔案太大（上限 6MB）"); input.value=""; return; }
+  shrinkMed(f,(data,err)=>{ if(err){ toast(err); input.value=""; LF.fileData=null; LF.fileName=""; return; }
+    LF.fileData=data; LF.fileName=f.name; if(st){st.textContent="已選擇："+f.name; st.style.color="var(--green)";} }); }
 function toggleLeave(di,el){
   const i=LF.dates.indexOf(di);
   if(i>=0){LF.dates.splice(i,1);el.classList.remove("on");el.querySelector(".cap").style.display="none";}
