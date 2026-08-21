@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-19-selfupdate';
+const FRONTEND_VERSION='enroll-2026-08-21-faster';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -401,7 +401,7 @@ function extractLiteral(src, marker){
    官網一改、報名頁下次開就跟住改；官網零改動。任何失敗＝用內置 fallback，永不空白。 */
 async function loadOfficialCourses(){
   try{
-    var r=await fetch('index.html?_='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
+    var r=await fetch('index.html'); if(!r.ok) return;   // 可 cache（課程介紹少變）→ 重複開頁唔使再下載成個 index.html，快好多
     var html=await r.text();
     var it=extractLiteral(html,'COURSE_ITEMS=['), dt=extractLiteral(html,'COURSE_DETAIL={');
     if(it){ var items=(0,eval)('('+it+')'); if(Array.isArray(items)){ items=items.filter(function(c){return c&&c.id&&c.name;}); if(items.length) COURSE_ITEMS=items; } }
@@ -413,7 +413,8 @@ async function loadOfficialCourses(){
 // 唔使等 browser cache(10 分鐘)過期、唔使家長手動清 cache、唔使改網址。同 is-parent ensureLatestBeforeLogin 一致。
 async function ensureLatest(){
   try{
-    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});
+    // 只攞頭 8KB（FRONTEND_VERSION 喺檔案頭）→ 唔使下載成個 287KB HTML，快好多。CDN 唔支援 Range 就回全檔（照 work）。
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store', headers:{'Range':'bytes=0-8191'}});
     if(!r.ok) return true;                                  // 攞唔到就照行，唔阻報名
     const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
     const latest = m && m[1];
