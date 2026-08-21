@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-17-eol';
+const FRONTEND_VERSION = 'lm-2026-08-21-dlext';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -1022,7 +1022,9 @@ function openMakeup(ki,ci){
      <div class="notice warn">呢個班別暫未設網上補堂時段，請 WhatsApp 張 Sir 另約。</div>
      <button class="btn ghost" onclick="closeSheet()">關閉</button>`); return; }
   const today=new Date(); today.setHours(0,0,0,0);
-  const deadline=lastSession(c), refund=(c.sport==="basketball");
+  // 限期以後端 c.deadline 為準（後端可逐班放寬 MK_DEADLINE_EXT9）；冇先自己計最後一堂。
+  // 前端自己計會同後端 gate 唔一致 → 掣揀得到但後端拒／或後端准但前端唔畀揀。
+  const deadline=(c.deadline? new Date(c.deadline+"T00:00:00") : lastSession(c)), refund=(c.sport==="basketball");
   let cands=[];
   const _mkBlk=new Set(S.mkBlockDates||[]);   // 全面停課日期（如 8/8）：唔畀揀嚟補堂（後端亦拒）
   slots.forEach(s=>{
