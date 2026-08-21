@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-21-faster';
+const FRONTEND_VERSION='enroll-2026-08-21-faster2';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -413,8 +413,7 @@ async function loadOfficialCourses(){
 // 唔使等 browser cache(10 分鐘)過期、唔使家長手動清 cache、唔使改網址。同 is-parent ensureLatestBeforeLogin 一致。
 async function ensureLatest(){
   try{
-    // 只攞頭 8KB（FRONTEND_VERSION 喺檔案頭）→ 唔使下載成個 287KB HTML，快好多。CDN 唔支援 Range 就回全檔（照 work）。
-    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store', headers:{'Range':'bytes=0-8191'}});
+    const r = await fetch(location.pathname + '?_ck=' + Date.now(), {cache:'no-store'});   // 全檔(gzip後~50KB)比對版本；Range 撞 gzip 唔可靠故唔用
     if(!r.ok) return true;                                  // 攞唔到就照行，唔阻報名
     const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
     const latest = m && m[1];
