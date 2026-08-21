@@ -445,7 +445,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-19-drill';
+const FRONTEND_VERSION = 'coach-2026-08-21-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -489,6 +489,7 @@ let ABSENCES = [];  // seed 已清空：一律以雲端 (#4) 載入為準，避�
 let currentClass     = null;
 let rollSession      = {};
 let rollSelectedDate = null;
+let rollDirty        = false;   // 有未儲存嘅點名改動（setRoll 後未撳儲存）→ 切日／切班／離開頁前提醒，防靜靜流失。2026-08-21 audit#2
 let rollViewMonth    = { year:MIN_YEAR, month:MIN_MONTH };
 let screenStack      = [];
 let currentScreen    = 'home';
@@ -1372,6 +1373,7 @@ function goSearchStudent(name){
 
 /* ═══════════ 八、點名 ═══════════ */
 function openRoll(classId){
+  if(rollDirty && classId!==currentClass && !confirm('目前呢堂有未儲存嘅點名，切去第二班會流失。要放棄未存嘅改動？')) return;
   currentClass = classId;
   rollSession  = {};
 
@@ -1432,6 +1434,7 @@ function changeMonth(delta){
   loadRollSession();
 }
 function selectDate(dateStr){
+  if(rollDirty && dateStr!==rollSelectedDate && !confirm('呢一堂有未儲存嘅點名，切去第二日會流失。要放棄未存嘅改動？')) return;
   rollSelectedDate = dateStr;
   renderDatePills();
   loadRollSession();
@@ -1475,6 +1478,7 @@ function renderDatePills(){
   }, 50);
 }
 function loadRollSession(){
+  rollDirty = false;   // 每次載入＝乾淨基線（由 ATT_LOG 還原）
   if (!rollSelectedDate || !currentClass) {
     document.getElementById('student-list').innerHTML = '';
     document.getElementById('roll-info-bar').textContent = '請選擇日期';
@@ -1578,6 +1582,7 @@ function setRoll(name, status){
     }
   }
   updateSaveCount();
+  rollDirty = true;   // 有未儲存改動
 }
 function updateSaveCount(){
   const el = document.getElementById('save-count');
@@ -2453,6 +2458,7 @@ saveRoll = async function(){
   setSyncIndicator(a&&a.ok?'ok':'error');
   if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
   if(a&&a.ok){
+    rollDirty = false;   // 後端確認寫入 → 清 dirty（審計#2）
     const badge=document.getElementById('roll-already-saved'); if(badge) badge.style.display='flex';
     // （已移除舊「14 日滑動延長」：密碼只存 session，唔再持久記住）
     // 核對：後端實際寫入人數 vs 送出人數。少咗 = 有學生冇存到（舊版/異常）→ 大聲提示，唔會靜靜雞漏data
@@ -2475,6 +2481,8 @@ saveRoll = async function(){
   }
 };
 let _pendingSave = null;   // 密碼過期時暫存待補交嘅點名，重新登入後由 coachGateSubmit 自動再交
+// 🛡️ 審計#2：有未儲存點名就閂/刷新頁 → 瀏覽器攔截提示（防手機誤滑走流失一整堂點名）
+window.addEventListener('beforeunload', function(e){ if(rollDirty){ e.preventDefault(); e.returnValue=''; return ''; } });
 // 已補堂：改用「補堂完成」ledger（apiMarkAbsenceDone）——直接標某缺席=已補,持久、specific、
 // 唔再造 to=自己班 自補記錄（舊做法會污染格覆蓋真請假、又反覆彈返）。
 markMakeupDone = async function(id){

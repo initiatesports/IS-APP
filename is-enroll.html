@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-21-faster2';
+const FRONTEND_VERSION='enroll-2026-08-21-audit';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -172,6 +172,25 @@ async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
 async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},ms); }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
+// 🛡️ audit#15：上載前把相片縮到最闊 1600px、JPEG 0.82，避免手機大相(5-10MB)令 base64 爆(>13MB)→ POST 逾時/被後端拒。cb(dataURL) 或 cb(null,錯誤訊息)。
+function shrinkImage(file, cb){
+  if(!file){ cb(''); return; }
+  var MAXBYTES=8*1024*1024;
+  if(!/^image\//.test(file.type)){   // 非圖片(如 PDF)：唔縮，過大就擋
+    if(file.size>MAXBYTES){ cb(null,'檔案太大（'+Math.round(file.size/1048576)+'MB），請壓到 8MB 以內'); return; }
+    var rd0=new FileReader(); rd0.onload=function(){ cb(rd0.result); }; rd0.onerror=function(){ cb(null,'讀取檔案失敗'); }; rd0.readAsDataURL(file); return;
+  }
+  var rd=new FileReader();
+  rd.onload=function(){ var img=new Image();
+    img.onload=function(){ var MAX=1600, w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>=h){ h=Math.round(h*MAX/w); w=MAX; } else { w=Math.round(w*MAX/h); h=MAX; } }
+      try{ var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); cb(cv.toDataURL('image/jpeg',0.82)); }
+      catch(err){ cb(rd.result); }   // 縮放失敗 → fallback 原圖
+    };
+    img.onerror=function(){ cb(rd.result); }; img.src=rd.result;
+  };
+  rd.onerror=function(){ cb(null,'讀取圖片失敗'); }; rd.readAsDataURL(file);
+}
 const fmtMD=iso=>{const p=String(iso||'').split('-');return p.length>=3?(+p[1])+'/'+(+p[2]):String(iso||'');};   // 2026-09-07 → 9/7
 function steps(n){ let h='<div class="steps">'; for(let i=1;i<=6;i++) h+=`<div class="s ${i<=n?'on':''}"></div>`; return h+'</div>'; }
 // WhatsApp 帶 context 快查（一人公司靠 WhatsApp 收單）
@@ -842,14 +861,14 @@ function adultToPay(){
 async function renderAdultPay(){
   const a=S.adult||{};
   app.innerHTML=`<div class="card"><h2>付款</h2><div class="msg">計算學費中…</div></div>`;
-  let q={amount:0,fps:(S.cfg&&S.cfg.fps)||'',courses:'',waitlisted:false,selfClass:!!a.self};
+  let q={amount:0,fps:(S.cfg&&S.cfg.fps)||'',courses:'',waitlisted:false,selfClass:!!a.self}, quoteOk=false;
   try{
     const r=await apiPost({ action:'adultEnroll', dryRun:'1', courseIds:(a.courseIds||[]).join(','),
       selfClass:a.self?'1':'', selfDay:a.selfDay||'', selfTime:a.selfTime||'',
-      englishName:a.en, nickname:a.nick, gender:a.gender, mobile:a.mob, healthAck:'1', termsAgreed:'1', signId:a.signId||'A123' }, 30000);
-    if(r&&r.ok) q=r;
+      englishName:a.en, nickname:a.nick, gender:a.gender, mobile:a.mob, healthAck:'1', termsAgreed:'1', signId:a.signId||'A123' }, 45000);
+    if(r&&r.ok){ q=r; quoteOk=true; }   // 🛡️ audit#7：只有報價成功先當數；失敗唔可 fallback $0（會令付費課顯示免費）
   }catch(e){}
-  a._amount=q.amount||0; S.adult=a;
+  a._amount=q.amount||0; a._quoteOk=quoteOk; S.adult=a;
   const fps=(S.cfg&&S.cfg.fps)||q.fps||'', amt=q.amount||0;
   const uploadBox=`<p class="hint" style="margin-top:10px">請以 FPS 轉數，然後上載轉賬截圖；提交後即有記錄編號。如未能開班全額退還。</p>
       <div class="sumline"><span class="k">FPS 號碼</span><span><b>${esc(fps)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${esc(fps).replace(/\s/g,'')}',this)">複製</button></span></div>
@@ -858,6 +877,9 @@ async function renderAdultPay(){
   if(PREVIEW){
     payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b>${money(amt)}</b></span></div>${uploadBox}
       <div class="banner" style="margin-top:10px">🔎 <b>預覽模式</b>：唔會真提交，亦唔使真過數。真實報名時流程一模一樣。</div>`;
+  }else if(!quoteOk){
+    payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b style="color:#c0392b">計算失敗</b></span></div>
+      <div class="banner" style="margin-top:12px;border-color:#c0392b">⚠️ 一時計唔到學費（網絡或伺服器繁忙）。請撳「返回」再試一次，或 WhatsApp 6331 7403。<b>未計到費用前唔會提交，亦唔代表免費。</b></div>`;
   }else if(amt>0){
     payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b>${money(amt)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${amt}',this)">複製</button></span></div>${uploadBox}`;
   }else{
@@ -878,15 +900,18 @@ async function renderAdultPay(){
   </div>`;
   const pf=document.getElementById('adp_file');
   if(pf) pf.onchange=e=>{ const f=e.target.files[0]; if(!f) return;
-    const rd=new FileReader(); rd.onload=()=>{ S.adult.payImg=rd.result;
-      const th=document.getElementById('adp_thumb'); if(th) th.innerHTML='✓ 已附上截圖（'+esc(f.name)+'）· 可重新選擇'; }; rd.readAsDataURL(f); };
+    shrinkImage(f,(data,err)=>{ const th=document.getElementById('adp_thumb');
+      if(err){ if(th) th.textContent='⚠ '+err; S.adult.payImg=''; return; }
+      S.adult.payImg=data; if(th) th.innerHTML='✓ 已附上截圖（'+esc(f.name)+'）· 可重新選擇'; }); };
   document.getElementById('adp_go').onclick=submitAdult;
+  if(!PREVIEW && !quoteOk){ const gb=document.getElementById('adp_go'); if(gb){ gb.disabled=true; gb.textContent='請返回重試'; } }   // audit#7：報價失敗唔畀提交
 }
 async function submitAdult(){
   const msg=document.getElementById('adp_msg')||document.getElementById('adt_msg');
   if(PREVIEW){ if(msg){msg.className='msg'; msg.textContent='（預覽模式）唔會真提交報名。';} return; }
   const a=S.adult||{};
   if(!a.signId){ if(msg){msg.className='msg err'; msg.textContent='資料不完整，請返回重新填寫。';} return; }
+  if(!a._quoteOk){ if(msg){msg.className='msg err'; msg.textContent='未計到學費，請返回上一步再試（唔會當免費提交）。';} return; }   // audit#7：報價失敗唔可提交
   if((a._amount||0)>0 && !a.payImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
   msg.className='msg'; msg.textContent='提交中…';
   const btn=document.getElementById('adp_go'); if(btn) btn.disabled=true;
@@ -1572,9 +1597,10 @@ function renderPay(){
   const pf=document.getElementById('py_file');
   if(pf) pf.onchange=e=>{
     const f=e.target.files[0]; if(!f) return;
-    const rd=new FileReader(); rd.onload=()=>{ S.payImg=rd.result;
-      const th=document.getElementById('py_thumb'); if(th) th.innerHTML='✓ 已附上截圖（'+esc(f.name)+'）· 可重新選擇';
-    }; rd.readAsDataURL(f);
+    shrinkImage(f,(data,err)=>{ const th=document.getElementById('py_thumb');
+      if(err){ if(th) th.textContent='⚠ '+err; S.payImg=''; return; }
+      S.payImg=data; if(th) th.innerHTML='✓ 已附上截圖（'+esc(f.name)+'）· 可重新選擇';
+    });
   };
   document.getElementById('py_go').onclick=submitEnroll;
 }

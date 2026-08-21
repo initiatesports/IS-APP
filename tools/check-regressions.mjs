@@ -38,7 +38,8 @@ const CHECKS = [
   { file:'is-leave-makeup.html', fn:'submitCancelMakeup', must:'mkHrsToStart9', why:'暑期：距開課<6h取消補堂被攔+彈窗' },
   // 暑期病假完整跟恆常（老闆 2026-08-05）：當日病假可上載醫生紙，48h逾期自動改缺席
   { file:'is-leave-makeup.html', fn:'submitLeave', must:'uploadMedNote', why:'暑期當日病假醫生紙上載（跟恆常，逾48h未交自動改缺席）' },
-  { file:'is-leave-makeup.html', fn:'onMedFile', must:'FileReader', why:'暑期病假醫生紙選檔讀取（onMedFile）' },
+  { file:'is-leave-makeup.html', fn:'onMedFile', must:'shrinkMed', why:'暑期病假醫生紙選檔讀取（onMedFile → shrinkMed，2026-08-21 audit#15 縮圖）' },
+  { file:'is-leave-makeup.html', fn:'shrinkMed', must:'FileReader', why:'醫生紙/圖片實際讀取（shrinkMed 內 FileReader）' },
   // 特別時間安排：家長端要反映該日 override（下一堂）＋通知去重（老闆 2026-08-09 撞到重複通知＋下一堂冇跟改）
   { file:'is-leave-makeup.html', fn:'nextClassInfo', must:'s.time||c.time', why:'下一堂要顯示該日特別時間 override（唔係淨正規 c.time）' },
   { file:'is-leave-makeup.html', fn:'renderParent', must:'_seen', why:'最新通知同文案去重，防重複轟炸' },
