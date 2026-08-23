@@ -1744,26 +1744,12 @@ function getStarPeriodLabel(n){
   const y2=y0+Math.floor(s/12),m2=(s%12)+1;
   return y1===y2?`${y1}年 ${m1}–${m2}月`:`${y1}年${m1}月 – ${y2}年${m2}月`;
 }
-const STAR_FALLBACK=[
-  {period:'第一批',label:getStarPeriodLabel(1),students:[
-    {name:'鄧可澄',shortName:'德瑜',class:'Wed 6-7'},{name:'翟悅廷',shortName:'若浩',class:'Mon 5-6'},
-    {name:'郭栩澄',shortName:'棚澄',class:'Mon 6-7'},{name:'周莉晶',shortName:'周莉晶',class:'Sat 3-4'},
-    {name:'鍾皓惟',shortName:'皓惟',class:'Sat 3-4'},{name:'余悅',shortName:'悅悅',class:'Mon 5-6'},
-    {name:'張雅堯',shortName:'雅堯',class:'Sat 11-12'},{name:'胡苡晨',shortName:'苡晨',class:'Wed 5-6'},
-    {name:'陳信澄',shortName:'信澄',class:'Wed 6-7'},{name:'吳瑋軒',shortName:'瑋軒',class:'Fri 6-7'},
-    {name:'羅靖誼',shortName:'靖誼',class:'Fri 6-7'},{name:'陳柏睎',shortName:'柏晞',class:'Mon 6-7'},
-    {name:'黃玥晴',shortName:'玥晴',class:'Wed 5-6'},{name:'王尉鏇',shortName:'尉鏇',class:'Sat 11-12'}
-  ]},
-  {period:'第二批',label:getStarPeriodLabel(2),students:[
-    {name:'蔡芷彤',shortName:'芷彤',class:'Mon 5-6'},{name:'孔善盈',shortName:'善盈',class:'Mon 5-6'},
-    {name:'羅君信',shortName:'君信',class:'Mon 5-6'},{name:'翟悅廷',shortName:'宇浩',class:'Mon 6-7'},
-    {name:'鄧幗恩',shortName:'曉璧',class:'Wed 5-6'},{name:'鄧可澄',shortName:'可澄',class:'Wed 5-6'},
-    {name:'陳卓楠',shortName:'卓謙',class:'Wed 6-7'},{name:'郭可昕',shortName:'柏希',class:'Fri 6-7'},
-    {name:'黎柏言',shortName:'柏言',class:'Fri 6-7'},{name:'呂洛希',shortName:'洛希',class:'Sat 11-12'},
-    {name:'鄭宇喬',shortName:'宇喬',class:'Sat 3-4'},{name:'周莉晶',shortName:'周莉晶',class:'Sat 3-4'},
-    {name:'張雅堯',shortName:'雨淳',class:'Sat 11-12'}
-  ]}
-];
+// 🔒 2026-08-23 審計#3：原本呢度有 STAR_FALLBACK —— 27 條記錄硬編未成年學員「中文全名 ＋ 上課日/時段」
+//    （例 {name:'…', class:'Wed 6-7'}）喺呢個公開俾 Google 收錄嘅官網原始碼裡面 → 任何人 view-source
+//    就知道邊個小朋友逢星期幾、幾點、喺邊度上堂。
+//    同一份檔早前已因完全相同理由清空咗 STUDENT_YEARS、後端亦特意把 star_history 剔出 PUBLIC_KEYS，
+//    唯獨呢個更敏感嘅名單漏咗。grep 證實全檔零引用（渲染一律行 STAR_HISTORY）＝純死 code → 直接刪走，零功能影響。
+//    ⚠️ 日後唔好喺任何公開 HTML 再硬編「姓名＋班次」；星之學員資料一律經 #11 已驗證 route 攞。
 
 // ═══════════════════════
 //  HELPERS

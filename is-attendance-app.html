@@ -1917,7 +1917,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION = 'attapp-2026-07-18-autoupdate';
+const FRONTEND_VERSION = 'attapp-2026-08-23-savecheck';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -4889,7 +4889,7 @@ function toggleStudentEdit(name) {
   if (btn) btn.textContent = isOpen ? '編輯' : '收起';
 }
 
-function saveStudentInfo(oldName) {
+async function saveStudentInfo(oldName) {
   const sid     = _safeId(oldName);
   const newName = (document.getElementById('sei-name-' + sid)?.value || '').trim();
   const yearVal = document.getElementById('sei-year-' + sid)?.value.trim();
@@ -4984,9 +4984,12 @@ function saveStudentInfo(oldName) {
   }
 
   // 同步雲端
-  syncSettings();
-  syncPerformance();
-  syncBody();
+  // 🔒 2026-08-23 審計#7：以前呢三個係 fire-and-forget（冇 await）同時打上 #11。後端 2026-08-21
+  //    加咗寫入鎖之後，第一個入鎖會做整份 Sheet 備份（幾秒起跳），另外兩個等唔切 15 秒就被拒 →
+  //    名冊改咗名但成績／體測仲係舊名，資料一分為二。改成逐個 await，杜絕自己同自己爭鎖。
+  await syncSettings();
+  await syncPerformance();
+  await syncBody();
 
   // 重新渲染（用新名稱）
   setTimeout(() => {
@@ -6925,7 +6928,18 @@ async function apiPost(body) {
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  return res.json();
+  const out = await res.json();
+  // 🔒 2026-08-23 審計#7：後端 2026-08-21 為 save_* 加咗寫入鎖，攞唔到鎖會回
+  //    {ok:false, error:'系統繁忙，請幾秒後再試'}。但呢度以前淨係 return res.json()，
+  //    六個 sync* 全部無條件亮綠色 ✓ → 寫入被拒都當成功（例：改學生姓名同時 fire 三個 save，
+  //    名冊改咗名但成績／體測仲係舊名，畫面照顯示「已更新」）。
+  //    只對 save_* 拋錯：verify 嘅 {ok:false} 係正常業務結果、load 自己 handle error，唔可以掂。
+  if (String(body && body.action || '').startsWith('save_')) {
+    if (out && (out.ok === false || out.error)) {
+      throw new Error(out.error || out.err || '儲存失敗');
+    }
+  }
+  return out;
 }
 
 // ── 從 Sheets 載入所有資料（包含設定）──
@@ -7182,10 +7196,11 @@ markMakeupDone = function(id) {
 };
 
 const _origFinishPerfEntry = finishPerfEntry;
-finishPerfEntry = function() {
+finishPerfEntry = async function() {
   _origFinishPerfEntry();
-  syncPerformance();
-  syncAbsences();
+  // 審計#7：逐個 await —— 兩個同時打會自己同自己爭 #11 寫入鎖，第二個被拒（見 apiPost 註釋）。
+  await syncPerformance();
+  await syncAbsences();
 };
 
 const _origSaveBodyRecord = saveBodyRecord;
