@@ -33,6 +33,10 @@ body{font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select{font-family:inherit;font-size:15px;color:var(--ink)}
 a{color:var(--teal-d);text-decoration:none}
+/* 基準：任何冇明確尺寸嘅 inline 圖示 = 文字大小（更明確嘅 .nav a svg / .kpi .ic svg 及 inline style 會覆蓋）*/
+svg{width:1em;height:1em;flex:none}
+.mut svg{vertical-align:-.15em;margin-right:4px}
+.btn svg{width:1.05em;height:1.05em;vertical-align:-.15em}
 .tnum{font-variant-numeric:tabular-nums}
 .mut{color:var(--mut)}
 ::-webkit-scrollbar{width:10px;height:10px}
