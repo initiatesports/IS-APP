@@ -115,6 +115,14 @@ function render(sum, recs){
   const nonTest=recs.filter(r=>String(r['備註']||'').indexOf('測試')<0 && String(r['學生姓名']||'').trim()!=='示範學員');
   const byName={}, nameOrder=[];
   nonTest.forEach(r=>{ const nm=String(r['學生姓名']||'').trim(); if(!byName[nm]){ byName[nm]=[]; nameOrder.push(nm); } byName[nm].push(r); });
+  // 排序：未核實（待核實/待付款/候補）排前，已核實排後，取消最尾；同組保持原順序
+  const stPri=st=>(st==='已核實'?1:(st==='取消'?2:0));
+  const origIdx={}; nameOrder.forEach((n,i)=>origIdx[n]=i);
+  nameOrder.sort((a,b)=>{
+    const pa=Math.min(...byName[a].map(r=>stPri(String(r['狀態']||''))));
+    const pb=Math.min(...byName[b].map(r=>stPri(String(r['狀態']||''))));
+    return pa-pb || origIdx[a]-origIdx[b];
+  });
   let pendGrand=0, pendNet=0;
   const personBlocks=nameOrder.map(nm=>{
     const rs=byName[nm];
@@ -138,6 +146,7 @@ function render(sum, recs){
       if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${id}','已核實')">核實</button>`;
       if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${id}','待核實')">轉正取</button>`;
       if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${id}','取消')">取消</button>`;
+      if(stt==='取消') act+=`<button class="btn err sm" onclick="delRec('${id}','${esc(nm)}')" title="永久刪除呢筆記錄">🗑 刪除</button>`;
       const warn=note?`<div style="color:var(--warn);font-size:12px;margin-top:2px">⚠️ ${esc(note)}</div>`:'';
       return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--line)">
         <div style="flex:1;min-width:0">
@@ -224,6 +233,13 @@ async function setStatus(id,status){
   const msg=document.getElementById('msg');
   const r=await apiPost({action:'enrollSetStatus',coachPass:CP,id,status});
   if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' → '+status; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  loadAll();
+}
+async function delRec(id,nm){
+  if(!confirm('永久刪除報名記錄「'+nm+'」（'+id+'）？此動作不可還原。')) return;
+  const msg=document.getElementById('msg');
+  const r=await apiPost({action:'enrollDelete',coachPass:CP,id});
+  if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent='已刪除 '+id; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'刪除失敗'; } }
   loadAll();
 }
 renderLogin();
