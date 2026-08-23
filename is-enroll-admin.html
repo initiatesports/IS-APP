@@ -91,6 +91,13 @@ function renderLogin(err){
 async function loadAll(){ const r=await apiPost({action:'enrollSummary',coachPass:CP}); render(r, window._recs); loadRecords(); }
 async function loadRecords(){ const r=await apiPost({action:'enrollRecords',coachPass:CP}); window._recs=(r&&r.records)||[]; render(window._sum, window._recs); }
 
+function num(x){ x=parseFloat(String(x==null?'':x).replace(/[^0-9.\-]/g,'')); return isNaN(x)?0:x; }
+// 由備註抽制服/器材金額（學費淨額以外，另加落實付）
+function feeAddon(note){ note=String(note||''); let a=0;
+  let m=note.match(/制服[^$]*\$(\d+)/); if(m) a+=+m[1];
+  let g=note.match(/器材[^$]*?\$(\d+)/); if(g) a+=+g[1];
+  return a;
+}
 function render(sum, recs){
   window._sum=sum||window._sum; recs=recs||window._recs||[];
   const s=window._sum; if(!s) return;
@@ -104,20 +111,50 @@ function render(sum, recs){
     return `<tr><td><b>${esc(c.sport)}</b><div class="mut">${esc(c.day)} ${esc(c.time)}</div></td>
       <td>${c.enrolled}/${c.cap} ${seat}</td><td>${money(c.price)}</td><td>${names}${wl}</td></tr>`;
   }).join('');
-  // 報名逐筆
-  const recRows=recs.filter(r=>String(r['備註']).indexOf('測試')<0).map(r=>{
-    const id=r['記錄編號'], stt=String(r['狀態']||'');
-    const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" href="#" onclick="viewSecureFile('${esc(r['付款截圖'])}');return false" style="cursor:pointer">截圖</a>`:'<span class="mut">無</span>';
-    const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" href="#" onclick="viewSecureFile('${esc(r['確認PDF'])}');return false" style="cursor:pointer">PDF</a>`:'';
-    let act='';
-    if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${id}','已核實')">核實</button>`;
-    if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${id}','待核實')">轉正取</button>`;
-    if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${id}','取消')">取消</button>`;
-    return `<tr><td>${esc(r['學生姓名'])}<div class="mut">${esc(id)}</div></td>
-      <td>${esc(r['報名課程'])}</td><td>${money(r['實收'])}</td>
-      <td><span class="st ${stt}">${esc(stt)}</span></td><td>${pay}${pdf}</td>
-      <td><div class="rowact">${act}</div></td></tr>`;
-  }).join('') || '<tr><td colspan="6" class="mut">未有報名記錄</td></tr>';
+  // 報名逐筆 —— 同一個人（相同學生姓名）合併一組，顯示完整學費明細；每筆仍各有核實掣
+  const nonTest=recs.filter(r=>String(r['備註']||'').indexOf('測試')<0 && String(r['學生姓名']||'').trim()!=='示範學員');
+  const byName={}, nameOrder=[];
+  nonTest.forEach(r=>{ const nm=String(r['學生姓名']||'').trim(); if(!byName[nm]){ byName[nm]=[]; nameOrder.push(nm); } byName[nm].push(r); });
+  let pendGrand=0, pendNet=0;
+  const personBlocks=nameOrder.map(nm=>{
+    const rs=byName[nm];
+    // 合計（取消嗰筆唔計入金額）
+    let base=0,vou=0,ref=0,promo=0,net=0,addon=0, anyPending=false;
+    rs.forEach(r=>{ if(String(r['狀態']||'')==='取消') return;
+      base+=num(r['原價']); vou+=num(r['代金券']); ref+=num(r['推薦']); promo+=num(r['優惠碼']); net+=num(r['實收']); addon+=feeAddon(r['備註']);
+      if(String(r['狀態']||'')!=='已核實') anyPending=true;
+    });
+    const grand=net+addon;
+    if(anyPending){ pendGrand+=grand; pendNet+=net; }
+    // 明細一句
+    const feeLine=`原價 ${money(base)}`+(vou?` − 券 ${money(vou)}`:'')+(promo?` − 碼 ${money(promo)}`:'')+(ref?` − 推薦 ${money(ref)}`:'')
+      +` → 學費 <b>${money(net)}</b>`+(addon?` ＋ 制服/器材 ${money(addon)}`:'')+` ＝ 實付 <b style="color:var(--ok,#0a7d3c)">${money(grand)}</b>`;
+    // 逐筆（各自核實/取消）
+    const regRows=rs.map(r=>{
+      const id=r['記錄編號'], stt=String(r['狀態']||''), note=String(r['備註']||'');
+      const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" href="#" onclick="viewSecureFile('${esc(r['付款截圖'])}');return false" style="cursor:pointer">截圖</a>`:'<span class="mut">無截圖</span>';
+      const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" href="#" onclick="viewSecureFile('${esc(r['確認PDF'])}');return false" style="cursor:pointer">PDF</a>`:'';
+      let act='';
+      if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${id}','已核實')">核實</button>`;
+      if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${id}','待核實')">轉正取</button>`;
+      if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${id}','取消')">取消</button>`;
+      const warn=note?`<div style="color:var(--warn);font-size:12px;margin-top:2px">⚠️ ${esc(note)}</div>`:'';
+      return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--line)">
+        <div style="flex:1;min-width:0">
+          <div><span class="mut">${esc(id)}</span> <span class="st ${stt}">${esc(stt)}</span> · ${esc(r['報名課程'])} · 實收 ${money(r['實收'])}</div>
+          <div style="margin-top:2px">${pay}${pdf}</div>${warn}
+        </div>
+        <div class="rowact" style="flex-shrink:0">${act}</div>
+      </div>`;
+    }).join('');
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <b style="font-size:15px">${esc(nm)}</b>${rs.length>1?`<span class="tag warn">${rs.length} 次報名合併</span>`:''}
+      </div>
+      <div style="font-size:13px;color:var(--ink,#333);margin:4px 0 2px">${feeLine}</div>
+      ${regRows}
+    </div>`;
+  }).join('') || '<div class="mut">未有報名記錄</div>';
 
   app.innerHTML=`
   <div class="card">
@@ -140,8 +177,10 @@ function render(sum, recs){
   <div class="card"><h2>逐課程名額（最低 4 人開班）</h2>
     <div class="scroll"><table><tr><th>課程</th><th>名額</th><th>學費</th><th>正取學生 / 候補</th></tr>${courseRows}</table></div>
   </div>
-  <div class="card"><h2>逐筆報名審核</h2>
-    <div class="scroll"><table><tr><th>學生</th><th>課程</th><th>實收</th><th>狀態</th><th>付款</th><th>操作</th></tr>${recRows}</table></div>
+  <div class="card"><h2>逐筆報名審核（同一人已合併）</h2>
+    <div class="mut" style="margin:-4px 0 10px">學費淨額 = 原價 − 券 − 優惠碼 − 推薦 ＋ 帶入調整/加操；實付 = 學費 ＋ 制服/器材。⚠️ 標示＝重複收費／帶入調整等要核對。</div>
+    <div class="msg ok" style="margin-bottom:10px">未核實合計：學費 <b>${money(pendNet)}</b> ｜ 連制服器材實付 <b>${money(pendGrand)}</b></div>
+    ${personBlocks}
   </div>`;
 }
 function exportRoster(){
