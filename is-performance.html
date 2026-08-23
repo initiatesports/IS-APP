@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#132a3e">
+<link rel="manifest" href="is-performance.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="成長中心">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23132a3e'/%3E%3Cpath d='M22 66 L40 44 L54 56 L78 30' fill='none' stroke='%231BAFBD' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='78' cy='30' r='7' fill='%23c79a3e'/%3E%3C/svg%3E">
 <title>INITIATE 成長中心</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23132a3e'/%3E%3Cpath d='M22 66 L40 44 L54 56 L78 30' fill='none' stroke='%231BAFBD' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='78' cy='30' r='7' fill='%23c79a3e'/%3E%3C/svg%3E">
 <style>
@@ -235,7 +241,7 @@ a{color:var(--teal-d);text-decoration:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-23-v1';
+const APP_VERSION='growth-2026-08-24-v2';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -356,36 +362,59 @@ function dedupeSeries(arr){
   arr.forEach(r=>{const d=r.date;if(!byDate[d]||(r.val!=null&&r.val>byDate[d].val))byDate[d]=r;});
   return Object.values(byDate).sort((a,b)=>a.date.localeCompare(b.date));
 }
-function saveLocal(){try{sessionStorage.setItem('growth_cache',JSON.stringify({t:Date.now(),data:DATA}));}catch(e){}}
-function loadLocal(){try{const c=JSON.parse(sessionStorage.getItem('growth_cache'));if(c&&c.data){DATA=c.data;ingest(c.data);return true;}}catch(e){}return false;}
+function saveLocal(){try{localStorage.setItem('growth_cache',JSON.stringify({t:Date.now(),data:DATA}));}catch(e){}}
+function loadLocal(){try{const c=JSON.parse(localStorage.getItem('growth_cache'));if(c&&c.data){DATA=c.data;ingest(c.data);return true;}}catch(e){}return false;}
+
+/* ---------- 離線寫入佇列（弱網/斷網照記錄，回網自動同步）---------- */
+let PENDING=[];try{PENDING=JSON.parse(localStorage.getItem('growth_pending')||'[]');}catch(e){PENDING=[];}
+function savePending(){try{localStorage.setItem('growth_pending',JSON.stringify(PENDING));}catch(e){}updateSyncBadge();}
+function updateSyncBadge(){const el=$('#sync');if(!el)return;if(PENDING.length){el.className='sync err';$('#syncTxt').textContent='待同步 '+PENDING.length+' 項';}}
+async function syncOrQueue(action,data){
+  try{const r=await apiPost({action,coachPass:CP,data});if(!r||r.ok===false)throw new Error((r&&r.error)||'儲存失敗');
+    return {ok:true,r};}
+  catch(e){PENDING.push({action,data});savePending();return {ok:false,queued:true,err:e.message};}
+}
+async function flushPending(){
+  if(!PENDING.length||!navigator.onLine||!CP)return 0;
+  let done=0;
+  while(PENDING.length){const item=PENDING[0];
+    try{const r=await apiPost({action:item.action,coachPass:CP,data:item.data});if(r&&r.ok!==false){PENDING.shift();done++;}else break;}
+    catch(e){break;}}
+  savePending();
+  if(done){toast('已同步 '+done+' 項離線記錄','ok');setSync('ok','已同步');}
+  return done;
+}
+window.addEventListener('online',()=>{toast('已重新連線，同步中…');flushPending();});
 
 /* 安全增量寫入（後端 perf_upsert/body_upsert：鎖內讀最新→改指定行→零覆蓋）。
    deltas=[{name,metricId,date,val,v1,v2,v3}] / [{name,date,height,weight}]。同步更新本地。 */
 async function upsertPerf(deltas){
   if(!deltas.length)return;
   setSync('load','儲存中…');
-  const r=await apiPost({action:'perf_upsert',coachPass:CP,data:deltas});
-  if(!r||r.ok===false)throw new Error((r&&r.error)||'儲存失敗');
-  // 更新本地 PERF
+  // 先更新本地（樂觀），課堂輸入即時反映
   deltas.forEach(d=>{(PERF[d.name]=PERF[d.name]||{});(PERF[d.name][d.metricId]=PERF[d.name][d.metricId]||[]);
     const arr=PERF[d.name][d.metricId];const i=arr.findIndex(x=>x.date===d.date);
     const rec={date:d.date,val:num(d.val),v1:d.v1!=null?num(d.v1):null,v2:d.v2!=null?num(d.v2):null,v3:d.v3!=null?num(d.v3):null};
     if(i>=0)arr[i]=rec;else arr.push(rec);PERF[d.name][d.metricId]=dedupeSeries(arr);
     if(ROSTER.indexOf(d.name)<0){ROSTER.push(d.name);ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));}});
-  setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
-  return r;
+  saveLocal();
+  const res=await syncOrQueue('perf_upsert',deltas);
+  if(res.ok)setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+  else updateSyncBadge();
+  return res;
 }
 async function upsertBody(deltas){
   if(!deltas.length)return;
   setSync('load','儲存中…');
-  const r=await apiPost({action:'body_upsert',coachPass:CP,data:deltas});
-  if(!r||r.ok===false)throw new Error((r&&r.error)||'儲存失敗');
   deltas.forEach(d=>{(BODY[d.name]=BODY[d.name]||[]);const arr=BODY[d.name];const i=arr.findIndex(x=>x.date===d.date);
     const rec={date:d.date,height:d.height!=null?num(d.height):null,weight:d.weight!=null?num(d.weight):null};
     if(i>=0)arr[i]=rec;else arr.push(rec);arr.sort((a,b)=>a.date.localeCompare(b.date));
     if(ROSTER.indexOf(d.name)<0){ROSTER.push(d.name);ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));}});
-  setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
-  return r;
+  saveLocal();
+  const res=await syncOrQueue('body_upsert',deltas);
+  if(res.ok)setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+  else updateSyncBadge();
+  return res;
 }
 async function deletePerf(name,metric,date){
   const r=await apiPost({action:'perf_delete',coachPass:CP,data:[{name,metricId:metric,date}]});
@@ -432,6 +461,24 @@ function gradeFor(name){
   return {grade,stars,avg};
 }
 function nPB(name){let c=0;studentMetrics(name).forEach(m=>{const s=series(name,m);if(s.length>=2&&s[s.length-1].val>=Math.max(...s.map(r=>r.val)))c++;});return c;}
+/* 同齡（同出生年）對比 */
+function birthYear(name){const y=(SETTINGS['student_years']||{})[name];return y?Number(y):null;}
+function ageOf(name){const y=birthYear(name);return y?(new Date().getFullYear()-y):null;}
+function cohortStat(name,metric){
+  const y=birthYear(name);if(!y)return null;
+  const v=pb(name,metric);if(v==null)return null;
+  const peers=ROSTER.filter(n=>birthYear(n)===y).map(n=>({n,v:pb(n,metric)})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v);
+  const total=peers.length;if(total<3)return {age:new Date().getFullYear()-y,total,rank:peers.findIndex(x=>x.n===name)+1,pct:null,small:true};
+  const rank=peers.findIndex(x=>x.n===name)+1;
+  return {age:new Date().getFullYear()-y,total,rank,pct:Math.round((1-(rank-1)/total)*100),small:false};
+}
+function cohortBadge(name,metric){const c=cohortStat(name,metric);if(!c)return '';
+  if(c.small)return `<span class="pill" title="同齡樣本少（${c.total}人）">同齡 ${c.rank}/${c.total}</span>`;
+  const topPct=Math.max(1,Math.round(c.rank/c.total*100));
+  const cls=topPct<=25?'gold':(topPct<=50?'up':'');
+  const label=c.rank===1?'同齡第一 🥇':('同齡前 '+topPct+'%');
+  return `<span class="pill ${cls}" title="${c.age}歲組 · 第 ${c.rank}/${c.total}">${label}</span>`;
+}
 
 /* ═══════════════════ 路由 ═══════════════════ */
 const ROUTES=[
@@ -627,15 +674,17 @@ async function saveCT(){
   if(!entries.length)return;
   const btn=$('#ctSave');btn.disabled=true;btn.innerHTML='儲存中…';
   try{
+    const pbCount=entries.filter(([n,v])=>{if(isBody)return false;const s=series(n,CT_METRIC).filter(r=>r.date!==CT_DATE);const best=s.length?Math.max(...s.map(r=>r.val)):null;return best==null||parseFloat(v)>best;}).length;
+    let res;
     if(isBody){
       const deltas=entries.map(([n,v])=>{const ex=(BODY[n]||[]).find(r=>r.date===CT_DATE)||{};return {name:n,date:CT_DATE,height:CT_METRIC==='height'?parseFloat(v):(ex.height!=null?ex.height:''),weight:CT_METRIC==='weight'?parseFloat(v):(ex.weight!=null?ex.weight:'')};});
-      await upsertBody(deltas);
+      res=await upsertBody(deltas);
     }else{
       const deltas=entries.map(([n,v])=>({name:n,metricId:CT_METRIC,date:CT_DATE,val:parseFloat(v)}));
-      await upsertPerf(deltas);
+      res=await upsertPerf(deltas);
     }
-    const pbCount=entries.filter(([n,v])=>{if(isBody)return false;const s=series(n,CT_METRIC).filter(r=>r.date!==CT_DATE);const best=s.length?Math.max(...s.map(r=>r.val)):null;return best==null||parseFloat(v)>best;}).length;
-    toast('已儲存 '+entries.length+' 項'+(pbCount?('，'+pbCount+' 人破紀錄 🎉'):''),'ok');
+    if(res&&res.queued)toast('已記錄 '+entries.length+' 項（離線，回網自動同步）','ok');
+    else toast('已儲存 '+entries.length+' 項'+(pbCount?('，'+pbCount+' 人破紀錄 🎉'):''),'ok');
     CT_STAGED={};renderCTBody();
   }catch(e){toast('儲存失敗：'+e.message,'err');}
   btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
@@ -664,7 +713,7 @@ function renderLBBody(){
   const rows=names.map(n=>{const b=pb(n,LB_METRIC);const l=latest(n,LB_METRIC);return b!=null?{name:n,best:b,date:l?l.date:'',recent:l?l.val:null}:null;}).filter(Boolean).sort((a,b)=>b.best-a.best);
   const medal=['#c79a3e','#9aa9b3','#c08457'];
   $('#lbBody').innerHTML=`<div class="card card-pad"><div class="sec-h"><div class="ic">${ico('medal')}</div><h3>${esc(mt.lab)} 排行榜</h3><div class="sp"></div><span class="pill">${rows.length} 人</span></div>
-  ${rows.length?`<table class="tbl"><thead><tr><th style="width:50px">名次</th><th>學生</th><th class="num">個人最佳</th><th class="num">最近</th><th class="num">日期</th></tr></thead><tbody>${rows.map((r,i)=>`<tr onclick="openStudent('${esc(r.name)}')" style="cursor:pointer"><td><div style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:14px;${i<3?`background:${medal[i]}22;color:${medal[i]}`:'color:#9aa4a9'}">${i+1}</div></td><td style="display:flex;align-items:center;gap:10px">${avatarHTML(r.name)}<b>${esc(r.name)}</b></td><td class="num"><b style="font-size:16px;color:var(--navy)">${r.best}</b> <span class="mut" style="font-weight:400">${mt.u}</span></td><td class="num mut">${r.recent!=null?r.recent:'—'}</td><td class="num mut" style="font-weight:400">${md(r.date)}</td></tr>`).join('')}</tbody></table>`:emptyBox('呢個項目未有紀錄','')}
+  ${rows.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th style="width:50px">名次</th><th>學生</th><th class="num">個人最佳</th><th>同齡對比</th><th class="num">日期</th></tr></thead><tbody>${rows.map((r,i)=>`<tr onclick="openStudent('${esc(r.name)}')" style="cursor:pointer"><td><div style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:14px;${i<3?`background:${medal[i]}22;color:${medal[i]}`:'color:#9aa4a9'}">${i+1}</div></td><td style="display:flex;align-items:center;gap:10px">${avatarHTML(r.name)}<b>${esc(r.name)}</b>${ageOf(r.name)!=null?`<span class="mut" style="font-size:11px">${ageOf(r.name)}歲</span>`:''}</td><td class="num"><b style="font-size:16px;color:var(--navy)">${r.best}</b> <span class="mut" style="font-weight:400">${mt.u}</span></td><td>${cohortBadge(r.name,LB_METRIC)||'<span class="mut">—</span>'}</td><td class="num mut" style="font-weight:400">${md(r.date)}</td></tr>`).join('')}</tbody></table></div>`:emptyBox('呢個項目未有紀錄','')}
   </div>`;
 }
 
@@ -703,7 +752,7 @@ function renderBDBody(){
 /* ═══════════════════ 學生 ═══════════════════ */
 let STU_SEARCH='';
 function renderStudents(){
-  $('#view').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><div class="search">${ico('search')}<input id="stuSearch" placeholder="搜尋學生姓名…" value="${esc(STU_SEARCH)}"></div><div class="sp"></div><span class="mut" style="font-size:13px">${ROSTER.filter(hasAnyData).length} 位學生</span></div><div id="stuGrid" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))"></div>`;
+  $('#view').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap"><div class="search">${ico('search')}<input id="stuSearch" placeholder="搜尋學生姓名…" value="${esc(STU_SEARCH)}"></div><div class="sp"></div><button class="btn btn-ghost btn-sm" onclick="dedupePerf()" title="清理同人同項目同日重複紀錄">🧹 清理重複</button><span class="mut" style="font-size:13px">${ROSTER.filter(hasAnyData).length} 位學生</span></div><div id="stuGrid" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))"></div>`;
   $('#stuSearch').oninput=e=>{STU_SEARCH=e.target.value;renderStuGrid();};
   renderStuGrid();
 }
@@ -730,14 +779,69 @@ function renderStudentProfile(name){
     <button class="btn btn-teal btn-sm" onclick="openReport('${esc(name)}')">${ico('report')}成長報告</button>
   </div>
   <div class="grid" style="grid-template-columns:1fr 1fr">
-    <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('chart')}</div><h3>成績項目</h3></div>
-      ${mets.length?`<table class="tbl"><thead><tr><th>項目</th><th class="num">首測</th><th class="num">最新</th><th class="num">最佳</th><th class="num">進步</th></tr></thead><tbody>${mets.map(m=>{const s=series(name,m);const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const d=s.length>=2?round(l-f,1):null;return `<tr><td><b>${esc(METRICS[m].short)}</b></td><td class="num mut">${s.length>=2?f:'—'}</td><td class="num"><b>${l}</b></td><td class="num"><span class="pill gold">${best}</span></td><td class="num">${d==null?'—':d>0?'<span class="chip up">+'+d+'</span>':d<0?'<span class="chip down">'+d+'</span>':'—'}</td></tr>`;}).join('')}</tbody></table>`:emptyBox('未有成績','')}
+    <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('chart')}</div><h3>成績項目</h3><div class="sp"></div><span class="mut" style="font-size:11.5px">撳項目可改/刪紀錄</span></div>
+      ${mets.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>項目</th><th class="num">最新</th><th class="num">最佳</th><th class="num">進步</th><th>同齡</th><th></th></tr></thead><tbody>${mets.map(m=>{const s=series(name,m);const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const d=s.length>=2?round(l-f,1):null;return `<tr onclick="openMetricEditor('${esc(name)}','${m}')" style="cursor:pointer"><td><b>${esc(METRICS[m].short)}</b></td><td class="num"><b>${l}</b></td><td class="num"><span class="pill gold">${best}</span></td><td class="num">${d==null?'—':d>0?'<span class="chip up">+'+d+'</span>':d<0?'<span class="chip down">'+d+'</span>':'—'}</td><td>${cohortBadge(name,m)||'<span class="mut" style="font-size:11px">—</span>'}</td><td style="text-align:right;color:var(--mut)">${ico('edit')}</td></tr>`;}).join('')}</tbody></table></div>`:emptyBox('未有成績','')}
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="openMetricEditor('${esc(name)}','')">${ico('plus')}新增成績紀錄</button>
     </div>
-    <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('ruler')}</div><h3>體格發展</h3></div>
+    <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('ruler')}</div><h3>體格發展</h3><div class="sp"></div><button class="btn btn-ghost btn-sm" onclick="openBodyEditor('${esc(name)}')">${ico('edit')}編輯</button></div>
       ${bs.length?(()=>{const hs=bs.filter(r=>r.height!=null),ws=bs.filter(r=>r.weight!=null);const lh=hs.length?hs[hs.length-1].height:null,lw=ws.length?ws[ws.length-1].weight:null;return `<div style="display:flex;gap:24px;margin-bottom:14px">${lh!=null?`<div><div style="font-size:26px;font-weight:800;color:var(--navy)" class="tnum">${lh}<small class="mut" style="font-size:14px">cm</small></div><div class="mut" style="font-size:11px">身高${hs.length>=2?' · ▲'+round(lh-hs[0].height,1):''}</div></div>`:''}${lw!=null?`<div><div style="font-size:26px;font-weight:800;color:var(--navy)" class="tnum">${lw}<small class="mut" style="font-size:14px">kg</small></div><div class="mut" style="font-size:11px">體重</div></div>`:''}${bmi(lh,lw)!=null?`<div><div style="font-size:26px;font-weight:800;color:var(--teal-d)" class="tnum">${bmi(lh,lw)}</div><div class="mut" style="font-size:11px">BMI</div></div>`:''}</div>${hs.length>=2?svgLine(hs.map(r=>[md(r.date),r.height]),{h:130,goal:null}):''}`;})():emptyBox('未有體測','')}
     </div>
   </div>
   ${charts.length?`<div class="card card-pad" style="margin-top:16px"><div class="sec-h"><div class="ic">${ico('trend')}</div><h3>成績進展</h3></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${charts.map(m=>`<div><div style="font-weight:700;font-size:13px;color:var(--navy);margin-bottom:4px">${esc(METRICS[m].lab)}</div>${svgLine(series(name,m).map(r=>[md(r.date),r.val]),{h:130,goal:Math.round(Math.max(...series(name,m).map(r=>r.val))*1.12)})}</div>`).join('')}</div></div>`:''}`;
+}
+
+/* ═══════════════════ 記錄修正（改/刪/加）═══════════════════ */
+function openMetricEditor(name,metric){renderMetricEditor(name,metric||'rope30');}
+function renderMetricEditor(name,m){
+  const recs=series(name,m).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const mx=recs.length?Math.max(...recs.map(x=>x.val)):null;
+  openModal(`
+    <div class="modal-h"><h3>${esc(name)} · 成績紀錄</h3><button class="x" onclick="closeModal()">${ico('x')}</button></div>
+    <div class="modal-b">
+      <label class="lbl">測試項目</label>
+      <select class="inp" id="meMetric" style="margin-bottom:14px">${METRIC_ORDER.map(x=>`<option value="${x}"${x===m?' selected':''}>${esc(METRICS[x].lab)}${METRICS[x].u?'（'+METRICS[x].u+'）':''}</option>`).join('')}</select>
+      <label class="lbl">新增／修改（同日期會覆蓋）</label>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input type="date" class="inp" id="meDate" value="${todayISO()}" style="flex:1;min-width:0">
+        <input class="inp" id="meVal" inputmode="decimal" placeholder="成績" style="width:88px">
+        <button class="btn btn-teal btn-sm" id="meAdd">儲存</button>
+      </div>
+      <label class="lbl">現有紀錄（${recs.length}）</label>
+      <div style="max-height:240px;overflow:auto;margin-top:4px">${recs.length?recs.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line2)"><span class="mut tnum" style="width:82px;font-size:13px">${dmy(r.date)}</span><b class="tnum" style="flex:1">${r.val} <span class="mut" style="font-weight:400">${METRICS[m].u}</span></b>${r.val>=mx?'<span class="pill gold">PB</span>':''}<button class="btn btn-ghost btn-sm" onclick="editRec('${esc(name)}','${m}','${r.date}',${r.val})">改</button><button class="btn btn-sm" style="color:var(--down);border:1.5px solid #f3d5cf" onclick="delRecPerf('${esc(name)}','${m}','${r.date}')">刪</button></div>`).join(''):'<div class="mut" style="padding:10px 2px">未有紀錄</div>'}</div>
+    </div>`);
+  $('#meMetric').onchange=e=>renderMetricEditor(name,e.target.value);
+  $('#meAdd').onclick=async()=>{const d=$('#meDate').value,v=$('#meVal').value.trim();if(!d||v===''||isNaN(parseFloat(v))){toast('請填日期同成績','err');return;}try{await upsertPerf([{name,metricId:m,date:d,val:parseFloat(v)}]);toast('已儲存','ok');renderMetricEditor(name,m);}catch(e){toast('失敗：'+e.message,'err');}};
+}
+async function editRec(name,m,date,val){const nv=prompt('修改 '+dmy(date)+'  '+METRICS[m].lab+' 成績：',val);if(nv==null)return;const v=parseFloat(nv);if(isNaN(v)){toast('數值無效','err');return;}try{await upsertPerf([{name,metricId:m,date,val:v}]);toast('已修改','ok');renderMetricEditor(name,m);}catch(e){toast('失敗：'+e.message,'err');}}
+async function delRecPerf(name,m,date){if(!confirm('刪除 '+dmy(date)+'  '+METRICS[m].lab+' 呢條紀錄？'))return;try{await deletePerf(name,m,date);toast('已刪除','ok');renderMetricEditor(name,m);}catch(e){toast('失敗：'+e.message,'err');}}
+function openBodyEditor(name){
+  const recs=(BODY[name]||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  openModal(`
+    <div class="modal-h"><h3>${esc(name)} · 體測紀錄</h3><button class="x" onclick="closeModal()">${ico('x')}</button></div>
+    <div class="modal-b">
+      <label class="lbl">新增／修改（同日期會覆蓋）</label>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <input type="date" class="inp" id="beDate" value="${todayISO()}" style="flex:1;min-width:130px">
+        <input class="inp" id="beH" inputmode="decimal" placeholder="身高cm" style="width:82px">
+        <input class="inp" id="beW" inputmode="decimal" placeholder="體重kg" style="width:82px">
+        <button class="btn btn-teal btn-sm" id="beAdd">儲存</button>
+      </div>
+      <label class="lbl">現有紀錄（${recs.length}）</label>
+      <div style="max-height:240px;overflow:auto;margin-top:4px">${recs.length?recs.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line2)"><span class="mut tnum" style="width:82px;font-size:13px">${dmy(r.date)}</span><b class="tnum" style="flex:1">${r.height!=null?r.height+' cm':'—'} · ${r.weight!=null?r.weight+' kg':'—'}</b><button class="btn btn-sm" style="color:var(--down);border:1.5px solid #f3d5cf" onclick="delRecBody('${esc(name)}','${r.date}')">刪</button></div>`).join(''):'<div class="mut" style="padding:10px 2px">未有紀錄</div>'}</div>
+    </div>`);
+  $('#beAdd').onclick=async()=>{const d=$('#beDate').value,h=$('#beH').value.trim(),w=$('#beW').value.trim();if(!d||(h===''&&w==='')){toast('請填日期同至少一項','err');return;}const ex=(BODY[name]||[]).find(r=>r.date===d)||{};try{await upsertBody([{name,date:d,height:h!==''?parseFloat(h):(ex.height!=null?ex.height:''),weight:w!==''?parseFloat(w):(ex.weight!=null?ex.weight:'')}]);toast('已儲存','ok');openBodyEditor(name);}catch(e){toast('失敗：'+e.message,'err');}};
+}
+async function delRecBody(name,date){if(!confirm('刪除 '+dmy(date)+' 體測紀錄？'))return;try{await deleteBodyRec(name,date);toast('已刪除','ok');openBodyEditor(name);}catch(e){toast('失敗：'+e.message,'err');}}
+/* 清理成績表同人同項目同日重複行（保留最佳值）*/
+async function dedupePerf(){
+  const raw=(DATA&&DATA.performance)||[];const groups={};
+  raw.forEach(x=>{if(!x.name||!x.metricId||!x.date)return;const k=x.name+'|'+x.metricId+'|'+x.date;(groups[k]=groups[k]||[]).push(num(x.val));});
+  const dups=Object.entries(groups).filter(([k,vs])=>vs.length>1);
+  if(!dups.length){toast('冇重複紀錄','ok');return;}
+  if(!confirm('偵測到 '+dups.length+' 組重複紀錄（同人同項目同日多條），清理後每組只保留最佳值。確定？'))return;
+  const delKeys=[],ups=[];
+  dups.forEach(([k,vs])=>{const p=k.split('|');delKeys.push({name:p[0],metricId:p[1],date:p[2]});ups.push({name:p[0],metricId:p[1],date:p[2],val:Math.max(...vs.filter(v=>v!=null))});});
+  try{setSync('load','清理中…');await apiPost({action:'perf_delete',coachPass:CP,data:delKeys});await apiPost({action:'perf_upsert',coachPass:CP,data:ups});await loadCloud();go(CUR);toast('已清理 '+dups.length+' 組重複','ok');}catch(e){toast('清理失敗：'+e.message,'err');}
 }
 
 /* ═══════════════════ 成長報告 ═══════════════════ */
@@ -893,21 +997,28 @@ async function boot(){
   buildNav();
   $('#app').style.display='block';$('#login').style.display='none';
   if(loadLocal()){go('dash');setSync('ok','已載入快取');}
-  try{await loadCloud();go(CUR);}catch(e){setSync('err','載入失敗');toast('雲端載入失敗：'+e.message,'err');}
+  if(PENDING.length){await flushPending();}          // 上次離線未同步 → 先補交
+  try{await loadCloud();go(CUR);}catch(e){
+    if(PENDING.length){setSync('err','待同步 '+PENDING.length+' 項');}
+    else{setSync('err','離線（用快取）');}
+    if(!DATA)toast('雲端載入失敗：'+e.message,'err');go(CUR);}
+  updateSyncBadge();
 }
 $('#loginForm').onsubmit=async e=>{
   e.preventDefault();const pw=$('#pw').value.trim();if(!pw)return;
   const btn=$('#loginBtn');btn.textContent='驗證中…';$('#loginErr').textContent='';
   const ok=await verifyPass(pw);
-  if(ok){CP=pw;try{sessionStorage.setItem('growth_cp',pw);}catch(e){}boot();}
+  if(ok){CP=pw;try{localStorage.setItem('growth_cp',pw);}catch(e){}boot();}
   else{$('#loginErr').textContent='密碼錯誤，請重試';btn.textContent='登入';}
 };
-$('#logoutBtn').onclick=()=>{CP='';try{sessionStorage.removeItem('growth_cp');sessionStorage.removeItem('growth_cache');}catch(e){}location.reload();};
+$('#logoutBtn').onclick=()=>{if(PENDING.length&&!confirm('仲有 '+PENDING.length+' 項未同步，登出會保留喺本機下次補交。確定登出？'))return;CP='';try{localStorage.removeItem('growth_cp');}catch(e){}location.reload();};
 $('#reloadBtn').onclick=async()=>{try{await loadCloud();go(CUR);toast('已重新載入','ok');}catch(e){toast('載入失敗','err');}};
 $('#menuBtn').onclick=()=>$('#side').classList.toggle('open');
 $('#mask').onclick=e=>{if(e.target===$('#mask'))closeModal();};
-// auto-login if session has pass
-(function(){const p=sessionStorage.getItem('growth_cp');if(p){CP=p;$('#pw').value='';boot();}})();
+// auto-login if saved pass (localStorage → 課堂唔使次次登入)
+(function(){let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}if(p){CP=p;$('#pw').value='';boot();}})();
+// PWA service worker（只 cache 本 app 自己 HTML 作離線開啟；對其他 IS-APP 頁完全透明，唔攔截）
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('is-performance-sw.js').catch(()=>{});});}
 
 /* modal helpers */
 function openModal(html){$('#mask').innerHTML='<div class="modal">'+html+'</div>';$('#mask').classList.add('show');}
