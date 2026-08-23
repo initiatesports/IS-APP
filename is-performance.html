@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#132a3e">
+<title>INITIATE 成長中心</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23132a3e'/%3E%3Cpath d='M22 66 L40 44 L54 56 L78 30' fill='none' stroke='%231BAFBD' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='78' cy='30' r='7' fill='%23c79a3e'/%3E%3C/svg%3E">
+<style>
+/* ============ INITIATE 成長中心 — 專業運動表現 / 體測 / 報告平台 ============ */
+:root{
+  --navy:#132a3e; --navy2:#1c3d59; --teal:#1BAFBD; --teal-d:#0f8996; --teal-dd:#0b6b75;
+  --ink:#1e2a30; --mut:#6d7c84; --line:#e3eaed; --line2:#eef3f5;
+  --bg:#f4f7f8; --panel:#ffffff; --wash:#f4f9fa; --wash2:#eef6f7;
+  --gold:#c79a3e; --gold-w:#faf4e6; --up:#1f9d6b; --up-w:#e9f7f0; --down:#d0533f; --flat:#9aa4a9;
+  --sh-sm:0 1px 2px rgba(19,42,62,.06),0 1px 3px rgba(19,42,62,.05);
+  --sh:0 2px 8px rgba(19,42,62,.07),0 8px 28px rgba(19,42,62,.06);
+  --sh-lg:0 10px 40px rgba(19,42,62,.14);
+  --r:14px; --r-sm:10px; --r-lg:20px;
+  --sans:"PingFang HK","Noto Sans HK","Microsoft JhengHei",-apple-system,system-ui,sans-serif;
+  --nav-w:236px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;font-size:15px;color:var(--ink)}
+a{color:var(--teal-d);text-decoration:none}
+.tnum{font-variant-numeric:tabular-nums}
+.mut{color:var(--mut)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#cfdae0;border-radius:8px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#b7c6ce}
+
+/* ---------- LOGIN ---------- */
+#login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(1200px 700px at 30% -10%,#1c3d59,#0e2233 60%,#0a1a28);padding:24px}
+.login-card{width:100%;max-width:390px;background:rgba(255,255,255,.98);border-radius:var(--r-lg);
+  box-shadow:0 30px 80px rgba(0,0,0,.4);padding:38px 34px 30px;text-align:center;animation:pop .5s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.login-logo{width:60px;height:60px;margin:0 auto 16px;display:block}
+.login-card h1{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:.5px}
+.login-card .sub{font-size:12.5px;color:var(--mut);margin:6px 0 24px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.login-card .lede{font-size:13.5px;color:var(--mut);margin-bottom:20px;line-height:1.6}
+.field{position:relative;margin-bottom:14px;text-align:left}
+.field input{width:100%;padding:14px 16px;border:1.5px solid var(--line);border-radius:var(--r-sm);
+  background:#fbfdfe;transition:.15s;font-size:16px}
+.field input:focus{outline:none;border-color:var(--teal);background:#fff;box-shadow:0 0 0 4px rgba(27,175,189,.12)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 20px;border-radius:var(--r-sm);
+  font-weight:700;font-size:15px;transition:.15s;white-space:nowrap}
+.btn-primary{background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#fff;box-shadow:0 4px 14px rgba(15,137,150,.3);width:100%}
+.btn-primary:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.btn-primary:active{transform:none}
+.login-err{color:var(--down);font-size:13px;margin-top:12px;min-height:18px;font-weight:600}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none;height:100%}
+.shell{display:grid;grid-template-columns:var(--nav-w) 1fr;height:100%}
+/* sidebar */
+.side{background:linear-gradient(180deg,var(--navy),#0f2536);color:#e8eef2;display:flex;flex-direction:column;
+  padding:20px 14px;position:relative;z-index:20}
+.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:14px}
+.brand svg{width:34px;height:34px;flex:none}
+.brand .bt{font-size:15.5px;font-weight:800;letter-spacing:.3px;line-height:1.15}
+.brand .bt small{display:block;font-size:9.5px;letter-spacing:2.5px;color:#7fd3dc;font-weight:700;margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:3px;flex:1}
+.nav a{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:#b9c7d1;
+  font-weight:600;font-size:14.5px;transition:.14s;position:relative}
+.nav a svg{width:20px;height:20px;flex:none;stroke-width:1.9}
+.nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav a.on{background:linear-gradient(120deg,rgba(27,175,189,.22),rgba(27,175,189,.1));color:#fff}
+.nav a.on::before{content:"";position:absolute;left:-14px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--teal)}
+.side-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:8px;font-size:11px;color:#7c8b96}
+.side-foot button{color:#9fb0bb;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px;padding:8px;width:100%;border-radius:9px}
+.side-foot button:hover{background:rgba(255,255,255,.06);color:#fff}
+.side-foot button svg{width:17px;height:17px}
+/* main */
+.main{overflow-y:auto;overflow-x:hidden;position:relative}
+.topbar{position:sticky;top:0;z-index:15;background:rgba(244,247,248,.86);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);padding:16px 30px;display:flex;align-items:center;gap:16px}
+.topbar h2{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:.2px}
+.topbar .crumb{font-size:12.5px;color:var(--mut);font-weight:600}
+.topbar .sp{flex:1}
+.sync{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--mut);
+  padding:7px 12px;background:#fff;border:1px solid var(--line);border-radius:20px}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--flat)}
+.sync.ok .dot{background:var(--up)}.sync.ok{color:var(--up)}
+.sync.load .dot{background:var(--gold);animation:pulse 1s infinite}.sync.load{color:var(--gold)}
+.sync.err .dot{background:var(--down)}.sync.err{color:var(--down)}
+@keyframes pulse{50%{opacity:.35}}
+.view{padding:26px 30px 60px;max-width:1240px;animation:fade .3s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- COMMON UI ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-sm)}
+.card-pad{padding:20px 22px}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.sec-h h3{font-size:16px;font-weight:800;color:var(--navy)}
+.sec-h .ic{width:30px;height:30px;border-radius:9px;background:var(--wash);display:grid;place-items:center;color:var(--teal-d)}
+.sec-h .ic svg{width:18px;height:18px;stroke-width:2}
+.sec-h .sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--wash);color:var(--teal-dd)}
+.pill.gold{background:var(--gold-w);color:var(--gold)}
+.pill.up{background:var(--up-w);color:var(--up)}
+.grid{display:grid;gap:16px}
+.kpi-row{grid-template-columns:repeat(4,1fr)}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
+.kpi .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px}
+.kpi .ic svg{width:21px;height:21px;stroke-width:2}
+.kpi .n{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-.5px;line-height:1}
+.kpi .n small{font-size:14px;font-weight:700;color:var(--mut);margin-left:3px}
+.kpi .l{font-size:12.5px;color:var(--mut);font-weight:600;margin-top:6px}
+.kpi .tr{position:absolute;top:16px;right:16px;font-size:11.5px;font-weight:700}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;
+  padding:9px 12px;border-bottom:2px solid var(--line)}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--line2);font-size:14px}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr{transition:.1s}
+.tbl tbody tr:hover{background:var(--wash)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;padding:2px 7px;border-radius:7px;font-variant-numeric:tabular-nums}
+.chip.up{background:var(--up-w);color:var(--up)}.chip.down{background:#fdeeeb;color:var(--down)}.chip.flat{background:#f0f3f4;color:var(--flat)}
+.empty{text-align:center;padding:50px 20px;color:var(--mut)}
+.empty svg{width:46px;height:46px;stroke-width:1.5;color:#c3d0d7;margin-bottom:12px}
+.empty .t{font-weight:700;color:var(--ink);font-size:15px;margin-bottom:4px}
+.avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--teal),var(--teal-d));
+  color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.search{position:relative;flex:none}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--mut)}
+.search input{padding:9px 14px 9px 35px;border:1.5px solid var(--line);border-radius:20px;background:#fff;width:230px;font-size:14px;transition:.15s}
+.search input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(27,175,189,.1)}
+.btn-sm{padding:8px 14px;font-size:13.5px;border-radius:9px}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink);font-weight:600}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal-d)}
+.btn-teal{background:var(--teal-d);color:#fff;font-weight:700}.btn-teal:hover{background:var(--teal-dd)}
+.seg{display:inline-flex;background:#eef3f5;border-radius:10px;padding:3px;gap:2px}
+.seg button{padding:7px 14px;font-size:13px;font-weight:700;color:var(--mut);border-radius:8px;transition:.12s}
+.seg button.on{background:#fff;color:var(--navy);box-shadow:var(--sh-sm)}
+
+/* toast */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);z-index:200;
+  background:var(--navy);color:#fff;padding:13px 22px;border-radius:12px;font-weight:600;font-size:14px;
+  box-shadow:var(--sh-lg);opacity:0;transition:.3s;display:flex;align-items:center;gap:10px;pointer-events:none}
+#toast.show{transform:translateX(-50%);opacity:1}
+#toast.ok{background:#12704a}#toast.err{background:#a5372a}
+#toast svg{width:19px;height:19px}
+
+/* modal */
+.mask{position:fixed;inset:0;z-index:150;background:rgba:19,42,62,.55;background:rgba(19,42,62,.5);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:20px;animation:fade .2s}
+.mask.show{display:flex}
+.modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-lg);width:100%;max-width:440px;
+  max-height:90vh;overflow:auto;animation:pop .3s}
+.modal-h{padding:22px 24px 0;display:flex;align-items:center;gap:12px}
+.modal-h h3{font-size:18px;font-weight:800;color:var(--navy);flex:1}
+.modal-h .x{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--mut);background:#f2f5f6}
+.modal-h .x:hover{background:#e6ebed;color:var(--ink)}
+.modal-b{padding:20px 24px 24px}
+.lbl{font-size:12.5px;font-weight:700;color:var(--mut);margin-bottom:6px;display:block}
+.inp{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:var(--r-sm);background:#fbfdfe;font-size:15px;transition:.15s}
+.inp:focus{outline:none;border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px rgba(27,175,189,.1)}
+
+/* loading skeleton */
+.skel{background:linear-gradient(90deg,#eef3f5 25%,#f6f9fa 50%,#eef3f5 75%);background-size:200% 100%;animation:sh 1.3s infinite;border-radius:8px}
+@keyframes sh{to{background-position:-200% 0}}
+
+@media (max-width:900px){
+  :root{--nav-w:0px}
+  .side{position:fixed;left:0;top:0;bottom:0;width:236px;transform:translateX(-100%);transition:.25s;box-shadow:var(--sh-lg)}
+  .side.open{transform:none}
+  .shell{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .view{padding:18px 16px 50px}.topbar{padding:14px 16px}
+  .menu-btn{display:grid!important}
+  .search input{width:150px}
+}
+.menu-btn{display:none;width:38px;height:38px;border-radius:10px;place-items:center;background:#fff;border:1px solid var(--line);color:var(--navy)}
+.menu-btn svg{width:20px;height:20px}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <svg class="login-logo" viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#132a3e"/><path d="M22 66 L40 44 L54 56 L78 30" fill="none" stroke="#1BAFBD" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="30" r="7" fill="#c79a3e"/></svg>
+    <h1>成長中心</h1>
+    <div class="sub">Athlete Growth Platform</div>
+    <div class="lede">學生成績、體測數據與成長報告<br>統一專業管理平台</div>
+    <form id="loginForm" autocomplete="off">
+      <div class="field"><input type="password" id="pw" placeholder="教練密碼" autocomplete="current-password"></div>
+      <button class="btn btn-primary" type="submit" id="loginBtn">登入</button>
+    </form>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="shell">
+    <aside class="side" id="side">
+      <div class="brand">
+        <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#0f2536"/><path d="M22 66 L40 44 L54 56 L78 30" fill="none" stroke="#1BAFBD" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="30" r="7" fill="#c79a3e"/></svg>
+        <div class="bt">成長中心<small>INITIATE SPORTS</small></div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-foot">
+        <button id="reloadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>重新載入雲端</button>
+        <button id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>登出</button>
+        <div style="padding:8px;font-size:10.5px;line-height:1.5">資料即時同步 IS App Data<br>每次寫入自動備份</div>
+      </div>
+    </aside>
+    <main class="main" id="main">
+      <div class="topbar">
+        <button class="menu-btn" id="menuBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+        <div><h2 id="pageTitle">概覽</h2></div>
+        <div class="sp"></div>
+        <div class="sync" id="sync"><span class="dot"></span><span id="syncTxt">已同步</span></div>
+      </div>
+      <div class="view" id="view"></div>
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="mask" id="mask"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   INITIATE 成長中心 — 前端(單檔)。後端 = #11 parent-portal（現有 /exec，唔改）。
+   零數據流失：全份資料常駐記憶體，改動後永遠送「完整資料集」畀 save_*（full-replace
+   +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
+   ═══════════════════════════════════════════════════════════════════════ */
+const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
+const APP_VERSION='growth-2026-08-23-v1';
+let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
+let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
+let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
+let BODY={};                     // {name:[{date,height,weight}]}
+let SETTINGS={};                 // key→parsed value
+let PHOTOS={};                   // name→dataURI
+let ROSTER=[];                   // 學生中文名（去重排序）
+let CLASSMAP={};                 // name→[cid] （由 settings class_*_students）
+
+/* ---------- Metric 設定（14 項，對齊教練 app 操作命名；全部↑=越大越好）----------
+   dual=多次嘗試(v1/v2/v3,val取最佳)。rope2m 依老闆定名「1分鐘跳繩」。 */
+const METRICS={
+  rope30:{lab:'30秒前繩', short:'前繩', u:'次', grp:'rope', dual:true, leg:'30秒內前繩跳次數 — 速度耐力'},
+  bike:  {lab:'30秒單車步', short:'單車', u:'次', grp:'rope', dual:true, leg:'踏單車式擺動跳 — 節奏協調'},
+  double:{lab:'二重跳',   short:'二重', u:'次', grp:'rope', dual:true, leg:'一跳過繩兩次 — 爆發力與協調'},
+  cross: {lab:'交叉開',   short:'交叉', u:'次', grp:'rope', dual:true, leg:'交叉手臂跳繩 — 協調技術'},
+  rope2m:{lab:'1分鐘跳繩', short:'1分鐘', u:'次', grp:'rope', leg:'1 分鐘連續跳 — 心肺耐力'},
+  bike2m:{lab:'2分鐘單車步', short:'2分單車', u:'次', grp:'rope', leg:'2 分鐘連續單車步 — 耐力'},
+  sj:    {lab:'立定跳遠', short:'跳遠', u:'cm', grp:'fit', leg:'原地雙腳跳遠 — 下肢爆發力'},
+  cmj:   {lab:'立定跳高', short:'跳高', u:'cm', grp:'fit', leg:'原地向上跳（CMJ）— 彈跳力'},
+  gripR: {lab:'手握力（右）', short:'握右', u:'kg', grp:'fit', leg:'右手最大握力 — 上肢力量'},
+  gripL: {lab:'手握力（左）', short:'握左', u:'kg', grp:'fit', leg:'左手最大握力 — 上肢力量'},
+  sitreach:{lab:'坐地前伸', short:'前伸', u:'cm', grp:'fit', leg:'坐地體前伸 — 柔軟度'},
+  balanceR:{lab:'單腳站立（右）', short:'平衡右', u:'秒', grp:'fit', leg:'閉目單腳站立 — 平衡力'},
+  balanceL:{lab:'單腳站立（左）', short:'平衡左', u:'秒', grp:'fit', leg:'閉目單腳站立 — 平衡力'},
+  rsi:   {lab:'RSI', short:'RSI', u:'', grp:'fit', leg:'反應力量指數 — 彈性力量'},
+};
+const METRIC_ORDER=['rope30','bike','double','cross','rope2m','bike2m','sj','cmj','gripR','gripL','sitreach','balanceR','balanceL','rsi'];
+const ROPE_METRICS=['rope30','bike','double','cross','rope2m','bike2m'];
+const FIT_METRICS=['sj','cmj','gripR','gripL','sitreach','balanceR','balanceL','rsi'];
+const CLASS_IDS=['c1','c2','c3','c4','c5','c6','c7'];
+
+/* ---------- 小工具 ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
+const round=(n,d=0)=>{const p=Math.pow(10,d);return Math.round(n*p)/p;};
+const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const md=iso=>{const p=String(iso).split('-');return p.length===3?(+p[1])+'/'+(+p[2]):iso;};
+const dmy=iso=>{const p=String(iso).split('-');return p.length===3?(+p[2])+'/'+(+p[1])+'/'+p[0]:iso;};
+const initials=n=>String(n||'?').trim().slice(0,1);
+function toast(msg,kind){const t=$('#toast');t.className='';t.innerHTML=(kind==='ok'?ico('check'):kind==='err'?ico('alert'):ico('info'))+'<span>'+esc(msg)+'</span>';if(kind)t.classList.add(kind);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2600);}
+function setSync(s,txt){const el=$('#sync');el.className='sync '+s;$('#syncTxt').textContent=txt;}
+
+/* ---------- SVG 圖示（線性，取代 emoji，專業感）---------- */
+const ICONS={
+  dash:'<path d="M3 13h8V3H3zM13 21h8v-6h-8zM13 3v8h8V3zM3 21h8v-4H3z"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/>',
+  ruler:'<path d="M2 12l10 10 10-10L12 2z" opacity="0"/><path d="M4 8l12 12M8 4l12 12M3 15l6 6M15 3l6 6" opacity="0"/><rect x="2.5" y="8.5" width="19" height="7" rx="1.5" transform="rotate(45 12 12)"/><path d="M9 9l1.2 1.2M12 6l1.2 1.2M6 12l1.2 1.2"/>',
+  report:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13l2 2 4-4"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  medal:'<circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 22l5-3 5 3-1.21-8.12"/>',
+  trend:'<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
+  flame:'<path d="M12 2s4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C8 8 12 2 12 2z" opacity="0"/><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.5 0 3-1 3-3.5 0-1-.5-2-1-2.5.5 2-1.5 2.5-1.5 2.5 0-1-1-2-1-3.5 0-1 .5-2 1-2.5C10 6 8 9 8 12c0 1 .2 1.8.5 2.5z"/><path d="M12 22a7 7 0 0 0 7-7c0-2-1-4-2-5.5.3 1.5-.3 3-1.5 3.8 0-3-2-6-4-8 .5 2-.5 4-2 5.5A7 7 0 0 0 5 15a7 7 0 0 0 7 7z"/>',
+  ruler2:'<rect x="3" y="9" width="18" height="6" rx="1.5"/><path d="M7 9v2M11 9v3M15 9v2M19 9v3"/>',
+  weight:'<path d="M6.5 6.5h11l2 13H4.5z"/><circle cx="12" cy="4" r="2"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+  star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  x:'<path d="M18 6L6 18M6 6l12 12"/>',
+};
+function ico(name,cls){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'+(cls?(' class="'+cls+'"'):'')+'>'+(ICONS[name]||'')+'</svg>';}
+
+/* ═══════════════════ API 層 ═══════════════════ */
+async function apiPost(payload){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+  return r.json();
+}
+async function verifyPass(pw){
+  try{const r=await apiPost({action:'verify',coachPass:pw});return r&&(r.ok||r.valid||r.correct);}catch(e){return false;}
+}
+async function loadCloud(){
+  setSync('load','載入中…');
+  const r=await apiPost({action:'load',coachPass:CP});
+  if(r.error||r.err) throw new Error(r.error||r.err);
+  DATA=r; ingest(r); saveLocal();
+  setSync('ok','已同步 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+}
+/* 把 load 結果正規化成 PERF/BODY/SETTINGS */
+function ingest(r){
+  PERF={}; BODY={}; SETTINGS={}; PHOTOS={}; CLASSMAP={};
+  (r.performance||[]).forEach(x=>{
+    const n=String(x.name||'').trim(), m=String(x.metricId||'').trim(); if(!n||!m)return;
+    (PERF[n]=PERF[n]||{}); (PERF[n][m]=PERF[n][m]||[]);
+    PERF[n][m].push({date:String(x.date||''),val:num(x.val),
+      v1:x.v1===''||x.v1==null?null:num(x.v1), v2:x.v2===''||x.v2==null?null:num(x.v2), v3:x.v3===''||x.v3==null?null:num(x.v3)});
+  });
+  (r.body||[]).forEach(x=>{
+    const n=String(x.name||'').trim(); if(!n)return;
+    (BODY[n]=BODY[n]||[]).push({date:String(x.date||''),height:num(x.height),weight:num(x.weight)});
+  });
+  (r.settings||[]).forEach(x=>{
+    const k=String(x.key||'');let v=x.value;try{v=JSON.parse(x.value);}catch(e){}
+    SETTINGS[k]=v;
+    if(k.indexOf('photo_')===0 && k!=='photo_index'){const nm=k.slice(6);if(typeof x.value==='string'&&x.value.indexOf('data:')===0)PHOTOS[nm]=x.value;}
+  });
+  // 班別 map
+  Object.keys(SETTINGS).forEach(k=>{const m=k.match(/^class_(c\d+)_students$/);if(m){let arr=SETTINGS[k];if(Array.isArray(arr))arr.forEach(nm=>{(CLASSMAP[nm]=CLASSMAP[nm]||[]).push(m[1]);});}});
+  // 排序每個 series（date asc）+ 去同日重複(取 max)
+  Object.keys(PERF).forEach(n=>Object.keys(PERF[n]).forEach(m=>{PERF[n][m]=dedupeSeries(PERF[n][m]);}));
+  Object.keys(BODY).forEach(n=>{BODY[n].sort((a,b)=>a.date.localeCompare(b.date));});
+  // 學生名冊（perf ∪ body ∪ 班別）
+  const set=new Set([...Object.keys(PERF),...Object.keys(BODY)]);
+  Object.values(SETTINGS).forEach(()=>{}); Object.keys(CLASSMAP).forEach(n=>set.add(n));
+  ROSTER=[...set].filter(Boolean).sort((a,b)=>a.localeCompare(b,'zh-HK'));
+}
+function dedupeSeries(arr){
+  const byDate={};
+  arr.forEach(r=>{const d=r.date;if(!byDate[d]||(r.val!=null&&r.val>byDate[d].val))byDate[d]=r;});
+  return Object.values(byDate).sort((a,b)=>a.date.localeCompare(b.date));
+}
+function saveLocal(){try{sessionStorage.setItem('growth_cache',JSON.stringify({t:Date.now(),data:DATA}));}catch(e){}}
+function loadLocal(){try{const c=JSON.parse(sessionStorage.getItem('growth_cache'));if(c&&c.data){DATA=c.data;ingest(c.data);return true;}}catch(e){}return false;}
+
+/* 安全增量寫入（後端 perf_upsert/body_upsert：鎖內讀最新→改指定行→零覆蓋）。
+   deltas=[{name,metricId,date,val,v1,v2,v3}] / [{name,date,height,weight}]。同步更新本地。 */
+async function upsertPerf(deltas){
+  if(!deltas.length)return;
+  setSync('load','儲存中…');
+  const r=await apiPost({action:'perf_upsert',coachPass:CP,data:deltas});
+  if(!r||r.ok===false)throw new Error((r&&r.error)||'儲存失敗');
+  // 更新本地 PERF
+  deltas.forEach(d=>{(PERF[d.name]=PERF[d.name]||{});(PERF[d.name][d.metricId]=PERF[d.name][d.metricId]||[]);
+    const arr=PERF[d.name][d.metricId];const i=arr.findIndex(x=>x.date===d.date);
+    const rec={date:d.date,val:num(d.val),v1:d.v1!=null?num(d.v1):null,v2:d.v2!=null?num(d.v2):null,v3:d.v3!=null?num(d.v3):null};
+    if(i>=0)arr[i]=rec;else arr.push(rec);PERF[d.name][d.metricId]=dedupeSeries(arr);
+    if(ROSTER.indexOf(d.name)<0){ROSTER.push(d.name);ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));}});
+  setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+  return r;
+}
+async function upsertBody(deltas){
+  if(!deltas.length)return;
+  setSync('load','儲存中…');
+  const r=await apiPost({action:'body_upsert',coachPass:CP,data:deltas});
+  if(!r||r.ok===false)throw new Error((r&&r.error)||'儲存失敗');
+  deltas.forEach(d=>{(BODY[d.name]=BODY[d.name]||[]);const arr=BODY[d.name];const i=arr.findIndex(x=>x.date===d.date);
+    const rec={date:d.date,height:d.height!=null?num(d.height):null,weight:d.weight!=null?num(d.weight):null};
+    if(i>=0)arr[i]=rec;else arr.push(rec);arr.sort((a,b)=>a.date.localeCompare(b.date));
+    if(ROSTER.indexOf(d.name)<0){ROSTER.push(d.name);ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));}});
+  setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+  return r;
+}
+async function deletePerf(name,metric,date){
+  const r=await apiPost({action:'perf_delete',coachPass:CP,data:[{name,metricId:metric,date}]});
+  if(!r||r.ok===false)throw new Error((r&&r.error)||'刪除失敗');
+  if(PERF[name]&&PERF[name][metric])PERF[name][metric]=PERF[name][metric].filter(x=>x.date!==date);
+  return r;
+}
+async function deleteBodyRec(name,date){
+  const r=await apiPost({action:'body_delete',coachPass:CP,data:[{name,date}]});
+  if(!r||r.ok===false)throw new Error((r&&r.error)||'刪除失敗');
+  if(BODY[name])BODY[name]=BODY[name].filter(x=>x.date!==date);
+  return r;
+}
+/* 班別 */
+function classLabel(cid){
+  const dz=SETTINGS['class_'+cid+'_dayZh']||'', tm=SETTINGS['class_'+cid+'_time']||'';
+  return (dz||cid)+(tm?(' '+tm):'');
+}
+function classStudents(cid){const s=SETTINGS['class_'+cid+'_students'];return Array.isArray(s)?s.slice():[];}
+function activeClasses(){return CLASS_IDS.filter(c=>classStudents(c).length>0);}
+
+/* ═══════════════════ 分析工具 ═══════════════════ */
+function series(name,metric){return (PERF[name]&&PERF[name][metric])?PERF[name][metric].filter(r=>r.val!=null):[];}
+function bodySeries(name){return (BODY[name]||[]).filter(r=>r.height!=null||r.weight!=null);}
+function pb(name,metric){const s=series(name,metric);return s.length?Math.max(...s.map(r=>r.val)):null;}
+function latest(name,metric){const s=series(name,metric);return s.length?s[s.length-1]:null;}
+function first(name,metric){const s=series(name,metric);return s.length?s[0]:null;}
+function improvePct(name,metric){const s=series(name,metric);if(s.length<2)return null;const d=s[s.length-1].val-s[0].val;if(s[0].val===0)return null;return Math.round(d/s[0].val*100);}
+function studentMetrics(name){return METRIC_ORDER.filter(m=>series(name,m).length>0);}
+function hasAnyData(name){return studentMetrics(name).length>0||bodySeries(name).length>0;}
+/* 全體某 metric 最新排行 */
+function leaderboard(metric){
+  return ROSTER.map(n=>{const l=latest(n,metric);return l?{name:n,val:l.val,date:l.date,pbHit:l.val>=pb(n,metric)}:null;})
+    .filter(Boolean).sort((a,b)=>b.val-a.val);
+}
+/* 成長評級（跟報告：正向 %-mean）*/
+function gradeFor(name){
+  const imps=[];
+  ['rope30','bike','cross','double','rope2m','sj','cmj'].forEach(m=>{const p=improvePct(name,m);if(p!=null&&p>0)imps.push(p);});
+  const avg=imps.length?Math.round(imps.reduce((a,b)=>a+b,0)/imps.length):0;
+  let grade='B',stars=3;
+  if(avg>=40){grade='A';stars=5;}else if(avg>=25){grade='A';stars=4;}
+  else if(avg>=15){grade='A-';stars=4;}else if(avg>=8){grade='B+';stars=3;}
+  return {grade,stars,avg};
+}
+function nPB(name){let c=0;studentMetrics(name).forEach(m=>{const s=series(name,m);if(s.length>=2&&s[s.length-1].val>=Math.max(...s.map(r=>r.val)))c++;});return c;}
+
+/* ═══════════════════ 路由 ═══════════════════ */
+const ROUTES=[
+  {id:'dash',name:'概覽',icon:'dash',render:renderDash},
+  {id:'classtest',name:'課堂測試',icon:'activity',render:renderClassTest},
+  {id:'leaders',name:'排行榜',icon:'medal',render:renderLeaders},
+  {id:'perf',name:'成績',icon:'chart',render:renderPerf},
+  {id:'body',name:'體測',icon:'ruler',render:renderBody},
+  {id:'students',name:'學生',icon:'users',render:renderStudents},
+  {id:'reports',name:'成長報告',icon:'report',render:renderReports},
+];
+let CUR='dash';
+function buildNav(){
+  $('#nav').innerHTML=ROUTES.map(r=>`<a data-r="${r.id}" class="${r.id===CUR?'on':''}">${ico(r.icon)}<span>${r.name}</span></a>`).join('');
+  $$('#nav a').forEach(a=>a.onclick=()=>{go(a.dataset.r);$('#side').classList.remove('open');});
+}
+function go(id,arg){
+  CUR=id;const r=ROUTES.find(x=>x.id===id);if(!r)return;
+  $$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.r===id));
+  $('#pageTitle').textContent=r.name;
+  $('#view').innerHTML='';
+  try{r.render(arg);}catch(e){$('#view').innerHTML='<div class="empty">'+ico('alert')+'<div class="t">畫面載入出錯</div><div>'+esc(e.message)+'</div></div>';console.error(e);}
+  $('#main').scrollTop=0;
+}
+
+/* ═══════════════════ 圖表引擎（純 SVG，無依賴）═══════════════════ */
+function svgLine(pts,o){ // pts=[[label,val]]
+  o=o||{};const W=o.w||280,H=o.h||120,pl=30,pr=14,pt=14,pb=22;
+  if(!pts.length)return '';
+  const vals=pts.map(p=>p[1]);let mn=Math.min(...vals),mx=Math.max(...vals);
+  if(o.goal!=null){mx=Math.max(mx,o.goal);}
+  if(mn===mx){mn=mn-1;mx=mx+1;}const pad=(mx-mn)*0.15;mn-=pad;mx+=pad;if(o.zero&&mn>0)mn=0;
+  const iw=W-pl-pr,ih=H-pt-pb;
+  const X=i=>pl+(pts.length===1?iw/2:iw*i/(pts.length-1));
+  const Y=v=>pt+ih-ih*(v-mn)/(mx-mn);
+  let grid='';for(let g=0;g<=3;g++){const yv=mn+(mx-mn)*g/3,y=Y(yv);grid+=`<line x1="${pl}" y1="${y.toFixed(1)}" x2="${W-pr}" y2="${y.toFixed(1)}" stroke="#eef3f5"/><text x="${pl-5}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="8.5" fill="#9aa4a9">${round(yv,mx-mn<8?1:0)}</text>`;}
+  const line=pts.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
+  const area=line+`L${X(pts.length-1).toFixed(1)},${(pt+ih).toFixed(1)}L${X(0).toFixed(1)},${(pt+ih).toFixed(1)}Z`;
+  let goalLine='';if(o.goal!=null){const gy=Y(o.goal);goalLine=`<line x1="${pl}" y1="${gy.toFixed(1)}" x2="${W-pr}" y2="${gy.toFixed(1)}" stroke="#c79a3e" stroke-width="1.3" stroke-dasharray="4 3"/><text x="${W-pr}" y="${(gy-4).toFixed(1)}" text-anchor="end" font-size="8.5" fill="#c79a3e" font-weight="700">目標 ${o.goal}</text>`;}
+  const dots=pts.map((p,i)=>{const last=i===pts.length-1;return `<circle cx="${X(i).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="${last?4:3}" fill="${last?'#c79a3e':'#0f8996'}"/>`+(o.labels!==false?`<text x="${X(i).toFixed(1)}" y="${(Y(p[1])-8).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="${last?'#c79a3e':'#0f8996'}">${p[1]}</text>`:'');}).join('');
+  const xlab=pts.map((p,i)=>`<text x="${X(i).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="8.5" fill="#9aa4a9">${esc(p[0])}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${grid}${goalLine}<path d="${area}" fill="rgba(27,175,189,.1)"/><path d="${line}" fill="none" stroke="#0f8996" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>${dots}${xlab}</svg>`;
+}
+function spark(values){if(!values.length)return '';const mx=Math.max(...values,1);return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:22px">'+values.map((v,i)=>{const h=Math.max(4,Math.round(v/mx*22)),last=i===values.length-1;return `<i style="width:5px;height:${h}px;border-radius:1.5px;background:${last?'#0f8996':'#bfe4e8'};display:inline-block"></i>`;}).join('')+'</span>';}
+function radarSVG(axes){ // axes=[{label,first,last,max}]
+  const n=axes.length,C=95,R=66;if(n<3)return '';
+  const ang=i=>-Math.PI/2+2*Math.PI*i/n;
+  const pt=(i,r)=>[C+r*Math.cos(ang(i)),C+r*Math.sin(ang(i))];
+  let rings='';for(let g=1;g<=3;g++){const r=R*g/3;rings+=`<polygon points="${axes.map((a,i)=>pt(i,r).map(v=>v.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="#e3eaed"/>`;}
+  let spokes='',labels='';axes.forEach((a,i)=>{const[x,y]=pt(i,R);spokes+=`<line x1="${C}" y1="${C}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e3eaed"/>`;const[lx,ly]=pt(i,R+15);labels+=`<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#6d7c84">${esc(a.label)}</text>`;});
+  const poly=(key,color,fill,dash)=>{const pts=axes.map((a,i)=>{const v=a[key]==null?0:Math.max(.08,a[key]/(a.max||1));return pt(i,R*Math.min(1,v));});return `<polygon points="${pts.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' ')}" fill="${fill}" stroke="${color}" stroke-width="2" ${dash?'stroke-dasharray="4 3"':''}/>`;};
+  const hasFirst=axes.some(a=>a.first!=null);
+  return `<svg viewBox="0 0 190 190" style="width:100%;max-width:220px;height:auto;display:block;margin:0 auto">${rings}${spokes}${hasFirst?poly('first','#c2ccd2','rgba(0,0,0,0)',true):''}${poly('last','#1BAFBD','rgba(27,175,189,.16)')}${labels}</svg>`;
+}
+function avatarHTML(name){const p=PHOTOS[name];return `<div class="avatar">${p?`<img src="${esc(p)}" alt="">`:esc(initials(name))}</div>`;}
+
+/* ═══════════════════ 概覽 ═══════════════════ */
+function renderDash(){
+  const nStud=ROSTER.filter(hasAnyData).length;
+  let nPerf=0;Object.values(PERF).forEach(m=>Object.values(m).forEach(a=>nPerf+=a.length));
+  let nBody=0;Object.values(BODY).forEach(a=>nBody+=a.length);
+  // 本月新測
+  const ym=todayISO().slice(0,7);let nMonth=0;
+  Object.values(PERF).forEach(m=>Object.values(m).forEach(a=>a.forEach(r=>{if(String(r.date).slice(0,7)===ym)nMonth++;})));
+  // 破PB本月：latest date this month 且 = max
+  let pbMonth=0;ROSTER.forEach(n=>studentMetrics(n).forEach(mt=>{const s=series(n,mt);if(s.length>=2){const l=s[s.length-1];if(String(l.date).slice(0,7)===ym&&l.val>=Math.max(...s.map(x=>x.val)))pbMonth++;}}));
+  // top movers (by improvement pct, latest metric)
+  const movers=[];ROSTER.forEach(n=>{const g=gradeFor(n);if(g.avg>0)movers.push({name:n,avg:g.avg,grade:g.grade});});
+  movers.sort((a,b)=>b.avg-a.avg);
+  // recent activity
+  const acts=[];Object.keys(PERF).forEach(n=>Object.keys(PERF[n]).forEach(mt=>PERF[n][mt].forEach(r=>acts.push({name:n,metric:mt,date:r.date,val:r.val}))));
+  acts.sort((a,b)=>b.date.localeCompare(a.date));
+  const recent=acts.slice(0,8);
+  $('#view').innerHTML=`
+  <div class="grid kpi-row" style="margin-bottom:16px">
+    ${kpi('users','#1BAFBD','#e7f7f9',nStud,'','活躍學生')}
+    ${kpi('chart','#0f8996','#e2f2f4',nPerf,'','成績紀錄')}
+    ${kpi('cal','#c79a3e','#faf4e6',nMonth,'','本月新測')}
+    ${kpi('medal','#1f9d6b','#e9f7f0',pbMonth,'','本月破PB')}
+  </div>
+  <div class="grid" style="grid-template-columns:1.35fr 1fr;align-items:start">
+    <div class="card card-pad">
+      <div class="sec-h"><div class="ic">${ico('activity')}</div><h3>最近測試紀錄</h3><div class="sp"></div><span class="pill">共 ${acts.length}</span></div>
+      ${recent.length?`<table class="tbl"><tbody>${recent.map(a=>{const mt=METRICS[a.metric];const isPB=(()=>{const s=series(a.name,a.metric);return s.length&&a.val>=Math.max(...s.map(x=>x.val))&&a.date===s[s.length-1].date;})();return `<tr onclick="openStudent('${esc(a.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:10px">${avatarHTML(a.name)}<b>${esc(a.name)}</b></td><td class="mut">${mt?esc(mt.lab):esc(a.metric)}</td><td class="num">${a.val}<span class="mut" style="font-weight:400"> ${mt?mt.u:''}</span></td><td style="text-align:right">${isPB?'<span class="pill gold">'+ico('medal')+'PB</span>':''}</td><td class="mut num" style="font-weight:400">${md(a.date)}</td></tr>`;}).join('')}</tbody></table>`:emptyBox('未有成績紀錄','開始課堂測試即可記錄')}
+    </div>
+    <div class="card card-pad">
+      <div class="sec-h"><div class="ic">${ico('trend')}</div><h3>成長之星</h3></div>
+      ${movers.length?movers.slice(0,7).map((m,i)=>`<div onclick="openStudent('${esc(m.name)}')" style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line2);cursor:pointer">
+        <div style="width:22px;font-weight:800;color:${i<3?'#c79a3e':'#9aa4a9'};text-align:center">${i+1}</div>
+        ${avatarHTML(m.name)}<b style="flex:1">${esc(m.name)}</b>
+        <span class="chip up">▲ ${m.avg}%</span><span class="pill gold" style="min-width:34px;justify-content:center">${m.grade}</span></div>`).join(''):emptyBox('未有成長數據','')}
+    </div>
+  </div>
+  <div class="card card-pad" style="margin-top:16px">
+    <div class="sec-h"><div class="ic">${ico('users')}</div><h3>各班概況</h3><div class="sp"></div><span class="mut" style="font-size:12.5px">撳班別入課堂測試</span></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+      ${activeClasses().map(c=>{const st=classStudents(c);return `<div onclick="CT_CLASS='${c}';go('classtest')" style="cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:14px 16px;transition:.15s" onmouseover="this.style.borderColor='#1BAFBD'" onmouseout="this.style.borderColor='var(--line)'">
+        <div style="font-weight:800;color:var(--navy);font-size:15px">${esc(classLabel(c))}</div>
+        <div class="mut" style="font-size:12.5px;margin-top:3px">${st.length} 位學生</div></div>`;}).join('')||emptyBox('未有班別資料','')}
+    </div>
+  </div>`;
+}
+function kpi(icon,color,bg,n,unit,label){return `<div class="kpi"><div class="ic" style="background:${bg};color:${color}">${ico(icon)}</div><div class="n tnum">${n}${unit?`<small>${unit}</small>`:''}</div><div class="l">${label}</div></div>`;}
+function emptyBox(t,s){return `<div class="empty">${ico('info')}<div class="t">${esc(t)}</div>${s?`<div>${esc(s)}</div>`:''}</div>`;}
+
+/* ═══════════════════ 課堂測試（核心）═══════════════════ */
+let CT_CLASS=null, CT_METRIC='rope30', CT_DATE=todayISO(), CT_STAGED={};
+function renderClassTest(){
+  if(!CT_CLASS){const ac=activeClasses();CT_CLASS=ac[0]||null;}
+  CT_STAGED={};
+  const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
+  const metChips=[...METRIC_ORDER.map(m=>[m,METRICS[m].short]),['height','身高'],['weight','體重']];
+  $('#view').innerHTML=`
+  <div class="card card-pad" style="margin-bottom:14px">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+      <div><div class="lbl">班別</div><div class="seg" id="ctClass">${activeClasses().map(c=>`<button data-c="${c}" class="${c===CT_CLASS?'on':''}">${esc(classLabel(c))}</button>`).join('')||'<span class="mut">未有班別</span>'}</div></div>
+      <div style="flex:1;min-width:200px"><div class="lbl">測試項目</div><div style="display:flex;flex-wrap:wrap;gap:6px" id="ctMetric">${metChips.map(([m,l])=>`<button class="chipbtn ${m===CT_METRIC?'on':''}" data-m="${m}">${esc(l)}</button>`).join('')}</div></div>
+      <div><div class="lbl">測試日期</div><input type="date" class="inp" id="ctDate" value="${CT_DATE}" style="width:auto"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-pad" style="padding-bottom:0;display:flex;align-items:center;gap:10px">
+      <div class="sec-h" style="margin:0"><div class="ic">${ico('activity')}</div><h3>${esc(isBody?(CT_METRIC==='height'?'身高':'體重')+' 記錄':classLabel(CT_CLASS||'')+' · '+(METRICS[CT_METRIC]?METRICS[CT_METRIC].lab:''))}</h3></div>
+      <div class="sp"></div>
+      <span class="mut" style="font-size:12.5px">輸入成績即時對比個人最佳</span>
+    </div>
+    <div id="ctBody"></div>
+    <div id="ctBar" style="position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:14px 22px;display:none;align-items:center;gap:14px;border-radius:0 0 var(--r) var(--r)">
+      <b id="ctCount" style="color:var(--navy)">0 項待儲存</b><div class="sp"></div>
+      <button class="btn btn-ghost btn-sm" onclick="CT_STAGED={};renderCTBody()">清除</button>
+      <button class="btn btn-teal btn-sm" id="ctSave">${ico('check')}儲存全部</button>
+    </div>
+  </div>
+  <style>.chipbtn{padding:7px 13px;font-size:13px;font-weight:700;color:var(--mut);background:#eef3f5;border-radius:8px;transition:.12s}.chipbtn.on{background:var(--teal-d);color:#fff}.chipbtn:hover{background:#e0e9ec}.chipbtn.on:hover{background:var(--teal-dd)}
+  .ct-in{width:92px;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:16px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;transition:.12s}
+  .ct-in:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(27,175,189,.13)}
+  .ct-in.pb{border-color:var(--up);background:var(--up-w);color:var(--up)}
+  .ct-in.staged{border-color:var(--teal-d);background:var(--wash)}</style>`;
+  $$('#ctClass button').forEach(b=>b.onclick=()=>{CT_CLASS=b.dataset.c;renderClassTest();});
+  $$('#ctMetric .chipbtn').forEach(b=>b.onclick=()=>{CT_METRIC=b.dataset.m;renderClassTest();});
+  $('#ctDate').onchange=e=>{CT_DATE=e.target.value;renderCTBody();};
+  $('#ctSave').onclick=saveCT;
+  renderCTBody();
+}
+function renderCTBody(){
+  const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
+  const students=CT_CLASS?classStudents(CT_CLASS):[];
+  if(!students.length){$('#ctBody').innerHTML=emptyBox('呢班未有學生','喺教練 app 名冊加學生');return;}
+  const mt=METRICS[CT_METRIC];
+  let html=`<table class="tbl"><thead><tr><th>學生</th>`;
+  if(isBody){html+=`<th class="num">上次</th><th style="width:120px">今日 (${CT_METRIC==='height'?'cm':'kg'})</th>`;}
+  else{html+=`<th class="num">個人最佳</th><th class="num">上次</th><th class="num">破紀錄目標</th><th style="width:120px">今日成績</th><th></th>`;}
+  html+=`</tr></thead><tbody>`;
+  students.forEach(n=>{
+    if(isBody){
+      const bs=(BODY[n]||[]).filter(r=>CT_METRIC==='height'?r.height!=null:r.weight!=null);
+      const last=bs.length?bs[bs.length-1]:null;const lastV=last?(CT_METRIC==='height'?last.height:last.weight):null;
+      const staged=CT_STAGED[n];
+      html+=`<tr><td style="display:flex;align-items:center;gap:10px">${avatarHTML(n)}<b>${esc(n)}</b></td>
+        <td class="num mut">${lastV!=null?lastV+(last.date?` <span style="font-weight:400">(${md(last.date)})</span>`:''):'—'}</td>
+        <td><input class="ct-in ${staged!=null?'staged':''}" inputmode="decimal" data-n="${esc(n)}" value="${staged!=null?staged:''}" placeholder="—"></td></tr>`;
+    }else{
+      const s=series(n,CT_METRIC);const best=s.length?Math.max(...s.map(r=>r.val)):null;
+      const last=s.length?s[s.length-1]:null;const target=best!=null?best+ (mt.u==='kg'||mt.u==='cm'||mt.u==='秒'?1:1):null;
+      const staged=CT_STAGED[n];const beatsPB=staged!=null&&best!=null&&Number(staged)>best;
+      html+=`<tr><td style="display:flex;align-items:center;gap:10px">${avatarHTML(n)}<b>${esc(n)}</b></td>
+        <td class="num">${best!=null?`<span class="pill gold" style="font-size:13px">${best} ${mt.u}</span>`:'<span class="mut">—</span>'}</td>
+        <td class="num mut">${last?last.val+` <span style="font-weight:400">(${md(last.date)})</span>`:'—'}</td>
+        <td class="num" style="color:var(--teal-d);font-weight:700">${best!=null?'＞'+best:'首測'}</td>
+        <td><input class="ct-in ${beatsPB?'pb':(staged!=null?'staged':'')}" inputmode="decimal" data-n="${esc(n)}" value="${staged!=null?staged:''}" placeholder="—"></td>
+        <td id="ctfb-${btoa(unescape(encodeURIComponent(n))).replace(/=/g,'')}">${beatsPB?'<span class="chip up">▲破PB</span>':''}</td></tr>`;
+    }
+  });
+  html+=`</tbody></table>`;
+  $('#ctBody').innerHTML=html;
+  $$('#ctBody .ct-in').forEach(inp=>{
+    inp.oninput=()=>{const n=inp.dataset.n,v=inp.value.trim();
+      if(v===''){delete CT_STAGED[n];}else{CT_STAGED[n]=v;}
+      // live PB feedback
+      if(!isBody){const s=series(n,CT_METRIC);const best=s.length?Math.max(...s.map(r=>r.val)):null;const beats=v!==''&&best!=null&&Number(v)>best;
+        inp.className='ct-in '+(beats?'pb':(v!==''?'staged':''));
+        const fb=$('#ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,''));if(fb)fb.innerHTML=beats?'<span class="chip up">▲破PB</span>':(v!==''&&best!=null&&Number(v)===best?'<span class="chip flat">平PB</span>':'');
+      }else{inp.className='ct-in '+(v!==''?'staged':'');}
+      updateCTBar();};
+    inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const all=$$('#ctBody .ct-in');const i=all.indexOf(inp);if(all[i+1])all[i+1].focus();}};
+  });
+  updateCTBar();
+}
+function updateCTBar(){const c=Object.keys(CT_STAGED).length;$('#ctBar').style.display=c?'flex':'none';$('#ctCount').textContent=c+' 項待儲存';}
+async function saveCT(){
+  const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
+  const entries=Object.entries(CT_STAGED).filter(([n,v])=>v!==''&&!isNaN(parseFloat(v)));
+  if(!entries.length)return;
+  const btn=$('#ctSave');btn.disabled=true;btn.innerHTML='儲存中…';
+  try{
+    if(isBody){
+      const deltas=entries.map(([n,v])=>{const ex=(BODY[n]||[]).find(r=>r.date===CT_DATE)||{};return {name:n,date:CT_DATE,height:CT_METRIC==='height'?parseFloat(v):(ex.height!=null?ex.height:''),weight:CT_METRIC==='weight'?parseFloat(v):(ex.weight!=null?ex.weight:'')};});
+      await upsertBody(deltas);
+    }else{
+      const deltas=entries.map(([n,v])=>({name:n,metricId:CT_METRIC,date:CT_DATE,val:parseFloat(v)}));
+      await upsertPerf(deltas);
+    }
+    const pbCount=entries.filter(([n,v])=>{if(isBody)return false;const s=series(n,CT_METRIC).filter(r=>r.date!==CT_DATE);const best=s.length?Math.max(...s.map(r=>r.val)):null;return best==null||parseFloat(v)>best;}).length;
+    toast('已儲存 '+entries.length+' 項'+(pbCount?('，'+pbCount+' 人破紀錄 🎉'):''),'ok');
+    CT_STAGED={};renderCTBody();
+  }catch(e){toast('儲存失敗：'+e.message,'err');}
+  btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
+}
+
+/* ═══════════════════ 排行榜 ═══════════════════ */
+let LB_METRIC='rope30',LB_CLASS='all';
+function renderLeaders(){
+  $('#view').innerHTML=`
+  <div class="card card-pad" style="margin-bottom:14px">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:220px"><div class="lbl">項目</div><div style="display:flex;flex-wrap:wrap;gap:6px" id="lbMetric">${METRIC_ORDER.map(m=>`<button class="chipbtn ${m===LB_METRIC?'on':''}" data-m="${m}">${esc(METRICS[m].short)}</button>`).join('')}</div></div>
+      <div><div class="lbl">範圍</div><select class="inp" id="lbClass" style="width:auto"><option value="all"${LB_CLASS==='all'?' selected':''}>全部學生</option>${activeClasses().map(c=>`<option value="${c}"${LB_CLASS===c?' selected':''}>${esc(classLabel(c))}</option>`).join('')}</select></div>
+    </div>
+    <div class="mut" style="font-size:12px;margin-top:12px;display:flex;align-items:center;gap:6px">${ico('info')}<span>排行榜資料同官網 initiatesportshk.com 排行榜同源（#11）；喺度更新即官網更新。</span></div>
+  </div>
+  <style>.chipbtn{padding:7px 13px;font-size:13px;font-weight:700;color:var(--mut);background:#eef3f5;border-radius:8px;transition:.12s}.chipbtn.on{background:var(--teal-d);color:#fff}</style>
+  <div id="lbBody"></div>`;
+  $$('#lbMetric .chipbtn').forEach(b=>b.onclick=()=>{LB_METRIC=b.dataset.m;renderLBBody();$$('#lbMetric .chipbtn').forEach(x=>x.classList.toggle('on',x.dataset.m===LB_METRIC));});
+  $('#lbClass').onchange=e=>{LB_CLASS=e.target.value;renderLBBody();};
+  renderLBBody();
+}
+function renderLBBody(){
+  const mt=METRICS[LB_METRIC];
+  let names=LB_CLASS==='all'?ROSTER:classStudents(LB_CLASS);
+  const rows=names.map(n=>{const b=pb(n,LB_METRIC);const l=latest(n,LB_METRIC);return b!=null?{name:n,best:b,date:l?l.date:'',recent:l?l.val:null}:null;}).filter(Boolean).sort((a,b)=>b.best-a.best);
+  const medal=['#c79a3e','#9aa9b3','#c08457'];
+  $('#lbBody').innerHTML=`<div class="card card-pad"><div class="sec-h"><div class="ic">${ico('medal')}</div><h3>${esc(mt.lab)} 排行榜</h3><div class="sp"></div><span class="pill">${rows.length} 人</span></div>
+  ${rows.length?`<table class="tbl"><thead><tr><th style="width:50px">名次</th><th>學生</th><th class="num">個人最佳</th><th class="num">最近</th><th class="num">日期</th></tr></thead><tbody>${rows.map((r,i)=>`<tr onclick="openStudent('${esc(r.name)}')" style="cursor:pointer"><td><div style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:14px;${i<3?`background:${medal[i]}22;color:${medal[i]}`:'color:#9aa4a9'}">${i+1}</div></td><td style="display:flex;align-items:center;gap:10px">${avatarHTML(r.name)}<b>${esc(r.name)}</b></td><td class="num"><b style="font-size:16px;color:var(--navy)">${r.best}</b> <span class="mut" style="font-weight:400">${mt.u}</span></td><td class="num mut">${r.recent!=null?r.recent:'—'}</td><td class="num mut" style="font-weight:400">${md(r.date)}</td></tr>`).join('')}</tbody></table>`:emptyBox('呢個項目未有紀錄','')}
+  </div>`;
+}
+
+/* ═══════════════════ 成績（逐項總表）═══════════════════ */
+let PERF_METRIC='rope30';
+function renderPerf(){
+  $('#view').innerHTML=`<div class="card card-pad" style="margin-bottom:14px"><div class="lbl">測試項目</div><div style="display:flex;flex-wrap:wrap;gap:6px" id="pfMetric">${METRIC_ORDER.map(m=>`<button class="chipbtn ${m===PERF_METRIC?'on':''}" data-m="${m}">${esc(METRICS[m].short)}</button>`).join('')}</div><div class="mut" style="font-size:12px;margin-top:10px">${esc(METRICS[PERF_METRIC].leg)}</div></div>
+  <style>.chipbtn{padding:7px 13px;font-size:13px;font-weight:700;color:var(--mut);background:#eef3f5;border-radius:8px}.chipbtn.on{background:var(--teal-d);color:#fff}</style><div id="pfBody"></div>`;
+  $$('#pfMetric .chipbtn').forEach(b=>b.onclick=()=>{PERF_METRIC=b.dataset.m;renderPerf();});
+  renderPFBody();
+}
+function renderPFBody(){
+  const m=PERF_METRIC,mt=METRICS[m];
+  const rows=ROSTER.map(n=>{const s=series(n,m);if(!s.length)return null;const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const d=s.length>=2?round(l-f,1):null;const pct=s.length>=2&&f!==0?Math.round((l-f)/f*100):null;return {name:n,first:f,last:l,best,d,pct,n:s.length,spark:s.map(r=>r.val)};}).filter(Boolean).sort((a,b)=>b.best-a.best);
+  $('#pfBody').innerHTML=`<div class="card card-pad"><div class="sec-h"><div class="ic">${ico('chart')}</div><h3>${esc(mt.lab)}</h3><div class="sp"></div><span class="pill">${rows.length} 人有紀錄</span></div>
+  ${rows.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>學生</th><th class="num">首測</th><th class="num">最新</th><th class="num">個人最佳</th><th class="num">進步</th><th>趨勢</th></tr></thead><tbody>${rows.map(r=>`<tr onclick="openStudent('${esc(r.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:10px">${avatarHTML(r.name)}<b>${esc(r.name)}</b></td><td class="num mut">${r.n>=2?r.first:'—'}</td><td class="num"><b>${r.last}</b></td><td class="num"><span class="pill gold">${r.best}</span></td><td class="num">${r.d==null?'<span class="mut">首測</span>':r.d>0?`<span class="chip up">▲ +${r.d}${r.pct!=null?' ('+r.pct+'%)':''}</span>`:r.d<0?`<span class="chip down">▼ ${r.d}</span>`:'<span class="chip flat">—</span>'}</td><td>${spark(r.spark)}</td></tr>`).join('')}</tbody></table></div>`:emptyBox('呢個項目未有紀錄','')}
+  </div>`;
+}
+
+/* ═══════════════════ 體測 ═══════════════════ */
+let BODY_CLASS='all';
+function renderBody(){
+  $('#view').innerHTML=`<div class="card card-pad" style="margin-bottom:14px"><div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap"><div><div class="lbl">範圍</div><select class="inp" id="bdClass" style="width:auto"><option value="all">全部學生</option>${activeClasses().map(c=>`<option value="${c}"${BODY_CLASS===c?' selected':''}>${esc(classLabel(c))}</option>`).join('')}</select></div><div class="sp" style="flex:1"></div><button class="btn btn-teal btn-sm" onclick="CT_METRIC='height';go('classtest')">${ico('plus')}課堂記錄體測</button></div></div><div id="bdBody"></div>`;
+  $('#bdClass').onchange=e=>{BODY_CLASS=e.target.value;renderBDBody();};
+  renderBDBody();
+}
+function bmi(h,w){return (h&&w)?round(w/Math.pow(h/100,2),1):null;}
+function renderBDBody(){
+  let names=BODY_CLASS==='all'?ROSTER:classStudents(BODY_CLASS);
+  const rows=names.map(n=>{const s=bodySeries(n);if(!s.length)return null;const hs=s.filter(r=>r.height!=null),ws=s.filter(r=>r.weight!=null);const lh=hs.length?hs[hs.length-1]:null,lw=ws.length?ws[ws.length-1]:null;const fh=hs.length?hs[0]:null;return {name:n,h:lh?lh.height:null,w:lw?lw.weight:null,hGain:hs.length>=2?round(lh.height-fh.height,1):null,bmi:bmi(lh?lh.height:null,lw?lw.weight:null),date:s[s.length-1].date};}).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name,'zh-HK'));
+  $('#bdBody').innerHTML=`<div class="card card-pad"><div class="sec-h"><div class="ic">${ico('ruler')}</div><h3>身高體重 · BMI</h3><div class="sp"></div><span class="pill">${rows.length} 人</span></div>
+  ${rows.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>學生</th><th class="num">身高</th><th class="num">體重</th><th class="num">BMI</th><th class="num">身高增長</th><th class="num">最近</th></tr></thead><tbody>${rows.map(r=>`<tr onclick="openStudent('${esc(r.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:10px">${avatarHTML(r.name)}<b>${esc(r.name)}</b></td><td class="num">${r.h!=null?r.h+' <span class="mut" style="font-weight:400">cm</span>':'—'}</td><td class="num">${r.w!=null?r.w+' <span class="mut" style="font-weight:400">kg</span>':'—'}</td><td class="num">${r.bmi!=null?r.bmi:'—'}</td><td class="num">${r.hGain!=null&&r.hGain>0?`<span class="chip up">▲ +${r.hGain}</span>`:'<span class="mut">—</span>'}</td><td class="num mut" style="font-weight:400">${md(r.date)}</td></tr>`).join('')}</tbody></table></div>`:emptyBox('未有體測紀錄','')}
+  </div>`;
+}
+
+/* ═══════════════════ 學生 ═══════════════════ */
+let STU_SEARCH='';
+function renderStudents(){
+  $('#view').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><div class="search">${ico('search')}<input id="stuSearch" placeholder="搜尋學生姓名…" value="${esc(STU_SEARCH)}"></div><div class="sp"></div><span class="mut" style="font-size:13px">${ROSTER.filter(hasAnyData).length} 位學生</span></div><div id="stuGrid" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))"></div>`;
+  $('#stuSearch').oninput=e=>{STU_SEARCH=e.target.value;renderStuGrid();};
+  renderStuGrid();
+}
+function renderStuGrid(){
+  const q=STU_SEARCH.trim();
+  const list=ROSTER.filter(hasAnyData).filter(n=>!q||n.indexOf(q)>=0);
+  $('#stuGrid').innerHTML=list.length?list.map(n=>{const g=gradeFor(n);const nm=studentMetrics(n).length;const cls=(CLASSMAP[n]||[]).map(classLabel).join('、');return `<div class="card" style="padding:16px;cursor:pointer;transition:.15s" onclick="openStudent('${esc(n)}')" onmouseover="this.style.boxShadow='var(--sh)'" onmouseout="this.style.boxShadow='var(--sh-sm)'">
+    <div style="display:flex;align-items:center;gap:12px"><div class="avatar" style="width:44px;height:44px;font-size:17px">${PHOTOS[n]?`<img src="${esc(PHOTOS[n])}">`:esc(initials(n))}</div><div style="flex:1;min-width:0"><div style="font-weight:800;color:var(--navy);font-size:16px">${esc(n)}</div><div class="mut" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cls||'—')}</div></div>${g.avg>0?`<span class="pill gold">${g.grade}</span>`:''}</div>
+    <div style="display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)"><div><div style="font-weight:800;font-size:17px;color:var(--navy)" class="tnum">${nm}</div><div class="mut" style="font-size:11px">測試項目</div></div><div><div style="font-weight:800;font-size:17px;color:var(--teal-d)" class="tnum">${nPB(n)}</div><div class="mut" style="font-size:11px">達最佳</div></div><div><div style="font-weight:800;font-size:17px;color:var(--up)" class="tnum">${g.avg>0?'+'+g.avg+'%':'—'}</div><div class="mut" style="font-size:11px">平均進步</div></div></div>
+  </div>`;}).join(''):emptyBox('搵唔到學生','');
+}
+function openStudent(name){CUR_STUDENT=name;go('students');setTimeout(()=>renderStudentProfile(name),0);}
+let CUR_STUDENT=null;
+function renderStudentProfile(name){
+  const g=gradeFor(name);const mets=studentMetrics(name);const bs=bodySeries(name);
+  const charts=['rope30','bike','cross','double','sj'].filter(m=>series(name,m).length>=2);
+  $('#view').innerHTML=`
+  <button class="btn btn-ghost btn-sm" onclick="go('students')" style="margin-bottom:14px">← 返回學生列表</button>
+  <div class="card card-pad" style="margin-bottom:16px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+    <div class="avatar" style="width:64px;height:64px;font-size:24px;border-radius:16px">${PHOTOS[name]?`<img src="${esc(PHOTOS[name])}">`:esc(initials(name))}</div>
+    <div style="flex:1"><div style="font-size:24px;font-weight:800;color:var(--navy)">${esc(name)}</div><div class="mut" style="font-size:13px">${esc((CLASSMAP[name]||[]).map(classLabel).join('、')||'—')}</div></div>
+    <div style="text-align:center"><div style="font-size:30px;font-weight:800;color:var(--gold);line-height:1">${g.grade}</div><div class="mut" style="font-size:11px;margin-top:2px">${'★'.repeat(g.stars)}${'☆'.repeat(5-g.stars)}</div></div>
+    <div style="text-align:center;padding-left:18px;border-left:1px solid var(--line)"><div style="font-size:26px;font-weight:800;color:var(--up);line-height:1" class="tnum">${g.avg>0?'+'+g.avg+'%':'—'}</div><div class="mut" style="font-size:11px;margin-top:3px">平均進步</div></div>
+    <button class="btn btn-teal btn-sm" onclick="openReport('${esc(name)}')">${ico('report')}成長報告</button>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('chart')}</div><h3>成績項目</h3></div>
+      ${mets.length?`<table class="tbl"><thead><tr><th>項目</th><th class="num">首測</th><th class="num">最新</th><th class="num">最佳</th><th class="num">進步</th></tr></thead><tbody>${mets.map(m=>{const s=series(name,m);const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const d=s.length>=2?round(l-f,1):null;return `<tr><td><b>${esc(METRICS[m].short)}</b></td><td class="num mut">${s.length>=2?f:'—'}</td><td class="num"><b>${l}</b></td><td class="num"><span class="pill gold">${best}</span></td><td class="num">${d==null?'—':d>0?'<span class="chip up">+'+d+'</span>':d<0?'<span class="chip down">'+d+'</span>':'—'}</td></tr>`;}).join('')}</tbody></table>`:emptyBox('未有成績','')}
+    </div>
+    <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('ruler')}</div><h3>體格發展</h3></div>
+      ${bs.length?(()=>{const hs=bs.filter(r=>r.height!=null),ws=bs.filter(r=>r.weight!=null);const lh=hs.length?hs[hs.length-1].height:null,lw=ws.length?ws[ws.length-1].weight:null;return `<div style="display:flex;gap:24px;margin-bottom:14px">${lh!=null?`<div><div style="font-size:26px;font-weight:800;color:var(--navy)" class="tnum">${lh}<small class="mut" style="font-size:14px">cm</small></div><div class="mut" style="font-size:11px">身高${hs.length>=2?' · ▲'+round(lh-hs[0].height,1):''}</div></div>`:''}${lw!=null?`<div><div style="font-size:26px;font-weight:800;color:var(--navy)" class="tnum">${lw}<small class="mut" style="font-size:14px">kg</small></div><div class="mut" style="font-size:11px">體重</div></div>`:''}${bmi(lh,lw)!=null?`<div><div style="font-size:26px;font-weight:800;color:var(--teal-d)" class="tnum">${bmi(lh,lw)}</div><div class="mut" style="font-size:11px">BMI</div></div>`:''}</div>${hs.length>=2?svgLine(hs.map(r=>[md(r.date),r.height]),{h:130,goal:null}):''}`;})():emptyBox('未有體測','')}
+    </div>
+  </div>
+  ${charts.length?`<div class="card card-pad" style="margin-top:16px"><div class="sec-h"><div class="ic">${ico('trend')}</div><h3>成績進展</h3></div><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">${charts.map(m=>`<div><div style="font-weight:700;font-size:13px;color:var(--navy);margin-bottom:4px">${esc(METRICS[m].lab)}</div>${svgLine(series(name,m).map(r=>[md(r.date),r.val]),{h:130,goal:Math.round(Math.max(...series(name,m).map(r=>r.val))*1.12)})}</div>`).join('')}</div></div>`:''}`;
+}
+
+/* ═══════════════════ 成長報告 ═══════════════════ */
+function renderReports(){
+  $('#view').innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><div class="search">${ico('search')}<input id="rpSearch" placeholder="搜尋學生…"></div><div class="sp"></div><span class="mut" style="font-size:12.5px">撳學生生成 2 頁專業成長報告 · 可列印/存 PDF</span></div>
+  <div class="card card-pad" style="margin-bottom:16px"><div class="sec-h" style="margin:0"><div class="ic">${ico('report')}</div><h3>批次列印</h3><div class="sp"></div><select class="inp" id="rpClass" style="width:auto;margin-right:8px"><option value="all">全部有成績學生</option>${activeClasses().map(c=>`<option value="${c}">${esc(classLabel(c))}</option>`).join('')}</select><button class="btn btn-teal btn-sm" onclick="printBatch()">${ico('download')}整班列印 PDF</button></div></div>
+  <div id="rpGrid" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>`;
+  $('#rpSearch').oninput=e=>renderRPGrid(e.target.value);
+  renderRPGrid('');
+}
+function renderRPGrid(q){
+  q=(q||'').trim();
+  const list=ROSTER.filter(hasAnyData).filter(n=>!q||n.indexOf(q)>=0);
+  $('#rpGrid').innerHTML=list.map(n=>`<div class="card" style="padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openReport('${esc(n)}')" onmouseover="this.style.boxShadow='var(--sh)'" onmouseout="this.style.boxShadow='var(--sh-sm)'">${avatarHTML(n)}<b style="flex:1">${esc(n)}</b>${ico('eye')}</div>`).join('')||emptyBox('搵唔到學生','');
+}
+function openReport(name){
+  const html=growthReportHTML(name);
+  const w=window.open('','_rpt'+Date.now());
+  w.document.write(reportDoc([html],name+' 成長報告'));w.document.close();
+}
+function printBatch(){
+  const cls=$('#rpClass').value;
+  let names=cls==='all'?ROSTER.filter(hasAnyData):classStudents(cls).filter(hasAnyData);
+  if(!names.length){toast('呢班冇有成績嘅學生','err');return;}
+  const pages=names.map(growthReportHTML);
+  const w=window.open('','_batch'+Date.now());
+  w.document.write(reportDoc(pages,'成長報告 · '+(cls==='all'?'全部':classLabel(cls))));w.document.close();
+  setTimeout(()=>{try{w.focus();w.print();}catch(e){}},600);
+}
+
+/* ═══════════════════ 2 頁專業成長報告 ═══════════════════ */
+function rpGoal(v,u){return u==='kg'?Math.ceil(v)+2:Math.round(v*1.12);}
+function growthReportHTML(name){
+  const g=gradeFor(name);
+  const imp=[];['rope30','bike','cross','double','rope2m','sj','cmj'].forEach(m=>{const s=series(name,m);if(s.length<2)return;const d=round(s[s.length-1].val-s[0].val,1);if(d>0)imp.push({m,d,pct:s[0].val?Math.round(d/s[0].val*100):0,val:s[s.length-1].val});});
+  imp.sort((a,b)=>b.pct-a.pct);const hi=imp.slice(0,3);
+  const nItems=new Set(studentMetrics(name).map(m=>(m==='gripL'||m==='gripR')?'grip':m)).size;
+  const hs=bodySeries(name).filter(r=>r.height!=null),ws=bodySeries(name).filter(r=>r.weight!=null);
+  const hGain=hs.length>=2?round(hs[hs.length-1].height-hs[0].height,1):null;
+  let rpDate='';Object.keys(PERF[name]||{}).forEach(m=>PERF[name][m].forEach(r=>{if(r.date>rpDate)rpDate=r.date;}));if(!rpDate)rpDate=todayISO();
+  const ropeIds=ROPE_METRICS.filter(m=>series(name,m).length>0);
+  const fitIds=['sj','cmj'].filter(m=>series(name,m).length>0);
+  // rope rows
+  const ropeRows=ropeIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const single=s.length<2;const d=single?null:round(l-f,1);
+    return `<tr><td class="mn">${esc(mt.lab)}</td><td class="c">${single?'—':f}</td><td class="c v">${l}</td><td class="c"><span class="pb">${best} PB</span></td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c">${rpSpark(s.map(r=>r.val))}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
+  const fitRows=fitIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val;const d=s.length<2?null:round(l-f,1);return `<tr><td class="mn">${esc(mt.lab)}<small>${esc(mt.u)}</small></td><td class="c">${s.length<2?'—':f}</td><td class="c v">${l}</td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
+  // grip combined
+  const gr=series(name,'gripR'),gl=series(name,'gripL');let gripRow='';
+  if(gr.length||gl.length){const rl=gr.length?gr[gr.length-1].val:'—',ll=gl.length?gl[gl.length-1].val:'—';gripRow=`<tr><td class="mn">手握力（左 / 右）<small>kg</small></td><td class="c">—</td><td class="c v">${ll} / ${rl}</td><td class="c">—</td><td class="c gl">${gr.length?rpGoal(gr[gr.length-1].val,'kg'):'—'}</td></tr>`;}
+  // radar
+  const rk=[['rope30','前繩'],['bike','單車步'],['double','二重跳'],['cross','交叉']];
+  const radarAxes=rk.map(([m,l])=>{const s=series(name,m);const f=s.length?s[0].val:null,la=s.length?s[s.length-1].val:null;return {label:l,first:s.length>=2?f:null,last:la,max:Math.max(f||0,la||0,1)};}).filter(a=>a.last!=null);
+  const showRadar=radarAxes.length>=3;
+  // charts
+  const chartDefs=[['rope30','前繩'],['bike','單車步'],['cross','交叉'],['double','二重跳'],['sj','立定跳遠'],['__height','身高']];
+  const chartsHTML=chartDefs.map(([m,l])=>{let s;if(m==='__height')s=hs.map(r=>[md(r.date),r.height]);else s=series(name,m).map(r=>[md(r.date),r.val]);if(s.length<2)return '';return `<div class="ch"><div class="cht">${esc(l)}</div>${svgLine(s,{w:250,h:112,labels:true})}</div>`;}).filter(Boolean).join('');
+  // body panel
+  const lh=hs.length?hs[hs.length-1].height:null,lw=ws.length?ws[ws.length-1].weight:null;
+  const b1=(hs.length&&ws.length)?bmi(hs[0].height,ws[0].weight):null,b2=bmi(lh,lw);
+  const bodyPanel=`<div class="bp">
+    <div class="br"><span class="bl">身高</span><span class="bv">${lh!=null?(hs.length>=2?`${hs[0].height} → <b>${lh}</b> cm <span class="up">▲ +${round(lh-hs[0].height,1)}</span>`:`<b>${lh}</b> cm`):'—'}</span></div>
+    <div class="br"><span class="bl">體重</span><span class="bv">${lw!=null?(ws.length>=2?`${ws[0].weight} → <b>${lw}</b> kg`:`<b>${lw}</b> kg`):'—'}</span></div>
+    ${b2!=null?`<div class="br"><span class="bl">BMI</span><span class="bv">${b1!=null&&b1!==b2?`${b1} → `:''}<b>${b2}</b></span></div>`:''}</div>`;
+  // legend
+  const legIds=[...ropeIds,...fitIds];if(gr.length||gl.length)legIds.push('gripR');
+  const legend=legIds.map(m=>`<div class="lg"><b>${esc(METRICS[m].lab)}</b> — ${esc(METRICS[m].leg)}</div>`).join('');
+  const stars='★'.repeat(g.stars)+'☆'.repeat(5-g.stars);
+  const P1=`<div class="page">
+    <div class="top"><div class="eb">INITIATE SPORTS</div><h1>個人成長報告</h1><div class="st">ANNUAL GROWTH REPORT · 2025–2026 學年</div>
+      <div class="who"><div class="wn">${esc(name)}</div><div class="wd">報告日期<br><b>${dmy(rpDate)}</b></div></div></div>
+    <div class="bd">
+      <div class="rating"><div><div class="gr">${g.grade}</div></div><div class="rc"><div class="rt">綜合成長評級</div><div class="rs">${stars}</div><div class="rtag">持續進步，表現出色 · 繼續加油！</div></div><div class="ra"><div class="rap">+${g.avg}%</div><div class="ral">平均進步幅度</div></div></div>
+      <div class="sh">本年成長亮點 · HIGHLIGHTS</div>
+      <div class="cards">${hi.length?hi.map((h,i)=>{const mt=METRICS[h.m];return `<div class="hc">${i<2?'<span class="fire">🔥</span>':''}<div class="hl">${esc(mt.lab)}</div><div class="hv">${h.val}<small>${mt.u}</small></div><div class="hd">▲ +${h.d} <span>(+${h.pct}%)</span></div></div>`;}).join(''):'<div class="hc"><div class="hl mut">持續累積數據中</div></div>'}</div>
+      <div class="strip"><div class="tl"><b>${nItems}</b>全年測試項目</div><div class="tl"><b>${nPB(name)}</b>刷新／保持個人最佳</div><div class="tl"><b>${hGain!=null?'+'+hGain:'—'}</b>身高成長 (cm)</div></div>
+      ${ropeRows?`<div class="sec"><div class="sech">🪢 花式跳繩技術 · ROPE SKIPPING</div><table class="dt"><thead><tr><th>項目</th><th class="c">首測</th><th class="c">最新</th><th class="c">個人最佳</th><th class="c">進步</th><th class="c">趨勢</th><th class="c">建議目標</th></tr></thead><tbody>${ropeRows}</tbody></table></div>`:''}
+      ${(fitRows||gripRow)?`<div class="sec"><div class="sech">💪 體能測試 · FITNESS</div><table class="dt"><thead><tr><th>項目</th><th class="c">首測</th><th class="c">最新</th><th class="c">進步</th><th class="c">建議目標</th></tr></thead><tbody>${fitRows}${gripRow}</tbody></table></div>`:''}
+    </div>
+    <div class="foot"><span>INITIATE SPORTS · AIM HIGH JUMP HIGH</span><span>第 1 頁，共 2 頁 · 查詢 WhatsApp 6331 7403</span></div></div>`;
+  const P2=`<div class="page">
+    <div class="top top2"><div class="eb">INITIATE SPORTS · 個人成長報告</div><div class="who2"><div class="wn2">${esc(name)}</div><div class="wt2">成長分析與進展 · 2025–2026 學年</div></div></div>
+    <div class="bd">
+      <div class="two">
+        ${showRadar?`<div class="pan"><div class="sech">🎯 跳繩技術能力圖</div>${radarSVG(radarAxes)}<div class="rleg"><span><i class="d1"></i>首測</span><span><i class="d2"></i>最新</span></div></div>`:'<div class="pan"><div class="sech">🎯 能力圖</div><div class="mut" style="text-align:center;padding:30px 0;font-size:12px">需至少 3 個跳繩項目數據</div></div>'}
+        <div class="pan"><div class="sech">📏 體格發展</div>${bodyPanel}</div>
+      </div>
+      ${chartsHTML?`<div class="sec"><div class="sech">📈 成績進展圖 · PROGRESSION</div><div class="cg">${chartsHTML}</div></div>`:''}
+      <div class="sec"><div class="sech">📖 測試項目說明</div><div class="legend">${legend||'<div class="lg mut">—</div>'}</div></div>
+      <div class="note">「建議目標」為根據現時表現推算之參考進步方向，僅供鼓勵用途，並非硬性指標。</div>
+      <div class="qrbox"><div class="qr">${rpQR()}</div><div><b>掃碼瀏覽官方網站</b><br><span>www.initiatesportshk.com</span></div></div>
+    </div>
+    <div class="foot"><span>INITIATE SPORTS · AIM HIGH JUMP HIGH</span><span>第 2 頁，共 2 頁 · initiatesportshk.com</span></div></div>`;
+  return P1+P2;
+}
+function rpSpark(values){if(!values.length)return '';const mx=Math.max(...values,1);return '<span class="sp">'+values.map((v,i)=>{const h=Math.max(6,Math.round(v/mx*18)),last=i===values.length-1;return `<i style="height:${h}px;background:${last?'#0f8996':'#bcdfe4'}"></i>`;}).join('')+'</span>';}
+function rpQR(){return `<svg viewBox="0 0 100 100" style="width:64px;height:64px"><rect width="100" height="100" fill="#fff"/><g fill="#132a3e"><rect x="4" y="4" width="26" height="26"/><rect x="10" y="10" width="14" height="14" fill="#fff"/><rect x="13" y="13" width="8" height="8" fill="#132a3e"/><rect x="70" y="4" width="26" height="26"/><rect x="76" y="10" width="14" height="14" fill="#fff"/><rect x="79" y="13" width="8" height="8" fill="#132a3e"/><rect x="4" y="70" width="26" height="26"/><rect x="10" y="76" width="14" height="14" fill="#fff"/><rect x="13" y="79" width="8" height="8" fill="#132a3e"/><rect x="38" y="6" width="6" height="6"/><rect x="50" y="6" width="6" height="6"/><rect x="38" y="18" width="6" height="6"/><rect x="60" y="14" width="6" height="6"/><rect x="6" y="38" width="6" height="6"/><rect x="18" y="38" width="6" height="6"/><rect x="38" y="38" width="6" height="6"/><rect x="50" y="44" width="6" height="6"/><rect x="62" y="38" width="6" height="6"/><rect x="74" y="44" width="6" height="6"/><rect x="86" y="38" width="6" height="6"/><rect x="38" y="62" width="6" height="6"/><rect x="50" y="68" width="6" height="6"/><rect x="62" y="62" width="6" height="6"/><rect x="74" y="68" width="6" height="6"/><rect x="86" y="62" width="6" height="6"/><rect x="38" y="86" width="6" height="6"/><rect x="62" y="86" width="6" height="6"/><rect x="74" y="80" width="6" height="6"/><rect x="86" y="86" width="6" height="6"/></g></svg>`;}
+function reportDoc(pages,title){
+  return `<!doctype html><html lang="zh-HK"><head><meta charset="UTF-8"><title>${esc(title)}</title><style>
+  @page{size:A4;margin:0}*{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;line-height:1.5;background:#eef2f4;color:#1e2a30;
+    font-variant-numeric:tabular-nums;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{width:210mm;height:296mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid;background:#fff;margin:16px auto;box-shadow:0 6px 30px rgba(0,0,0,.15);position:relative}
+  .top{background:linear-gradient(120deg,#132a3e,#1c3d59);color:#fff;padding:26px 16mm 20px;position:relative}
+  .top2{padding:18px 16mm 16px}
+  .eb{font-size:11px;letter-spacing:4px;color:#9fe4ec;font-weight:700;text-transform:uppercase}
+  .top h1{font-size:30px;font-weight:800;margin-top:6px;letter-spacing:1px}
+  .top .st{font-size:11.5px;color:#c5dbe4;letter-spacing:2px;margin-top:4px}
+  .who{display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px}
+  .wn{font-size:29px;font-weight:800}.wd{font-size:11px;color:#c5dbe4;text-align:right}.wd b{color:#fff;font-size:13px}
+  .who2{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}.wn2{font-size:23px;font-weight:800}.wt2{font-size:12px;color:#c5dbe4}
+  .bd{padding:16px 14mm}
+  .rating{display:flex;align-items:center;gap:16px;background:#f4f9fa;border-left:5px solid #c79a3e;border-radius:12px;padding:14px 18px;margin-bottom:16px}
+  .gr{font-size:46px;font-weight:800;color:#c79a3e;line-height:1;width:64px;text-align:center}
+  .rc{flex:1}.rt{font-size:12px;color:#6d7c84;font-weight:700}.rs{font-size:19px;color:#c79a3e;letter-spacing:3px;margin:2px 0}.rtag{font-size:11.5px;color:#6d7c84}
+  .ra{text-align:right}.rap{font-size:28px;font-weight:800;color:#1f9d6b;line-height:1}.ral{font-size:10.5px;color:#6d7c84;margin-top:3px}
+  .sh{font-size:12px;font-weight:800;color:#132a3e;letter-spacing:1px;margin:4px 0 10px;text-transform:uppercase}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px}
+  .hc{background:#fff;border:1px solid #e3eaed;border-radius:12px;padding:13px 14px;position:relative}
+  .fire{position:absolute;top:9px;right:11px;font-size:14px}
+  .hl{font-size:12px;color:#6d7c84;font-weight:700}.hv{font-size:27px;font-weight:800;color:#132a3e;margin:3px 0}.hv small{font-size:13px;color:#9aa4a9;margin-left:2px}
+  .hd{font-size:12px;font-weight:700;color:#1f9d6b}.hd span{color:#6d7c84;font-weight:600}
+  .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:16px}
+  .tl{background:linear-gradient(120deg,#132a3e,#1c3d59);color:#fff;border-radius:12px;padding:12px 15px;font-size:11.5px}
+  .tl b{display:block;font-size:24px;font-weight:800;color:#7fd3dc;margin-bottom:1px}
+  .sec{margin-bottom:14px}.sech{font-size:13px;font-weight:800;color:#132a3e;margin-bottom:8px}
+  .dt{width:100%;border-collapse:collapse;font-size:12.5px}
+  .dt th{background:#f0f6f7;color:#6d7c84;font-size:10.5px;font-weight:700;padding:7px 8px;text-align:left;border-bottom:2px solid #dbe6e9}
+  .dt td{padding:8px;border-bottom:1px solid #eef3f5}.dt .c{text-align:center}.dt .v{font-weight:800;color:#132a3e;font-size:14px}
+  .dt .mn{font-weight:700;color:#1e2a30}.dt .mn small{color:#9aa4a9;font-weight:600;margin-left:4px}
+  .pb{background:#faf4e6;color:#c79a3e;font-weight:700;padding:2px 8px;border-radius:20px;font-size:11.5px;white-space:nowrap}
+  .up{color:#1f9d6b;font-weight:700}.fl{color:#9aa4a9}.gl{color:#0f8996;font-weight:700}
+  .sp{display:inline-flex;align-items:flex-end;gap:2px;height:20px}.sp i{width:5px;border-radius:1.5px;display:inline-block}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px}
+  .pan{border:1px solid #e3eaed;border-radius:12px;padding:13px 15px}
+  .rleg{display:flex;justify-content:center;gap:16px;font-size:11px;color:#6d7c84;margin-top:6px}.rleg i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}.d1{background:#c2ccd2}.d2{background:#1BAFBD}
+  .bp .br{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef3f5;font-size:13px}.bp .br:last-child{border:none}.bl{color:#6d7c84;font-weight:700}.bv b{color:#132a3e;font-size:15px}.bv .up{margin-left:4px;font-size:11.5px}
+  .cg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  .ch{border:1px solid #e3eaed;border-radius:10px;padding:9px 10px}.cht{font-size:11.5px;font-weight:700;color:#132a3e;margin-bottom:2px}
+  .legend{border:1px dashed #b6dde2;border-radius:10px;padding:11px 14px;background:#f8fcfd}.lg{font-size:11px;color:#6d7c84;padding:2px 0}.lg b{color:#132a3e}
+  .note{font-size:10.5px;color:#9aa4a9;margin:10px 0;font-style:italic}
+  .qrbox{display:flex;align-items:center;gap:14px;border-top:1px solid #e3eaed;padding-top:12px;margin-top:4px}.qrbox b{color:#132a3e;font-size:13px}.qrbox span{color:#6d7c84;font-size:11.5px}
+  .foot{position:absolute;bottom:6mm;left:14mm;right:14mm;display:flex;justify-content:space-between;font-size:10px;color:#9aa4a9;border-top:1px solid #eef3f5;padding-top:6px}
+  .mut{color:#9aa4a9}
+  @media screen{body{padding:10px}}
+  @media print{body{background:#fff;padding:0}.page{margin:0;box-shadow:none}}
+  </style></head><body>${pages.join('')}
+  <div style="text-align:center;padding:16px" class="noprint"><button onclick="window.print()" style="background:#0f8996;color:#fff;border:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">列印 / 儲存 PDF</button></div>
+  <style>@media print{.noprint{display:none}}</style></body></html>`;
+}
+
+/* ═══════════════════ 啟動 ═══════════════════ */
+async function boot(){
+  buildNav();
+  $('#app').style.display='block';$('#login').style.display='none';
+  if(loadLocal()){go('dash');setSync('ok','已載入快取');}
+  try{await loadCloud();go(CUR);}catch(e){setSync('err','載入失敗');toast('雲端載入失敗：'+e.message,'err');}
+}
+$('#loginForm').onsubmit=async e=>{
+  e.preventDefault();const pw=$('#pw').value.trim();if(!pw)return;
+  const btn=$('#loginBtn');btn.textContent='驗證中…';$('#loginErr').textContent='';
+  const ok=await verifyPass(pw);
+  if(ok){CP=pw;try{sessionStorage.setItem('growth_cp',pw);}catch(e){}boot();}
+  else{$('#loginErr').textContent='密碼錯誤，請重試';btn.textContent='登入';}
+};
+$('#logoutBtn').onclick=()=>{CP='';try{sessionStorage.removeItem('growth_cp');sessionStorage.removeItem('growth_cache');}catch(e){}location.reload();};
+$('#reloadBtn').onclick=async()=>{try{await loadCloud();go(CUR);toast('已重新載入','ok');}catch(e){toast('載入失敗','err');}};
+$('#menuBtn').onclick=()=>$('#side').classList.toggle('open');
+$('#mask').onclick=e=>{if(e.target===$('#mask'))closeModal();};
+// auto-login if session has pass
+(function(){const p=sessionStorage.getItem('growth_cp');if(p){CP=p;$('#pw').value='';boot();}})();
+
+/* modal helpers */
+function openModal(html){$('#mask').innerHTML='<div class="modal">'+html+'</div>';$('#mask').classList.add('show');}
+function closeModal(){$('#mask').classList.remove('show');$('#mask').innerHTML='';}
+</script>
+</body>
+</html>
