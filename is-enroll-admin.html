@@ -223,7 +223,11 @@ function dashboardHtml(s){
   const maxSp=Math.max(1,...spKeys.map(k=>bySport[k]));
   const sportBars = spKeys.length ? spKeys.map(sp=>`<div class="barrow"><span class="bl">${esc(sp)}</span><span class="bt"><span class="bf" style="width:${Math.round(bySport[sp]/maxSp*100)}%"></span></span><span class="bn">${bySport[sp]} 人</span></div>`).join('') : '<div class="mut">未有報名</div>';
   const fillCs=cs.filter(c=>c.enrolled>0);
-  const fillBars = fillCs.length ? fillCs.map(c=>{const pct=Math.round(c.enrolled/c.cap*100);return `<div class="barrow"><span class="bl">${esc(c.sport)} ${esc(c.time)}</span><span class="bt"><span class="bf ${pct>=100?'full':''}" style="width:${Math.min(100,pct)}%"></span></span><span class="bn">${c.enrolled}/${c.cap}</span></div>`;}).join('') : '<div class="mut">未有報名</div>';
+  const fillBars = fillCs.length ? fillCs.map(c=>{
+    const pct=Math.round(c.enrolled/c.cap*100);
+    const nm = c.active.length?`<div class="names" style="margin:1px 0 9px 2px;font-size:13px;line-height:1.5">${c.active.map(esc).join('、')}${c.waitlist.length?`　<span style="color:var(--warn)">候補：${c.waitlist.map(esc).join('、')}</span>`:''}</div>`:'';
+    return `<div class="barrow"><span class="bl">${esc(c.sport)} ${esc(c.time)}</span><span class="bt"><span class="bf ${pct>=100?'full':''}" style="width:${Math.min(100,pct)}%"></span></span><span class="bn">${c.enrolled}/${c.cap}</span></div>${nm}`;
+  }).join('') : '<div class="mut">未有報名</div>';
   return `<div class="card"><h2>📊 報名儀表板</h2>
     <div class="mut" style="margin:2px 0 6px;font-weight:700">各運動報名人數</div>${sportBars}
     <div class="mut" style="margin:14px 0 6px;font-weight:700">各班滿額率</div>${fillBars}
