@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-24-refreshguard';
+const FRONTEND_VERSION = 'lm-2026-08-24-sibcap';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -1150,7 +1150,8 @@ async function submitMakeup(){
     const sib=S.family.children[sidx], scc=(sib.classes||[]).find(x=>x.sport===c.sport && x.wd===c.wd);
     if(!scc) continue;
     let sok=0;
-    for(const i of MF.picks){ const cd=MF.cands[i], s=cd.slot;
+    // 🔒 審計：每個 sibling 只 book 唔超過佢自己 owed 數（對齊 is-parent，防過度預約食走羽毛球每日 8 人補堂上限）
+    for(const i of MF.picks.slice(0, scc.owed||0)){ const cd=MF.cands[i], s=cd.slot;
       try{ const r=await api("bookMakeup",{name:sib.name,fromKey:classKey(scc),fromDate:"",toKey:s.sport+"|"+s.wd,toDate:cd.date,toTime:s.time}); if(r&&r.ok) sok++; }catch(e){} }
     if(sok) sibDone.push(sib.name);
   }
