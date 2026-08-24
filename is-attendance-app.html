@@ -1875,10 +1875,6 @@ html, body {
       <span class="nav-icon">📊</span>
       <span class="nav-label">成績</span>
     </button>
-    <button class="nav-item" onclick="showScreen('lb')" id="nav-lb">
-      <span class="nav-icon">🏆</span>
-      <span class="nav-label">排行</span>
-    </button>
     <button class="nav-item" onclick="showScreen('student')" id="nav-student">
       <span class="nav-icon">👤</span>
       <span class="nav-label">學生</span>
@@ -1917,7 +1913,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION = 'attapp-2026-08-23-savecheck';
+const FRONTEND_VERSION='attapp-2026-08-24-noLB';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -2356,7 +2352,7 @@ function renderHome() {
       <a href="coach.html" style="display:inline-block;margin-top:12px;background:var(--cyan);color:#fff;text-decoration:none;font-weight:800;padding:11px 18px;border-radius:10px">前往教練網頁 ›</a>
     </div>
     <div style="margin-top:14px;color:var(--muted);font-size:13px;line-height:1.7">
-      呢個 App 而家專責：<br>📊 成績 · 🏆 排行 · 👤 學生 · ⭐ 優秀學員 · 🎖 考核章別 · 📚 知識分享 · 🛠 器材<br>（喺底部選單揀，內容會同步官網）
+      呢個 App 而家專責：<br>📊 成績 · 👤 學生 · ⭐ 優秀學員 · 🎖 考核章別 · 📚 知識分享 · 🛠 器材<br>（喺底部選單揀，內容會同步官網）<br><span style="color:#888;font-size:12px">📈 排行榜／課堂測試已搬去「成長中心」</span>
     </div>`;
 }
 
