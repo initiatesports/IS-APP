@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-24-refreshguard';
+const FRONTEND_VERSION='parent-2026-08-25-nofps';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -518,7 +518,7 @@ async function ensureLatestBeforeLogin(){
 function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids}; S.session={name,last4};
-  S.payNumber=r.payNumber||'6709 3390'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
+  S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
@@ -891,7 +891,7 @@ function paymentCard(child,ki){
         <input id="promo-in-${ki}" placeholder="${L('輸入優惠碼','Promo code')}" style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--line,#e3e3e3);border-radius:10px;font-family:inherit;font-size:14px;text-transform:uppercase">
         <button class="btn sm" style="width:auto;padding:10px 16px;background:#e0a93a;box-shadow:none" onclick="applyPromo(${ki},'${f.period}')">${L('套用','Apply')}</button>
       </div></div>`;
-  const actions=promoUI+`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+  const actions=promoUI+`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'請 WhatsApp 6331 7403 查詢收款')}</div>
     <button onclick="openPay(${ki},'${f.period}')" style="margin-top:10px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-3l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
       ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
@@ -978,7 +978,7 @@ async function submitAddon(){
   if(!r||!r.ok){ btn.disabled=false; btn.textContent=t('addonSubmit'); return toast((r&&r.err)||t('netFail')); }
   closeSheet(); await refresh();
   const d=new Date(AD.pick.date+'T00:00:00');
-  showReceipt(t('rcAddon'),[`${t('child')}：<b>${AD.name}</b>`,`${t('klass')}：${classLabel(AD.pick.toKey)}・${fmt(d)}${dow(d)}`,`${t('addonSeqL',r.seq)}　·　$${r.price}`,`<span style="color:#c0392b">${t('addonPayLine',S.payNumber||'6709 3390')}</span>`],
+  showReceipt(t('rcAddon'),[`${t('child')}：<b>${AD.name}</b>`,`${t('klass')}：${classLabel(AD.pick.toKey)}・${fmt(d)}${dow(d)}`,`${t('addonSeqL',r.seq)}　·　$${r.price}`,`<span style="color:#c0392b">${t('addonPayLine',S.payNumber||'請 WhatsApp 6331 7403 查詢收款')}</span>`],
     `INITIATE 加操\n小朋友：${AD.name}\n班別：${classLabel(AD.pick.toKey)}\n日期：${AD.pick.date}\n應付：$${r.price}`);
 }
 /* 🔄 退出可回歸學生：回歸面板（揀 1～2 班 → 付款回歸） */
@@ -1047,7 +1047,7 @@ function openPay(ki,period){
   const child=S.family.children[ki]; PAY={name:child.name,period,fileData:null};
   openSheet(`<h2>${t('payTitle')}</h2>
     <p class="sd">${child.name}　·　${period}</p>
-    <div class="notice warn">${t('feePayTo',S.payNumber||'6709 3390')}</div>
+    <div class="notice warn">${t('feePayTo',S.payNumber||'請 WhatsApp 6331 7403 查詢收款')}</div>
     <input type="file" id="pay-file" accept="image/*,application/pdf" onchange="onPayFile(this)" style="width:100%;font-size:13px;color:var(--ink2);margin:10px 0">
     <div id="pay-status" style="font-size:12px;color:var(--muted)">${t('payHint')}</div>
     <input id="pay-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
