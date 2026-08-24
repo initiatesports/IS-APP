@@ -445,7 +445,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-24-audit';
+const FRONTEND_VERSION = 'coach-2026-08-24-mkfix';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1551,9 +1551,11 @@ function renderRollTable(){
       subText = `${expired.length} 節已過期`;
     }
     let makeupHint = '';
-    if (st === 'makeup' && pendingAll.length > 0) {
-      const oldest = pendingAll.slice().sort((a,b)=>a.absDate.localeCompare(b.absDate))[0];
-      makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(oldest.absDate)} 的堂</div>`;
+    if (st === 'makeup') {
+      // 只認未過限期嘅請假（同後端 classesFor_ 配對一致）。之前用 pendingAll（含過期）→ 會顯示
+      // 早已過期嘅缺席日（例：梁正宇補堂被標「補 1/5（5月1日）的堂」，但 5/1 限期 7/20 早過）。2026-08-24 修
+      const active = getPendingActive(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));
+      if (active.length > 0) makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(active[0].absDate)} 的堂</div>`;
     }
     const cardCls = st==='absent'?'is-absent':st==='noshow'?'is-noshow':st==='makeup'?'is-makeup':st==='exempt'?'is-exempt':st==='present'?'is-present':'';
     return `
@@ -1588,12 +1590,11 @@ function setRoll(name, status){
   const existing = nameWrap.querySelector('[style*="purple"]');
   if (existing) existing.remove();
   if (status === 'makeup') {
-    const pending = getPending(name);
-    if (pending.length > 0) {
-      const oldest = pending.slice().sort((a,b)=>a.absDate.localeCompare(b.absDate))[0];
+    const active = getPendingActive(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 未過限期先算（同後端一致）2026-08-24 修
+    if (active.length > 0) {
       const hint = document.createElement('div');
       hint.style.cssText = 'font-size:11px;color:var(--purple);margin-top:4px';
-      hint.textContent = '補 ' + fmtShort(oldest.absDate) + ' 的堂';
+      hint.textContent = '補 ' + fmtShort(active[0].absDate) + ' 的堂';
       nameWrap.appendChild(hint);
     }
   }
@@ -1625,7 +1626,7 @@ function saveRoll(){
       if (!dup) ABSENCES.push({ id:genId(), name, classId:currentClass, absDate:date, deadline:addMonths(date,2), madeUpDate:null });
     }
     if (st === 'makeup') {
-      const pending = getPending(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));
+      const pending = getPendingActive(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 只認未過限期（同 label／後端一致）2026-08-24 修
       if (pending.length > 0) pending[0].madeUpDate = date;
     }
   });
