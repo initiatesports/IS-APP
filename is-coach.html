@@ -106,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-08-17-eol';
+const FRONTEND_VERSION = 'coach9-2026-08-24-protect';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -476,7 +476,9 @@ async function mark(name,key,date,status,btn,gi,mk){
 }
 async function markAll(gi,key,date,status,btn){
   const grp=$("#g"+gi); const rows=[...grp.querySelectorAll(".att")];
-  const targets=rows.filter(row=>{ const st=row.dataset.st||""; const lvOn=row.querySelector(".mk.lv")?.classList.contains("on"); return !(st==="請假"||st==="停課"||lvOn); });
+  // 🔒 審計#10 對齊 coach.html：白名單保護預先安排嘅狀態，唔畀「全部出席/缺席」覆蓋
+  const PROTECTED=["請假","停課","豁免","加操","轉堂"];
+  const targets=rows.filter(row=>{ const st=row.dataset.st||""; const lvOn=row.querySelector(".mk.lv")?.classList.contains("on"); return !(PROTECTED.includes(st)||lvOn); });
   // ⚡ 一個 request 一次過寫全班（唔會半途死）；只把伺服器確認咗嘅變綠
   const marks=targets.map(row=>({name:row.querySelector(".nm").textContent, status, mk:row.dataset.mk==="1"}));
   const skipped=rows.length-targets.length, old=btn.textContent; btn.textContent="儲存中…"; grp.classList.add("saving");
