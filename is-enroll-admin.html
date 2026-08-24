@@ -95,7 +95,8 @@ function num(x){ x=parseFloat(String(x==null?'':x).replace(/[^0-9.\-]/g,'')); re
 // 由備註抽制服/器材金額（學費淨額以外，另加落實付）
 function feeAddon(note){ note=String(note||''); let a=0;
   let m=note.match(/制服[^$]*\$(\d+)/); if(m) a+=+m[1];
-  let g=note.match(/器材[^$]*?\$(\d+)/); if(g) a+=+g[1];
+  // 🔒 審計：器材可多款（每款各自「＝$金額」、用「、」分隔、冇空格）→ 全部加總。原本單次 .match 只計第一款。
+  let gseg=note.match(/器材[^ ]*/); if(gseg){ (gseg[0].match(/\$(\d+)/g)||[]).forEach(x=>a+=+x.slice(1)); }
   return a;
 }
 function render(sum, recs){
