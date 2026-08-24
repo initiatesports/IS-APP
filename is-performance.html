@@ -1083,8 +1083,8 @@ async function makeCard(name,metric){
   rr(x,64,600,W-128,300,28);x.fillStyle='#fff';x.fill();
   x.fillStyle='#6d7c84';x.font='700 34px '+F;x.fillText(mt.lab,110,672);
   if(isPB){x.fillStyle='#c79a3e';rr(x,W-320,632,240,58,29);x.fill();x.fillStyle='#fff';x.font='800 30px '+F;x.textAlign='center';x.fillText('🏅 個人最佳',W-200,671);x.textAlign='left';}
-  x.fillStyle='#132a3e';x.font='800 170px '+F;x.fillText(l!=null?l:'—',104,840);
-  x.fillStyle='#9aa4a9';x.font='600 46px '+F;const lw=x.measureText(l!=null?String(l):'—').width;x.fillText(' '+mt.u,104+ (l!=null?x.measureText(String(l)).width:60)+14,838);
+  x.fillStyle='#132a3e';x.font='800 170px '+F;const numTxt=l!=null?String(l):'—';x.fillText(numTxt,104,840);const numW=x.measureText(numTxt).width;
+  x.fillStyle='#9aa4a9';x.font='600 46px '+F;x.fillText(mt.u,104+numW+22,838);
   // delta + cohort（右下）
   let ry=730;x.textAlign='right';
   if(delta!=null){x.fillStyle=delta>0?'#1f9d6b':(delta<0?'#d0533f':'#9aa4a9');x.font='800 44px '+F;x.fillText((delta>0?'▲ +':delta<0?'▼ ':'')+delta+' 較上次',W-110,ry);ry+=58;}
