@@ -1913,7 +1913,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-24-noLB';
+const FRONTEND_VERSION='attapp-2026-08-25-nolostupd';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -3449,6 +3449,35 @@ let STUDENT_YEARS = {
 };
 
 let PERF_RECORDS = {};
+let PERF_LOADED_KEYS = null, BODY_LOADED_KEYS = null;   // 防跨 app lost-update：load 時 server 已有嘅 key 快照
+// save(全量覆蓋)前 merge：保留「server 有、但 load 時冇（成長中心之後新增）」嘅記錄；快照內嘅由本 app 決定。
+let _lastMergeAt = 0;
+async function mergeFreshBeforeSave_() {
+  if (!PERF_LOADED_KEYS && !BODY_LOADED_KEYS) return;
+  if (Date.now() - _lastMergeAt < 4000) return;   // 4秒內已 merge 過 → 唔重複攞(perf+body 連環 save 只攞一次)
+  let fresh; try { fresh = await apiPost({ action: 'load' }); } catch (e) { return; }   // 攞唔到就跳過(唔阻 save)
+  if (!fresh) return;
+  const ds = v => { const s = String(v == null ? '' : v); const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[1] + '-' + m[2] + '-' + m[3] : s; };
+  if (PERF_LOADED_KEYS && Array.isArray(fresh.performance)) fresh.performance.forEach(row => {
+    const nm = row.name, mid = row.metricId, date = ds(row.date); if (!nm || !mid || !date) return;
+    if (PERF_LOADED_KEYS.has(nm + '|' + mid + '|' + date)) return;   // load 時已有 → 尊重本 app 編輯/刪除
+    PERF_RECORDS[nm] = PERF_RECORDS[nm] || {}; PERF_RECORDS[nm][mid] = PERF_RECORDS[nm][mid] || [];
+    if (PERF_RECORDS[nm][mid].some(r => r.date === date && r.val === (+row.val))) return;   // 已有相同 → 唔重複
+    const rec = { date, val: +row.val };
+    if (row.v1 != null && row.v1 !== '') rec.v1 = +row.v1;
+    if (row.v2 != null && row.v2 !== '') rec.v2 = +row.v2;
+    if (row.v3 != null && row.v3 !== '') rec.v3 = +row.v3;
+    PERF_RECORDS[nm][mid].push(rec);
+  });
+  if (BODY_LOADED_KEYS && Array.isArray(fresh.body)) fresh.body.forEach(row => {
+    const nm = row.name, date = ds(row.date); if (!nm || !date) return;
+    if (BODY_LOADED_KEYS.has(nm + '|' + date)) return;
+    BODY_RECORDS[nm] = BODY_RECORDS[nm] || [];
+    if (BODY_RECORDS[nm].some(r => r.date === date)) return;
+    BODY_RECORDS[nm].push({ date, height: row.height ? +row.height : null, weight: row.weight ? +row.weight : null });
+  });
+  _lastMergeAt = Date.now();
+}
 let perfClass    = 'c1';
 let perfMetrics  = [];
 let perfSession  = {};
@@ -6992,6 +7021,11 @@ async function loadFromSheets() {
       if (row.v3 !== null && row.v3 !== undefined && row.v3 !== '') rec.v3 = +row.v3;
       PERF_RECORDS[row.name][row.metricId].push(rec);
     });
+    // 🔒 防跨 app lost-update（審計 2026-08-25）：記低「load 時 server 已有」嘅成績 key。
+    //   save(全量覆蓋)前，凡 server 有但唔喺呢個快照嘅（＝成長中心之後新增）就保留；快照內嘅就尊重本 app 編輯/刪除。
+    PERF_LOADED_KEYS = new Set();
+    Object.keys(PERF_RECORDS).forEach(nm => Object.keys(PERF_RECORDS[nm]).forEach(mid =>
+      (PERF_RECORDS[nm][mid]||[]).forEach(r => PERF_LOADED_KEYS.add(nm+'|'+mid+'|'+r.date))));
 
     // Rebuild BODY_RECORDS
     (data.body || []).forEach(row => {
@@ -7002,6 +7036,8 @@ async function loadFromSheets() {
         weight: row.weight ? +row.weight : null,
       });
     });
+    BODY_LOADED_KEYS = new Set();
+    Object.keys(BODY_RECORDS).forEach(nm => (BODY_RECORDS[nm]||[]).forEach(r => BODY_LOADED_KEYS.add(nm+'|'+r.date)));
 
     // Rebuild FEE_PAID
     (data.fee_paid || []).forEach(row => {
@@ -7041,6 +7077,7 @@ async function syncAbsences() {
 async function syncPerformance() {
   setSyncIndicator('saving');
   try {
+    await mergeFreshBeforeSave_();   // 🔒 全量覆蓋前保留成長中心之後新增嘅成績（防 lost-update）
     await apiPost({ action: 'save_performance', data: PERF_RECORDS });
     setSyncIndicator('ok');
   } catch(e) { setSyncIndicator('error'); }
@@ -7049,6 +7086,7 @@ async function syncPerformance() {
 async function syncBody() {
   setSyncIndicator('saving');
   try {
+    await mergeFreshBeforeSave_();   // 🔒 同上：保留成長中心之後新增嘅體測
     await apiPost({ action: 'save_body', data: BODY_RECORDS });
     setSyncIndicator('ok');
   } catch(e) { setSyncIndicator('error'); }
