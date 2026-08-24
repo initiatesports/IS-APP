@@ -211,9 +211,11 @@ function exportRoster(){
 function exportCSV(){
   const recs=(window._recs||[]).filter(r=>String(r['備註']).indexOf('測試')<0);
   if(!recs.length){ const m=document.getElementById('msg'); m.className='msg err'; m.textContent='未有記錄。'; return; }
-  const cols=['記錄編號','時間戳','學生姓名','家長電話','報名課程','實收','狀態','付款截圖','確認PDF'];
+  // 審計：加「制服器材」「實付」欄，唔再只匯出學費(實收)→對數/會計基準完整
+  const cols=['記錄編號','時間戳','學生姓名','家長電話','報名課程','實收','制服器材','實付','狀態','付款截圖','確認PDF'];
   let csv=cols.join(',')+'\n';
-  recs.forEach(r=>{ csv+=cols.map(c=>'"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"').join(',')+'\n'; });
+  recs.forEach(r=>{ const addon=feeAddon(r['備註']); const row=Object.assign({}, r, {'制服器材':addon, '實付':num(r['實收'])+addon});
+    csv+=cols.map(c=>'"'+String(row[c]==null?'':row[c]).replace(/"/g,'""')+'"').join(',')+'\n'; });
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='報名記錄_'+(window._sum?window._sum.period:'')+'.csv'; a.click();
 }
