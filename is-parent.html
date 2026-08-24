@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-19-warmup';
+const FRONTEND_VERSION='parent-2026-08-24-refreshguard';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -570,7 +570,9 @@ function openSummer(){
 async function refresh(){
   if(!S.family) return;
   const nm=S.family.authName, l4=S.family.last4;
-  const r=await api('login',{name:nm,last4:l4});
+  // 🔒 審計：refresh 逾時/冷啟動唔可以 throw（否則提交流程 await refresh() 一炸，收據彈窗永遠唔行，
+  //    家長交咗成功但畫面靜靜關窗、以為失敗 → 重複提交）。對齊 parent-sports audit#14。
+  let r; try{ r=await api('login',{name:nm,last4:l4}); }catch(e){ return; }
   if(r&&r.ok){ applyLoginResp(r,nm,l4); saveParentCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取，令下次秒開係最新
 }
 

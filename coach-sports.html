@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coachsports-2026-08-24-audit';
+const FRONTEND_VERSION = 'coachsports-2026-08-24-protect';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2236,8 +2236,10 @@ async function markDaily(name, key, date, status, btn, mk){
 async function markAllDaily(gi, key, date, status, btn){
   const grp = document.getElementById('cg' + gi);
   const rows = [...grp.querySelectorAll('.att')];
-  // 🔒 排除家長請假/停課學生，「全部出席/缺席」唔會覆蓋佢哋（否則抹走請假連帶補堂資格）——對齊 is-coach markAll
-  const targets = rows.filter(row => { const st = row.dataset.st || ''; return st !== '請假' && st !== '停課'; });
+  // 🔒 審計#10 對齊 coach.html：白名單——預先安排嘅狀態一律唔覆蓋。舊版只擋「請假/停課」，
+  //    「豁免/加操/轉堂」走漏 → 教練撳「✓ 全部出席/缺席」會蓋走順延豁免/加操/轉堂 → 收錯錢。
+  const PROTECTED = ['請假','停課','豁免','加操','轉堂'];
+  const targets = rows.filter(row => !PROTECTED.includes(row.dataset.st || ''));
   const skipped = rows.length - targets.length;
   // ⚡ 一個 request 一次過寫全班（唔會半途死）；只把伺服器確認咗嘅變綠 → 唔會假成功
   const marks = targets.map(row => ({ name: row.dataset.name, status, mk: row.dataset.mk === '1' }));

@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-21-audit';
+const FRONTEND_VERSION = 'lm-2026-08-24-refreshguard';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -793,7 +793,9 @@ function sessRow(s,cid){
 async function refresh(){
   if(!S.family) return;
   const nm=S.family.authName, l4=S.family.last4;
-  const r=await api("login",{name:nm,last4:l4});
+  // 🔒 審計：refresh 逾時/冷啟動唔可以 throw（否則提交流程 await refresh() 一炸，收據永遠唔顯示，
+  //    家長交咗成功但畫面靜靜關窗、以為失敗 → 重複提交）。對齊 parent-sports audit#14。
+  let r; try{ r=await api("login",{name:nm,last4:l4}); }catch(e){ return; }
   if(r&&r.ok){ applyLMResp(r,nm,l4); saveLMCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取
 }
 
