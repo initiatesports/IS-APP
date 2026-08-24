@@ -208,14 +208,14 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parentsports-2026-08-21-audit';
+const FRONTEND_VERSION = 'parentsports-2026-08-24-audit';
 const CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm',venue:'青衣',students:['示範學員']},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm',venue:'青衣',students:[]},
   "cond-tue6":{sport:'綜合運動體能＋田徑',dayZh:'星期二',wd:2,time:'6–7pm',venue:'青衣',students:[]},
   "cond-sat5":{sport:'綜合運動體能＋田徑',dayZh:'星期六',wd:6,time:'5–6pm',venue:'青衣',students:[]},
   "cond-sun11":{sport:'綜合運動體能＋田徑',dayZh:'星期日',wd:0,time:'11am–12',venue:'青衣',students:[]},
-  "gym-thu5":{sport:'體操',dayZh:'星期四',wd:4,time:'5–6pm',venue:'青衣',students:[]},
+  "gym-thu5":{sport:'體操',dayZh:'星期四',wd:4,time:'6–7pm',venue:'青衣',students:[]},   /* 審計#8：後端 2026-08 已改 6–7pm，前端一直冇跟 → 家長早一個鐘到場 */
   "gym-sat2":{sport:'體操',dayZh:'星期六',wd:6,time:'4–5pm',venue:'青衣',students:[]},
   "gym-sun10":{sport:'體操',dayZh:'星期日',wd:0,time:'10–11am',venue:'青衣',students:[]},
   "ath-fri":{sport:'田徑',dayZh:'星期五',wd:5,time:'4:50–5:50pm',venue:'青衣運動場',students:[]},
@@ -226,7 +226,7 @@ const CLASSES={
   "fit-adult-fri":{sport:'成人增肌減脂',dayZh:'星期五',wd:5,time:'8–9pm',venue:'青衣',students:[]},
   "fit-adult-sat":{sport:'成人增肌減脂',dayZh:'星期六',wd:6,time:'8–9pm',venue:'青衣',students:[]}
 };
-const CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'17:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
+const CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
 function mkHrsToStart(toKey,dateIso){ const hh=CLASS_START_HH[toKey]||'00:00'; return (new Date(dateIso+'T'+hh+':00')-new Date())/36e5; }
 const CLASS_DOW = {"found-tue2":2,"found-tue5":2,"cond-tue6":2,"cond-sat5":6,"cond-sun11":0,"gym-thu5":4,"gym-sat2":6,"gym-sun10":0,"ath-fri":5,"bad-sat8":6,"bad-sun8":0,"bad-sat12":6,"tennis-sat":6,"fit-adult-fri":5,"fit-adult-sat":6};
 const CLASS_IDS = Object.keys(CLASSES);
@@ -501,7 +501,7 @@ async function ensureLatestBeforeLogin(){
     const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
     const latest = m && m[1];
     if(latest && latest !== FRONTEND_VERSION){
-      try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+      try{ sessionStorage.removeItem('sa_upd_tried'); }catch(e){}
       toast(LANG==='en'?'🔄 New version — loading the latest, please tap Log in again':'🔄 系統已更新，正載入最新版，請再按一次登入');
       setTimeout(()=>location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()), 1000);
       return false;
@@ -518,13 +518,13 @@ function applyLoginResp(r, name, last4){
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
    秒開上次資料，背景刷新永遠會行，幾秒內自動校正到最新。 */
-function saveParentCache(name,last4,r){ try{ localStorage.setItem('is_parent_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
-function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('is_parent_cache')||'null');
+function saveParentCache(name,last4,r){ try{ localStorage.setItem('sa_parent_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
+function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('sa_parent_cache')||'null');
   if(c && c.name===name && c.last4===last4 && c.r && (Date.now()-c.t < 7*864e5)) return c.r; }catch(e){} return null; }
 async function bgRefresh(name,last4){
   try{ const r=await api('login',{name,last4});
-    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); }
-    else if(r&&r.ok===false){ try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
+    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('sa_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); }
+    else if(r&&r.ok===false){ try{ localStorage.removeItem('sa_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
   }catch(e){}
 }
 async function doLogin(){
@@ -535,7 +535,7 @@ async function doLogin(){
   const cached=readParentCache(name,last4);
   if(cached){
     applyLoginResp(cached,name,last4);
-    try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(cached&&cached.homeToken)||'',t:Date.now()})); }catch(e){}
+    try{ localStorage.setItem('sa_parent_auth', JSON.stringify({name,last4,token:(cached&&cached.homeToken)||'',t:Date.now()})); }catch(e){}
     $('logout-btn').style.display='block';
     renderParent();
     toast(LANG==='en'?'🔄 Updating…':'🔄 更新緊…');
@@ -547,12 +547,12 @@ async function doLogin(){
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   applyLoginResp(r,name,last4);
-  try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){}
+  try{ localStorage.setItem('sa_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){}
   saveParentCache(name,last4,r);
   $('logout-btn').style.display='block';
   renderParent();
 }
-function logout(){ S.family=null; S.session=null; try{ localStorage.removeItem('is_parent_auth'); localStorage.removeItem('is_parent_cache'); }catch(e){} renderLogin(); }
+function logout(){ S.family=null; S.session=null; try{ localStorage.removeItem('sa_parent_auth'); localStorage.removeItem('sa_parent_cache'); }catch(e){} renderLogin(); }
 /* 暑期班橋接：同源（同 GitHub Pages 目錄）用 localStorage 交接登入身分，避免把姓名/電話放入網址；
    暑期頁讀取後即時刪除。失敗會自動退回手動登入。 */
 function openSummer(){
@@ -671,8 +671,8 @@ function renderParent(){
   try{ showModalNotices(); }catch(e){}
 }
 // 📣 重要通知彈窗：有標記「彈窗」而又未讀嘅通知 → 開頁跳 blocking modal，撳「知道了」先入頁（每個通知每部機認一次）。
-function ackedNotices(){ try{ return new Set(JSON.parse(localStorage.getItem('is_acked_notices')||'[]')); }catch(e){ return new Set(); } }
-function markNoticeAcked(id){ try{ const s=ackedNotices(); s.add(id); localStorage.setItem('is_acked_notices', JSON.stringify([...s].slice(-150))); }catch(e){} }
+function ackedNotices(){ try{ return new Set(JSON.parse(localStorage.getItem('sa_acked_notices')||'[]')); }catch(e){ return new Set(); } }
+function markNoticeAcked(id){ try{ const s=ackedNotices(); s.add(id); localStorage.setItem('sa_acked_notices', JSON.stringify([...s].slice(-150))); }catch(e){} }
 function showModalNotices(){
   if(document.querySelector('.notice-modal-ov')) return;
   const acked=ackedNotices();
@@ -1442,7 +1442,7 @@ function installManifest(){
    唔同 = 本頁係舊快取 → 自動 cache-bust 重載攞新版(只自動試一次),仲係舊就彈可關橫額。 */
 /* 家長可隨時手動撳「🔄」強制攞最新版：cache-bust 重載，繞過 iOS 主畫面 icon 舊快取。 */
 function forceRefresh(){
-  try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+  try{ sessionStorage.removeItem('sa_upd_tried'); }catch(e){}
   location.replace(location.pathname + '?_r=' + Date.now());
 }
 async function checkForUpdate(){
@@ -1458,8 +1458,8 @@ async function checkForUpdate(){
 function showUpdateBanner(latest){
   if(document.getElementById('update-banner')) return;
   try{
-    if(sessionStorage.getItem('is_upd_tried') !== latest){
-      sessionStorage.setItem('is_upd_tried', latest);
+    if(sessionStorage.getItem('sa_upd_tried') !== latest){
+      sessionStorage.setItem('sa_upd_tried', latest);
       location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
       return;
     }
@@ -1473,7 +1473,7 @@ function showUpdateBanner(latest){
     <div style="font-size:14px;line-height:1.6;color:#5a6b72">為確保你睇到最新課堂資料，請即更新。</div>
     <button class="upd-now" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">立即更新</button>
   </div>`;
-  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('sa_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
   document.body.appendChild(ov);
 }
 document.addEventListener('DOMContentLoaded', async function(){

@@ -445,7 +445,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-21-audit';
+const FRONTEND_VERSION = 'coach-2026-08-24-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -543,6 +543,18 @@ function applyCoachLoadData(data){
     return dateToStr(d);
   }
   restoreSettings(data.settings || []);
+  /* 🔒 2026-08-24 審計#3：名冊改以後端 apiLoad 嘅 roster 為準，settings 只做 fallback。
+     restoreSettings 係由 settings 嘅 class_c*_students 還原名冊，但 ensureTransfers4_ /
+     ensureEnrollRoster4_ 改嘅係後端記憶體 CLASSES，從來冇寫返 Settings —— Settings 根本冇
+     class_c8_students / class_c9_students，而「9月報名名冊」已經有已核實新生。
+     結果：9/7 開學撳 c8 點名會係空白名單；調班學生喺舊班被 studentLeave 隱藏、新班又冇出現。
+     roster 係後端 overlay 之後嘅有效名冊，所以擺喺 restoreSettings 之後覆蓋佢。 */
+  if (data.roster && typeof data.roster === 'object') {
+    Object.keys(data.roster).forEach(cid => {
+      if (CLASSES[cid] && Array.isArray(data.roster[cid])) CLASSES[cid].students = data.roster[cid].slice();
+    });
+  }
+  XFER_JOIN_MAP = data.xferJoin || {};   // 姓名|cid → 生效日：此日之前唔喺該班點名清單
   PERIOD_VOID_MAP = data.periodVoid || {};
   TRANSFERS_MAP = {};
   (data.transfers || []).forEach(t => { if(t && t.cid && t.date && t.name){ const k=t.cid+'|'+t.date; (TRANSFERS_MAP[k]=TRANSFERS_MAP[k]||[]).push(t.name); } });
@@ -1396,6 +1408,7 @@ function openRoll(classId){
 let PERIOD_VOID_MAP = {};
 let TRANSFERS_MAP = {};   // 調堂：{ "cid|date": [轉入學生名] }（如周莉晶 c3|2026-07-22）
 let STUDENT_LEAVE_MAP = {};   // 離班日：{ "姓名|cid": "ISO" }，此日起唔喺該班點名清單（如周莉晶 c7 7/12）
+let XFER_JOIN_MAP = {};   // 審計#3：入班日 { "姓名|cid": "ISO" }，此日之前唔喺該班點名清單（調班／9月報名新生由 9/7 起）
 function periodLabelOf(dateStr){
   if(!dateStr) return '';
   const y=dateStr.slice(0,4), mo=+dateStr.slice(5,7), idx=Math.floor((mo-1)/2);
@@ -1411,6 +1424,9 @@ function getRollStudents(classId, dateStr){
   if (dateStr) base = base.filter(n => !isSuspendedOn(n, dateStr));   // 本期暫停學生（如梁正軒因病）→ 唔喺點名清單
   // 離班日起唔顯示（如周莉晶 c7 7/12；之前歷史照顯示）
   if (dateStr) base = base.filter(n => { const le=STUDENT_LEAVE_MAP[n+'|'+classId]; return !(le && dateStr>=le); });
+  /* 🔒 審計#3：入班日之前唔顯示。roster 而家含 overlay 新生（調班／9月報名），佢哋由生效日
+     （9/7）先屬於呢班；冇呢個閘就會由學期第一堂就出現喺點名表，教練見到未入班嘅人。 */
+  if (dateStr) base = base.filter(n => { const ji=XFER_JOIN_MAP[n+'|'+classId]; return !(ji && dateStr<ji); });
   // 加入當日補堂學生：家長申請補堂後，後端已喺目標班嗰格寫低（喺 ATT_LOG 出現但唔屬正規名單）→ 點名名單見到佢
   const sess = (dateStr && ATT_LOG[classId + '|' + dateStr]) || {};
   Object.keys(sess).forEach(n => { if (n && base.indexOf(n) < 0) base.push(n); });

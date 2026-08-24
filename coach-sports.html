@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coachsports-2026-08-21-audit';
+const FRONTEND_VERSION = 'coachsports-2026-08-24-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -468,6 +468,15 @@ const CLASSES = {
   "fit-adult-sat": { label:'成人增肌減脂 · 星期六 8–9pm', day:'Sat', dayZh:'星期六', time:'8–9pm', sport:'成人增肌減脂', venue:'青衣', students:[] }
 };
 const CLASS_DOW = {"found-tue2":2,"found-tue5":2,"cond-tue6":2,"cond-sat5":6,"cond-sun11":0,"gym-thu5":4,"gym-sat2":6,"gym-sun10":0,"ath-fri":5,"bad-sat8":6,"bad-sun8":0,"bad-sat12":6,"tennis-sat":6,"fit-adult-fri":5,"fit-adult-sat":6};
+/* 🔒 2026-08-24 審計#7：呢個 function 之前喺本檔完全冇定義，但「💳 繳費」頁 render 加操記錄
+   嗰行有呼叫 classLabel(a.to) → 一有加操記錄就 ReferenceError，成個繳費頁變白畫面。
+   coach.html 有同名 function，由佢 clone 過嚟嗰陣冇帶埋。
+   本系統 17 個班橫跨 7 個運動，淨係「星期四 6–7pm」分辨唔到體操定羽毛球，所以連 sport 一齊出。 */
+function classLabel(cid){
+  const c=CLASSES[cid];
+  if(!c) return cid||'';
+  return c.label || [c.sport, c.dayZh, c.time].filter(Boolean).join(' ') || cid;
+}
 
 const PUBLIC_HOLIDAYS = new Set(['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19']);
 const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
@@ -557,8 +566,8 @@ function applyCoachLoadData(data){
     name:String(m.name||''), classId:String(m.classId||''), date:ensureDateStr(m.date), link:String(m.link||'')
   })).filter(m=>m.name&&m.link) : [];
 }
-function saveCoachLoad(data){ try{ localStorage.setItem('is_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
-function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('is_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
+function saveCoachLoad(data){ try{ localStorage.setItem('sa_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
+function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('sa_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
 async function loadFromSheets(){
   // ⚡ 快取秒開：入密碼即刻用上次資料填滿（唔再彈「未載入雲端資料」+ 重新載入），背景 fetch 覆蓋到最新
   if(!CLOUD_LOADED){ const cached=readCoachLoad(); if(cached){ try{ applyCoachLoadData(cached); CLOUD_LOADED=true; setSyncIndicator('ok'); renderHome(); }catch(e){} } }
@@ -2135,8 +2144,8 @@ function coachToday(){
 /* ⚡ 教練端快取（每日點名）：安全，因 markAttendance 冪等——顯示快取幾秒後背景 fetch 覆蓋，
    就算嗰陣重標都只係覆寫、無害。只快取「載入完成」嘅回應，唔快取「點名中」狀態。 */
 let coachDailyData = null;   // 當前日期已載入嘅點名資料（供樂觀更新後同步快取）
-function saveCoachDaily(date,r){ try{ localStorage.setItem('is_coach_daily_'+date, JSON.stringify({r,t:Date.now()})); }catch(e){} }
-function readCoachDaily(date){ try{ const c=JSON.parse(localStorage.getItem('is_coach_daily_'+date)||'null'); if(c&&c.r&&c.r.ok&&(Date.now()-c.t<2*864e5)) return c.r; }catch(e){} return null; }
+function saveCoachDaily(date,r){ try{ localStorage.setItem('sa_coach_daily_'+date, JSON.stringify({r,t:Date.now()})); }catch(e){} }
+function readCoachDaily(date){ try{ const c=JSON.parse(localStorage.getItem('sa_coach_daily_'+date)||'null'); if(c&&c.r&&c.r.ok&&(Date.now()-c.t<2*864e5)) return c.r; }catch(e){} return null; }
 // 點名後同步更新快取，令下次秒開已反映（唔會嚇親以為冇存到）
 function patchCoachCache(name, key, status, mk){
   if(!coachDailyData||!coachDailyData.list) return;
@@ -2389,8 +2398,8 @@ function installManifest(){
 let COACH_PASS_RT = (function(){ try{
   // 🔒 安全：唔再持久記住密碼。只喺當前 session 有效（App 一閂再開就要重新輸入密碼），
   //    防止「淨係有連結就直接打開」。清走舊版 localStorage 記住嘅密碼。
-  localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t');
-  return sessionStorage.getItem('is_cpass')||'';
+  localStorage.removeItem('sa_cpass'); localStorage.removeItem('sa_cpass_t');
+  return sessionStorage.getItem('sa_cpass')||'';
 }catch(e){ return ''; } })();
 function cpass(){ return COACH_PASS_RT; }
 /* ── 逐節封鎖補堂：封鎖某「班|日期」唔畀學生揀嚟補堂（只封補堂，正規班照上）── */
@@ -2471,7 +2480,7 @@ async function postTransfer(){
   if(!date){ toast('請揀生效日期','⚠️'); return; }
   if(fromCid===toCid){ toast('新班同原班一樣','⚠️'); return; }
   let r; try{ r=await apiPost({action:'transfer', name, fromCid, toCid, date}); }catch(e){ r=null; }
-  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("is_cpass");}catch(e){} toast("請重新輸入教練密碼","⚠️"); coachLogout(); return; }
+  if(r&&r.err==="密碼錯誤"){ COACH_PASS_RT=""; try{localStorage.removeItem("sa_cpass");}catch(e){} toast("請重新輸入教練密碼","⚠️"); coachLogout(); return; }
   if(!r||!r.ok){ toast(r&&r.err?"失敗："+r.err:"調班失敗","⚠️"); return; }
   if(r.dup) toast('呢個調班已經設過');
   else { toast('已調班：'+r.name); alert('✓ 已調班：'+r.name+'\n'+r.from+' → '+r.to+'（'+r.date+' 起）\n\n'+(r.feeNote||'')); }
@@ -2502,7 +2511,7 @@ async function coachGateSubmit(){
   let r; try{ r=await apiPost({action:'coachLogin', coachPass:v}); }catch(e){ r=null; }
   btn.disabled=false; btn.textContent='登入';
   if(!r||!r.ok){ document.getElementById('cg-err').textContent='密碼錯誤'; return; }
-  COACH_PASS_RT=v; try{ sessionStorage.setItem('is_cpass',v); localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); }catch(e){}  // 🔒 只存 session，唔持久記住
+  COACH_PASS_RT=v; try{ sessionStorage.setItem('sa_cpass',v); localStorage.removeItem('sa_cpass'); localStorage.removeItem('sa_cpass_t'); }catch(e){}  // 🔒 只存 session，唔持久記住
   document.getElementById('cg-err').textContent='';
   document.getElementById('coach-gate').style.display='none';
   // 若有待補交嘅點名（密碼過期時暫存），趁 loadFromSheets 覆蓋前先補交返上伺服器
@@ -2512,7 +2521,7 @@ async function coachGateSubmit(){
   showScreen('home', false); await loadFromSheets(); checkHealth();
 }
 function coachLogout(){
-  COACH_PASS_RT=''; try{ localStorage.removeItem('is_cpass'); localStorage.removeItem('is_cpass_t'); localStorage.removeItem('is_coach_load'); sessionStorage.removeItem('is_cpass'); }catch(e){}
+  COACH_PASS_RT=''; try{ localStorage.removeItem('sa_cpass'); localStorage.removeItem('sa_cpass_t'); localStorage.removeItem('sa_coach_load'); sessionStorage.removeItem('sa_cpass'); }catch(e){}
   CLOUD_LOADED=false;
   const g=document.getElementById('coach-gate'); g.style.display='flex';
   document.getElementById('cg-pass').value='';
@@ -2523,7 +2532,7 @@ function coachLogout(){
 /* 手動刷新：教練撳頂部「🔄」強制攞最新版（cache-bust 重載，繞過 iOS 主畫面 icon 頑固快取）。 */
 function forceRefresh(){
   try{ toast('🔄 更新緊…'); }catch(e){}
-  try{ sessionStorage.removeItem('is_upd_tried'); }catch(e){}
+  try{ sessionStorage.removeItem('sa_upd_tried'); }catch(e){}
   location.replace(location.pathname + '?_r=' + Date.now());   // 全新 URL → 一定攞伺服器最新版
 }
 async function checkForUpdate(){
@@ -2541,8 +2550,8 @@ function showUpdateBanner(latest){
   if(document.getElementById('update-banner')) return;
   // ① 先自動 cache-bust 重載一次（每個新版本只自動試一次，防死循環）——多數情況一次就更到新版
   try{
-    if(sessionStorage.getItem('is_upd_tried') !== latest){
-      sessionStorage.setItem('is_upd_tried', latest);
+    if(sessionStorage.getItem('sa_upd_tried') !== latest){
+      sessionStorage.setItem('sa_upd_tried', latest);
       location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
       return;
     }
@@ -2552,7 +2561,7 @@ function showUpdateBanner(latest){
   ov.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,.97);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center;font-size:15px;line-height:1.65';
   ov.innerHTML='<div style="font-size:46px">🔄</div><div style="font-weight:800;font-size:19px">系統已更新<br>必須更新先可以繼續點名</div><div style="opacity:.9;max-width:340px">你而家用緊舊版本，舊版可能令點名<b>儲存唔到</b>。<br>撳「立即更新」；若撳完仲係舊版，請<b>刪除主畫面圖示 → 重新加到主畫面</b>（iOS 主畫面 App cache 太黐要咁樣清）。</div>';
   const btn=document.createElement('button'); btn.textContent='🔄 立即更新'; btn.style.cssText='background:#fff;color:#2563eb;border:0;border-radius:12px;padding:14px 30px;font-family:inherit;font-weight:800;font-size:17px;cursor:pointer';
-  btn.onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  btn.onclick=function(){ try{sessionStorage.removeItem('sa_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
   ov.appendChild(btn); document.body.appendChild(ov);
 }
 document.addEventListener('DOMContentLoaded', async function(){
