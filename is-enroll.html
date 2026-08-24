@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-24-scholarship';
+const FRONTEND_VERSION='enroll-2026-08-24-phoneid';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1056,7 +1056,7 @@ function renderLogin(){
   document.getElementById('li_phone').addEventListener('keydown',e=>{ if(e.key==='Enter') doIdentify(); });
 }
 /* 入場：一個 form 打名+電話後4位 → 後端自動分辨新/舊生，前端據結果分流。 */
-async function doIdentify(){
+async function doIdentify(skipSuggest){
   if(PREVIEW){
     const _as=(new URLSearchParams(location.search).get('as')||'').trim();
     const _pin=(new URLSearchParams(location.search).get('pin')||'').replace(/\D/g,'').slice(-4);
@@ -1089,6 +1089,14 @@ async function doIdentify(){
   catch(e){ btn.disabled=false; btn.textContent='下一步'; msg.className='msg err'; msg.textContent='連線逾時，請再試。'; return; }
   btn.disabled=false; btn.textContent='下一步';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'核對失敗，請確認姓名同電話。'; return; }
+  // 📱 電話對到已登記學生但打嘅名唔同（多數係中文異體字／打錯字）→ 請家長確認，防被當新生收貴。老闆 2026-08-24。
+  if(!skipSuggest && !res.known && Array.isArray(res.suggest) && res.suggest.length){
+    msg.className='msg';
+    msg.innerHTML = '📱 用呢個電話搵到已登記學生：'
+      + res.suggest.map(n=>`<button type="button" onclick="pickSuggest('${esc(n)}')" style="margin:4px 4px 0 0;padding:6px 14px;border:1px solid var(--teal);background:rgba(27,175,189,.08);color:var(--teal);border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">${esc(n)}</button>`).join('')
+      + `<div style="margin-top:8px;font-size:12.5px;line-height:1.7;color:var(--muted)">如果係<b>同一位</b>學生（中文名可能有異體字或打錯咗），撳返正確名即可享<b>舊生優惠價</b>。<br>如果真係<b>新學生</b>，請撳 <button type="button" onclick="doIdentify(true)" style="background:none;border:none;color:var(--teal);text-decoration:underline;cursor:pointer;font-size:12.5px;padding:0">繼續用「${esc(name)}」報名 →</button></div>`;
+    return;
+  }
   S.family={name, phone, last4, isOld:!!res.isOld, tier:res.tier||'新生'};
   S.isNew=!res.known;
   S.oldPrices=res.oldPrices||null;   // 舊生價 map（只有已驗證舊生先攞到；新生為 null）→ 課程卡/收費一覽用呢個顯示舊生價
@@ -1097,6 +1105,10 @@ async function doIdentify(){
   S.courses=[]; S.quote=null; S.payImg='';   // 換學生時清空上一位嘅揀選
   S.credit={remaining:res.creditRemaining||0, summer:res.summer||0, referral:res.referral||0};
   renderProfileScreen();   // 登入後 → 先填/核對資料，再顯示收費（老闆調序）
+}
+function pickSuggest(n){   // 家長撳返正確名 → 用該名重新核對（會認到現有生、享舊生價）
+  const el=document.getElementById('li_name'); if(el) el.value=n;
+  doIdentify();
 }
 async function lookupMine(){
   const name=document.getElementById('li_name').value.trim();
