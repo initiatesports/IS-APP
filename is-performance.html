@@ -245,7 +245,7 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-24-v2';
+const APP_VERSION='growth-2026-08-24-v3';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -488,6 +488,7 @@ function cohortBadge(name,metric){const c=cohortStat(name,metric);if(!c)return '
 const ROUTES=[
   {id:'dash',name:'概覽',icon:'dash',render:renderDash},
   {id:'classtest',name:'課堂測試',icon:'activity',render:renderClassTest},
+  {id:'insights',name:'教練提示',icon:'flame',render:renderInsights},
   {id:'leaders',name:'排行榜',icon:'medal',render:renderLeaders},
   {id:'perf',name:'成績',icon:'chart',render:renderPerf},
   {id:'body',name:'體測',icon:'ruler',render:renderBody},
@@ -587,6 +588,22 @@ function renderDash(){
 }
 function kpi(icon,color,bg,n,unit,label){return `<div class="kpi"><div class="ic" style="background:${bg};color:${color}">${ico(icon)}</div><div class="n tnum">${n}${unit?`<small>${unit}</small>`:''}</div><div class="l">${label}</div></div>`;}
 function emptyBox(t,s){return `<div class="empty">${ico('info')}<div class="t">${esc(t)}</div>${s?`<div>${esc(s)}</div>`:''}</div>`;}
+
+/* ═══════════════════ 教練提示（智能）═══════════════════ */
+function renderInsights(){
+  const {approach,plateau,untested}=insights();
+  const box=(title,icon,color,items,body)=>`<div class="card card-pad"><div class="sec-h"><div class="ic" style="color:${color}">${ico(icon)}</div><h3>${title}</h3><div class="sp"></div><span class="pill" style="background:${color}18;color:${color}">${items}</span></div>${body}</div>`;
+  $('#view').innerHTML=`
+  <div class="mut" style="margin-bottom:16px;font-size:13px">課堂前一眼睇晒：邊個接近破紀錄可以推、邊個停滯要關注、邊個未測要補。</div>
+  <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+    ${box('接近破紀錄 · 可推一把','trend','#c79a3e',approach.length,
+      approach.length?`<table class="tbl"><tbody>${approach.slice(0,14).map(a=>`<tr onclick="openStudent('${esc(a.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:9px">${avatarHTML(a.name)}<b>${esc(a.name)}</b></td><td class="mut">${esc(METRICS[a.metric].short)}</td><td class="num">${a.latest} <span class="mut">/ ${a.best}</span></td><td class="num"><span class="chip" style="background:var(--gold-w);color:var(--gold)">差 ${a.gap}</span></td></tr>`).join('')}</tbody></table>`:emptyBox('暫時冇','继续加油'))}
+    ${box('停滯／退步 · 要關注','activity','#d0533f',plateau.length,
+      plateau.length?`<table class="tbl"><tbody>${plateau.slice(0,14).map(p=>`<tr onclick="openStudent('${esc(p.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:9px">${avatarHTML(p.name)}<b>${esc(p.name)}</b></td><td class="mut">${esc(METRICS[p.metric].short)}</td><td class="num">${p.prev} → ${p.latest}</td><td class="num mut" style="font-weight:400">${md(p.date)}</td></tr>`).join('')}</tbody></table>`:emptyBox('冇停滯','全部進步緊 👍'))}
+  </div>
+  <div style="margin-top:16px">${box('75 日未測 · 要補測','cal','#0f8996',untested.length,
+    untested.length?`<div style="display:flex;flex-wrap:wrap;gap:8px">${untested.slice(0,40).map(u=>`<span onclick="openStudent('${esc(u.name)}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:7px;background:var(--wash);border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600">${esc(u.name)} <span class="mut" style="font-size:11px">${esc(classLabel(u.cid))}</span></span>`).join('')}${untested.length>40?`<span class="mut" style="align-self:center">…等 ${untested.length} 人</span>`:''}</div>`:emptyBox('全部近期有測','資料齊全'))}</div>`;
+}
 
 /* ═══════════════════ 課堂測試（核心）═══════════════════ */
 let CT_CLASS=null, CT_METRIC='rope30', CT_DATE=todayISO(), CT_STAGED={};
@@ -780,8 +797,12 @@ function renderStudentProfile(name){
     <div style="flex:1"><div style="font-size:24px;font-weight:800;color:var(--navy)">${esc(name)}</div><div class="mut" style="font-size:13px">${esc((CLASSMAP[name]||[]).map(classLabel).join('、')||'—')}</div></div>
     <div style="text-align:center"><div style="font-size:30px;font-weight:800;color:var(--gold);line-height:1">${g.grade}</div><div class="mut" style="font-size:11px;margin-top:2px">${'★'.repeat(g.stars)}${'☆'.repeat(5-g.stars)}</div></div>
     <div style="text-align:center;padding-left:18px;border-left:1px solid var(--line)"><div style="font-size:26px;font-weight:800;color:var(--up);line-height:1" class="tnum">${g.avg>0?'+'+g.avg+'%':'—'}</div><div class="mut" style="font-size:11px;margin-top:3px">平均進步</div></div>
-    <button class="btn btn-teal btn-sm" onclick="openReport('${esc(name)}')">${ico('report')}成長報告</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="pickCardMetric('${esc(name)}')">📲 成績卡</button>
+      <button class="btn btn-teal btn-sm" onclick="openReport('${esc(name)}')">${ico('report')}成長報告</button>
+    </div>
   </div>
+  ${badgesFor(name).length?`<div class="card card-pad" style="margin-bottom:16px"><div class="sec-h" style="margin-bottom:12px"><div class="ic" style="color:var(--gold)">${ico('medal')}</div><h3>成就徽章</h3></div><div style="display:flex;flex-wrap:wrap;gap:10px">${badgesFor(name).map(b=>`<div title="${esc(b.desc)}" style="display:flex;align-items:center;gap:9px;background:var(--gold-w);border:1px solid #ecdcae;border-radius:12px;padding:9px 14px"><span style="font-size:22px">${b.emoji}</span><b style="font-size:13.5px;color:#a67c22">${esc(b.name)}</b></div>`).join('')}</div></div>`:''}
   <div class="grid" style="grid-template-columns:1fr 1fr">
     <div class="card card-pad"><div class="sec-h"><div class="ic">${ico('chart')}</div><h3>成績項目</h3><div class="sp"></div><span class="mut" style="font-size:11.5px">撳項目可改/刪紀錄</span></div>
       ${mets.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>項目</th><th class="num">最新</th><th class="num">最佳</th><th class="num">進步</th><th>同齡</th><th></th></tr></thead><tbody>${mets.map(m=>{const s=series(name,m);const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const d=s.length>=2?round(l-f,1):null;return `<tr onclick="openMetricEditor('${esc(name)}','${m}')" style="cursor:pointer"><td><b>${esc(METRICS[m].short)}</b></td><td class="num"><b>${l}</b></td><td class="num"><span class="pill gold">${best}</span></td><td class="num">${d==null?'—':d>0?'<span class="chip up">+'+d+'</span>':d<0?'<span class="chip down">'+d+'</span>':'—'}</td><td>${cohortBadge(name,m)||'<span class="mut" style="font-size:11px">—</span>'}</td><td style="text-align:right;color:var(--mut)">${ico('edit')}</td></tr>`;}).join('')}</tbody></table></div>`:emptyBox('未有成績','')}
@@ -994,6 +1015,111 @@ function reportDoc(pages,title){
   </style></head><body>${pages.join('')}
   <div style="text-align:center;padding:16px" class="noprint"><button onclick="window.print()" style="background:#0f8996;color:#fff;border:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">列印 / 儲存 PDF</button></div>
   <style>@media print{.noprint{display:none}}</style></body></html>`;
+}
+
+/* ═══════════════════ B. 成就徽章（前端推算，唔寫#11）═══════════════════ */
+const BADGE_DEFS=[
+  {id:'cohort1',name:'同齡第一',emoji:'👑',desc:'有項目同齡排名第一'},
+  {id:'pb',name:'破個人最佳',emoji:'🏅',desc:'最近測試刷新個人最佳'},
+  {id:'streak',name:'連續進步',emoji:'🔥',desc:'有項目連續進步'},
+  {id:'century',name:'跳繩百下',emoji:'💯',desc:'30秒前繩達 100+'},
+  {id:'allround',name:'全能之星',emoji:'⭐',desc:'5 個以上項目有紀錄'},
+  {id:'gradeA',name:'A級成長',emoji:'🎓',desc:'綜合成長評級 A'},
+];
+function badgeIds(name){
+  const out=[];
+  if(studentMetrics(name).some(m=>{const c=cohortStat(name,m);return c&&!c.small&&c.rank===1;}))out.push('cohort1');
+  if(studentMetrics(name).some(m=>{const s=series(name,m);return s.length>=2&&s[s.length-1].val>=Math.max(...s.map(r=>r.val));}))out.push('pb');
+  if(studentMetrics(name).some(m=>{const s=series(name,m);if(s.length<3)return false;let k=0;for(let i=s.length-1;i>0;i--){if(s[i].val>s[i-1].val)k++;else break;}return k>=2;}))out.push('streak');
+  if((pb(name,'rope30')||0)>=100)out.push('century');
+  if(studentMetrics(name).length>=5)out.push('allround');
+  if(gradeFor(name).grade.charAt(0)==='A')out.push('gradeA');
+  return out;
+}
+function badgesFor(name){return badgeIds(name).map(id=>BADGE_DEFS.find(b=>b.id===id)).filter(Boolean);}
+
+/* ═══════════════════ C. 智能教練提示 ═══════════════════ */
+function insights(){
+  const approach=[],plateau=[],untested=[];
+  const cut=(()=>{const d=new Date();d.setDate(d.getDate()-75);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  ROSTER.filter(hasAnyData).forEach(n=>{
+    studentMetrics(n).forEach(m=>{const s=series(n,m);
+      if(s.length>=2){const best=Math.max(...s.map(r=>r.val)),l=s[s.length-1].val;if(l<best&&l>=best*0.95)approach.push({name:n,metric:m,latest:l,best,gap:round(best-l,1)});}
+      if(s.length>=3){const l=s[s.length-1].val,p=s[s.length-3].val;if(l<=p)plateau.push({name:n,metric:m,latest:l,prev:p,date:s[s.length-1].date});}
+    });
+  });
+  activeClasses().forEach(c=>classStudents(c).forEach(n=>{const s=series(n,'rope30');const last=s.length?s[s.length-1].date:null;if(!last||last<cut)untested.push({name:n,cid:c,last});}));
+  approach.sort((a,b)=>a.gap-b.gap);
+  return {approach,plateau,untested};
+}
+
+/* ═══════════════════ A. WhatsApp 成績卡（canvas 生成，可分享）═══════════════════ */
+function loadImg(src){return new Promise(res=>{if(!src){res(null);return;}const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
+function rr(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
+async function makeCard(name,metric){
+  const W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  const F="'PingFang HK','Noto Sans HK','Microsoft JhengHei',sans-serif";
+  const mt=METRICS[metric]||{lab:metric,u:''};const s=series(name,metric);
+  const l=s.length?s[s.length-1].val:null,best=s.length?Math.max(...s.map(r=>r.val)):null;
+  const prev=s.length>=2?s[s.length-2].val:null,delta=prev!=null&&l!=null?round(l-prev,1):null;
+  const isPB=l!=null&&best!=null&&l>=best;const co=cohortStat(name,metric);
+  x.fillStyle='#eef2f4';x.fillRect(0,0,W,H);
+  // 頂 navy
+  const g=x.createLinearGradient(0,0,W,360);g.addColorStop(0,'#132a3e');g.addColorStop(1,'#1c3d59');x.fillStyle=g;x.fillRect(0,0,W,360);
+  // logo
+  x.fillStyle='#0f2536';rr(x,64,60,84,84,20);x.fill();x.strokeStyle='#1BAFBD';x.lineWidth=11;x.lineCap='round';x.lineJoin='round';x.beginPath();x.moveTo(86,124);x.lineTo(102,106);x.lineTo(114,116);x.lineTo(134,92);x.stroke();x.fillStyle='#c79a3e';x.beginPath();x.arc(134,92,7,0,7);x.fill();
+  x.fillStyle='#9fe4ec';x.font='700 30px '+F;x.textBaseline='alphabetic';x.fillText('INITIATE SPORTS',170,100);
+  x.fillStyle='#fff';x.font='800 40px '+F;x.fillText('成績報告卡',170,148);
+  x.fillStyle='#c5dbe4';x.font='500 26px '+F;x.textAlign='right';x.fillText(dmy(s.length?s[s.length-1].date:todayISO()),W-64,110);x.textAlign='left';
+  // 學生相 + 名
+  const img=await loadImg(PHOTOS[name]);const cx=150,cy=470,cr=92;
+  x.save();x.beginPath();x.arc(cx,cy,cr,0,7);x.closePath();x.clip();
+  if(img){const ar=Math.max((cr*2)/img.width,(cr*2)/img.height);x.drawImage(img,cx-img.width*ar/2,cy-img.height*ar/2,img.width*ar,img.height*ar);}
+  else{x.fillStyle='#1BAFBD';x.fillRect(cx-cr,cy-cr,cr*2,cr*2);x.fillStyle='#fff';x.font='800 90px '+F;x.textAlign='center';x.textBaseline='middle';x.fillText(initials(name),cx,cy);x.textAlign='left';x.textBaseline='alphabetic';}
+  x.restore();x.lineWidth=6;x.strokeStyle='#fff';x.beginPath();x.arc(cx,cy,cr,0,7);x.stroke();
+  x.fillStyle='#132a3e';x.font='800 60px '+F;x.fillText(name,270,455);
+  x.fillStyle='#6d7c84';x.font='500 30px '+F;x.fillText((ageOf(name)!=null?ageOf(name)+'歲 · ':'')+((CLASSMAP[name]||[]).map(classLabel)[0]||'INITIATE SPORTS'),272,500);
+  // 主成績卡
+  rr(x,64,600,W-128,300,28);x.fillStyle='#fff';x.fill();
+  x.fillStyle='#6d7c84';x.font='700 34px '+F;x.fillText(mt.lab,110,672);
+  if(isPB){x.fillStyle='#c79a3e';rr(x,W-320,632,240,58,29);x.fill();x.fillStyle='#fff';x.font='800 30px '+F;x.textAlign='center';x.fillText('🏅 個人最佳',W-200,671);x.textAlign='left';}
+  x.fillStyle='#132a3e';x.font='800 170px '+F;x.fillText(l!=null?l:'—',104,840);
+  x.fillStyle='#9aa4a9';x.font='600 46px '+F;const lw=x.measureText(l!=null?String(l):'—').width;x.fillText(' '+mt.u,104+ (l!=null?x.measureText(String(l)).width:60)+14,838);
+  // delta + cohort（右下）
+  let ry=730;x.textAlign='right';
+  if(delta!=null){x.fillStyle=delta>0?'#1f9d6b':(delta<0?'#d0533f':'#9aa4a9');x.font='800 44px '+F;x.fillText((delta>0?'▲ +':delta<0?'▼ ':'')+delta+' 較上次',W-110,ry);ry+=58;}
+  if(best!=null){x.fillStyle='#c79a3e';x.font='700 36px '+F;x.fillText('個人最佳 '+best,W-110,ry);ry+=52;}
+  if(co&&!co.small){x.fillStyle='#0f8996';x.font='700 34px '+F;x.fillText(co.rank===1?'同齡第一 👑':'同齡前 '+Math.max(1,Math.round(co.rank/co.total*100))+'%',W-110,ry);}
+  x.textAlign='left';
+  // 徽章
+  const bs=badgesFor(name).slice(0,6);
+  if(bs.length){x.fillStyle='#6d7c84';x.font='700 30px '+F;x.fillText('本年成就',64,990);
+    bs.forEach((b,i)=>{const bx=64+i*168;rr(x,bx,1010,152,120,20);x.fillStyle='#fff';x.fill();x.strokeStyle='#e3eaed';x.lineWidth=2;x.stroke();
+      x.font='54px '+F;x.textAlign='center';x.fillText(b.emoji,bx+76,1072);x.fillStyle='#6d7c84';x.font='700 20px '+F;x.fillText(b.name,bx+76,1108);x.textAlign='left';});}
+  // 頁尾
+  x.fillStyle='#132a3e';rr(x,0,H-120,W,120,0);x.fill();
+  x.fillStyle='#fff';x.font='800 30px '+F;x.fillText('AIM HIGH · JUMP HIGH',64,H-58);
+  x.fillStyle='#9fe4ec';x.font='500 26px '+F;x.textAlign='right';x.fillText('www.initiatesportshk.com',W-64,H-58);x.textAlign='left';
+  return cv;
+}
+async function shareCard(name,metric){
+  if(!series(name,metric).length){toast('呢個學生喺呢個項目未有紀錄','err');return;}
+  toast('生成成績卡中…');
+  try{const cv=await makeCard(name,metric);
+    cv.toBlob(async blob=>{
+      const file=new File([blob],name+'_'+(METRICS[metric]?METRICS[metric].short:metric)+'_成績卡.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name+' 成績卡'});return;}catch(e){}}
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;document.body.appendChild(a);a.click();a.remove();
+      toast('已儲存成績卡，可分享去 WhatsApp','ok');
+    },'image/png');
+  }catch(e){toast('生成失敗：'+e.message,'err');}
+}
+function pickCardMetric(name){
+  const mets=studentMetrics(name);if(!mets.length){toast('未有成績','err');return;}
+  openModal(`<div class="modal-h"><h3>${esc(name)} · 成績卡</h3><button class="x" onclick="closeModal()">${ico('x')}</button></div>
+    <div class="modal-b"><label class="lbl">揀項目生成卡片</label><div style="display:flex;flex-wrap:wrap;gap:8px">${mets.map(m=>`<button class="chipbtn" onclick="closeModal();shareCard('${esc(name)}','${m}')">${esc(METRICS[m].short)}</button>`).join('')}</div>
+    <div class="mut" style="font-size:12px;margin-top:14px">生成後可直接分享去 WhatsApp（手機）或儲存圖片。</div></div>
+    <style>.chipbtn{padding:9px 15px;font-size:14px;font-weight:700;color:var(--mut);background:#eef3f5;border-radius:9px}.chipbtn:hover{background:var(--teal-d);color:#fff}</style>`);
 }
 
 /* ═══════════════════ 啟動 ═══════════════════ */
