@@ -159,7 +159,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-21-audit';
+const FRONTEND_VERSION='enroll-2026-08-24-scholarship';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1381,13 +1381,14 @@ async function renderFee(){
   const priced = res.base>0;
   const anyWait = cs.some(c=>c.full);
   const chargedN = cs.filter(c=>!c.full).length;
-  const hasDisc = (res.multiDisc>0)||(res.credit>0);
+  const hasDisc = (res.multiDisc>0)||(res.credit>0)||(res.scholarship>0);
   const tierTxt = res.isOld ? `<span class="pill">舊學員價</span>` : '';   // 只對舊生正面標示；新生唔顯示，免見價差
   const itemLines = cs.map(c=> c.full
     ? `<div class="q dim"><span>${esc(c.sport)} <span class="pill" style="background:#fdecea;color:var(--err);margin:0">候補</span></span><span>暫免</span></div>`
     : `<div class="q dim"><span>${esc(c.sport)}</span><span>${money(c.price)}</span></div>`).join('');
   const multiLine = res.multiDisc>0 ? `<div class="q credit"><span>多堂折扣（報 ${res.multiCount} 班，每多一班減 $100）</span><span>− ${money(res.multiDisc)}</span></div>` : '';
   const creditLine = res.credit>0 ? `<div class="q credit"><span>優惠券／推薦折扣</span><span>− ${money(res.credit)}</span></div>` : '';
+  const scholarLine = res.scholarship>0 ? `<div class="q credit"><span>🎓 獎學金券${res.scholarshipCode?('（'+esc(res.scholarshipCode)+'）'):''}</span><span>− ${money(res.scholarship)}</span></div>` : '';
   const pendNote = res.creditRemaining>0 ? `<p class="hint">你仲有 ${money(res.creditRemaining)} 優惠餘額（每期最多抵 $200，餘額自動順延下期）。</p>` : '';
   const perNote = (chargedN===1 && !anyWait && res.net>0) ? `（約每堂 $${Math.round(res.net/(res.sessions||8))}）` : '';
   // 混合堂數(如網球3堂+跳繩8堂)唔用單一「共N堂」誤導；逐科堂數已喺上面各行日期顯示。
@@ -1408,7 +1409,7 @@ async function renderFee(){
   }else{
     quoteInner = `${itemLines}
       ${hasDisc?`<div class="q dim"><span>小計${tierTxt}</span><span>${money(res.base)}</span></div>`:''}
-      ${multiLine}${creditLine}${uLine}${gLine}
+      ${multiLine}${creditLine}${scholarLine}${uLine}${gLine}
       <div class="q net"><span>${(uCost>0||gearCost>0)?'總計應付':'實付'}</span><span>${money(grand)}</span></div>`;
   }
   const body = priced ? `<div class="quote">${quoteInner}</div>${sessNote}${pendNote}` :
