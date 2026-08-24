@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coachsports-2026-08-24-protect';
+const FRONTEND_VERSION = 'coachsports-2026-08-25-timeout';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -504,7 +504,7 @@ let syncStatus       = 'idle';
 /* ═══════════ 三、API 通訊 ═══════════ */
 async function apiGet(params){
   const url = API_URL + '?' + new URLSearchParams(params);
-  const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);
+  const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
   try{ const res = await fetch(url,{signal:c.signal}); return await res.json(); } finally{ clearTimeout(tm); }
 }
 // 讀取快取（stale-while-revalidate）：切返開過嘅 tab 即顯快取、背景攞新→唔使每次等 3 秒平台冷啟動。
@@ -515,7 +515,7 @@ async function apiPost(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
-  const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);
+  const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
   const res = await (async()=>{ try{ return await fetch(API_URL, { method:'POST', body:JSON.stringify(payload), signal:c.signal }); } finally{ clearTimeout(tm); } })();
   const j = await res.json();
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取

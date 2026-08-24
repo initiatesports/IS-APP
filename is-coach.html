@@ -106,7 +106,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'coach9-2026-08-24-protect';
+const FRONTEND_VERSION = 'coach9-2026-08-25-timeout';
 const WDN=["日","一","二","三","四","五","六"];
 const SPORT={badminton:{name:"羽毛球",color:"var(--badminton)"},basketball:{name:"籃球",color:"var(--basketball)"},
   gym:{name:"體操",color:"var(--gym)"},athletics:{name:"田徑",color:"var(--athletics)"},
@@ -128,7 +128,7 @@ async function api(action,p={}){
   let lastErr;
   for(let attempt=0;attempt<2;attempt++){
     try{
-      const c=new AbortController(),tm=setTimeout(()=>c.abort(),18000);
+      const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
       try{ const res=await fetch(CONFIG.API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
         body:JSON.stringify({action,coachPass:COACH_PASS_RT,...p}),signal:c.signal});
         return await res.json(); } finally{ clearTimeout(tm); }
