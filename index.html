@@ -439,6 +439,28 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:-apple-sy
 .hero-login-hint{margin-top:18px;font-size:13px;color:var(--muted)}
 .hero-login-hint a{color:var(--cyan);font-weight:700;text-decoration:none}
 .hero-login-hint a:hover{color:var(--cyan-deep)}
+
+/* ══════════ 升級 v2：品牌動態 + 高級微互動（2026-08-26）══════════ */
+.hero-title span{background:linear-gradient(120deg,#147180,#1B8D9B 40%,#3ECFCF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hs-n{background:linear-gradient(120deg,#147180,#1B8D9B);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@keyframes heroUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:no-preference){
+  .panel.active .hero-logo-wrap{animation:heroUp .6s .02s both cubic-bezier(.2,.9,.3,1.1)}
+  .panel.active .hero-title{animation:heroUp .6s .08s both cubic-bezier(.2,.9,.3,1.1)}
+  .panel.active .hero-sub{animation:heroUp .55s .15s both}
+  .panel.active .hero-desc{animation:heroUp .55s .21s both}
+  .panel.active .hero-pills{animation:heroUp .55s .27s both}
+  .panel.active .hero-btns{animation:heroUp .55s .33s both}
+  .panel.active .hero-stats{animation:heroUp .55s .39s both}
+}
+.btn-hero-p.primary{background:linear-gradient(120deg,#1B8D9B,#18a0b0);box-shadow:0 8px 22px rgba(27,141,155,.28);transition:transform .15s,box-shadow .15s,filter .15s}
+.btn-hero-p.primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(27,141,155,.34);filter:brightness(1.04)}
+.btn-hero-p.secondary{transition:transform .15s,border-color .15s}
+.btn-hero-p.secondary:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.home-card{box-shadow:var(--shadow);transition:transform .16s,box-shadow .16s,border-color .16s}
+.home-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(20,33,48,.1);border-color:rgba(27,141,155,.3)}
+.hero-pill{transition:transform .14s,box-shadow .14s}
+.hero-pill:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(27,141,155,.14)}
 /* 為什麼選擇我們 */
 .why-grid{max-width:980px;margin:6px auto 4px;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
 .why-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 4px 16px rgba(20,33,48,.05);transition:transform .2s,box-shadow .2s}
