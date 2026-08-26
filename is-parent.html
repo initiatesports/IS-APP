@@ -148,6 +148,8 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .fam-head{font-weight:700;font-size:14px;color:var(--muted);margin:2px 2px 14px;}
 .child-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 2px 12px;}
 .child-head{font-weight:900;font-size:21px;color:var(--navy);letter-spacing:.2px;}
+.rpt-btn{flex:none;background:linear-gradient(135deg,#0f8996,#12a3b2);color:#fff;border:0;border-radius:11px;padding:9px 13px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(15,137,150,.28);white-space:nowrap;}
+.rpt-btn:active{transform:translateY(1px);}
 .hist-btn{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);
   border-radius:10px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
 .period-bar{display:flex;gap:8px;margin:4px 0 16px;overflow-x:auto;scrollbar-width:none;}
@@ -247,7 +249,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-26-feat1';
+const FRONTEND_VERSION='parent-2026-08-26-report';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -294,6 +296,9 @@ const T={
   fbFollow:{zh:'追蹤我哋 Facebook',en:'Follow us on Facebook'},
   famHead:{zh:n=>`👨‍👩‍👧‍👦 一個電話 · 睇晒 ${n} 個小朋友`,en:n=>`👨‍👩‍👧‍👦 One phone · viewing ${n} children`},
   ofClasses:{zh:'的課堂',en:"'s classes"},
+  growthReport:{zh:'成長報告',en:'Growth report'},
+  reportOpening:{zh:'正在開啟成長報告…',en:'Opening growth report…'},
+  reportUnavail:{zh:'報告暫時未能開啟，請登出後重新登入。',en:'Report unavailable — please log out and log in again.'},
   history:{zh:'📋 歷史記錄',en:'📋 History'},
   dlSoon:{zh:(n,d)=>`⏰ 你有 ${n} 堂補堂限期將於 ${d} 日內到期，請盡快約補堂。`,en:(n,d)=>`⏰ ${n} make-up class(es) expiring within ${d} day(s). Please book soon.`},
   weatherOff:{zh:d=>`⚠️ 今日（${d}）天氣停課，所有課堂取消。請留意 WhatsApp 群組通知。`,en:d=>`⚠️ Classes cancelled today (${d}) due to weather. Please check the WhatsApp group.`},
@@ -556,7 +561,7 @@ async function ensureLatestBeforeLogin(){
 // 把 login 回應套入狀態（doLogin / 快取 / 背景刷新 共用）
 function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
-  S.family={authName:name,last4,children:kids}; S.session={name,last4};
+  S.family={authName:name,last4,children:kids,childTokens:(r.childTokens||{})}; S.session={name,last4};
   S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
@@ -651,6 +656,18 @@ function famSummary(kids){
     <div class="kpi"><div class="ic" style="background:${dClear?'var(--green-dim)':(payShown&&due>0?'var(--amber-dim)':'var(--surface2)')};color:${dClear?'var(--green)':(payShown&&due>0?'var(--amber-ink)':'var(--muted)')}">💳</div><div class="n" style="${dClear?'color:var(--green)':''}">${dTop}</div><div class="l">${periodLabel(S.period)} ${dSub}</div></div>
   </div>`;
 }
+/* 📈 個人成長報告：每個仔女一個掣 → 同源交接授權去 is-performance.html?report=1（重用教練端報告產生器，家長只見自己仔女）。 */
+function growthReportBtn(name){
+  return `<button class="rpt-btn" data-name="${String(name).replace(/"/g,'&quot;')}" onclick="openGrowthReport(this.getAttribute('data-name'))">📈 ${t('growthReport')}</button>`;
+}
+function openGrowthReport(name){
+  const tok=(S.family&&S.family.childTokens&&S.family.childTokens[name])||'';
+  if(!tok){ toast(t('reportUnavail')); return; }
+  const last4=(S.family&&S.family.last4)||'';
+  try{ localStorage.setItem('is_report_grant', JSON.stringify({name:name,last4:last4,token:tok,child:name,t:Date.now()})); }catch(e){}
+  toast(t('reportOpening'));
+  window.open('is-performance.html?report=1','_blank');
+}
 function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
   const kids=(S.family&&S.family.children)||[];
@@ -711,7 +728,7 @@ function renderParent(){
       html+=returnPanel(child,ki);
       return;
     }
-    html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
+    html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div>${growthReportBtn(child.name)}</div>`;
     // #1 補堂限期將到期提醒（14 日內）
     const hsoon=childHistory(child).makeupable.filter(x=>{const dl=daysLeft(x.deadline);return dl>=0&&dl<=14;});
     if(hsoon.length){ const soonest=hsoon.reduce((a,b)=>a.deadline<b.deadline?a:b); const dl=daysLeft(soonest.deadline);
