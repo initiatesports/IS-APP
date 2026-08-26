@@ -193,65 +193,39 @@ html, body {
 @keyframes scr { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 
 /* ─── HOME ─── */
-.home-greeting {
-  padding: 22px 16px 8px;
-}
-.home-greeting h2 {
-  font-size: 23px;
-  font-weight: 900;
-  background: linear-gradient(120deg,#5fe0e0,#3ECFCF);
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-  letter-spacing: .2px;
-}
-.home-greeting p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
-  padding: 12px 16px;
-}
-
-.stat-card {
-  background: linear-gradient(160deg,var(--surface2),var(--surface));
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 15px 16px;
-  box-shadow: var(--sh-sm);
-  position: relative;
-  overflow: hidden;
-}
-.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--grad-cyan); opacity:.55; }
-.stat-card .num {
-  font-size: 32px;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -.5px;
-}
-.stat-card .num.warn { color: var(--amber); }
-.stat-card .num.danger { color: var(--red); }
-.stat-card .num.ok { color: var(--green); }
-.stat-card .lbl {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 5px;
-  font-weight: 600;
-}
-
+/* ═══ HOME · 指揮台 Command Center ═══ */
+.cmd-hero{position:relative;overflow:hidden;padding:20px 18px 46px;
+  background:linear-gradient(135deg,#0f5c66 0%,#0c3a4a 55%,#111f29 100%);}
+.cmd-hero::before{content:'';position:absolute;top:-45%;right:-18%;width:75%;height:160%;
+  background:radial-gradient(circle,rgba(62,207,207,.30),transparent 62%);pointer-events:none;}
+.cmd-hero::after{content:'';position:absolute;left:-12%;bottom:-40%;width:60%;height:130%;
+  background:radial-gradient(circle,rgba(62,207,207,.12),transparent 60%);pointer-events:none;}
+.cmd-hero-inner{position:relative;z-index:1;}
+.cmd-brand{display:inline-flex;align-items:center;gap:8px;margin-bottom:15px;padding:5px 13px 5px 6px;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);font-size:11.5px;font-weight:800;letter-spacing:.08em;color:#dff6f8;}
+.cmd-logo{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#5fe0e0,#1f9aa6);color:#06272b;display:grid;place-items:center;font-size:11px;font-weight:900;letter-spacing:-.5px;}
+.cmd-hero h2{font-size:27px;font-weight:900;color:#fff;letter-spacing:.3px;line-height:1.15;}
+.cmd-hero p{font-size:13px;color:rgba(233,240,244,.72);margin-top:5px;font-weight:500;}
+.cmd-kpis{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:0 16px;margin-top:-34px;position:relative;z-index:2;}
+.kpi{background:linear-gradient(160deg,#242a33,#181c20);border:1px solid var(--border2);border-radius:16px;padding:15px 16px;box-shadow:0 12px 32px rgba(0,0,0,.42);position:relative;overflow:hidden;}
+.kpi .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;margin-bottom:11px;background:var(--cyan-dim);border:1px solid rgba(62,207,207,.22);}
+.kpi.k-ok .ic{background:var(--green-dim);border-color:rgba(52,211,153,.28);}
+.kpi .num{font-size:31px;font-weight:900;line-height:1;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.6px;}
+.kpi .num.ok{color:var(--green);}
+.kpi .lbl{font-size:12px;color:var(--muted);margin-top:7px;font-weight:600;}
+.home-hub{padding:18px 16px 8px;}
+.hub-card{background:linear-gradient(135deg,#1f9aa6,#136570);border:1px solid rgba(62,207,207,.32);border-radius:16px;padding:17px;box-shadow:0 10px 26px rgba(15,105,115,.32);}
+.hub-card .h{font-weight:800;font-size:15px;color:#fff;margin-bottom:6px;}
+.hub-card .d{color:rgba(255,255,255,.86);font-size:13px;line-height:1.6;}
+.hub-card a{display:inline-flex;align-items:center;gap:6px;margin-top:13px;background:#fff;color:#0d5560;text-decoration:none;font-weight:800;padding:11px 18px;border-radius:11px;transition:transform .14s;}
+.hub-card a:hover{transform:translateY(-2px);}
+.hub-roles{margin-top:14px;background:linear-gradient(160deg,var(--surface2),var(--surface));border:1px solid var(--border);border-radius:16px;padding:16px 17px;color:var(--muted);font-size:13px;line-height:1.85;box-shadow:var(--sh-sm);}
+.hub-roles b{color:var(--text);}
 .section-header {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 16px 16px 8px;
+  font-size: 12px; font-weight: 800; color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 22px 18px 10px; display:flex; align-items:center; gap:9px;
 }
+.section-header::before{content:'';width:16px;height:3px;border-radius:3px;background:var(--grad-cyan);flex:none;}
 
 .class-list { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
 
@@ -1635,12 +1609,15 @@ html, body {
 
     <!-- ══ HOME ══ -->
     <div class="screen active" id="screen-home">
-      <div class="home-greeting">
-        <h2 id="greeting-text">早晨 👋</h2>
-        <p id="greeting-date">載入中…</p>
+      <div class="cmd-hero">
+        <div class="cmd-hero-inner">
+          <div class="cmd-brand"><span class="cmd-logo">IS</span>教練主頁 · HUB</div>
+          <h2 id="greeting-text">早晨 👋</h2>
+          <p id="greeting-date">載入中…</p>
+        </div>
       </div>
-      <div class="stats-grid" id="home-stats"></div>
-      <div id="home-hub"></div>
+      <div class="cmd-kpis" id="home-stats"></div>
+      <div class="home-hub" id="home-hub"></div>
     </div>
 
     <!-- ══ ROLL CALL ══ -->
@@ -1943,7 +1920,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-26-uiv2';
+const FRONTEND_VERSION='attapp-2026-08-26-uiv3';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -2371,18 +2348,18 @@ function renderHome() {
   Object.values(CLASSES).forEach(c=>(c.students||[]).forEach(n=>{ if(n && !/示範/.test(n)) _seenS.add(n); }));
   const totalStudents = _seenS.size;
   document.getElementById('home-stats').innerHTML = `
-    <div class="stat-card"><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
-    <div class="stat-card"><div class="num ok">${Object.keys(CLASSES).length}</div><div class="lbl">班別數</div></div>`;
+    <div class="kpi"><div class="ic">👥</div><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
+    <div class="kpi k-ok"><div class="ic">🏫</div><div class="num ok">${Object.keys(CLASSES).length}</div><div class="lbl">班別數</div></div>`;
 
   const hub = document.getElementById('home-hub');
   if (hub) hub.innerHTML = `
-    <div style="background:var(--cyan-dim,rgba(43,179,198,.1));border:1px solid var(--cyan);border-radius:14px;padding:16px;margin-top:8px">
-      <div style="font-weight:800;font-size:15px;margin-bottom:6px">📋 點名 / 補堂 / 繳費 / 設定</div>
-      <div style="color:var(--muted);font-size:13px;line-height:1.65">已統一搬去<b>教練網頁（coach.html）</b>處理，避免兩邊資料唔同步。</div>
-      <a href="coach.html" style="display:inline-block;margin-top:12px;background:var(--cyan);color:#fff;text-decoration:none;font-weight:800;padding:11px 18px;border-radius:10px">前往教練網頁 ›</a>
+    <div class="hub-card">
+      <div class="h">📋 點名 / 補堂 / 繳費 / 設定</div>
+      <div class="d">已統一搬去<b style="color:#fff">教練網頁（coach.html）</b>處理，避免兩邊資料唔同步。</div>
+      <a href="coach.html">前往教練網頁 ›</a>
     </div>
-    <div style="margin-top:14px;color:var(--muted);font-size:13px;line-height:1.7">
-      呢個 App 而家專責：<br>📊 成績 · 👤 學生 · ⭐ 優秀學員 · 🎖 考核章別 · 📚 知識分享 · 🛠 器材<br>（喺底部選單揀，內容會同步官網）<br><span style="color:#888;font-size:12px">📈 排行榜／課堂測試已搬去「成長中心」</span>
+    <div class="hub-roles">
+      呢個 App 而家專責：<br><b>📊 成績 · 👤 學生 · ⭐ 優秀學員 · 🎖 考核章別 · 📚 知識分享 · 🛠 器材</b><br>（喺底部選單揀，內容會同步官網）<br><span style="color:#7a8791;font-size:12px">📈 排行榜／課堂測試已搬去「成長中心」</span>
     </div>`;
 }
 
