@@ -157,6 +157,22 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .period-btn.on{background:linear-gradient(120deg,var(--teal),var(--teal-dark));border-color:var(--teal-dark);color:#fff;box-shadow:0 4px 12px rgba(15,137,150,.22);}
 .period-empty{margin-top:10px;background:var(--surface2);border-radius:10px;padding:12px;font-size:12.5px;color:var(--muted);text-align:center;}
 .no-result{padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;}
+/* 出席趨勢圖 */
+.att-viz{margin:2px 0 12px;padding:12px 13px;background:var(--wash);border:1px solid var(--border-soft);border-radius:12px;}
+.att-viz-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.att-viz-top .lbl{font-size:12px;font-weight:700;color:var(--muted);}
+.att-viz-top .rt{display:flex;align-items:baseline;gap:5px;}
+.att-viz-top .pct{font-size:21px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.3px;}
+.att-viz-top .pk{font-size:11px;color:var(--muted);font-weight:600;}
+.att-dots{display:flex;flex-wrap:wrap;gap:5px;}
+.a-dot{width:13px;height:13px;border-radius:4px;flex:none;}
+.a-dot.d-go{background:var(--green);}
+.a-dot.d-leave{background:var(--amber);}
+.a-dot.d-mk{background:var(--purple);}
+.a-dot.d-none{background:var(--border);}
+.att-legend{display:flex;gap:12px;margin-top:9px;font-size:10.5px;color:var(--muted);flex-wrap:wrap;}
+.att-legend span{display:inline-flex;align-items:center;gap:4px;}
+.att-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
 
 /* SHEET */
 #scrim{position:fixed;inset:0;background:rgba(20,28,33,.45);display:none;align-items:flex-end;justify-content:center;z-index:1000;}
@@ -231,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-26-uiv2';
+const FRONTEND_VERSION='parent-2026-08-26-feat1';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -750,6 +766,26 @@ function showModalNotices(){
   ov.querySelector('.nm-ok').onclick=function(){ markNoticeAcked(n.id); ov.remove(); showModalNotices(); };   // 仲有下一個未讀 → 繼續彈
   document.body.appendChild(ov);
 }
+/* 📈 出席趨勢圖：全期 session 時間軸（綠出席／紫補堂／黃請假）+ 出席率。純顯示，唔影響任何功能。*/
+function attendanceViz(c){
+  const L=(zh,en)=>LANG==='en'?en:zh;
+  const past=(c.sessions||[]).filter(s=>s.date<=todayStr()).sort((a,b)=>a.date<b.date?-1:1);
+  if(past.length<2) return '';
+  let att=0,base=0;
+  const dots=past.map(s=>{ let cls='d-none';
+    if(s.status==='出席'){cls='d-go';att++;base++;}
+    else if(s.status==='補堂'){cls='d-mk';att++;base++;}
+    else if(s.status==='請假'){cls='d-leave';base++;}
+    return `<span class="a-dot ${cls}"></span>`;
+  }).join('');
+  const pct=base?Math.round(att/base*100):null;
+  const col=pct==null?'var(--muted)':pct>=90?'var(--green)':pct>=75?'var(--amber)':'var(--red)';
+  return `<div class="att-viz">
+    <div class="att-viz-top"><span class="lbl">📈 ${L('全期出席趨勢','Attendance trend')}</span><span class="rt"><span class="pct" style="color:${col}">${pct==null?'—':pct+'%'}</span><span class="pk">${L('出席率','rate')}</span></span></div>
+    <div class="att-dots">${dots}</div>
+    <div class="att-legend"><span><i style="background:var(--green)"></i>${L('出席','Present')}</span><span><i style="background:var(--purple)"></i>${L('補堂','Make-up')}</span><span><i style="background:var(--amber)"></i>${L('請假','Leave')}</span></div>
+  </div>`;
+}
 function classCard(child,ki,c,ci){
   // 總堂／已上／請假：只計當前選定期數（例如 5-6月），由 c.sessions 按期過濾即時計算
   const pSess=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period);
@@ -774,6 +810,7 @@ function classCard(child,ki,c,ci){
       <div class="stat"><div class="n">${pLeave}</div><div class="k">${t('onLeave')}</div></div>
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
+    ${attendanceViz(c)}
     ${owed>0&&mkDl?`<div class="dlnote">${t('dlNote',owed,fmtDate(mkDl))}</div>`:''}
     ${ isPeriodActive(child,S.period) ? `
     <div class="rowbtns">
@@ -940,7 +977,8 @@ function paymentCard(child,ki){
         <button class="btn sm" style="width:auto;padding:10px 16px;background:#e0a93a;box-shadow:none" onclick="applyPromo(${ki},'${f.period}')">${L('套用','Apply')}</button>
       </div></div>`;
   const actions=promoUI+`<div style="font-size:12.5px;color:var(--muted);margin-top:10px">${t('feePayTo',S.payNumber||'請 WhatsApp 6331 7403 查詢收款')}</div>
-    <button onclick="openPay(${ki},'${f.period}')" style="margin-top:10px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
+    <button onclick="copyPayInfo('${String(S.payNumber||'').replace(/'/g,"\\'")}',${Number(f.net)||0})" style="margin-top:8px;width:100%;padding:12px;border:1.5px solid var(--teal);border-radius:12px;background:var(--teal-dim);color:var(--teal-dark);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">📋 ${LANG==='en'?'Copy payment info + amount':'一鍵複製收款號碼 + 金額'}</button>
+    <button onclick="openPay(${ki},'${f.period}')" style="margin-top:8px;width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-size:15.5px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(40,184,200,.35);display:flex;align-items:center;justify-content:center;gap:8px">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-3l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
       ${f.hasScreenshot?('🔁 '+t('feeUpload')):('📷 '+t('feeUpload'))}
     </button>
@@ -1175,6 +1213,13 @@ function downloadICS(ki){
   toast(t('icsDone'));
 }
 
+/* 📋 一鍵複製收款號碼＋金額：家長 tap 一下貼入 FPS／銀行 app，免打錯。純複製剪貼簿。*/
+function copyPayInfo(payNum, net){
+  const txt=(LANG==='en'?'INITIATE SPORTS payment\n':'INITIATE SPORTS 交學費\n')+(payNum||'')+'\n'+(LANG==='en'?'Amount: $':'金額：$')+net;
+  const done=()=>toast(LANG==='en'?'Copied — paste into your bank app ✓':'已複製，貼入銀行／FPS app 即可 ✓');
+  function fb(){ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');done();}catch(e){toast(LANG==='en'?'Long-press to copy':'請長按複製');} document.body.removeChild(ta); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(fb); } else fb();
+}
 /* ═══════════ Sheet / Receipt ═══════════ */
 function openSheet(html){ $('sheet').innerHTML=html; $('scrim').classList.add('show'); }
 function closeSheet(){ $('scrim').classList.remove('show'); }
