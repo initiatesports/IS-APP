@@ -1796,52 +1796,12 @@ html, body {
         <div id="student-detail-panel" style="display:none;padding:0 12px 100px"></div>
       </div>
       <div id="student-report-panel" style="display:none">
-        <!-- 一鍵批量生成 -->
-        <div style="background:rgba(62,207,207,0.08);border:1.5px solid rgba(62,207,207,0.2);border-radius:14px;margin:12px 16px 0;padding:14px">
-          <div style="font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:10px">📋 批量生成學生報告</div>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <div style="flex:1">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">開始日期</div>
-              <input type="date" id="bulk-from" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
-            </div>
-            <div style="flex:1">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">結束日期</div>
-              <input type="date" id="bulk-to" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
-            </div>
-          </div>
-          <div style="margin-bottom:10px">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">選擇班別</div>
-            <div id="bulk-class-pills" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn-start-perf" style="flex:1" onclick="generateBulkReports('all')">🖨 全部學生</button>
-            <button class="btn-start-perf" style="flex:1;background:var(--surface2)" onclick="generateBulkReports('class')">📚 按班別生成</button>
-          </div>
+        <div style="margin:16px;background:linear-gradient(160deg,#20262e,var(--surface));border:1px solid var(--border2);border-radius:16px;padding:24px 20px;text-align:center;box-shadow:var(--sh)">
+          <div style="font-size:36px;margin-bottom:8px">📈</div>
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:8px">學生報告已升級</div>
+          <div style="font-size:13.5px;color:var(--muted);line-height:1.7;margin-bottom:20px">個人成長報告（雷達圖 ＋ 成績趨勢 ＋ 個人最佳 ＋ 體格發展）已統一喺<br><b style="color:var(--cyan)">成長中心</b>生成，設計更專業、可整班列印 PDF。</div>
+          <a href="is-performance.html" style="display:inline-flex;align-items:center;gap:8px;background:var(--grad-cyan);color:#06272b;text-decoration:none;font-weight:800;font-size:15px;padding:14px 24px;border-radius:12px">前往成長中心生成報告 ›</a>
         </div>
-
-        <div style="margin:14px 16px 4px;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.05em;text-transform:uppercase">或選擇單一學生</div>
-        <div style="padding:0 16px 8px">
-          <input class="search-input" id="report-search" type="text" placeholder="輸入姓名搜尋…"
-            oninput="renderReportStudentList()" autocomplete="off"
-            style="width:100%;font-size:15px;padding:11px 14px;border-radius:12px">
-        </div>
-        <div id="report-student-list" style="padding:0 12px 8px"></div>
-        <div id="report-options" style="display:none;padding:0 16px 8px">
-          <div class="perf-section-label" style="padding-left:0">報告時間範圍</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="report-range-pills"></div>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <div style="flex:1">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">開始日期</div>
-              <input type="date" id="report-from" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
-            </div>
-            <div style="flex:1">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">結束日期</div>
-              <input type="date" id="report-to" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:13px;padding:9px 10px;outline:none;color-scheme:dark;-webkit-appearance:none">
-            </div>
-          </div>
-          <button class="btn-start-perf" onclick="generateReport()">生成報告 →</button>
-        </div>
-        <div id="report-content" style="padding:0 12px 100px"></div>
       </div>
     </div>
 
@@ -1929,7 +1889,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-26-feat1';
+const FRONTEND_VERSION='attapp-2026-08-26-rptclean';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -4425,18 +4385,7 @@ function switchStudentTab(tab) {
   document.getElementById('student-profile-panel').style.display = tab==='profile'?'block':'none';
   document.getElementById('student-report-panel').style.display  = tab==='report' ?'block':'none';
   if (tab === 'profile') renderStudentList();
-  if (tab === 'report') {
-    renderReportStudentList();
-    initBulkClassPills();
-    // Default bulk range: last 6 months
-    const bf = document.getElementById('bulk-from');
-    const bt = document.getElementById('bulk-to');
-    if (bf && !bf.value) {
-      const d = new Date(); d.setMonth(d.getMonth()-6);
-      bf.value = d.toISOString().slice(0,10);
-    }
-    if (bt && !bt.value) bt.value = todayStr();
-  }
+  // 學生報告已統一去成長中心（is-performance.html）；本 tab 只顯示引導卡，無需初始化舊報告 UI。
 }
 
 function getAllStudents() {
