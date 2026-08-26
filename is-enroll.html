@@ -18,6 +18,27 @@ header.top .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);
 header.top h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.3px;}
 header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.03);}
+/* 課程時間表（2026–2027）poster 風格 */
+.tt{background:#f3efe4;color:#2b3a42;padding:22px 15px 24px;}
+.tt-head{text-align:center;margin-bottom:6px;}
+.tt-yr{letter-spacing:.34em;font-size:11.5px;font-weight:700;color:#b3934f;}
+.tt-ttl{font-size:24px;font-weight:800;color:#223a4d;margin:7px 0 8px;letter-spacing:.02em;}
+.tt-sub{font-size:12.5px;color:#6a7680;max-width:320px;margin:0 auto;line-height:1.6;}
+.tt-rule{height:2px;width:52px;background:#b3934f;margin:12px auto 2px;border-radius:2px;}
+.tt-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px;}
+@media(min-width:560px){.tt-grid{grid-template-columns:1fr 1fr;}}
+.tt-day{background:#faf7f0;border:1px solid #e7ddc8;border-radius:14px;overflow:hidden;align-self:start;}
+.tt-dh{background:#223a4d;color:#fff;font-weight:800;letter-spacing:.3em;text-align:center;padding:9px 0;font-size:14px;}
+.tt-slot{display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-top:1px solid #efe7d6;}
+.tt-slot:first-of-type{border-top:0;}
+.tt-time{font-size:12px;color:#94836a;font-weight:600;white-space:nowrap;flex:none;}
+.tt-act{font-size:13.5px;font-weight:700;color:#223a4d;text-align:right;}
+.tt-note{font-size:11.5px;color:#94836a;padding:8px 14px 11px;background:#f4ecdc;line-height:1.55;}
+.tt-info{margin-top:16px;background:#faf7f0;border:1px solid #e7ddc8;border-radius:14px;padding:16px 16px 8px;}
+.tt-info h3{margin:0 0 11px;font-size:15px;color:#223a4d;}
+.tt-info ul{margin:0;padding:0;}
+.tt-info li{font-size:12.5px;color:#3f4d55;line-height:1.55;margin-bottom:9px;list-style:none;padding-left:17px;position:relative;}
+.tt-info li:before{content:"◆";color:#b3934f;position:absolute;left:0;top:2px;font-size:9px;}
 .card h2{font-size:16px;margin:0 0 4px;font-weight:800;}
 .card h2 em{font-style:normal;color:var(--teal);}
 .card .hint{font-size:12.5px;color:var(--mut);margin:0 0 14px;}
@@ -159,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-24-phoneid';
+const FRONTEND_VERSION='enroll-2026-08-26-timetable';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -487,6 +508,7 @@ function renderHome(){
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
     <button class="btn" id="hm_adult" style="margin-top:10px;background:#0f766e">成人課程報名 →</button>
+    <button class="btn ghost" id="hm_timetable" style="margin-top:10px">📅 課程時間表（2026–2027 學年）</button>
     <button class="btn ghost" id="hm_makeup" style="margin-top:10px">🗓 請假 / 補堂（自助辦理）</button>
     <button class="btn ghost" id="hm_gear" style="margin-top:10px">🛒 器材選購</button>
     <button class="btn ghost" id="hm_pt" style="margin-top:10px">⭐ 私人訓練（1 對 1 度身訂造）</button>
@@ -494,10 +516,53 @@ function renderHome(){
   </div>`;
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_adult').onclick=renderAdultForm;
+  document.getElementById('hm_timetable').onclick=()=>renderTimetable();
   document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
   document.getElementById('hm_gear').onclick=()=>renderGearShop(false);
   document.getElementById('hm_pt').onclick=()=>renderPtInfo();
   document.getElementById('hm_look').onclick=renderLogin;
+}
+// 📅 課程時間表（2026–2027 學年）。老闆 2026-08-26：喺報名系統加掣，一撳睇晒每週課堂。
+const TT_DAYS=[
+  {d:'星期一', slots:[['09:00–16:00','私人訓練（可預約）'],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–20:00','私人訓練（可預約）']]},
+  {d:'星期二', slots:[['09:00–14:00','私人訓練（可預約）'],['14:00–15:00','幼兒綜合運動 ※'],['15:00–16:00','私人訓練（可預約）'],['17:00–18:00','幼兒綜合運動 ※'],['18:00–19:00','羽毛球'],['19:00–20:00','私人訓練（可預約）']], note:'※ 幼兒班：幼稚園學生適用'},
+  {d:'星期三', slots:[['09:00–16:00','私人訓練（可預約）'],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–20:00','私人訓練（可預約）']]},
+  {d:'星期四', slots:[['09:00–16:00','私人訓練（可預約）'],['17:00–18:00','花式跳繩 ※'],['18:00–19:00','羽毛球'],['19:00–20:00','私人訓練（可預約）']], note:'※ 暑假跳繩班銜接恆常班／幼稚園同學，建議首選此班'},
+  {d:'星期五', slots:[['09:00–16:00','私人訓練（可預約）'],['16:50–17:50','田徑'],['18:00–19:00','花式跳繩'],['18:00–20:00','進階跳繩（10月開始）※'],['20:00–21:00','成人增肌減脂']], note:'※ 進階跳繩班需經技術遴選及教練批准才可進入'},
+  {d:'星期六', slots:[['08:00–10:00','羽毛球'],['11:00–12:00','花式跳繩'],['12:00–14:00','羽毛球（其中一小時）'],['14:00–15:00','體操'],['15:00–16:00','花式跳繩'],['17:00–18:00','綜合體能＋田徑'],['18:00–20:00','網球（9月試行）'],['20:00–21:00','成人增肌減脂']]},
+  {d:'星期日', slots:[['09:00–12:00','私人訓練（可預約）']]},
+];
+const TT_NOTES=[
+  '4 人成班（私人訓練除外）；名額有限，先到先得。',
+  '可四人組團開辦其餘時段。',
+  '學費以「期」計（每期約 8 堂），逐個課程收費，詳情及即時名額見報名系統。',
+  '網球 9 月試行：試行價 $200／節，試行期名額放寬。',
+  '成人 Gym 私人訓練（1:1／1:2）：增肌減脂・體能・功能性訓練，教練按個人目標度身訂造，歡迎查詢。',
+  '兒童私人訓練（1:1／1:2）歡迎查詢。',
+  '推薦獎賞：成功推薦新生報團體班，推薦人可獲 $100 學費優惠（私訓另有獎賞，詳見報名系統）。',
+  '痛症治療歡迎查詢。',
+  '主要上課地點：青衣體育館（後備場地見報名系統）。',
+];
+function renderTimetable(){
+  const days=TT_DAYS.map(function(d){ return '<div class="tt-day"><div class="tt-dh">'+d.d+'</div>'
+    + d.slots.map(function(s){ return '<div class="tt-slot"><span class="tt-time">'+s[0]+'</span><span class="tt-act">'+s[1]+'</span></div>'; }).join('')
+    + (d.note?'<div class="tt-note">'+d.note+'</div>':'') + '</div>'; }).join('');
+  app.innerHTML=`
+    <div style="padding:14px 4px 0"><button class="btn ghost sm" onclick="renderHome()">← 返回首頁</button></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tt">
+        <div class="tt-head">
+          <div class="tt-yr">2026 – 2027 學年</div>
+          <div class="tt-ttl">課程時間表</div>
+          <div class="tt-sub">所有課程 9 月 7 號開課 · 每班名額非常有限，先到先得</div>
+          <div class="tt-rule"></div>
+        </div>
+        <div class="tt-grid">${days}</div>
+        <div class="tt-info"><h3>報名須知 · 重要資訊</h3><ul>${TT_NOTES.map(function(n){return '<li>'+n+'</li>';}).join('')}</ul></div>
+      </div>
+    </div>
+    <div style="padding:0 4px 22px"><button class="btn ghost sm" onclick="renderHome()">← 返回首頁</button></div>`;
+  try{ window.scrollTo(0,0); }catch(e){}
 }
 // 私人訓練介紹（照搬官網完整內容 .ptx-*）。老闆 2026-08-17。
 const PT_WA='https://wa.me/85263317403?text='+encodeURIComponent('你好，我想查詢私人訓練課程詳情');
