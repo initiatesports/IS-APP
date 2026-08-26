@@ -139,6 +139,22 @@ html,body{
 .cls-arr{color:var(--muted);font-size:20px;flex:none;}
 .section-header{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;padding:22px 18px 10px;display:flex;align-items:center;gap:9px;}
 .section-header::before{content:'';width:16px;height:3px;border-radius:3px;background:var(--grad-cyan);flex:none;}
+/* 今日待辦指揮中心 */
+.home-todo{padding:16px 16px 0;}
+.todo-card{background:linear-gradient(160deg,#20262e,var(--surface));border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:var(--sh);}
+.todo-h{display:flex;align-items:center;gap:9px;padding:14px 16px 11px;font-size:14px;font-weight:800;color:#fff;}
+.todo-h span{margin-left:auto;background:var(--grad-cyan);color:#06272b;font-size:12px;font-weight:900;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 7px;}
+.todo-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);cursor:pointer;transition:background .12s;-webkit-user-select:none;user-select:none;}
+.todo-row:active{background:var(--surface2);}
+.todo-ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex:none;background:var(--cyan-dim);border:1px solid rgba(62,207,207,.2);}
+.todo-row.urgent .todo-ic{background:var(--red-dim);border-color:rgba(248,113,113,.3);}
+.todo-row.warn .todo-ic{background:var(--amber-dim);border-color:rgba(251,191,36,.3);}
+.todo-body{flex:1;min-width:0;}
+.todo-t{font-size:14px;font-weight:800;color:#fff;}
+.todo-row.urgent .todo-t{color:#ffb4b4;} .todo-row.warn .todo-t{color:var(--amber);}
+.todo-sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.todo-arr{color:var(--muted);font-size:20px;flex:none;}
+.todo-empty{background:var(--green-dim);border:1px solid rgba(52,211,153,.25);color:var(--green);border-radius:16px;padding:16px;font-size:14px;font-weight:700;text-align:center;box-shadow:var(--sh-sm);}
 .class-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
 .class-row{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;
@@ -374,6 +390,7 @@ html,body{
         </div>
       </div>
       <div class="cmd-kpis" id="home-stats"></div>
+      <div class="home-todo" id="home-todo"></div>
       <div id="home-dashboard"></div>
       <div class="section-header">今日課堂</div>
       <div class="class-list" id="today-classes"></div>
@@ -502,7 +519,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-uiv3';
+const FRONTEND_VERSION = 'coach-2026-08-26-todo';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -976,6 +993,35 @@ function classRowHTML(id, cls){
     <span class="cls-arr">›</span>
   </div>`;
 }
+/* 📌 今日待辦指揮中心：聚合可行動項目（未點名／今日補堂／快到期／待核實），一撳跳去處理。
+   純讀已載入資料（ATT_LOG/ABSENCES/RETURNS_CACHE/CLASSES）+ 跳轉，零寫入。*/
+function addDaysStr_(s,n){ const p=String(s).split('-').map(Number); const d=new Date(p[0],p[1]-1,p[2]+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function renderTodo(){
+  const host=document.getElementById('home-todo'); if(!host) return;
+  if(typeof CLASSES==='undefined'||!Object.keys(CLASSES).length){ host.innerHTML=''; return; }
+  const today=todayStr(), dow=hkDow(), items=[];
+  const todayCls=Object.entries(CLASSES).filter(([id])=>CLASS_DOW[id]===dow);
+  // 1. 今日未點名班別（有 roster 學生被標先當已點；淨補堂 visitor 唔算）
+  const unrolled=todayCls.filter(([id])=>{ const log=ATT_LOG[id+'|'+today]; if(!log||!Object.keys(log).length) return true;
+    const roster=new Set(CLASSES[id].students||[]); return !Object.keys(log).some(n=>roster.has(n)); });
+  if(unrolled.length) items.push({ic:'📝',t:`${unrolled.length} 班今日未點名`,sub:unrolled.map(([id,c])=>c.dayZh+' '+c.time).join('、'),cls:'urgent',onclick:`openRoll('${unrolled[0][0]}')`});
+  // 2. 今日補堂學生（今日班別 ATT_LOG 內非正規名冊嘅人）
+  const mk=[]; todayCls.forEach(([id,c])=>{ const log=ATT_LOG[id+'|'+today]||{}; Object.keys(log).forEach(n=>{ if(n&&isMakeupVisitor(id,n)&&!/示範|測試/.test(n)) mk.push({name:n,cid:id,time:c.time}); }); });
+  if(mk.length) items.push({ic:'🔄',t:`${mk.length} 位補堂學生今日返嚟`,sub:mk.map(m=>m.name+'（'+m.time+'）').join('、'),cls:'info',onclick:`openRoll('${mk[0].cid}')`});
+  // 3. 補堂 7 日內到期（未補、未過期）
+  const cut=addDaysStr_(today,7);
+  const soon=(ABSENCES||[]).filter(a=>!a.madeUpDate&&a.deadline>=today&&a.deadline<=cut).sort((a,b)=>a.deadline<b.deadline?-1:1);
+  if(soon.length) items.push({ic:'⏰',t:`${soon.length} 個補堂 7 日內到期`,sub:soon.slice(0,5).map(a=>a.name+'('+a.deadline.slice(5)+')').join('、')+(soon.length>5?'…':''),cls:'warn',onclick:`showScreen('makeup')`});
+  // 4. 已過期未補（提醒跟進）
+  const exp=(ABSENCES||[]).filter(a=>!a.madeUpDate&&a.deadline<today);
+  if(exp.length) items.push({ic:'🔴',t:`${exp.length} 個補堂已過期未補`,sub:[...new Set(exp.map(a=>a.name))].slice(0,5).join('、'),cls:'urgent',onclick:`showScreen('makeup')`});
+  // 5. 回歸申請待核實
+  const ret=(typeof RETURNS_CACHE!=='undefined'?RETURNS_CACHE:[]).filter(x=>x&&x.status!=='已核實');
+  if(ret.length) items.push({ic:'🔍',t:`${ret.length} 個回歸申請待核實`,sub:'家長已交付款，等你核實',cls:'info',onclick:`var e=document.getElementById('home-returns');if(e)e.scrollIntoView({behavior:'smooth'})`});
+  if(!items.length){ host.innerHTML=`<div class="todo-empty">✓ 今日冇待辦，一切妥當</div>`; return; }
+  host.innerHTML=`<div class="todo-card"><div class="todo-h">📌 今日待辦<span>${items.length}</span></div>`+
+    items.map(it=>`<div class="todo-row ${it.cls}" onclick="${it.onclick.replace(/"/g,'&quot;')}"><span class="todo-ic">${it.ic}</span><div class="todo-body"><div class="todo-t">${it.t}</div><div class="todo-sub">${it.sub}</div></div><span class="todo-arr">›</span></div>`).join('')+`</div>`;
+}
 function renderHome(){
   document.getElementById('header-title-text').textContent = 'IS 出席系統';
   document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
@@ -1007,6 +1053,7 @@ function renderHome(){
     <div class="kpi k-ok"><div class="ic">✅</div><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>
     <div class="home-action" style="grid-column:1/-1;margin:0"><a href="is-enroll-admin.html"><span class="ha-ic">📋</span><span class="ha-t"><b>9-10月恆常班 報名管理</b><span>報名 / 核實付款 / 名額</span></span><span class="ha-arr">›</span></a></div>`;
   var _hd=document.getElementById('home-dashboard'); if(_hd) _hd.innerHTML='';
+  try{ renderTodo(); }catch(e){ console.error('renderTodo',e); }
 
   const todayDow = hkDow();
   const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);
@@ -1036,6 +1083,7 @@ async function renderReturnsPanel(){
   if(!host) return;
   let r; try{ r=await apiPost({action:'returnsAll'}); }catch(e){ r=null; }
   RETURNS_CACHE=(r&&r.ok&&r.returns)?r.returns:[];
+  try{ renderTodo(); }catch(e){}   // 回歸資料載入後更新今日待辦嘅「待核實」項
   const pending=RETURNS_CACHE.filter(x=>x.status!=='已核實');
   if(!pending.length){ host.innerHTML=''; return; }   // 冇待核實就唔顯示,唔阻住主頁
   host.innerHTML=`<div class="section-header">🔄 回歸申請待核實（${pending.length}）</div>
