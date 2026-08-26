@@ -245,7 +245,7 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-24-v3';
+const APP_VERSION='growth-2026-08-26-pbfix';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -901,7 +901,7 @@ function printBatch(){
 function rpGoal(v,u){return u==='kg'?Math.ceil(v)+2:Math.round(v*1.12);}
 function growthReportHTML(name){
   const g=gradeFor(name);
-  const imp=[];['rope30','bike','cross','double','rope2m','sj','cmj'].forEach(m=>{const s=series(name,m);if(s.length<2)return;const d=round(s[s.length-1].val-s[0].val,1);if(d>0)imp.push({m,d,pct:s[0].val?Math.round(d/s[0].val*100):0,val:s[s.length-1].val});});
+  const imp=[];['rope30','bike','cross','double','rope2m','sj','cmj'].forEach(m=>{const s=series(name,m);if(s.length<2)return;const first=s[0].val,best=Math.max(...s.map(r=>r.val));const d=round(best-first,1);if(d>0)imp.push({m,d,pct:first?Math.round(d/first*100):0,val:best});});
   imp.sort((a,b)=>b.pct-a.pct);const hi=imp.slice(0,3);
   const nItems=new Set(studentMetrics(name).map(m=>(m==='gripL'||m==='gripR')?'grip':m)).size;
   const hs=bodySeries(name).filter(r=>r.height!=null),ws=bodySeries(name).filter(r=>r.weight!=null);
