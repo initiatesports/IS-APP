@@ -190,6 +190,17 @@ html,body{
 .sp-tag.exp{background:var(--red-dim);color:var(--red);}
 .sp-go{background:var(--grad-cyan);color:#06272b;border:0;border-radius:10px;padding:7px 13px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;flex:none;}
 .sp-empty{color:var(--muted);font-size:13px;text-align:center;padding:14px;}
+.sp-remind{width:100%;margin-bottom:16px;background:#25D366;color:#053b22;border:0;border-radius:12px;padding:13px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(37,211,102,.24);}
+.sp-remind:active{filter:brightness(.94);}
+/* 提醒文案工具 */
+.remind-tools{padding:16px 16px 0;}
+.remind-tools-h{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:9px;}
+.remind-tools-h::before{content:'';width:16px;height:3px;border-radius:3px;background:var(--grad-cyan);flex:none;}
+.remind-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.remind-btn{display:flex;align-items:center;gap:9px;background:linear-gradient(160deg,#20262e,var(--surface));border:1px solid var(--border2);border-radius:14px;padding:13px 14px;cursor:pointer;transition:transform .12s,border-color .12s;color:var(--text);font-family:inherit;text-align:left;box-shadow:var(--sh-sm);}
+.remind-btn:active{transform:scale(.98);border-color:var(--cyan);}
+.remind-btn .ri{font-size:20px;flex:none;}
+.remind-btn .rt{font-size:13px;font-weight:800;line-height:1.3;}
 .class-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
 .class-row{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;
@@ -430,6 +441,13 @@ html,body{
         <div class="stu-search"><span class="ss-ic">🔍</span><input id="stu-search-input" placeholder="搜尋全校學生（打中文名）…" autocomplete="off" oninput="onStuSearch()"><button id="ss-clear" onclick="clearStuSearch()" style="display:none">✕</button></div>
         <div id="stu-search-results"></div>
       </div>
+      <div class="remind-tools">
+        <div class="remind-tools-h">📣 一鍵提醒文案</div>
+        <div class="remind-btns">
+          <button class="remind-btn" onclick="genMakeupBroadcast()"><span class="ri">⏰</span><span class="rt">補堂到期提醒<br><span style="color:var(--muted);font-weight:600;font-size:11px">14 日內到期學生</span></span></button>
+          <button class="remind-btn" onclick="genTodayClassMsg()"><span class="ri">☀️</span><span class="rt">今日課堂提醒<br><span style="color:var(--muted);font-weight:600;font-size:11px">傳去班別群組</span></span></button>
+        </div>
+      </div>
       <div id="home-dashboard"></div>
       <div class="section-header">今日課堂</div>
       <div class="class-list" id="today-classes"></div>
@@ -559,7 +577,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-feat2';
+const FRONTEND_VERSION = 'coach-2026-08-26-feat3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1084,12 +1102,47 @@ function openStuProfile(name){
       <div class="sp-stat"><div class="n">${a.makeup}</div><div class="k">補堂</div></div>
       <div class="sp-stat"><div class="n" style="${a.noshow?'color:var(--red)':''}">${a.noshow}</div><div class="k">缺席</div></div>
     </div>
+    ${(pend.length||exp.length)?`<button class="sp-remind" onclick="genStuReminder('${name.replace(/'/g,"\\'")}')">📋 複製補堂提醒文案（傳畀家長）</button>`:''}
     <div class="sp-sec"><div class="sp-sec-h">班別</div>${cls.length?cls.map(c=>`<div class="sp-item"><span>📚 ${c.day} ${c.time}</span><button class="sp-go" onclick="closeStuProfile();openRoll('${c.id}')">點名 ›</button></div>`).join(''):'<div class="sp-empty">未有班別</div>'}</div>
     <div class="sp-sec"><div class="sp-sec-h">待補堂（${pend.length}）</div>${pend.length?pend.map(x=>`<div class="sp-item"><span>${lbl(x.classId)}${x.absDate?' · 原 '+x.absDate.slice(5):''}</span><span class="sp-tag due">限 ${x.deadline?x.deadline.slice(5):''}</span></div>`).join(''):'<div class="sp-empty">冇待補堂 ✓</div>'}
       ${exp.length?`<div class="sp-sec-h" style="margin:12px 0 9px;color:var(--red)">已過期未補（${exp.length}）</div>`+exp.map(x=>`<div class="sp-item"><span>${lbl(x.classId)}</span><span class="sp-tag exp">過期 ${x.deadline?x.deadline.slice(5):''}</span></div>`).join(''):''}</div>`;
   ov.classList.add('show');
 }
 function closeStuProfile(){ const ov=document.getElementById('stu-profile-ov'); if(ov)ov.classList.remove('show'); }
+/* 📣 智能提醒文案生成：一鍵生成 WhatsApp 提醒（補堂到期／今日課堂／個別學生），慳打字少走漏。純讀資料 + 複製剪貼簿。*/
+function copyMsg_(text, okMsg){ const done=()=>toast(okMsg||'已複製 ✓','✓');
+  function fb(){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); done();}catch(e){toast('請長按手動複製','ℹ');} document.body.removeChild(ta); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(fb); } else fb();
+}
+function genStuReminder(name){
+  const pend=getPendingActive(name), exp=getPending(name).filter(x=>isExpired(x.deadline));
+  const lbl=(cid)=>{ const c=CLASSES[cid]; return c?c.dayZh+'班':cid; };
+  let msg=`INITIATE SPORTS 補堂提醒 🔔\n家長你好，${name} `;
+  if(pend.length){ msg+=`仲有 ${pend.length} 堂待補：\n`+pend.map(x=>`• ${lbl(x.classId)}（原 ${x.absDate?x.absDate.slice(5):''} 請假）— 請喺 ${x.deadline?x.deadline.slice(5):''} 前補返`).join('\n'); }
+  else { msg+=`暫時冇待補堂 ✓`; }
+  if(exp.length){ msg+=`\n⚠️ 另有 ${exp.length} 堂已過期未能補。`; }
+  msg+=`\n\n補堂好簡單：喺家長網頁㩒「申請補堂」揀返一堂即可 🙏`;
+  copyMsg_(msg,'提醒文案已複製，貼去 WhatsApp 即可');
+}
+function genMakeupBroadcast(){
+  const today=todayStr(), cut=addDaysStr_(today,14);
+  const soon=(ABSENCES||[]).filter(a=>!a.madeUpDate&&a.deadline>=today&&a.deadline<=cut&&!/示範|測試/.test(a.name)).sort((a,b)=>a.deadline<b.deadline?-1:1);
+  if(!soon.length){ toast('14 日內冇補堂到期','ℹ'); return; }
+  const byName={}; soon.forEach(a=>{ (byName[a.name]=byName[a.name]||[]).push(a.deadline); });
+  let msg=`INITIATE SPORTS 補堂到期提醒 🔔\n以下同學嘅補堂快到期，麻煩喺限期前喺家長網頁㩒「申請補堂」補返：\n`;
+  msg+=Object.keys(byName).map(n=>`• ${n}（${byName[n].length}堂，最快 ${byName[n].sort()[0].slice(5)} 到期）`).join('\n');
+  msg+=`\n\n多謝配合 🙏`;
+  copyMsg_(msg,`已複製 ${Object.keys(byName).length} 位同學提醒`);
+}
+function genTodayClassMsg(){
+  const dow=hkDow(), today=todayStr();
+  const cls=Object.entries(CLASSES).filter(([id])=>CLASS_DOW[id]===dow);
+  if(!cls.length){ toast('今日冇堂','ℹ'); return; }
+  let msg=`INITIATE SPORTS 今日課堂提醒 ☀️\n${new Date().toLocaleDateString('zh-HK',{timeZone:'Asia/Hong_Kong',month:'long',day:'numeric',weekday:'long'})}\n`;
+  msg+=cls.map(([id,c])=>`• ${c.time}`).join('\n');
+  msg+=`\n\n記得準時返嚟，遲到請早通知 🙏`;
+  copyMsg_(msg,'今日課堂文案已複製');
+}
 function renderHome(){
   document.getElementById('header-title-text').textContent = 'IS 出席系統';
   document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
