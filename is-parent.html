@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-26-hidepast';
+const FRONTEND_VERSION='parent-2026-08-26-hidepast2';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -872,7 +872,7 @@ function classCard(child,ki,c,ci){
     ${(function(){
       const today=todayStr();
       // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂顯示喺佢對應請假嗰期；早過最早可見 tab 嘅請假(如3-4月)歸入最早 tab。避免 7-8月補堂撈落 5-6月。
-      const _earlyP=periods[0];   // 用 renderParent 已算好嘅可見期（kids-aware，同 tab 一致）
+      const _earlyP=visiblePeriods((S.family&&S.family.children)||[])[0];   // kids-aware 最早可見期（同 tab 一致；此函數非 renderParent scope，故重算）
       const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period || (S.period===_earlyP && lp<_earlyP); }).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
