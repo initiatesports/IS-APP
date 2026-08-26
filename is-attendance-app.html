@@ -1220,6 +1220,15 @@ html, body {
 .btn-save-body:active { filter: brightness(.94); transform: translateY(1px); }
 
 .history-timeline { margin-bottom: 10px; }
+/* 成績·體測趨勢速覽 */
+.trend-row{padding:10px 0;border-top:1px solid var(--border);}
+.trend-row:first-of-type{border-top:0;}
+.trend-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
+.trend-name{font-size:13.5px;font-weight:700;color:var(--text);}
+.trend-val{font-size:14px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;}
+.trend-d{font-size:11.5px;font-weight:800;margin-left:4px;color:var(--muted);}
+.trend-d.up{color:var(--green);}
+.trend-d.down{color:var(--red);}
 .ht-entry {
   display: flex; justify-content: space-between; align-items: center;
   padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
@@ -1920,7 +1929,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-26-uiv3';
+const FRONTEND_VERSION='attapp-2026-08-26-feat1';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -4508,6 +4517,32 @@ function openStudentDetail(name) {
   renderStudentDetail(name);
 }
 
+/* 📈 成績·體測趨勢速覽：學生資料內即時 mini sparkline（唔使生成 A4 報告）。純讀 PERF_RECORDS/BODY_RECORDS。*/
+function trendSpark_(recs, gid){
+  if(!recs || recs.length<2) return '';
+  const vals=recs.map(r=>r.val), minV=Math.min(...vals), maxV=Math.max(...vals), range=(maxV-minV)||1;
+  const W=260,H=42,pad=5;
+  const pts=recs.map((r,i)=>({x:pad+(i/(recs.length-1))*(W-2*pad), y:pad+(H-2*pad)-((r.val-minV)/range)*(H-2*pad)}));
+  const poly=pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+  const area=`M${pts[0].x.toFixed(1)},${H-pad} `+pts.map(p=>'L'+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')+` L${pts[pts.length-1].x.toFixed(1)},${H-pad} Z`;
+  const lp=pts[pts.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:42px;display:block"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(62,207,207,.34)"/><stop offset="1" stop-color="rgba(62,207,207,0)"/></linearGradient></defs><path d="${area}" fill="url(#${gid})"/><polyline points="${poly}" fill="none" stroke="#3ECFCF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${lp.x.toFixed(1)}" cy="${lp.y.toFixed(1)}" r="3.4" fill="#3ECFCF"/></svg>`;
+}
+function renderTrendCard(name){
+  const oneBest=(recs,higher)=>{ const byDate={}; recs.forEach(r=>{ if(!byDate[r.date]||(higher?r.val>byDate[r.date].val:r.val<byDate[r.date].val)) byDate[r.date]=r; }); return Object.values(byDate).sort((a,b)=>a.date.localeCompare(b.date)); };
+  const perfRows=(typeof METRICS!=='undefined'?METRICS:[]).map((m,mi)=>{ const raw=PERF_RECORDS[name]&&PERF_RECORDS[name][m.id]; if(!raw||raw.length<2) return '';
+    const recs=oneBest(raw,m.higher); if(recs.length<2) return '';
+    const first=recs[0].val, last=recs[recs.length-1].val, d=last-first, good=m.higher?d>0:d<0, dec=(m.unit==='s'?1:0);
+    return `<div class="trend-row"><div class="trend-top"><span class="trend-name">${m.name}</span><span class="trend-val">${last}${m.unit}<span class="trend-d ${d===0?'':good?'up':'down'}">${d>0?'+':''}${d.toFixed(dec)}</span></span></div>${trendSpark_(recs,'tg_p'+mi)}</div>`;
+  }).filter(Boolean).join('');
+  const body=(BODY_RECORDS[name]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const hRecs=body.filter(r=>r.height).map(r=>({date:r.date,val:r.height})), wRecs=body.filter(r=>r.weight).map(r=>({date:r.date,val:r.weight}));
+  let bodyRows='';
+  if(hRecs.length>=2){ const d=hRecs[hRecs.length-1].val-hRecs[0].val; bodyRows+=`<div class="trend-row"><div class="trend-top"><span class="trend-name">📏 身高</span><span class="trend-val">${hRecs[hRecs.length-1].val}cm<span class="trend-d up">+${d.toFixed(1)}</span></span></div>${trendSpark_(hRecs,'tg_h')}</div>`; }
+  if(wRecs.length>=2){ const d=wRecs[wRecs.length-1].val-wRecs[0].val; bodyRows+=`<div class="trend-row"><div class="trend-top"><span class="trend-name">⚖️ 體重</span><span class="trend-val">${wRecs[wRecs.length-1].val}kg<span class="trend-d">${d>0?'+':''}${d.toFixed(1)}</span></span></div>${trendSpark_(wRecs,'tg_w')}</div>`; }
+  if(!perfRows && !bodyRows) return '';
+  return `<div class="body-card" style="margin-bottom:10px;border-color:rgba(62,207,207,0.3)"><div class="body-card-title">📈 成績 · 體測趨勢</div>${perfRows}${bodyRows}</div>`;
+}
 function renderStudentDetail(name) {
   const yr    = STUDENT_YEARS[name] || '—';
   const cls   = getStudentClasses(name);
@@ -4634,6 +4669,7 @@ function renderStudentDetail(name) {
         </div>
         <button class="btn-save-body" onclick="saveBodyRecord('${name}')">儲存體格數據</button>
       </div>
+      ${renderTrendCard(name)}
       <div class="body-card">
         <div class="body-card-title">📊 體格歷史</div>
         <div class="history-timeline">${bodyHistoryHtml}</div>
