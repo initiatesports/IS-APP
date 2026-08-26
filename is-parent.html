@@ -150,14 +150,6 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .child-head{font-weight:900;font-size:21px;color:var(--navy);letter-spacing:.2px;}
 .rpt-btn{flex:none;background:linear-gradient(135deg,#0f8996,#12a3b2);color:#fff;border:0;border-radius:11px;padding:9px 13px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(15,137,150,.28);white-space:nowrap;}
 .rpt-btn:active{transform:translateY(1px);}
-/* 📈 個人成長報告：大而明顯嘅全闊卡片（放喺每個仔女課堂標題正下方，家長一定睇到）*/
-.rpt-card{display:flex;align-items:center;gap:12px;width:100%;margin:2px 2px 14px;background:linear-gradient(135deg,#0f8996,#12a3b2);color:#fff;border:0;border-radius:15px;padding:14px 16px;cursor:pointer;box-shadow:0 5px 16px rgba(15,137,150,.30);text-align:left;transition:transform .08s;}
-.rpt-card:active{transform:translateY(1px);}
-.rpt-card .ic{font-size:24px;line-height:1;flex:none;}
-.rpt-card .tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
-.rpt-card .tx b{font-size:15.5px;font-weight:800;}
-.rpt-card .tx small{font-size:11.5px;opacity:.92;font-weight:600;}
-.rpt-card .ar{font-size:19px;font-weight:800;flex:none;opacity:.9;}
 .hist-btn{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);color:var(--ink2);
   border-radius:10px;padding:8px 12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
 .period-bar{display:flex;gap:8px;margin:4px 0 16px;overflow-x:auto;scrollbar-width:none;}
@@ -257,7 +249,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-26-report2';
+const FRONTEND_VERSION='parent-2026-08-26-report3';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -631,14 +623,14 @@ async function refresh(){
 /* ═══════════ 家長主頁 ═══════════ */
 function setPeriod(idx){ S.period=idx; renderParent(); }
 function setKid(i){ S.kid=i; renderParent(); }
-/* 🏅📊⭐ 章別考核計劃／成績排行榜／優秀學員：三個按鈕（連去公開官網但需登入嘅分頁）。
+/* 🏅📊 章別考核計劃／成績排行榜：兩個按鈕（連去公開官網但需登入嘅分頁；優秀學員已移除）。
    位置邏輯：當「6–7月特別課程」同「暑期班請假補堂」按鈕仲喺度時放底部；兩者都過期後自動升上頂部。*/
 function featureLinks(){
   var base='display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;text-decoration:none;font-weight:800;color:#fff;';
   return ''
   + `<a class="btn" style="${base}background:linear-gradient(135deg,#f0a73a,#d98a1f);box-shadow:0 6px 18px rgba(217,138,31,.22)" href="is-home.html?view=badge"><span>🏅 ${LANG==='en'?'Badge Assessment Plan':'章別考核計劃'}</span><span style="font-size:18px">›</span></a>`
-  + `<a class="btn" style="${base}background:linear-gradient(135deg,#3ecfcf,#1b8d9b);box-shadow:0 6px 18px rgba(27,141,155,.22)" href="is-home.html?view=lb"><span>📊 ${LANG==='en'?'Leaderboard':'成績排行榜'}</span><span style="font-size:18px">›</span></a>`
-  + `<a class="btn" style="${base}background:linear-gradient(135deg,#8c6cff,#5b3fd6);box-shadow:0 6px 18px rgba(91,63,214,.22)" href="is-home.html?view=star"><span>⭐ ${LANG==='en'?'Outstanding Students':'優秀學員'}</span><span style="font-size:18px">›</span></a>`;
+  + `<a class="btn" style="${base}background:linear-gradient(135deg,#3ecfcf,#1b8d9b);box-shadow:0 6px 18px rgba(27,141,155,.22)" href="is-home.html?view=lb"><span>📊 ${LANG==='en'?'Leaderboard':'成績排行榜'}</span><span style="font-size:18px">›</span></a>`;
+  // ⭐ 優秀學員 banner 已移除（老闆 2026-08-26）
 }
 /* 🧭 家庭概覽 KPI 條：下一堂 / 待補堂 / 本期待繳（全部用後端已算好嘅值：nextClassInfo、c.owed、f.net；唔自行計錢）。純顯示、附加，唔影響任何寫入。*/
 function famSummary(kids){
@@ -666,12 +658,9 @@ function famSummary(kids){
 }
 /* 📈 個人成長報告：每個仔女一個掣 → 同源交接授權去 is-performance.html?report=1（重用教練端報告產生器，家長只見自己仔女）。 */
 function growthReportCard(name){
-  const sub = LANG==='en' ? 'Fitness scores · rope skills · growth trends' : '體測成績・跳繩技術・全年成長趨勢';
-  return `<button class="rpt-card" data-name="${String(name).replace(/"/g,'&quot;')}" onclick="openGrowthReport(this.getAttribute('data-name'))">
-    <span class="ic">📈</span>
-    <span class="tx"><b>${t('growthReport')}</b><small>${sub}</small></span>
-    <span class="ar">›</span>
-  </button>`;
+  // 同 featureLinks 三個 banner 完全一致嘅樣式（.btn + flex base）；綠色漸變（成長）＝同橙色章別、青色排行榜區分。
+  var base='display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin:2px 0 12px;color:#fff;';
+  return `<button class="btn" style="${base}background:linear-gradient(135deg,#2fb37f,#178a63);box-shadow:0 6px 18px rgba(23,138,99,.22)" data-name="${String(name).replace(/"/g,'&quot;')}" onclick="openGrowthReport(this.getAttribute('data-name'))"><span>📈 ${t('growthReport')}</span><span style="font-size:18px">›</span></button>`;
 }
 function openGrowthReport(name){
   const tok=(S.family&&S.family.childTokens&&S.family.childTokens[name])||'';
