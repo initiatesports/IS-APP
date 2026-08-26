@@ -245,7 +245,7 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-26-famreport';
+const APP_VERSION='growth-2026-08-26-famretry';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -1151,15 +1151,33 @@ $('#mask').onclick=e=>{if(e.target===$('#mask'))closeModal();};
    免教練密碼、免全校資料。重用 growthReportHTML/reportDoc → 同教練端出嘅報告完全一致。 */
 function famMsg(t,s){return `<div style="max-width:520px;margin:60px auto;padding:30px;text-align:center;font-family:system-ui,-apple-system,sans-serif"><div style="font-size:20px;font-weight:800;color:#0f8996;margin-bottom:10px">${esc(t)}</div><div style="color:#556;font-size:14px;line-height:1.7">${esc(s)}</div><div style="margin-top:18px"><a href="is-parent.html" style="color:#0f8996;font-weight:700">← 返回家長頁</a></div></div>`;}
 function famPrint(){const fr=document.getElementById('famFrame');if(fr&&fr.contentWindow){fr.contentWindow.focus();fr.contentWindow.print();}}
+// homeReport 係唯讀 route → 撞 #11 間歇性 transient（cold start／redirect 回 HTML 唔係 JSON、或網絡抖動）
+// 可安全重試，免家長一 hiccup 就見「載入失敗」。⚠️ 只可對唯讀 route 咁做；write action 重試會雙寫。
+async function homeReportWithRetry(grant){
+  let lastErr='請返回家長頁重新登入。';
+  for(let i=0;i<4;i++){
+    try{
+      const res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeReport',name:grant.name,last4:grant.last4,token:grant.token})});
+      const txt=(await res.text()).trim();
+      if(txt.startsWith('{')||txt.startsWith('[')) return JSON.parse(txt);   // 正常 JSON（含 auth 失敗，唔重試）
+      lastErr='伺服器暫時繁忙';   // 收到 HTML（#11 cold start/redirect）→ 重試
+    }catch(e){ lastErr=(e&&e.message)||'網絡問題'; }
+    await new Promise(r=>setTimeout(r, 700*(i+1)));
+  }
+  return {ok:false, error:lastErr, __transient:true};
+}
 async function famReportBoot(){
   let grant=null;try{grant=JSON.parse(localStorage.getItem('is_report_grant')||'null');}catch(e){}
   $('#login').style.display='none';const host=$('#app');host.style.display='block';
   const child=grant&&grant.child;
   if(!grant||!child||!grant.token){host.innerHTML=famMsg('連結已失效','請返回家長頁，喺小朋友嗰度重新開啟「個人成長報告」。');return;}
   host.innerHTML=famMsg('載入中…','正在準備 '+child+' 的成長報告');
-  let r;try{r=await apiPost({action:'homeReport',name:grant.name,last4:grant.last4,token:grant.token});}
-  catch(e){host.innerHTML=famMsg('載入失敗，請稍後再試',e.message||'網絡問題');return;}
-  if(!r||r.ok===false||r.error||r.err){host.innerHTML=famMsg('未能載入報告',(r&&(r.error||r.err))||'請返回家長頁重新登入。');return;}
+  const r=await homeReportWithRetry(grant);
+  if(!r||r.ok===false||r.error||r.err){
+    const emsg=(r&&(r.error||r.err))||'請返回家長頁重新登入。';
+    host.innerHTML=famMsg(r&&r.__transient?'載入失敗，請稍後再試':'未能載入報告', emsg);
+    return;
+  }
   ingest({performance:r.performance||[],body:r.body||[],settings:[]});
   if(!hasAnyData(child)){host.innerHTML=famMsg(child+' 暫未有測試記錄','小朋友完成體測／技術測試後，成長報告就會喺呢度顯示。');return;}
   const docHtml=reportDoc([growthReportHTML(child)],child+' 成長報告');
