@@ -84,20 +84,61 @@ html,body{
 .nav-icon{font-size:22px;line-height:1;}
 .nav-label{font-size:10px;font-weight:600;}
 
-/* HOME */
-.home-greeting{padding:22px 16px 8px;}
-.home-greeting h2{font-size:23px;font-weight:900;background:linear-gradient(120deg,#5fe0e0,#3ECFCF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.2px;}
-.home-greeting p{font-size:13px;color:var(--muted);margin-top:3px;}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:12px 16px;}
-.stat-card{background:linear-gradient(160deg,var(--surface2),var(--surface));border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;box-shadow:var(--sh-sm);position:relative;overflow:hidden;}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad-cyan);opacity:.55;}
-.stat-card .num{font-size:32px;font-weight:900;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.5px;}
-.stat-card .num.warn{color:var(--amber);}
-.stat-card .num.danger{color:var(--red);}
-.stat-card .num.ok{color:var(--green);}
-.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:5px;font-weight:600;}
-.stat-card .ic{position:absolute;top:13px;right:14px;font-size:15px;opacity:.42;}
-.section-header{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;padding:16px 16px 8px;}
+/* ═══ HOME · 指揮台 Command Center 儀表板 ═══ */
+.cmd-hero{position:relative;overflow:hidden;padding:20px 18px 48px;
+  background:linear-gradient(135deg,#0f5c66 0%,#0c3a4a 55%,#111f29 100%);}
+.cmd-hero::before{content:'';position:absolute;top:-45%;right:-18%;width:75%;height:160%;
+  background:radial-gradient(circle,rgba(62,207,207,.30),transparent 62%);pointer-events:none;}
+.cmd-hero::after{content:'';position:absolute;left:-12%;bottom:-40%;width:60%;height:130%;
+  background:radial-gradient(circle,rgba(62,207,207,.12),transparent 60%);pointer-events:none;}
+.cmd-hero-inner{position:relative;z-index:1;}
+.cmd-brand{display:inline-flex;align-items:center;gap:8px;margin-bottom:15px;
+  padding:5px 13px 5px 6px;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);
+  font-size:11.5px;font-weight:800;letter-spacing:.08em;color:#dff6f8;}
+.cmd-logo{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#5fe0e0,#1f9aa6);
+  color:#06272b;display:grid;place-items:center;font-size:11px;font-weight:900;letter-spacing:-.5px;}
+.cmd-hero h2{font-size:27px;font-weight:900;color:#fff;letter-spacing:.3px;line-height:1.15;}
+.cmd-hero p{font-size:13px;color:rgba(233,240,244,.72);margin-top:5px;font-weight:500;}
+.cmd-kpis{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:0 16px;margin-top:-34px;position:relative;z-index:2;}
+.kpi{background:linear-gradient(160deg,#242a33,#181c20);border:1px solid var(--border2);border-radius:16px;
+  padding:14px 15px;box-shadow:0 12px 32px rgba(0,0,0,.42);position:relative;overflow:hidden;}
+.kpi .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;margin-bottom:11px;
+  background:var(--cyan-dim);border:1px solid rgba(62,207,207,.22);}
+.kpi.k-warn .ic{background:var(--amber-dim);border-color:rgba(251,191,36,.28);}
+.kpi.k-danger .ic{background:var(--red-dim);border-color:rgba(248,113,113,.28);}
+.kpi.k-ok .ic{background:var(--green-dim);border-color:rgba(52,211,153,.28);}
+.kpi .num{font-size:31px;font-weight:900;line-height:1;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.6px;}
+.kpi .num.warn{color:var(--amber);} .kpi .num.danger{color:var(--red);} .kpi .num.ok{color:var(--green);}
+.kpi .lbl{font-size:12px;color:var(--muted);margin-top:7px;font-weight:600;}
+.home-action{margin:14px 16px 0;}
+.home-action a{display:flex;align-items:center;gap:13px;text-decoration:none;
+  background:linear-gradient(135deg,#1f9aa6,#136570);border:1px solid rgba(62,207,207,.32);border-radius:16px;
+  padding:15px 16px;box-shadow:0 10px 26px rgba(15,105,115,.34);transition:transform .14s,filter .14s;}
+.home-action a:hover{transform:translateY(-2px);filter:brightness(1.05);}
+.home-action .ha-ic{font-size:23px;}
+.home-action .ha-t{flex:1;min-width:0;}
+.home-action .ha-t b{display:block;font-size:15px;font-weight:800;color:#fff;}
+.home-action .ha-t span{font-size:11.5px;color:rgba(255,255,255,.82);}
+.home-action .ha-arr{color:rgba(255,255,255,.9);font-size:20px;}
+.cloud-warn{margin:14px 16px 0;background:var(--red-dim);border:1px solid var(--red);color:#ffbcbc;
+  border-radius:14px;padding:12px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.cloud-warn button{background:var(--red);color:#fff;border:0;border-radius:9px;padding:7px 12px;font-family:inherit;font-weight:800;cursor:pointer;white-space:nowrap;}
+/* HOME 班別卡（獨立 class，唔影響其他畫面共用嘅 .class-row）*/
+.cls-card{position:relative;overflow:hidden;background:linear-gradient(160deg,#1e242b,var(--surface));
+  border:1px solid var(--border);border-radius:16px;padding:15px 15px 15px 18px;display:flex;align-items:center;gap:13px;
+  cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;box-shadow:var(--sh-sm);
+  -webkit-user-select:none;user-select:none;}
+.cls-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--grad-cyan);}
+.cls-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--sh);}
+.cls-card:active{transform:scale(.99);}
+.cls-day{flex:none;min-width:50px;text-align:center;background:var(--cyan-dim);color:var(--cyan);
+  font-size:13px;font-weight:800;padding:9px 8px;border-radius:12px;border:1px solid rgba(62,207,207,.28);}
+.cls-body{flex:1;min-width:0;}
+.cls-body h3{font-size:16px;font-weight:800;color:#fff;letter-spacing:.2px;}
+.cls-body p{font-size:12px;color:var(--muted);margin-top:3px;}
+.cls-arr{color:var(--muted);font-size:20px;flex:none;}
+.section-header{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;padding:22px 18px 10px;display:flex;align-items:center;gap:9px;}
+.section-header::before{content:'';width:16px;height:3px;border-radius:3px;background:var(--grad-cyan);flex:none;}
 .class-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
 .class-row{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;
@@ -325,11 +366,14 @@ html,body{
 
     <!-- HOME -->
     <div class="screen active" id="screen-home">
-      <div class="home-greeting">
-        <h2 id="greeting-text"></h2>
-        <p id="greeting-date"></p>
+      <div class="cmd-hero">
+        <div class="cmd-hero-inner">
+          <div class="cmd-brand"><span class="cmd-logo">IS</span>教練台 · COACH</div>
+          <h2 id="greeting-text"></h2>
+          <p id="greeting-date"></p>
+        </div>
       </div>
-      <div class="stats-grid" id="home-stats"></div>
+      <div class="cmd-kpis" id="home-stats"></div>
       <div id="home-dashboard"></div>
       <div class="section-header">今日課堂</div>
       <div class="class-list" id="today-classes"></div>
@@ -458,7 +502,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-uiv2';
+const FRONTEND_VERSION = 'coach-2026-08-26-uiv3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -922,14 +966,14 @@ function classRowHTML(id, cls){
   const pendingCount = ABSENCES.filter(a => a.classId===id && !a.madeUpDate && a.deadline>=now).length;
   const badge = pendingCount > 0 ? `<span class="class-pending-badge">${pendingCount} 待補</span>` : '';
   return `
-  <div class="class-row" onclick="openRoll('${id}')">
-    <span class="class-day-pill">${cls.dayZh}</span>
-    <div class="class-row-info">
+  <div class="cls-card" onclick="openRoll('${id}')">
+    <span class="cls-day">${cls.dayZh}</span>
+    <div class="cls-body">
       <h3>${cls.time}</h3>
       <p>${cls.students.length} 位學生</p>
     </div>
     ${badge}
-    <span class="class-row-arrow">›</span>
+    <span class="cls-arr">›</span>
   </div>`;
 }
 function renderHome(){
@@ -956,12 +1000,13 @@ function renderHome(){
   const sessions = Object.keys(ATT_LOG).length;
 
   document.getElementById('home-stats').innerHTML = `
-    ${!CLOUD_LOADED ? `<div style="grid-column:1/-1;background:rgba(248,113,113,.12);border:1px solid var(--red,#f87171);color:var(--red,#f87171);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px"><span>⚠ 未載入雲端資料，數字未必準確</span><button onclick="loadFromSheets()" style="background:var(--red,#f87171);color:#fff;border:0;border-radius:8px;padding:7px 12px;font-family:inherit;font-weight:800;cursor:pointer;white-space:nowrap">重新載入</button></div>` : ''}
-    <div class="stat-card"><div class="ic">👥</div><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
-    <div class="stat-card"><div class="ic">🔄</div><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待補堂節數</div></div>
-    <div class="stat-card"><div class="ic">⏰</div><div class="num ${expired>0?'danger':''}">${expired}</div><div class="lbl">已過期未補</div></div>
-    <div class="stat-card"><div class="ic">✅</div><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>
-    <a href="is-enroll-admin.html" style="grid-column:1/-1;background:var(--teal,#28B8C8);color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:10px"><span>📋 9-10月恆常班 報名管理</span><span style="font-size:12px;font-weight:600;opacity:.9">報名 / 核實付款 / 名額 →</span></a>`;
+    ${!CLOUD_LOADED ? `<div class="cloud-warn" style="grid-column:1/-1;margin:0"><span>⚠ 未載入雲端資料，數字未必準確</span><button onclick="loadFromSheets()">重新載入</button></div>` : ''}
+    <div class="kpi"><div class="ic">👥</div><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
+    <div class="kpi ${pending>0?'k-warn':''}"><div class="ic">🔄</div><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待補堂節數</div></div>
+    <div class="kpi ${expired>0?'k-danger':''}"><div class="ic">⏰</div><div class="num ${expired>0?'danger':''}">${expired}</div><div class="lbl">已過期未補</div></div>
+    <div class="kpi k-ok"><div class="ic">✅</div><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>
+    <div class="home-action" style="grid-column:1/-1;margin:0"><a href="is-enroll-admin.html"><span class="ha-ic">📋</span><span class="ha-t"><b>9-10月恆常班 報名管理</b><span>報名 / 核實付款 / 名額</span></span><span class="ha-arr">›</span></a></div>`;
+  var _hd=document.getElementById('home-dashboard'); if(_hd) _hd.innerHTML='';
 
   const todayDow = hkDow();
   const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);
