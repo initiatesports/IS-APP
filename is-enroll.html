@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-26-timetable';
+const FRONTEND_VERSION='enroll-2026-08-27-gearstore';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -518,7 +518,7 @@ function renderHome(){
   document.getElementById('hm_adult').onclick=renderAdultForm;
   document.getElementById('hm_timetable').onclick=()=>renderTimetable();
   document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
-  document.getElementById('hm_gear').onclick=()=>renderGearShop(false);
+  document.getElementById('hm_gear').onclick=()=>renderGearStore();
   document.getElementById('hm_pt').onclick=()=>renderPtInfo();
   document.getElementById('hm_look').onclick=renderLogin;
 }
@@ -777,14 +777,139 @@ function renderGearSelect(){
     </div>
   </div>`;
 }
-function renderGearShop(inFlow){
+function renderGearShop(inFlow, backFn){
   const cards=GEAR_ITEMS.map(g=>`<img src="${g.img}" alt="${esc(g.name)}" loading="lazy" style="width:100%;border-radius:12px;margin:8px 0;display:block" onerror="this.style.display='none'">`).join('');
   app.innerHTML=`
   <div class="card">
-    <h2>🛒 器材選購</h2>
-    <p class="hint">現貨即出、售完即止。可於<b>報名時連學費一齊選購付款</b>。</p>
+    <h2>🛒 器材介紹</h2>
+    <p class="hint">現貨即出、售完即止。</p>
     ${cards}
-    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="${inFlow?'renderGearSelect()':'renderHome()'}">‹ 返回</button></div>
+    <div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="${backFn || (inFlow?'renderGearSelect()':'renderHome()')}">‹ 返回</button></div>
+  </div>`;
+}
+/* ════ 器材選購「獨立店」（首頁入口）：直接付款 → 上課時交收。老闆 2026-08-27。
+   自成一套 stepper（gearStore*），唔碰原有報名器材流程（renderGearSelect），零 regression。════ */
+let GEAR_BUYER={name:'',classInfo:''};
+function gearStoreQty(sku,d){ const s=GEAR_SKUS.find(x=>x.sku===sku);
+  S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].qty=Math.max(0,Math.min(20,(Number(S.gear[sku].qty)||0)+d));
+  if(s&&s.colors&&s.colors.length&&!S.gear[sku].color&&S.gear[sku].qty>0) S.gear[sku].color=s.colors[0];
+  if(s&&s.cordColors&&!S.gear[sku].cord&&S.gear[sku].qty>0) S.gear[sku].cord=s.cordColors[0];
+  renderGearStore(); }
+function gearStoreCanvas(color,d){ const bc=canvasByColor(); bc[color]=Math.max(0,Math.min(20,(Number(bc[color])||0)+d)); renderGearStore(); }
+function renderGearStore(){
+  const stepper=(minus,plus,val)=>`<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+    <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="${minus}">−</button>
+    <b style="min-width:18px;text-align:center;font-variant-numeric:tabular-nums">${val}</b>
+    <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="${plus}">＋</button></div>`;
+  const rows=GEAR_SKUS.map(s=>{
+    if(s.sku==='canvasbag'){ const bc=canvasByColor();
+      return `<div class="fld"><div class="q" style="align-items:flex-start">
+        <span><b>${esc(s.name)}</b><div class="cm" style="color:var(--mut)">${esc(s.note||'')}</div></span>
+        <span style="text-align:right"><b style="color:var(--teal-dark)">${money(s.price)}</b></span></div>
+        ${s.colors.map(c=>`<div class="q" style="align-items:center;padding:3px 0;border:none"><span>${esc(c)}</span>${stepper("gearStoreCanvas('"+c+"',-1)","gearStoreCanvas('"+c+"',1)",Number(bc[c])||0)}</div>`).join('')}
+      </div>`; }
+    const q=gearUnitCount(s.sku); const g=S.gear[s.sku]||{};
+    const colorSel=(s.colors&&s.colors.length&&q>0)?`<div style="margin-top:4px"><label class="cm" style="color:var(--mut)">${s.cordColors?'繩柄顏色':'顏色'}</label><select onchange="setGearColor('${s.sku}',this.value)" style="width:100%">${s.colors.map(c=>`<option ${g.color===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>`:'';
+    const cordSel=(s.cordColors&&q>0)?`<div style="margin-top:4px"><label class="cm" style="color:var(--mut)">繩芯顏色</label><select onchange="setGearCord('${s.sku}',this.value)" style="width:100%">${s.cordColors.map(c=>`<option ${g.cord===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>`:'';
+    return `<div class="fld"><div class="q" style="align-items:flex-start">
+      <span><b>${esc(s.name)}</b>${s.note?`<div class="cm" style="color:var(--mut)">${esc(s.note)}</div>`:''}</span>
+      <span style="text-align:right;white-space:nowrap"><b style="color:var(--teal-dark)">${money(s.price)}</b>
+        <div style="margin-top:4px">${stepper("gearStoreQty('"+s.sku+"',-1)","gearStoreQty('"+s.sku+"',1)",q)}</div></span></div>
+      ${colorSel}${cordSel}</div>`; }).join('');
+  const total=gearCostClient();
+  app.innerHTML=`
+  <div style="padding:14px 4px 0"><button class="btn ghost sm" onclick="renderHome()">← 返回首頁</button></div>
+  <div class="card">
+    <h2>🛒 器材選購</h2>
+    <p class="hint">揀啱器材、直接付款，<b>上課時交收</b>。現貨即出、售完即止。<br><span style="color:var(--mut)">產品詳情：<a href="javascript:void(0)" onclick="renderGearShop(false,'renderGearStore()')" style="color:var(--teal);font-weight:700">睇器材介紹相片</a></span></p>
+    ${rows}
+    <div class="q net" style="margin-top:6px"><span>合計</span><span><b>${money(total)}</b></span></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderHome()">返回</button>
+      <button class="btn" id="gs_next" ${total>0?'':'disabled'} onclick="renderGearBuyer()">填資料付款 →</button>
+    </div>
+    ${total>0?'':'<p class="hint" style="text-align:center;color:var(--mut);margin-top:6px">請先揀器材</p>'}
+  </div>`;
+}
+function renderGearBuyer(){
+  const b=GEAR_BUYER;
+  app.innerHTML=`
+  <div style="padding:14px 4px 0"><button class="btn ghost sm" onclick="renderGearStore()">← 返回選購</button></div>
+  <div class="card">
+    <h2>🛒 買家資料</h2>
+    <p class="hint">器材<b>上課時交收</b>。請填學生中文全名同上課班別／日子，方便上課時核對交收。</p>
+    <div class="fld"><label>學生中文全名</label><input id="gb_name" value="${esc(b.name)}" placeholder="例如：陳大文"></div>
+    <div class="fld"><label>上課班別 / 日子</label><input id="gb_cls" value="${esc(b.classInfo)}" placeholder="例如：星期三 5–6pm 花式跳繩"></div>
+    <div class="msg" id="gb_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderGearStore()">返回</button>
+      <button class="btn" onclick="gearBuyerNext()">下一步（付款）→</button>
+    </div>
+  </div>`;
+}
+function gearBuyerNext(){
+  const name=document.getElementById('gb_name').value.trim();
+  const cls=document.getElementById('gb_cls').value.trim();
+  const msg=document.getElementById('gb_msg');
+  if(!name){ msg.className='msg err'; msg.textContent='請填學生中文全名'; return; }
+  if(!cls){ msg.className='msg err'; msg.textContent='請填上課班別／日子'; return; }
+  GEAR_BUYER={name:name,classInfo:cls};
+  renderGearPay();
+}
+function renderGearPay(){
+  const total=gearCostClient();
+  const fps=(S.cfg&&S.cfg.fps)||'6709 3390';
+  app.innerHTML=`
+  <div style="padding:14px 4px 0"><button class="btn ghost sm" onclick="renderGearBuyer()">← 返回</button></div>
+  <div class="card">
+    <h2>付款</h2>
+    <div class="sumline"><span class="k">學生</span><span>${esc(GEAR_BUYER.name)}</span></div>
+    <div class="sumline"><span class="k">班別/日子</span><span style="text-align:right">${esc(GEAR_BUYER.classInfo)}</span></div>
+    <div class="sumline"><span class="k">器材</span><span style="text-align:right">${esc(gearLabelClient())}</span></div>
+    <div class="sumline"><span class="k">交收</span><span><b>上課時交收</b></span></div>
+    <div class="sumline"><span class="k">應付金額</span><span><b>${money(total)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${total}',this)">複製</button></span></div>
+    <p class="hint" style="margin-top:10px">請以 FPS 轉數，然後上載轉賬截圖；提交後即有訂單編號。</p>
+    <div class="sumline"><span class="k">FPS 號碼</span><span><b>${esc(fps)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${esc(fps).replace(/\s/g,'')}',this)">複製</button></span></div>
+    <div class="fld" style="margin-top:12px"><label>上載付款截圖</label><input type="file" id="gp_file" accept="image/*"><div id="gp_thumb" class="hint" style="margin-top:6px"></div></div>
+    <div class="msg" id="gp_msg"></div>
+    <div class="navbtns">
+      <button class="btn ghost sm" onclick="renderGearBuyer()">返回</button>
+      <button class="btn" id="gp_go">確認提交訂單</button>
+    </div>
+  </div>`;
+  const pf=document.getElementById('gp_file');
+  if(pf) pf.onchange=e=>{ const f=e.target.files[0]; if(!f) return;
+    shrinkImage(f,(data,err)=>{ const th=document.getElementById('gp_thumb');
+      if(err){ if(th) th.textContent='⚠ '+err; S.gearPayImg=''; return; }
+      S.gearPayImg=data; if(th) th.innerHTML='✓ 已附上截圖（'+esc(f.name)+'）· 可重新選擇'; }); };
+  const gb=document.getElementById('gp_go'); if(gb) gb.onclick=submitGearOrder;
+}
+async function submitGearOrder(){
+  const msg=document.getElementById('gp_msg');
+  const total=gearCostClient();
+  if(total<=0){ msg.className='msg err'; msg.textContent='未揀器材'; return; }
+  if(!S.gearPayImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
+  const go=document.getElementById('gp_go'); go.disabled=true; go.textContent='提交中…';
+  if(!S.gearToken) S.gearToken='g'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+  let r; try{
+    r=await apiPost({action:'gearOrder', name:GEAR_BUYER.name, classInfo:GEAR_BUYER.classInfo,
+      items:JSON.stringify(gearItemsClient()), payImg:S.gearPayImg, clientToken:S.gearToken});
+  }catch(e){ go.disabled=false; go.textContent='確認提交訂單'; msg.className='msg err'; msg.textContent='網絡問題，請再試。'; return; }
+  if(!r||!r.ok){ go.disabled=false; go.textContent='確認提交訂單'; msg.className='msg err'; msg.textContent=(r&&r.err)||'提交失敗，請再試。'; return; }
+  renderGearDone(r);
+}
+function renderGearDone(r){
+  const label=(r&&r.label)||gearLabelClient();
+  S.gear={}; S.gearPayImg=''; S.gearToken=''; GEAR_BUYER={name:'',classInfo:''};   // 清空，防重複提交
+  app.innerHTML=`
+  <div class="card">
+    <h2>✅ 訂單已提交</h2>
+    <div class="sumline"><span class="k">訂單編號</span><span><b>${esc((r&&r.id)||'')}</b></span></div>
+    <div class="sumline"><span class="k">器材</span><span style="text-align:right">${esc(label)}</span></div>
+    <div class="sumline"><span class="k">金額</span><span><b>${money((r&&r.amount)||0)}</b></span></div>
+    <div class="sumline"><span class="k">交收方式</span><span><b>上課時交收</b></span></div>
+    <div class="banner" style="margin-top:12px">我哋會核實你嘅付款截圖，然後<b>喺上課時將器材交畀你</b>。如有查詢請 WhatsApp <a href="${waLink('器材訂單查詢｜編號 '+((r&&r.id)||''))}" target="_blank" style="color:var(--teal);font-weight:700">6331 7403</a>。</div>
+    <div class="navbtns" style="margin-top:12px"><button class="btn" onclick="renderHome()">返回首頁</button></div>
   </div>`;
 }
 /* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
