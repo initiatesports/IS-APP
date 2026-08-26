@@ -169,8 +169,8 @@ html,body{
 .ss-av{width:34px;height:34px;border-radius:10px;background:var(--grad-cyan);color:#06272b;display:grid;place-items:center;font-weight:900;font-size:15px;flex:none;}
 .ss-name{flex:1;font-weight:700;color:#fff;font-size:15px;}
 .ss-meta{font-size:12px;color:var(--muted);white-space:nowrap;}
-#stu-profile-ov{position:fixed;inset:0;z-index:5000;background:rgba(6,12,16,.64);display:none;align-items:flex-end;justify-content:center;}
-#stu-profile-ov.show{display:flex;}
+#stu-profile-ov,#insights-ov{position:fixed;inset:0;z-index:5000;background:rgba(6,12,16,.64);display:none;align-items:flex-end;justify-content:center;}
+#stu-profile-ov.show,#insights-ov.show{display:flex;}
 .stu-profile{width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,#20262e,var(--surface));border:1px solid var(--border2);border-radius:22px 22px 0 0;padding:22px 18px calc(22px + var(--safe-bot));box-shadow:0 -12px 44px rgba(0,0,0,.55);animation:sp-up .28s cubic-bezier(.2,.9,.3,1.05);}
 @keyframes sp-up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
 .sp-head{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
@@ -201,6 +201,29 @@ html,body{
 .remind-btn:active{transform:scale(.98);border-color:var(--cyan);}
 .remind-btn .ri{font-size:20px;flex:none;}
 .remind-btn .rt{font-size:13px;font-weight:800;line-height:1.3;}
+.insight-entry{margin:14px 16px 0;}
+.insight-entry button{width:100%;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#2a3340,#1b2129);border:1px solid var(--border2);border-radius:16px;padding:15px 16px;cursor:pointer;color:var(--text);font-family:inherit;box-shadow:var(--sh-sm);transition:transform .12s,border-color .12s;}
+.insight-entry button:active{transform:scale(.99);border-color:var(--cyan);}
+.insight-entry .ie-ic{font-size:22px;}
+.insight-entry .ie-t{flex:1;text-align:left;}
+.insight-entry .ie-t b{display:block;font-size:15px;font-weight:800;color:#fff;}
+.insight-entry .ie-t span{font-size:11.5px;color:var(--muted);}
+.insight-entry .ie-arr{color:var(--muted);font-size:20px;}
+.ins-hero{background:var(--grad-cyan);border-radius:16px;padding:18px;text-align:center;margin-bottom:16px;}
+.ins-hero .big{font-size:44px;font-weight:900;color:#06272b;line-height:1;font-variant-numeric:tabular-nums;}
+.ins-hero .cap{font-size:13px;font-weight:800;color:#06474f;margin-top:6px;}
+.ins-break{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;}
+.ins-b{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 6px;text-align:center;}
+.ins-b .n{font-size:20px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}
+.ins-b .k{font-size:11px;color:var(--muted);margin-top:3px;}
+.ins-row{margin-bottom:12px;}
+.ins-row-top{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:5px;}
+.ins-row-top b{color:#fff;font-weight:700;}
+.ins-row-top .pct{font-weight:900;font-variant-numeric:tabular-nums;}
+.ins-bar{height:9px;border-radius:5px;background:var(--surface2);overflow:hidden;}
+.ins-bar span{display:block;height:100%;border-radius:5px;background:var(--grad-cyan);}
+.ins-bar span.low{background:linear-gradient(120deg,#fbbf24,#f59e0b);}
+.ins-bar span.bad{background:linear-gradient(120deg,#f87171,#dc2626);}
 .class-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
 .class-row{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;
@@ -448,6 +471,9 @@ html,body{
           <button class="remind-btn" onclick="genTodayClassMsg()"><span class="ri">☀️</span><span class="rt">今日課堂提醒<br><span style="color:var(--muted);font-weight:600;font-size:11px">傳去班別群組</span></span></button>
         </div>
       </div>
+      <div class="insight-entry">
+        <button onclick="openInsights()"><span class="ie-ic">📊</span><span class="ie-t"><b>經營數據洞察</b><span>整體出席率 · 各班表現 · 補堂概況</span></span><span class="ie-arr">›</span></button>
+      </div>
       <div id="home-dashboard"></div>
       <div class="section-header">今日課堂</div>
       <div class="class-list" id="today-classes"></div>
@@ -563,6 +589,7 @@ html,body{
 
 </div><!-- #app -->
 <div id="stu-profile-ov" onclick="if(event.target===this)closeStuProfile()"><div class="stu-profile"></div></div>
+<div id="insights-ov" onclick="if(event.target===this)closeInsights()"><div class="stu-profile"></div></div>
 <div id="toast"></div>
 
 <script>
@@ -577,7 +604,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-feat3';
+const FRONTEND_VERSION = 'coach-2026-08-26-feat4';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1143,6 +1170,47 @@ function genTodayClassMsg(){
   msg+=`\n\n記得準時返嚟，遲到請早通知 🙏`;
   copyMsg_(msg,'今日課堂文案已複製');
 }
+/* 📊 經營數據洞察：由 ATT_LOG/ABSENCES 即時統計整體 + 各班出席率、補堂概況。純讀，零寫入。*/
+function computeInsights_(){
+  const perClass={}; let P=0,L=0,N=0,M=0,E=0;
+  for(const k in ATT_LOG){ const cid=k.split('|')[0]; if(!CLASSES[cid])continue; const p=perClass[cid]||(perClass[cid]={present:0,leave:0,noshow:0,makeup:0});
+    const sess=ATT_LOG[k]; for(const n in sess){ if(/示範|測試/.test(n))continue; const st=sess[n];
+      if(st==='present'){p.present++;P++;} else if(st==='absent'){p.leave++;L++;} else if(st==='noshow'){p.noshow++;N++;} else if(st==='makeup'){p.makeup++;M++;} else if(st==='exempt'){E++;} } }
+  const rate=o=>{ const att=o.present+o.makeup, base=att+o.leave+o.noshow; return base?Math.round(att/base*100):null; };
+  return {perClass, T:{present:P,leave:L,noshow:N,makeup:M,exempt:E}, rate};
+}
+function openInsights(){
+  const ins=computeInsights_(), T=ins.T;
+  const overall=ins.rate({present:T.present,makeup:T.makeup,leave:T.leave,noshow:T.noshow});
+  const rows=Object.entries(CLASSES).map(([cid,c])=>{ const p=ins.perClass[cid]; const r=p?ins.rate(p):null;
+    return {label:c.dayZh+' '+c.time, rate:r, marked:p?(p.present+p.makeup+p.leave+p.noshow):0}; })
+    .filter(x=>x.marked>0).sort((a,b)=>(b.rate||0)-(a.rate||0));
+  const pend=(typeof totalPendingAll==='function')?totalPendingAll():0;
+  const expd=(typeof totalExpiredAll==='function')?totalExpiredAll():0;
+  const ov=document.getElementById('insights-ov'); if(!ov)return;
+  ov.querySelector('.stu-profile').innerHTML=`
+    <div class="sp-head"><span class="sp-av">📊</span><div><div class="sp-name">經營數據洞察</div><div class="sp-sub">由出席記錄即時統計</div></div><button class="sp-close" onclick="closeInsights()">✕</button></div>
+    <div class="ins-hero"><div class="big">${overall!=null?overall+'%':'—'}</div><div class="cap">整體出席率</div></div>
+    <div class="ins-break">
+      <div class="ins-b"><div class="n">${T.present+T.makeup}</div><div class="k">出席</div></div>
+      <div class="ins-b"><div class="n">${T.leave}</div><div class="k">請假</div></div>
+      <div class="ins-b"><div class="n" style="${T.noshow?'color:var(--red)':''}">${T.noshow}</div><div class="k">缺席</div></div>
+    </div>
+    <div class="sp-sec"><div class="sp-sec-h">各班出席率（高→低）</div>
+      ${rows.length?rows.map(x=>{ const r=x.rate==null?0:x.rate; const cls=r>=90?'':r>=75?'low':'bad';
+        return `<div class="ins-row"><div class="ins-row-top"><b>${x.label}</b><span class="pct" style="color:${r>=90?'var(--green)':r>=75?'var(--amber)':'var(--red)'}">${x.rate==null?'—':x.rate+'%'}</span></div><div class="ins-bar"><span class="${cls}" style="width:${r}%"></span></div></div>`;
+      }).join(''):'<div class="sp-empty">未有足夠記錄</div>'}
+    </div>
+    <div class="sp-sec"><div class="sp-sec-h">補堂概況</div>
+      <div class="ins-break">
+        <div class="ins-b"><div class="n" style="color:var(--amber)">${pend}</div><div class="k">待補堂</div></div>
+        <div class="ins-b"><div class="n" style="${expd?'color:var(--red)':''}">${expd}</div><div class="k">已過期</div></div>
+        <div class="ins-b"><div class="n" style="color:var(--green)">${T.makeup}</div><div class="k">已補堂</div></div>
+      </div>
+    </div>`;
+  ov.classList.add('show');
+}
+function closeInsights(){ const ov=document.getElementById('insights-ov'); if(ov)ov.classList.remove('show'); }
 function renderHome(){
   document.getElementById('header-title-text').textContent = 'IS 出席系統';
   document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
