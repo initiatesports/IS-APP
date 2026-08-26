@@ -155,6 +155,41 @@ html,body{
 .todo-sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .todo-arr{color:var(--muted);font-size:20px;flex:none;}
 .todo-empty{background:var(--green-dim);border:1px solid rgba(52,211,153,.25);color:var(--green);border-radius:16px;padding:16px;font-size:14px;font-weight:700;text-align:center;box-shadow:var(--sh-sm);}
+/* 全校學生搜尋 + 檔案 */
+.stu-search-wrap{padding:16px 16px 0;}
+.stu-search{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;box-shadow:var(--sh-sm);}
+.stu-search:focus-within{border-color:var(--cyan);}
+.stu-search .ss-ic{font-size:16px;}
+.stu-search input{flex:1;background:transparent;border:0;outline:none;color:var(--text);font-family:inherit;font-size:15px;min-width:0;}
+.stu-search input::placeholder{color:var(--muted);}
+.stu-search button{background:var(--surface2);border:0;color:var(--muted);width:26px;height:26px;border-radius:50%;font-size:12px;cursor:pointer;flex:none;}
+#stu-search-results{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.ss-row{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 13px;cursor:pointer;transition:border-color .12s,background .12s;}
+.ss-row:active{background:var(--surface2);border-color:var(--cyan);}
+.ss-av{width:34px;height:34px;border-radius:10px;background:var(--grad-cyan);color:#06272b;display:grid;place-items:center;font-weight:900;font-size:15px;flex:none;}
+.ss-name{flex:1;font-weight:700;color:#fff;font-size:15px;}
+.ss-meta{font-size:12px;color:var(--muted);white-space:nowrap;}
+#stu-profile-ov{position:fixed;inset:0;z-index:5000;background:rgba(6,12,16,.64);display:none;align-items:flex-end;justify-content:center;}
+#stu-profile-ov.show{display:flex;}
+.stu-profile{width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,#20262e,var(--surface));border:1px solid var(--border2);border-radius:22px 22px 0 0;padding:22px 18px calc(22px + var(--safe-bot));box-shadow:0 -12px 44px rgba(0,0,0,.55);animation:sp-up .28s cubic-bezier(.2,.9,.3,1.05);}
+@keyframes sp-up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sp-head{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
+.sp-av{width:52px;height:52px;border-radius:14px;background:var(--grad-cyan);color:#06272b;display:grid;place-items:center;font-weight:900;font-size:22px;flex:none;}
+.sp-name{font-size:21px;font-weight:900;color:#fff;}
+.sp-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.sp-close{margin-left:auto;background:var(--surface2);border:0;color:var(--muted);width:34px;height:34px;border-radius:50%;font-size:15px;cursor:pointer;flex:none;}
+.sp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px;}
+.sp-stat{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 4px;text-align:center;}
+.sp-stat .n{font-size:22px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1;}
+.sp-stat .k{font-size:11px;color:var(--muted);margin-top:4px;}
+.sp-sec{margin-bottom:16px;}
+.sp-sec-h{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;}
+.sp-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:7px;font-size:14px;color:var(--text);}
+.sp-tag{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.sp-tag.due{background:var(--amber-dim);color:var(--amber);}
+.sp-tag.exp{background:var(--red-dim);color:var(--red);}
+.sp-go{background:var(--grad-cyan);color:#06272b;border:0;border-radius:10px;padding:7px 13px;font-family:inherit;font-weight:800;font-size:13px;cursor:pointer;flex:none;}
+.sp-empty{color:var(--muted);font-size:13px;text-align:center;padding:14px;}
 .class-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;}
 .class-row{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;
@@ -391,6 +426,10 @@ html,body{
       </div>
       <div class="cmd-kpis" id="home-stats"></div>
       <div class="home-todo" id="home-todo"></div>
+      <div class="stu-search-wrap">
+        <div class="stu-search"><span class="ss-ic">🔍</span><input id="stu-search-input" placeholder="搜尋全校學生（打中文名）…" autocomplete="off" oninput="onStuSearch()"><button id="ss-clear" onclick="clearStuSearch()" style="display:none">✕</button></div>
+        <div id="stu-search-results"></div>
+      </div>
       <div id="home-dashboard"></div>
       <div class="section-header">今日課堂</div>
       <div class="class-list" id="today-classes"></div>
@@ -505,6 +544,7 @@ html,body{
   </nav>
 
 </div><!-- #app -->
+<div id="stu-profile-ov" onclick="if(event.target===this)closeStuProfile()"><div class="stu-profile"></div></div>
 <div id="toast"></div>
 
 <script>
@@ -519,7 +559,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-todo';
+const FRONTEND_VERSION = 'coach-2026-08-26-feat2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1022,6 +1062,34 @@ function renderTodo(){
   host.innerHTML=`<div class="todo-card"><div class="todo-h">📌 今日待辦<span>${items.length}</span></div>`+
     items.map(it=>`<div class="todo-row ${it.cls}" onclick="${it.onclick.replace(/"/g,'&quot;')}"><span class="todo-ic">${it.ic}</span><div class="todo-body"><div class="todo-t">${it.t}</div><div class="todo-sub">${it.sub}</div></div><span class="todo-arr">›</span></div>`).join('')+`</div>`;
 }
+/* 🔍 全校學生搜尋 + 檔案：打名即見跨班班別、出席概況、待補／過期補堂，一撳跳去該班點名。純讀已載入資料。*/
+function studentIndex_(){ const s=new Set(); Object.values(CLASSES).forEach(c=>(c.students||[]).forEach(n=>{ if(n&&!/示範|測試/.test(n)) s.add(n); })); return [...s]; }
+function classesOf_(name){ return Object.entries(CLASSES).filter(([id,c])=>(c.students||[]).indexOf(name)>=0).map(([id,c])=>({id,day:c.dayZh,time:c.time})); }
+function attSummary_(name){ let present=0,leave=0,noshow=0,makeup=0,exempt=0; for(const k in ATT_LOG){ const st=ATT_LOG[k][name]; if(!st)continue; if(st==='present')present++;else if(st==='absent')leave++;else if(st==='noshow')noshow++;else if(st==='makeup')makeup++;else if(st==='exempt')exempt++; } return {present,leave,noshow,makeup,exempt}; }
+function onStuSearch(){ const inp=document.getElementById('stu-search-input'); const q=(inp?inp.value:'').trim(); const clr=document.getElementById('ss-clear'); if(clr)clr.style.display=q?'block':'none'; const box=document.getElementById('stu-search-results'); if(!box)return; if(!q){ box.innerHTML=''; return; }
+  const hits=studentIndex_().filter(n=>n.indexOf(q)>=0).sort().slice(0,14);
+  if(!hits.length){ box.innerHTML=`<div class="sp-empty">搵唔到「${q.replace(/</g,'&lt;')}」</div>`; return; }
+  box.innerHTML=hits.map(n=>{ const cls=classesOf_(n); const pend=getPendingActive(n).length; return `<div class="ss-row" onclick="openStuProfile('${n.replace(/'/g,"\\'")}')"><span class="ss-av">${n.charAt(0)}</span><span class="ss-name">${n}</span><span class="ss-meta">${cls.map(c=>c.day).join('/')||'—'}${pend?' · 待補'+pend:''}</span></div>`; }).join('');
+}
+function clearStuSearch(){ const inp=document.getElementById('stu-search-input'); if(inp)inp.value=''; onStuSearch(); }
+function openStuProfile(name){
+  const cls=classesOf_(name), a=attSummary_(name), pend=getPendingActive(name), exp=getPending(name).filter(x=>isExpired(x.deadline));
+  const lbl=(cid)=>{ try{ return vnCidLabel(cid); }catch(e){ const c=CLASSES[cid]; return c?c.dayZh+' '+c.time:cid; } };
+  const ov=document.getElementById('stu-profile-ov'); if(!ov)return;
+  ov.querySelector('.stu-profile').innerHTML=`
+    <div class="sp-head"><span class="sp-av">${name.charAt(0)}</span><div style="min-width:0"><div class="sp-name">${name}</div><div class="sp-sub">${cls.map(c=>c.day+' '+c.time).join(' · ')||'未有班別'}</div></div><button class="sp-close" onclick="closeStuProfile()">✕</button></div>
+    <div class="sp-stats">
+      <div class="sp-stat"><div class="n">${a.present+a.makeup}</div><div class="k">出席</div></div>
+      <div class="sp-stat"><div class="n">${a.leave}</div><div class="k">請假</div></div>
+      <div class="sp-stat"><div class="n">${a.makeup}</div><div class="k">補堂</div></div>
+      <div class="sp-stat"><div class="n" style="${a.noshow?'color:var(--red)':''}">${a.noshow}</div><div class="k">缺席</div></div>
+    </div>
+    <div class="sp-sec"><div class="sp-sec-h">班別</div>${cls.length?cls.map(c=>`<div class="sp-item"><span>📚 ${c.day} ${c.time}</span><button class="sp-go" onclick="closeStuProfile();openRoll('${c.id}')">點名 ›</button></div>`).join(''):'<div class="sp-empty">未有班別</div>'}</div>
+    <div class="sp-sec"><div class="sp-sec-h">待補堂（${pend.length}）</div>${pend.length?pend.map(x=>`<div class="sp-item"><span>${lbl(x.classId)}${x.absDate?' · 原 '+x.absDate.slice(5):''}</span><span class="sp-tag due">限 ${x.deadline?x.deadline.slice(5):''}</span></div>`).join(''):'<div class="sp-empty">冇待補堂 ✓</div>'}
+      ${exp.length?`<div class="sp-sec-h" style="margin:12px 0 9px;color:var(--red)">已過期未補（${exp.length}）</div>`+exp.map(x=>`<div class="sp-item"><span>${lbl(x.classId)}</span><span class="sp-tag exp">過期 ${x.deadline?x.deadline.slice(5):''}</span></div>`).join(''):''}</div>`;
+  ov.classList.add('show');
+}
+function closeStuProfile(){ const ov=document.getElementById('stu-profile-ov'); if(ov)ov.classList.remove('show'); }
 function renderHome(){
   document.getElementById('header-title-text').textContent = 'IS 出席系統';
   document.getElementById('header-subtitle-text').textContent = 'Initiate Sports';
