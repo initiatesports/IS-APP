@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-26-report4';
+const FRONTEND_VERSION='parent-2026-08-26-hidepast';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -446,7 +446,26 @@ function periodLabel(idx){return `${idx*2+1}-${idx*2+2}月`;}
 function termPeriods(){const a=biMonthOf(CONFIG.TERM_START),b=biMonthOf(CONFIG.TERM_END);const out=[];for(let i=a;i<=b;i++)out.push(i);return out;}
 function currentPeriodIdx(){const t=todayStr();const cp=biMonthOf(t);const ps=termPeriods();return Math.min(Math.max(cp,ps[0]),ps[ps.length-1]);}
 /* 只顯示半年：當前期段 + 前一段 + 後一段（共 3 段 = 6 個月），夾喺學期範圍內 */
-function visiblePeriods(){const ps=termPeriods();if(ps.length<=3)return ps;const cur=currentPeriodIdx();let start=cur-1;const lo=ps[0],hi=ps[ps.length-1];if(start<lo)start=lo;if(start>hi-2)start=hi-2;return [start,start+1,start+2];}
+// 某過去期仲有冇「可補（未過限期）欠堂」——有先繼續顯示畀家長約；全部處理好就隱藏（老闆 2026-08-26：源頭切斷家長翻舊帳問補堂）。
+// 保守：計唔到 childHistory 就當有 → 顯示；絕不隱藏「仲要處理」嘅期（防 regression）。
+function periodHasBookableMakeup_(kids,p){
+  for(const c of (kids||[])){
+    if(!c||c.ptOnly||c.returnable) continue;
+    let h; try{h=childHistory(c);}catch(e){ return true; }
+    if((h.makeupable||[]).some(m=>biMonthOf(m.date)===p)) return true;
+  }
+  return false;
+}
+function visiblePeriods(kids){
+  const ps=termPeriods(), cur=currentPeriodIdx();
+  let base;
+  if(ps.length<=3) base=ps.slice();
+  else { let start=cur-1; const lo=ps[0],hi=ps[ps.length-1]; if(start<lo)start=lo; if(start>hi-2)start=hi-2; base=[start,start+1,start+2]; }
+  // 過去期（< 本期）只在仲有可補欠堂時顯示；本期＋未來期永遠顯示。
+  const out=base.filter(p=> p>=cur || periodHasBookableMakeup_(kids,p));
+  if(out.indexOf(cur)<0) out.push(cur);   // 保底：一定有本期
+  return out;
+}
 // 未來期付款開放日＝該期首月前一個月「倒數第二個星期日」（如 9-10月 → 8月倒數第2個禮拜日 2026-08-23）
 function penultSundayISO(y,m){const last=new Date(y,m,0).getDate();const sun=[];for(let d=1;d<=last;d++)if(new Date(y,m-1,d).getDay()===0)sun.push(d);const dd=sun[sun.length-2]||sun[sun.length-1]||1;return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}
 // 手動提前開放某期繳費（同後端 PAY_OPEN_OVERRIDE 一致）：老闆已知開課日期,唔使等倒數第2個禮拜日
@@ -676,7 +695,7 @@ function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
   const kids=(S.family&&S.family.children)||[];
   if(S.period==null) S.period=currentPeriodIdx();
-  const periods=visiblePeriods();
+  const periods=visiblePeriods(kids);
   if(periods.indexOf(S.period)<0) S.period=currentPeriodIdx();
   const selector=`<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
   let html=`<div class="wrap">`;
@@ -853,7 +872,7 @@ function classCard(child,ki,c,ci){
     ${(function(){
       const today=todayStr();
       // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂顯示喺佢對應請假嗰期；早過最早可見 tab 嘅請假(如3-4月)歸入最早 tab。避免 7-8月補堂撈落 5-6月。
-      const _visP=visiblePeriods(), _earlyP=_visP[0];
+      const _earlyP=periods[0];   // 用 renderParent 已算好嘅可見期（kids-aware，同 tab 一致）
       const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period || (S.period===_earlyP && lp<_earlyP); }).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
