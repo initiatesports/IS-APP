@@ -14,6 +14,9 @@
       日後前端切 /exec，呢度要一齊改。 */
 const EXEC4 = "https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec";
 const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
+// #11 parent-portal /exec（成長中心 is-performance API；成長報告 homeReport route）。
+// ⚠️ 必須同 IS-APP/is-performance.html 個 API 一致；切 /exec 要一齊改。
+const EXEC11 = "https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec";
 
 const TODAY = process.argv[2] || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Hong_Kong" });
 
@@ -105,6 +108,40 @@ async function callAudit(exec, coachPass) {
     await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
   }
   return { ok: false, err: "audit fetch failed" };
+}
+
+// 🆕 成長報告後端探針：#4 login 派 childToken → #11 homeReport 驗簽。捉 #4↔#11 PARENT_HMAC_KEY
+//    不同步（歷史真兇：#11 搬 standalone 曾甩 key）／homeReport route 爆。純唯讀，只用一個測試家庭。
+async function callHomeReport(name, last4, token) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(EXEC11, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "homeReport", name, last4, token }),
+        redirect: "follow",
+        signal: AbortSignal.timeout(LOGIN_MS),
+      });
+      const txt = await res.text();
+      try { return JSON.parse(txt); } catch { /* 重試 */ }
+    } catch (e) { /* 重試 */ }
+    await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+  }
+  return { ok: false, err: "homeReport fetch failed" };
+}
+async function reportProbe() {
+  const fam = uniqByName(R4)[0]; if (!fam) return;
+  const [name, last4] = fam;
+  const cred = pad4(PIN4[pad4(last4)] || last4);   // 同 homeToken_ 簽發嘅 want=pad4(cred) 對齊
+  const r = await callLogin(EXEC4, name, cred);
+  if (!r || !r.ok) return;                          // login 本身失敗已由 sweep 報，唔重複
+  const ct = r.childTokens || {};
+  const child = Object.keys(ct)[0];
+  if (!child) { add("REPORT", "成長報告", name, "#4 login 冇回 childTokens（#4 舊版未部署，或 PARENT_HMAC_KEY 甩）"); return; }
+  const rep = await callHomeReport(child, cred, ct[child]);
+  if (!rep || rep.ok !== true) {
+    add("REPORT", "成長報告", child, "#11 homeReport 驗證失敗（可能 #4↔#11 token 密鑰不同步／route 爆）：" + ((rep && (rep.error || rep.err)) || "?"));
+  }
 }
 
 function uniqByName(rows) {
@@ -220,6 +257,9 @@ async function sweep(label, exec, rows, withPin) {
   console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}`);
   console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}\n`);
 
+  // 🆕 成長報告後端探針（#4 childToken → #11 homeReport）：捉 token 密鑰不同步／route 爆。
+  await reportProbe();
+
   // 整班漏點偵測。clsDate 提供「窗口內有課堂嘅 (班|日)」候選（由家長 session 列舉，
   // 只要每班有 1 個家長登入到就齊全）。有無點名嘅裁決分兩路：
   //   ① COACH_PASS 有 → 讀教練 grid（load）判斷該日 grid 有無任何非空記錄（authoritative，
@@ -268,8 +308,8 @@ async function sweep(label, exec, rows, withPin) {
 
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
-  const order = ["LEAK", "OWED", "MKSTUCK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", MKSTUCK: "🟠 有待補堂但約唔到位（限期已過／冇時段，需老闆決定）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
+  const order = ["LEAK", "OWED", "REPORT", "MKSTUCK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
+  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", REPORT: "🟠 成長報告後端異常（token 密鑰/route）", MKSTUCK: "🟠 有待補堂但約唔到位（限期已過／冇時段，需老闆決定）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   for (const sev of order) {
     if (!bySev[sev]) continue;
@@ -280,7 +320,7 @@ async function sweep(label, exec, rows, withPin) {
   console.log(JSON.stringify({
     date: TODAY,
     tested: { c4: s4, c9: s9 },
-    counts: { LEAK: (bySev.LEAK || []).length, OWED: (bySev.OWED || []).length, MKSTUCK: (bySev.MKSTUCK || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
+    counts: { LEAK: (bySev.LEAK || []).length, OWED: (bySev.OWED || []).length, REPORT: (bySev.REPORT || []).length, MKSTUCK: (bySev.MKSTUCK || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
   }));
 })();
