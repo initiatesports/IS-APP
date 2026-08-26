@@ -245,7 +245,7 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-26-qrfix';
+const APP_VERSION='growth-2026-08-26-famreport';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -1145,8 +1145,36 @@ $('#logoutBtn').onclick=()=>{if(PENDING.length&&!confirm('仲有 '+PENDING.lengt
 $('#reloadBtn').onclick=async()=>{try{await loadCloud();go(CUR);toast('已重新載入','ok');}catch(e){toast('載入失敗','err');}};
 $('#menuBtn').onclick=()=>$('#side').classList.toggle('open');
 $('#mask').onclick=e=>{if(e.target===$('#mask'))closeModal();};
+/* ═══════════ 家長端「個人成長報告」模式（is-parent.html 開 ?report=1）═══════════
+   is-parent 把 {name,last4,token(childToken),child} 存 localStorage『is_report_grant』(同源交接,唔入網址)。
+   呢度用 #11 homeReport route（verifyParent_ gated）只攞該仔女 perf+body → 直接渲染現有報告產生器,
+   免教練密碼、免全校資料。重用 growthReportHTML/reportDoc → 同教練端出嘅報告完全一致。 */
+function famMsg(t,s){return `<div style="max-width:520px;margin:60px auto;padding:30px;text-align:center;font-family:system-ui,-apple-system,sans-serif"><div style="font-size:20px;font-weight:800;color:#0f8996;margin-bottom:10px">${esc(t)}</div><div style="color:#556;font-size:14px;line-height:1.7">${esc(s)}</div><div style="margin-top:18px"><a href="is-parent.html" style="color:#0f8996;font-weight:700">← 返回家長頁</a></div></div>`;}
+function famPrint(){const fr=document.getElementById('famFrame');if(fr&&fr.contentWindow){fr.contentWindow.focus();fr.contentWindow.print();}}
+async function famReportBoot(){
+  let grant=null;try{grant=JSON.parse(localStorage.getItem('is_report_grant')||'null');}catch(e){}
+  $('#login').style.display='none';const host=$('#app');host.style.display='block';
+  const child=grant&&grant.child;
+  if(!grant||!child||!grant.token){host.innerHTML=famMsg('連結已失效','請返回家長頁，喺小朋友嗰度重新開啟「個人成長報告」。');return;}
+  host.innerHTML=famMsg('載入中…','正在準備 '+child+' 的成長報告');
+  let r;try{r=await apiPost({action:'homeReport',name:grant.name,last4:grant.last4,token:grant.token});}
+  catch(e){host.innerHTML=famMsg('載入失敗，請稍後再試',e.message||'網絡問題');return;}
+  if(!r||r.ok===false||r.error||r.err){host.innerHTML=famMsg('未能載入報告',(r&&(r.error||r.err))||'請返回家長頁重新登入。');return;}
+  ingest({performance:r.performance||[],body:r.body||[],settings:[]});
+  if(!hasAnyData(child)){host.innerHTML=famMsg(child+' 暫未有測試記錄','小朋友完成體測／技術測試後，成長報告就會喺呢度顯示。');return;}
+  const docHtml=reportDoc([growthReportHTML(child)],child+' 成長報告');
+  host.innerHTML=`<div style="position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(135deg,#0f8996,#12a3b2);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)">
+      <div style="font-weight:800;font-size:15px">${esc(child)} · 個人成長報告</div>
+      <button onclick="famPrint()" style="background:#fff;color:#0f8996;border:0;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13.5px;cursor:pointer;white-space:nowrap">🖨️ 列印 / 儲存 PDF</button>
+    </div>
+    <iframe id="famFrame" style="width:100%;border:0;display:block;background:#eef2f4" title="成長報告"></iframe>`;
+  const fr=document.getElementById('famFrame');fr.srcdoc=docHtml;
+  fr.onload=()=>{try{fr.style.height=(fr.contentWindow.document.body.scrollHeight+40)+'px';}catch(e){fr.style.height='2500px';}};
+}
 // auto-login if saved pass (localStorage → 課堂唔使次次登入)
-(function(){let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}if(p){CP=p;$('#pw').value='';boot();}})();
+(function(){
+  if(new URLSearchParams(location.search).get('report')==='1'){famReportBoot();return;}   // 家長報告模式：唔行教練自動登入
+  let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}if(p){CP=p;$('#pw').value='';boot();}})();
 // PWA service worker（只 cache 本 app 自己 HTML 作離線開啟；對其他 IS-APP 頁完全透明，唔攔截）
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('is-performance-sw.js').catch(()=>{});});}
 
