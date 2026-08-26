@@ -467,7 +467,6 @@ html,body{
       <div class="remind-tools">
         <div class="remind-tools-h">📣 一鍵提醒文案</div>
         <div class="remind-btns">
-          <button class="remind-btn" onclick="genMakeupBroadcast()"><span class="ri">⏰</span><span class="rt">補堂到期提醒<br><span style="color:var(--muted);font-weight:600;font-size:11px">14 日內到期學生</span></span></button>
           <button class="remind-btn" onclick="genTodayClassMsg()"><span class="ri">☀️</span><span class="rt">今日課堂提醒<br><span style="color:var(--muted);font-weight:600;font-size:11px">傳去班別群組</span></span></button>
         </div>
       </div>
@@ -604,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-feat4';
+const FRONTEND_VERSION = 'coach-2026-08-26-nomkdeadline';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1093,13 +1092,7 @@ function renderTodo(){
   // 2. 今日補堂學生（今日班別 ATT_LOG 內非正規名冊嘅人）
   const mk=[]; todayCls.forEach(([id,c])=>{ const log=ATT_LOG[id+'|'+today]||{}; Object.keys(log).forEach(n=>{ if(n&&isMakeupVisitor(id,n)&&!/示範|測試/.test(n)) mk.push({name:n,cid:id,time:c.time}); }); });
   if(mk.length) items.push({ic:'🔄',t:`${mk.length} 位補堂學生今日返嚟`,sub:mk.map(m=>m.name+'（'+m.time+'）').join('、'),cls:'info',onclick:`openRoll('${mk[0].cid}')`});
-  // 3. 補堂 7 日內到期（未補、未過期）
-  const cut=addDaysStr_(today,7);
-  const soon=(ABSENCES||[]).filter(a=>!a.madeUpDate&&a.deadline>=today&&a.deadline<=cut).sort((a,b)=>a.deadline<b.deadline?-1:1);
-  if(soon.length) items.push({ic:'⏰',t:`${soon.length} 個補堂 7 日內到期`,sub:soon.slice(0,5).map(a=>a.name+'('+a.deadline.slice(5)+')').join('、')+(soon.length>5?'…':''),cls:'warn',onclick:`showScreen('makeup')`});
-  // 4. 已過期未補（提醒跟進）
-  const exp=(ABSENCES||[]).filter(a=>!a.madeUpDate&&a.deadline<today);
-  if(exp.length) items.push({ic:'🔴',t:`${exp.length} 個補堂已過期未補`,sub:[...new Set(exp.map(a=>a.name))].slice(0,5).join('、'),cls:'urgent',onclick:`showScreen('makeup')`});
+  // 3+4. 補堂到期／已過期提醒已移除（老闆 2026-08-26）：補堂過唔過限期係家長自己嘅責任，唔需要喺教練端提醒。
   // 5. 回歸申請待核實
   const ret=(typeof RETURNS_CACHE!=='undefined'?RETURNS_CACHE:[]).filter(x=>x&&x.status!=='已核實');
   if(ret.length) items.push({ic:'🔍',t:`${ret.length} 個回歸申請待核實`,sub:'家長已交付款，等你核實',cls:'info',onclick:`var e=document.getElementById('home-returns');if(e)e.scrollIntoView({behavior:'smooth'})`});
@@ -1151,16 +1144,7 @@ function genStuReminder(name){
   msg+=`\n\n補堂好簡單：喺家長網頁㩒「申請補堂」揀返一堂即可 🙏`;
   copyMsg_(msg,'提醒文案已複製，貼去 WhatsApp 即可');
 }
-function genMakeupBroadcast(){
-  const today=todayStr(), cut=addDaysStr_(today,14);
-  const soon=(ABSENCES||[]).filter(a=>!a.madeUpDate&&a.deadline>=today&&a.deadline<=cut&&!/示範|測試/.test(a.name)).sort((a,b)=>a.deadline<b.deadline?-1:1);
-  if(!soon.length){ toast('14 日內冇補堂到期','ℹ'); return; }
-  const byName={}; soon.forEach(a=>{ (byName[a.name]=byName[a.name]||[]).push(a.deadline); });
-  let msg=`INITIATE SPORTS 補堂到期提醒 🔔\n以下同學嘅補堂快到期，麻煩喺限期前喺家長網頁㩒「申請補堂」補返：\n`;
-  msg+=Object.keys(byName).map(n=>`• ${n}（${byName[n].length}堂，最快 ${byName[n].sort()[0].slice(5)} 到期）`).join('\n');
-  msg+=`\n\n多謝配合 🙏`;
-  copyMsg_(msg,`已複製 ${Object.keys(byName).length} 位同學提醒`);
-}
+// genMakeupBroadcast（補堂到期廣播提醒）已移除（老闆 2026-08-26）：補堂到期係家長責任，唔需要教練端提醒／廣播。
 function genTodayClassMsg(){
   const dow=hkDow(), today=todayStr();
   const cls=Object.entries(CLASSES).filter(([id])=>CLASS_DOW[id]===dow);
@@ -1186,7 +1170,6 @@ function openInsights(){
     return {label:c.dayZh+' '+c.time, rate:r, marked:p?(p.present+p.makeup+p.leave+p.noshow):0}; })
     .filter(x=>x.marked>0).sort((a,b)=>(b.rate||0)-(a.rate||0));
   const pend=(typeof totalPendingAll==='function')?totalPendingAll():0;
-  const expd=(typeof totalExpiredAll==='function')?totalExpiredAll():0;
   const ov=document.getElementById('insights-ov'); if(!ov)return;
   ov.querySelector('.stu-profile').innerHTML=`
     <div class="sp-head"><span class="sp-av">📊</span><div><div class="sp-name">經營數據洞察</div><div class="sp-sub">由出席記錄即時統計</div></div><button class="sp-close" onclick="closeInsights()">✕</button></div>
@@ -1204,7 +1187,6 @@ function openInsights(){
     <div class="sp-sec"><div class="sp-sec-h">補堂概況</div>
       <div class="ins-break">
         <div class="ins-b"><div class="n" style="color:var(--amber)">${pend}</div><div class="k">待補堂</div></div>
-        <div class="ins-b"><div class="n" style="${expd?'color:var(--red)':''}">${expd}</div><div class="k">已過期</div></div>
         <div class="ins-b"><div class="n" style="color:var(--green)">${T.makeup}</div><div class="k">已補堂</div></div>
       </div>
     </div>`;
@@ -1231,14 +1213,12 @@ function renderHome(){
   }));
   const totalStudents = _seenS.size;
   const pending  = totalPendingAll();
-  const expired  = totalExpiredAll();
   const sessions = Object.keys(ATT_LOG).length;
 
   document.getElementById('home-stats').innerHTML = `
     ${!CLOUD_LOADED ? `<div class="cloud-warn" style="grid-column:1/-1;margin:0"><span>⚠ 未載入雲端資料，數字未必準確</span><button onclick="loadFromSheets()">重新載入</button></div>` : ''}
     <div class="kpi"><div class="ic">👥</div><div class="num">${totalStudents}</div><div class="lbl">總學生數</div></div>
     <div class="kpi ${pending>0?'k-warn':''}"><div class="ic">🔄</div><div class="num ${pending>0?'warn':''}">${pending}</div><div class="lbl">待補堂節數</div></div>
-    <div class="kpi ${expired>0?'k-danger':''}"><div class="ic">⏰</div><div class="num ${expired>0?'danger':''}">${expired}</div><div class="lbl">已過期未補</div></div>
     <div class="kpi k-ok"><div class="ic">✅</div><div class="num ok">${sessions}</div><div class="lbl">已記錄堂數</div></div>
     <div class="home-action" style="grid-column:1/-1;margin:0"><a href="is-enroll-admin.html"><span class="ha-ic">📋</span><span class="ha-t"><b>9-10月恆常班 報名管理</b><span>報名 / 核實付款 / 名額</span></span><span class="ha-arr">›</span></a></div>`;
   var _hd=document.getElementById('home-dashboard'); if(_hd) _hd.innerHTML='';
