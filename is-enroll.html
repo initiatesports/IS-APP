@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-27-gearstore';
+const FRONTEND_VERSION='enroll-2026-08-27-gearpreview';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -862,7 +862,8 @@ function renderGearPay(){
   app.innerHTML=`
   <div style="padding:14px 4px 0"><button class="btn ghost sm" onclick="renderGearBuyer()">← 返回</button></div>
   <div class="card">
-    <h2>付款</h2>
+    <h2>${PREVIEW?'付款（預覽）':'付款'}</h2>
+    ${PREVIEW?'<div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">👁 <b>預覽模式</b>：唔使上載截圖，撳「確認提交訂單」即睇完成頁；<b>唔會真落單</b>。</div>':''}
     <div class="sumline"><span class="k">學生</span><span>${esc(GEAR_BUYER.name)}</span></div>
     <div class="sumline"><span class="k">班別/日子</span><span style="text-align:right">${esc(GEAR_BUYER.classInfo)}</span></div>
     <div class="sumline"><span class="k">器材</span><span style="text-align:right">${esc(gearLabelClient())}</span></div>
@@ -888,6 +889,7 @@ async function submitGearOrder(){
   const msg=document.getElementById('gp_msg');
   const total=gearCostClient();
   if(total<=0){ msg.className='msg err'; msg.textContent='未揀器材'; return; }
+  if(PREVIEW){ renderGearDone({id:'(預覽)', amount:total, label:gearLabelClient()}); return; }   // 預覽模式：唔真提交
   if(!S.gearPayImg){ msg.className='msg err'; msg.textContent='請先上載付款截圖。'; return; }
   const go=document.getElementById('gp_go'); go.disabled=true; go.textContent='提交中…';
   if(!S.gearToken) S.gearToken='g'+Date.now()+'_'+Math.floor(Math.random()*1e6);
