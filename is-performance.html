@@ -245,7 +245,7 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-28-mobilefit';
+const APP_VERSION='growth-2026-08-28-mobilefit2';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -1015,7 +1015,7 @@ function reportDoc(pages,title){
   </style></head><body>${pages.join('')}
   <div style="text-align:center;padding:16px" class="noprint"><button onclick="window.print()" style="background:#0f8996;color:#fff;border:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">列印 / 儲存 PDF</button></div>
   <style>@media print{.noprint{display:none}}</style>
-  <script>(function(){function fit(){try{var pw=210*96/25.4;var vw=document.documentElement.clientWidth||window.innerWidth;if(vw&&vw<pw-2){document.body.style.zoom=vw/pw;document.body.style.padding='0';}else{document.body.style.zoom='';document.body.style.padding='';}}catch(e){}}fit();window.addEventListener('resize',fit);window.addEventListener('orientationchange',fit);window.addEventListener('beforeprint',function(){document.body.style.zoom='';document.body.style.padding='';});window.addEventListener('afterprint',fit);})();</script></body></html>`;
+  <script>(function(){function fit(){try{var pw=210*96/25.4;var vw=document.documentElement.clientWidth||window.innerWidth;if(vw&&vw<pw-2){document.body.style.zoom=vw/pw;document.body.style.padding='0';}else{document.body.style.zoom='';document.body.style.padding='';}}catch(e){}}fit();window.addEventListener('resize',fit);window.addEventListener('orientationchange',fit);window.addEventListener('beforeprint',function(){document.body.style.zoom='';document.body.style.padding='';});window.addEventListener('afterprint',fit);})();<\/script></body></html>`;
 }
 
 /* ═══════════════════ B. 成就徽章（前端推算，唔寫#11）═══════════════════ */

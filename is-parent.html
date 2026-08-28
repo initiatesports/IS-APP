@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-28-lostpost';
+const FRONTEND_VERSION='parent-2026-08-28-curperiod';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -457,14 +457,10 @@ function periodHasBookableMakeup_(kids,p){
   return false;
 }
 function visiblePeriods(kids){
-  const ps=termPeriods(), cur=currentPeriodIdx();
-  let base;
-  if(ps.length<=3) base=ps.slice();
-  else { let start=cur-1; const lo=ps[0],hi=ps[ps.length-1]; if(start<lo)start=lo; if(start>hi-2)start=hi-2; base=[start,start+1,start+2]; }
-  // 過去期（< 本期）只在仲有可補欠堂時顯示；本期＋未來期永遠顯示。
-  const out=base.filter(p=> p>=cur || periodHasBookableMakeup_(kids,p));
-  if(out.indexOf(cur)<0) out.push(cur);   // 保底：一定有本期
-  return out;
+  // 老闆 2026-08-28：只顯示「當前期」，前後期都唔顯示（減少洩露，家長唔會翻舊帳／預先睇未來期）。
+  //   ⚠️ 過去期未補嘅請假唔會因此消失：班卡「申請補堂」掣用 c.owed（跨所有期數總和），過去期欠堂照樣 book 得到（見 classCard 851-857、openMakeup）。
+  //   保留 kids 參數同 periodHasBookableMakeup_ 定義以維持相容，唔再用嚟擴充顯示期。
+  return [currentPeriodIdx()];
 }
 // 未來期付款開放日＝該期首月前一個月「倒數第二個星期日」（如 9-10月 → 8月倒數第2個禮拜日 2026-08-23）
 function penultSundayISO(y,m){const last=new Date(y,m,0).getDate();const sun=[];for(let d=1;d<=last;d++)if(new Date(y,m-1,d).getDay()===0)sun.push(d);const dd=sun[sun.length-2]||sun[sun.length-1]||1;return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}
@@ -712,7 +708,8 @@ function renderParent(){
   if(S.period==null) S.period=currentPeriodIdx();
   const periods=visiblePeriods(kids);
   if(periods.indexOf(S.period)<0) S.period=currentPeriodIdx();
-  const selector=`<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>`;
+  // 只得當前期就唔顯示期數 tab（孤零零一個 tab 冇意思；班卡本身有標「X-Y月・共N堂」）。老闆 2026-08-28。
+  const selector = periods.length>1 ? `<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>` : '';
   let html=`<div class="wrap">`;
   // 🌐 官網入口（登入後置頂）
   html+=`<a class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;box-shadow:0 6px 18px rgba(27,141,155,.25)" href="is-home.html">🌐 ${LANG==='en'?'INITIATE SPORTS Website':'INITIATE SPORTS 官網'}　›</a>`;
