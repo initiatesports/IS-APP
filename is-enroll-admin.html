@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#28B8C8">
-<title>INITIATE SPORTS 報名管理</title>
+<title>INITIATE SPORTS 教練管理系統</title>
 <style>
 :root{ --teal:#28B8C8; --teal-dark:#1F9DAC; --teal-dim:rgba(40,184,200,0.10); --ink:#1f2a30; --mut:#66757c; --line:#e3e9ec; --bg:#f5f8f9; --ok:#1a9e6a; --warn:#c47f00; --err:#c0392b; }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -18,11 +18,13 @@ header.top h1{font-size:16px;margin:0;font-weight:800;}
 header.top .rf{margin-left:auto;font-size:13px;color:var(--teal);background:none;border:1px solid var(--teal);border-radius:8px;padding:5px 10px;cursor:pointer;}
 .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:13px;}
 .card h2{font-size:15px;margin:0 0 10px;font-weight:800;}
-.fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;}
-.fld input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;}
+.fld{margin-bottom:10px;} .fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;background:#fff;color:var(--ink);}
+.fld textarea{min-height:64px;resize:vertical;}
 .btn{background:var(--teal);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;padding:10px 14px;cursor:pointer;}
 .btn:active{background:var(--teal-dark);} .btn.sm{padding:6px 10px;font-size:12.5px;}
 .btn.gray{background:#eef2f3;color:var(--mut);} .btn.ok{background:var(--ok);} .btn.err{background:var(--err);}
+.btn[disabled]{opacity:.5;cursor:not-allowed;}
 .stats{display:flex;flex-wrap:wrap;gap:8px;}
 .stat{flex:1;min-width:90px;background:var(--teal-dim);border-radius:10px;padding:10px;text-align:center;}
 .stat .n{font-size:20px;font-weight:800;color:var(--teal-dark);} .stat .l{font-size:11.5px;color:var(--mut);}
@@ -33,11 +35,11 @@ th{font-size:11.5px;color:var(--mut);font-weight:700;}
 .tag.full{background:#fdecea;color:var(--err);} .tag.ok{background:#e8f7ef;color:var(--ok);} .tag.warn{background:#fff6e0;color:var(--warn);}
 .names{font-size:12px;color:#3a464c;}
 .st{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;}
-.st.待核實{background:#fff6e0;color:var(--warn);} .st.已核實{background:#e8f7ef;color:var(--ok);} .st.候補{background:#eef2f3;color:var(--mut);} .st.取消{background:#fdecea;color:var(--err);}
-a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;}
+.st.待核實,.st.待付款{background:#fff6e0;color:var(--warn);} .st.已核實{background:#e8f7ef;color:var(--ok);} .st.候補{background:#eef2f3;color:var(--mut);} .st.取消{background:#fdecea;color:var(--err);}
+a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;}
 .msg{font-size:13px;padding:9px 11px;border-radius:9px;margin-top:8px;display:none;}
 .msg.err{background:#fdecea;color:var(--err);display:block;} .msg.ok{background:#e8f7ef;color:var(--ok);display:block;}
-.scroll{overflow-x:auto;} .mut{color:var(--mut);font-size:12px;} .load{text-align:center;color:var(--mut);padding:30px;}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;} .mut{color:var(--mut);font-size:12px;} .load{text-align:center;color:var(--mut);padding:30px;}
 .rowact{display:flex;gap:5px;flex-wrap:wrap;}
 .barrow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;}
 .barrow .bl{width:150px;flex-shrink:0;color:#3a464c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -45,25 +47,64 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;}
 .barrow .bf{display:block;height:100%;background:var(--teal);border-radius:5px;}
 .barrow .bf.full{background:var(--warn);}
 .barrow .bn{width:48px;text-align:right;font-weight:700;color:var(--teal-dark);flex-shrink:0;}
+/* tab bar */
+.tabbar{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 12px;margin:0 -2px;}
+.tabbar button{flex:0 0 auto;background:#eef2f3;color:var(--mut);border:1px solid var(--line);border-radius:20px;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;white-space:nowrap;}
+.tabbar button.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.seg button{background:#fff;color:var(--mut);border:none;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;}
+.seg button.active{background:var(--teal);color:#fff;}
+.foot{text-align:center;color:var(--mut);font-size:11px;padding:14px 0 4px;}
+.pill{display:inline-block;background:var(--teal-dim);color:var(--teal-dark);font-size:11px;font-weight:700;padding:1px 9px;border-radius:20px;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS 報名管理</h1><button class="rf" id="rfbtn" style="display:none" onclick="loadAll()">🔄 重新整理</button></header>
+  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS 教練管理</h1><button class="rf" id="rfbtn" style="display:none" onclick="refreshCur()">🔄 重新整理</button></header>
   <div id="app"><div class="load">…</div></div>
+  <div class="foot" id="foot"></div>
 </div>
 <script>
-const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
+/* ══════════ 兩個後端 ══════════ */
+const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
+const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
+const FRONTEND_VERSION='admin-2026-08-28-v2';
 const app=document.getElementById('app');
-let CP='';
-async function fetchT(u,o){ const c=new AbortController(),t=setTimeout(()=>c.abort(),45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
-async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
-async function apiPost(b){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); }
-// C2：付款截圖/確認PDF 已改私有 → 用教練密碼經 getSecureFile 攞 base64 再開,唔直連 Drive。
+let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
+let CUR='enroll';          // 現時 tab
+
+/* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function rawFetch(url,opt){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),45000);
+  try{
+    const r=await fetch(url,Object.assign({signal:c.signal},opt||{}));
+    const txt=await r.text();
+    try{ return JSON.parse(txt); }
+    catch(e){ throw new Error('後端回應唔係 JSON（可能 cold start），請再試'); }
+  } finally{ clearTimeout(t); }
+}
+async function apiPost(api,body){
+  let last;
+  for(let i=0;i<3;i++){
+    try{ return await rawFetch(api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({coachPass:CP},body||{}))}); }
+    catch(e){ last=e; if(i<2) await sleep(700*(i+1)); }
+  }
+  throw last;
+}
+async function apiGet(api,params){
+  let last;
+  for(let i=0;i<3;i++){
+    try{ return await rawFetch(api+'?'+new URLSearchParams(Object.assign({coachPass:CP},params||{}))); }
+    catch(e){ last=e; if(i<2) await sleep(700*(i+1)); }
+  }
+  throw last;
+}
+/* C2：付款截圖/確認PDF 已私有 → 用教練密碼經 getSecureFile 攞 base64 再開,唔直連 Drive。*/
 async function viewSecureFile(ref){
   if(!ref) return;
   try{
-    const r=await apiPost({action:'getSecureFile',coachPass:CP,id:ref});
+    const r=await apiPost(API4,{action:'getSecureFile',id:ref});
     if(!r||!r.ok||!r.b64){ alert((r&&r.err)||'讀取檔案失敗'); return; }
     const bin=atob(r.b64), bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -73,38 +114,102 @@ async function viewSecureFile(ref){
 }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money=n=>'$'+(Number(n)||0).toLocaleString();
-
-function renderLogin(err){
-  app.innerHTML=`<div class="card"><h2>教練登入</h2>
-    <div class="fld"><label>教練密碼</label><input id="cp" type="password" placeholder="密碼"></div>
-    <button class="btn" id="go">登入</button>
-    <div class="msg ${err?'err':''}" style="${err?'display:block':''}">${esc(err||'')}</div></div>`;
-  document.getElementById('go').onclick=async()=>{
-    CP=document.getElementById('cp').value.trim();
-    const r=await apiPost({action:'enrollSummary',coachPass:CP});
-    if(!r||r.ok===false){ renderLogin('密碼錯誤'); CP=''; return; }
-    document.getElementById('rfbtn').style.display='';
-    render(r,null);
-    loadRecords();
-  };
-}
-async function loadAll(){ const r=await apiPost({action:'enrollSummary',coachPass:CP}); render(r, window._recs); loadRecords(); }
-async function loadRecords(){ const r=await apiPost({action:'enrollRecords',coachPass:CP}); window._recs=(r&&r.records)||[]; render(window._sum, window._recs); }
-
 function num(x){ x=parseFloat(String(x==null?'':x).replace(/[^0-9.\-]/g,'')); return isNaN(x)?0:x; }
+function todayIso(){ const d=new Date(),z=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
 // 由備註抽制服/器材金額（學費淨額以外，另加落實付）
 function feeAddon(note){ note=String(note||''); let a=0;
   let m=note.match(/制服[^$]*\$(\d+)/); if(m) a+=+m[1];
-  // 🔒 審計：器材可多款（每款各自「＝$金額」、用「、」分隔、冇空格）→ 全部加總。原本單次 .match 只計第一款。
   let gseg=note.match(/器材[^ ]*/); if(gseg){ (gseg[0].match(/\$(\d+)/g)||[]).forEach(x=>a+=+x.slice(1)); }
   return a;
 }
-function render(sum, recs){
-  window._sum=sum||window._sum; recs=recs||window._recs||[];
-  const s=window._sum; if(!s) return;
+
+/* ══════════ 全局狀態快取 ══════════ */
+const ST={
+  enrollPeriod:'', sum:null, recs:null,          // Tab1 報名審核
+  xferSys:'rope', roster:{}, xfers:{},           // Tab2 調班（roster/xfers 以系統 key 快取）
+  gearFilter:'all', gear:null,                   // Tab3 器材
+  feePeriod:'', feeRecs:null                     // Tab5 收費
+};
+const apiOf=sys=>sys==='sa'?APISA:API4;
+
+/* ══════════ 登入 ══════════ */
+function renderLogin(err){
+  document.getElementById('rfbtn').style.display='none';
+  app.innerHTML=`<div class="card"><h2>教練登入</h2>
+    <div class="fld"><label>教練密碼</label><input id="cp" type="password" placeholder="密碼" autocomplete="current-password"></div>
+    <button class="btn" id="go">登入</button>
+    <div class="msg ${err?'err':''}" style="${err?'display:block':''}">${esc(err||'')}</div></div>`;
+  document.getElementById('foot').textContent='版本 '+FRONTEND_VERSION;
+  const go=document.getElementById('go');
+  const doLogin=async()=>{
+    CP=document.getElementById('cp').value.trim();
+    if(!CP){ return; }
+    go.disabled=true; go.textContent='登入中…';
+    let r; try{ r=await apiPost(API4,{action:'enrollSummary'}); }catch(e){ r=null; }
+    go.disabled=false; go.textContent='登入';
+    if(!r||r.ok===false){ renderLogin(r&&r.err?r.err:'密碼錯誤或連線失敗'); CP=''; return; }
+    ST.sum=r; ST.enrollPeriod=r.period||r.curPeriod||'';
+    document.getElementById('rfbtn').style.display='';
+    renderShell(); switchTab('enroll');
+  };
+  go.onclick=doLogin;
+  document.getElementById('cp').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+}
+
+/* ══════════ 主框架（tab bar + 內容區）══════════ */
+const TABS=[
+  ['enroll','📋 報名審核'],
+  ['transfer','🔁 調班／轉班'],
+  ['gear','🎒 器材派發'],
+  ['profile','👤 學生檔案'],
+  ['fee','💰 收費總覽']
+];
+function renderShell(){
+  app.innerHTML=`<div class="tabbar">${TABS.map(t=>`<button data-tab="${t[0]}" onclick="switchTab('${t[0]}')">${t[1]}</button>`).join('')}</div><div id="tabc"><div class="load">…</div></div>`;
+  document.getElementById('foot').textContent='版本 '+FRONTEND_VERSION;
+}
+function setActive(){ document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.tab===CUR)); }
+function tc(){ return document.getElementById('tabc'); }
+function loading(msg){ const c=tc(); if(c) c.innerHTML=`<div class="load">${esc(msg||'載入中…')}</div>`; }
+function errBox(e){ return `<div class="card"><div class="msg err">${esc(e||'載入失敗，請按重新整理再試')}</div></div>`; }
+function switchTab(name){ CUR=name; setActive();
+  if(name==='enroll') renderEnroll();
+  else if(name==='transfer') renderTransfer();
+  else if(name==='gear') renderGear();
+  else if(name==='profile') renderProfile();
+  else if(name==='fee') renderFee();
+}
+function refreshCur(){
+  if(CUR==='enroll'){ ST.sum=null; ST.recs=null; renderEnroll(); }
+  else if(CUR==='transfer'){ ST.roster={}; ST.xfers={}; renderTransfer(); }
+  else if(CUR==='gear'){ ST.gear=null; renderGear(); }
+  else if(CUR==='profile'){ renderProfile(); }
+  else if(CUR==='fee'){ ST.feeRecs=null; renderFee(); }
+}
+
+/* ════════════════════ TAB 1 報名審核 ════════════════════
+   route: enrollSummary(period) + enrollRecords(period) + enrollSetStatus + enrollDelete + getSecureFile */
+async function renderEnroll(){
+  loading('載入報名概況…');
+  try{
+    if(!ST.sum) ST.sum=await apiPost(API4,{action:'enrollSummary',period:ST.enrollPeriod||undefined});
+    if(!ST.sum||ST.sum.ok===false) throw new Error((ST.sum&&ST.sum.err)||'讀取失敗');
+    ST.enrollPeriod=ST.sum.period||ST.enrollPeriod;
+    if(!ST.recs) { const rr=await apiPost(API4,{action:'enrollRecords',period:ST.enrollPeriod||undefined}); ST.recs=(rr&&rr.records)||[]; }
+  }catch(e){ tc().innerHTML=errBox(e.message); return; }
+  drawEnroll();
+}
+async function changeEnrollPeriod(v){ ST.enrollPeriod=v; ST.sum=null; ST.recs=null; renderEnroll(); }
+
+function periodSelector(sel, list, cur, onchange){
+  const opts=(list||[]).map(p=>`<option value="${esc(p)}" ${p===cur?'selected':''}>${esc(p)}</option>`).join('');
+  return `<div class="fld" style="max-width:260px;margin-bottom:12px"><label>選擇期數</label><select id="${sel}" onchange="${onchange}(this.value)">${opts||`<option>${esc(cur||'')}</option>`}</select></div>`;
+}
+
+function drawEnroll(){
+  const s=ST.sum, recs=ST.recs||[];
   const st=s.stat||{};
   const openBadge = s.open ? '<span class="tag ok">已開放</span>' : '<span class="tag warn">預覽（未開放）</span>';
-  // 課程表
   const courseRows=(s.courses||[]).map(c=>{
     const seat = c.full?'<span class="tag full">滿</span>':(c.enrolled>=4?'<span class="tag ok">可開班</span>':'<span class="tag warn">未夠4</span>');
     const names = c.active.length?`<div class="names">${c.active.map(esc).join('、')}</div>`:'<span class="mut">—</span>';
@@ -112,11 +217,9 @@ function render(sum, recs){
     return `<tr><td><b>${esc(c.sport)}</b><div class="mut">${esc(c.day)} ${esc(c.time)}</div></td>
       <td>${c.enrolled}/${c.cap} ${seat}</td><td>${money(c.price)}</td><td>${names}${wl}</td></tr>`;
   }).join('');
-  // 報名逐筆 —— 同一個人（相同學生姓名）合併一組，顯示完整學費明細；每筆仍各有核實掣
   const nonTest=recs.filter(r=>String(r['備註']||'').indexOf('測試')<0 && String(r['學生姓名']||'').trim()!=='示範學員');
   const byName={}, nameOrder=[];
   nonTest.forEach(r=>{ const nm=String(r['學生姓名']||'').trim(); if(!byName[nm]){ byName[nm]=[]; nameOrder.push(nm); } byName[nm].push(r); });
-  // 排序：未核實（待核實/待付款/候補）排前，已核實排後，取消最尾；同組保持原順序
   const stPri=st=>(st==='已核實'?1:(st==='取消'?2:0));
   const origIdx={}; nameOrder.forEach((n,i)=>origIdx[n]=i);
   nameOrder.sort((a,b)=>{
@@ -127,7 +230,6 @@ function render(sum, recs){
   let pendGrand=0, pendNet=0;
   const personBlocks=nameOrder.map(nm=>{
     const rs=byName[nm];
-    // 合計（取消嗰筆唔計入金額）
     let base=0,vou=0,ref=0,promo=0,net=0,addon=0, anyPending=false;
     rs.forEach(r=>{ if(String(r['狀態']||'')==='取消') return;
       base+=num(r['原價']); vou+=num(r['代金券']); ref+=num(r['推薦']); promo+=num(r['優惠碼']); net+=num(r['實收']); addon+=feeAddon(r['備註']);
@@ -135,23 +237,21 @@ function render(sum, recs){
     });
     const grand=net+addon;
     if(anyPending){ pendGrand+=grand; pendNet+=net; }
-    // 明細一句
     const feeLine=`原價 ${money(base)}`+(vou?` − 券 ${money(vou)}`:'')+(promo?` − 碼 ${money(promo)}`:'')+(ref?` − 推薦 ${money(ref)}`:'')
-      +` → 學費 <b>${money(net)}</b>`+(addon?` ＋ 制服/器材 ${money(addon)}`:'')+` ＝ 實付 <b style="color:var(--ok,#0a7d3c)">${money(grand)}</b>`;
-    // 逐筆（各自核實/取消）
+      +` → 學費 <b>${money(net)}</b>`+(addon?` ＋ 制服/器材 ${money(addon)}`:'')+` ＝ 實付 <b style="color:var(--ok)">${money(grand)}</b>`;
     const regRows=rs.map(r=>{
       const id=r['記錄編號'], stt=String(r['狀態']||''), note=String(r['備註']||'');
-      const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" href="#" onclick="viewSecureFile('${esc(r['付款截圖'])}');return false" style="cursor:pointer">截圖</a>`:'<span class="mut">無截圖</span>';
-      const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" href="#" onclick="viewSecureFile('${esc(r['確認PDF'])}');return false" style="cursor:pointer">PDF</a>`:'';
+      const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" onclick="viewSecureFile('${esc(r['付款截圖'])}')">截圖</a>`:'<span class="mut">無截圖</span>';
+      const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" onclick="viewSecureFile('${esc(r['確認PDF'])}')">PDF</a>`:'';
       let act='';
-      if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${id}','已核實')">核實</button>`;
-      if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${id}','待核實')">轉正取</button>`;
-      if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${id}','取消')">取消</button>`;
-      if(stt==='取消') act+=`<button class="btn err sm" onclick="delRec('${id}','${esc(nm)}')" title="永久刪除呢筆記錄">🗑 刪除</button>`;
+      if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${esc(id)}','已核實')">核實</button>`;
+      if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${esc(id)}','待核實')">轉正取</button>`;
+      if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${esc(id)}','取消')">取消</button>`;
+      if(stt==='取消') act+=`<button class="btn err sm" onclick="delRec('${esc(id)}','${esc(nm)}')" title="永久刪除呢筆記錄">🗑 刪除</button>`;
       const warn=note?`<div style="color:var(--warn);font-size:12px;margin-top:2px">⚠️ ${esc(note)}</div>`:'';
       return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--line)">
         <div style="flex:1;min-width:0">
-          <div><span class="mut">${esc(id)}</span> <span class="st ${stt}">${esc(stt)}</span> · ${esc(r['報名課程'])} · 實收 ${money(r['實收'])}</div>
+          <div><span class="mut">${esc(id)}</span> <span class="st ${esc(stt)}">${esc(stt)}</span> · ${esc(r['報名課程'])} · 實收 ${money(r['實收'])}</div>
           <div style="margin-top:2px">${pay}${pdf}</div>${warn}
         </div>
         <div class="rowact" style="flex-shrink:0">${act}</div>
@@ -161,12 +261,13 @@ function render(sum, recs){
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
         <b style="font-size:15px">${esc(nm)}</b>${rs.length>1?`<span class="tag warn">${rs.length} 次報名合併</span>`:''}
       </div>
-      <div style="font-size:13px;color:var(--ink,#333);margin:4px 0 2px">${feeLine}</div>
+      <div style="font-size:13px;color:var(--ink);margin:4px 0 2px">${feeLine}</div>
       ${regRows}
     </div>`;
   }).join('') || '<div class="mut">未有報名記錄</div>';
 
-  app.innerHTML=`
+  tc().innerHTML=`
+  ${periodSelector('enrPeriod', s.periods, ST.enrollPeriod, 'changeEnrollPeriod')}
   <div class="card">
     <h2>${esc(s.period)} 報名概況 ${openBadge}</h2>
     <div class="stats">
@@ -177,7 +278,7 @@ function render(sum, recs){
       <div class="stat"><div class="n">${money(st.revenue||0)}</div><div class="l">已收入</div></div>
     </div>
     <div class="rowact" style="margin-top:12px">
-      <button class="btn sm" onclick="exportRoster()">📋 匯出 9 月名冊</button>
+      <button class="btn sm" onclick="exportRoster()">📋 匯出名冊</button>
       <button class="btn sm gray" onclick="exportCSV()">⬇️ 匯出 CSV</button>
     </div>
     <div class="msg" id="msg"></div>
@@ -188,13 +289,13 @@ function render(sum, recs){
     <div class="scroll"><table><tr><th>課程</th><th>名額</th><th>學費</th><th>正取學生 / 候補</th></tr>${courseRows}</table></div>
   </div>
   <div class="card"><h2>逐筆報名審核（同一人已合併）</h2>
-    <div class="mut" style="margin:-4px 0 10px">學費淨額 = 原價 − 券 − 優惠碼 − 推薦 ＋ 帶入調整/加操；實付 = 學費 ＋ 制服/器材。⚠️ 標示＝重複收費／帶入調整等要核對。</div>
+    <div class="mut" style="margin:-4px 0 10px">學費淨額 = 原價 − 券 − 優惠碼 − 推薦 ＋ 帶入調整；實付 = 學費 ＋ 制服/器材。⚠️ 標示＝重複收費／帶入調整等要核對。</div>
     <div class="msg ok" style="margin-bottom:10px">未核實合計：學費 <b>${money(pendNet)}</b> ｜ 連制服器材實付 <b>${money(pendGrand)}</b></div>
     ${personBlocks}
   </div>`;
 }
 function exportRoster(){
-  const s=window._sum; if(!s) return;
+  const s=ST.sum; if(!s) return;
   let out='INITIATE SPORTS '+s.period+' 報名名冊（正取學生，可貼入班別 CLASSES）\n';
   out+='※ 只列已核實/待核實正取學生（唔含候補/取消/測試）\n\n';
   (s.courses||[]).forEach(c=>{
@@ -209,15 +310,14 @@ function exportRoster(){
   const msg=document.getElementById('msg'); msg.className='msg ok'; msg.textContent='名冊已生成（已嘗試複製到剪貼簿）。';
 }
 function exportCSV(){
-  const recs=(window._recs||[]).filter(r=>String(r['備註']).indexOf('測試')<0);
+  const recs=(ST.recs||[]).filter(r=>String(r['備註']).indexOf('測試')<0);
   if(!recs.length){ const m=document.getElementById('msg'); m.className='msg err'; m.textContent='未有記錄。'; return; }
-  // 審計：加「制服器材」「實付」欄，唔再只匯出學費(實收)→對數/會計基準完整
   const cols=['記錄編號','時間戳','學生姓名','家長電話','報名課程','實收','制服器材','實付','狀態','付款截圖','確認PDF'];
   let csv=cols.join(',')+'\n';
   recs.forEach(r=>{ const addon=feeAddon(r['備註']); const row=Object.assign({}, r, {'制服器材':addon, '實付':num(r['實收'])+addon});
     csv+=cols.map(c=>'"'+String(row[c]==null?'':row[c]).replace(/"/g,'""')+'"').join(',')+'\n'; });
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='報名記錄_'+(window._sum?window._sum.period:'')+'.csv'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='報名記錄_'+(ST.sum?ST.sum.period:'')+'.csv'; a.click();
 }
 function dashboardHtml(s){
   const cs=(s.courses||[]);
@@ -238,17 +338,298 @@ function dashboardHtml(s){
 }
 async function setStatus(id,status){
   const msg=document.getElementById('msg');
-  const r=await apiPost({action:'enrollSetStatus',coachPass:CP,id,status});
-  if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' → '+status; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
-  loadAll();
+  try{
+    const r=await apiPost(API4,{action:'enrollSetStatus',id,status});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' → '+status; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+  ST.sum=null; ST.recs=null; renderEnroll();
 }
 async function delRec(id,nm){
   if(!confirm('永久刪除報名記錄「'+nm+'」（'+id+'）？此動作不可還原。')) return;
   const msg=document.getElementById('msg');
-  const r=await apiPost({action:'enrollDelete',coachPass:CP,id});
-  if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent='已刪除 '+id; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'刪除失敗'; } }
-  loadAll();
+  try{
+    const r=await apiPost(API4,{action:'enrollDelete',id});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent='已刪除 '+id; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'刪除失敗'; } }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+  ST.sum=null; ST.recs=null; renderEnroll();
 }
+
+/* ════════════════════ TAB 2 調班／轉班 ════════════════════
+   route: rosterList + transfer + transfersList + undoTransfer（跳繩#4 或 運動班#SA）*/
+async function renderTransfer(){
+  const sys=ST.xferSys;
+  loading('載入名冊…');
+  try{
+    if(!ST.roster[sys]){ const r=await apiGet(apiOf(sys==='sa'?'sa':'4'),{action:'rosterList'}); if(!r||r.ok===false) throw new Error((r&&r.err)||'讀取名冊失敗'); ST.roster[sys]=r.classes||[]; }
+    if(!ST.xfers[sys]){ const r=await apiGet(apiOf(sys==='sa'?'sa':'4'),{action:'transfersList'}); ST.xfers[sys]=(r&&r.transfers)||[]; }
+  }catch(e){ tc().innerHTML=xferSeg()+errBox(e.message); return; }
+  drawTransfer();
+}
+function xferSeg(){
+  return `<div class="seg">
+    <button class="${ST.xferSys==='rope'?'active':''}" onclick="setXferSys('rope')">跳繩恆常班</button>
+    <button class="${ST.xferSys==='sa'?'active':''}" onclick="setXferSys('sa')">運動班</button>
+  </div>`;
+}
+function setXferSys(s){ if(ST.xferSys===s) return; ST.xferSys=s; renderTransfer(); }
+
+function drawTransfer(){
+  const sys=ST.xferSys, api=sys==='sa'?'sa':'4';
+  const classes=ST.roster[sys]||[], xfers=ST.xfers[sys]||[];
+  // 學生下拉：name|fromCid，顯示「姓名（班別）」
+  const studOpts=['<option value="">— 揀學生 —</option>'];
+  classes.forEach(c=>{ (c.students||[]).forEach(nm=>{ studOpts.push(`<option value="${esc(nm)}|${esc(c.cid)}">${esc(nm)}（${esc(c.label)}）</option>`); }); });
+  const clsOpts=classes.map(c=>`<option value="${esc(c.cid)}">${esc(c.label)}（現 ${(c.students||[]).length} 人）</option>`).join('');
+  const xferRows = xfers.length ? xfers.map(t=>`<tr>
+      <td><b>${esc(t.name)}</b></td>
+      <td>${esc(t.from)} → ${esc(t.to)}</td>
+      <td>${esc(t.date)}</td>
+      <td><button class="btn err sm" onclick="undoXfer(${t.row})">撤銷</button></td>
+    </tr>`).join('') : '<tr><td colspan="4" class="mut">未有調班紀錄</td></tr>';
+
+  tc().innerHTML=`
+  ${xferSeg()}
+  <div class="card">
+    <h2>新增調班</h2>
+    <div class="mut" style="margin:-4px 0 10px">選擇學生同目標班，生效日起計。⚠️ 學費唔會自動改，記得人手檢視。</div>
+    <div class="fld"><label>學生（顯示現時班別）</label><select id="xStud" onchange="onXferStud()">${studOpts.join('')}</select></div>
+    <div class="fld"><label>目前班別</label><input id="xFromLbl" readonly placeholder="揀學生後自動顯示"></div>
+    <div class="fld"><label>轉去邊班</label><select id="xTo">${clsOpts}</select></div>
+    <div class="fld"><label>生效日期</label><input id="xDate" type="date" value="${todayIso()}"></div>
+    <div class="fld"><label>備註（可選）</label><input id="xNote" placeholder="例：家長要求轉時段"></div>
+    <button class="btn" id="xGo" onclick="doTransfer()">確認調班</button>
+    <div class="msg" id="xmsg"></div>
+  </div>
+  <div class="card"><h2>現有調班紀錄</h2>
+    <div class="scroll"><table><tr><th>學生</th><th>由 → 去</th><th>生效日</th><th>操作</th></tr>${xferRows}</table></div>
+  </div>`;
+}
+function onXferStud(){
+  const v=document.getElementById('xStud').value;
+  const lbl=document.getElementById('xFromLbl');
+  if(!v){ lbl.value=''; return; }
+  const cid=v.split('|')[1];
+  const c=(ST.roster[ST.xferSys]||[]).find(x=>x.cid===cid);
+  lbl.value=c?c.label:cid;
+}
+async function doTransfer(){
+  const sys=ST.xferSys, api=apiOf(sys==='sa'?'sa':'4');
+  const v=document.getElementById('xStud').value, msg=document.getElementById('xmsg');
+  const toCid=document.getElementById('xTo').value, date=document.getElementById('xDate').value, note=document.getElementById('xNote').value.trim();
+  if(!v){ msg.className='msg err'; msg.textContent='請揀學生'; return; }
+  const [name,fromCid]=v.split('|');
+  if(!toCid){ msg.className='msg err'; msg.textContent='請揀目標班'; return; }
+  if(fromCid===toCid){ msg.className='msg err'; msg.textContent='目標班同現時班相同'; return; }
+  if(!date){ msg.className='msg err'; msg.textContent='請揀生效日期'; return; }
+  const toC=(ST.roster[sys]||[]).find(x=>x.cid===toCid);
+  if(!confirm(`確認調班？\n\n學生：${name}\n由：${document.getElementById('xFromLbl').value}\n去：${toC?toC.label:toCid}\n生效：${date}\n\n⚠️ 會即時影響出席名冊；學費唔會自動改。`)) return;
+  const go=document.getElementById('xGo'); go.disabled=true; go.textContent='處理中…';
+  try{
+    const r=await apiPost(api,{action:'transfer',name,fromCid,toCid,date,note});
+    if(r&&r.ok){
+      if(r.dup){ msg.className='msg ok'; msg.textContent='此調班已存在（未重複加）。'; }
+      else{ msg.className='msg ok'; msg.textContent=`✅ 已調班：${r.name} ${r.from} → ${r.to}（${r.date}）。${r.feeNote||''}`; }
+      ST.roster[sys]=null; ST.xfers[sys]=null; setTimeout(renderTransfer,900);
+    } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'調班失敗'; }
+  }catch(e){ msg.className='msg err'; msg.textContent='連線失敗，請再試'; }
+  go.disabled=false; go.textContent='確認調班';
+}
+async function undoXfer(row){
+  const sys=ST.xferSys, api=apiOf(sys==='sa'?'sa':'4');
+  if(!confirm('確認撤銷此調班？學生會還原返原班（影響出席名冊）。')) return;
+  try{
+    const r=await apiPost(api,{action:'undoTransfer',row});
+    if(r&&r.ok){ ST.roster[sys]=null; ST.xfers[sys]=null; renderTransfer(); }
+    else alert((r&&r.err)||'撤銷失敗');
+  }catch(e){ alert('連線失敗，請再試'); }
+}
+
+/* ════════════════════ TAB 3 器材派發 ════════════════════
+   route: gearOrdersList + gearDispatch（#4）*/
+async function renderGear(){
+  loading('載入器材訂單…');
+  try{
+    if(!ST.gear){ const r=await apiPost(API4,{action:'gearOrdersList'}); if(!r||r.ok===false) throw new Error((r&&r.err)||'讀取失敗'); ST.gear=r.orders||[]; }
+  }catch(e){ tc().innerHTML=errBox(e.message); return; }
+  drawGear();
+}
+function setGearFilter(f){ ST.gearFilter=f; drawGear(); }
+function drawGear(){
+  const all=ST.gear||[];
+  const total=all.length, undis=all.filter(o=>!o.dispatched).length, dis=total-undis;
+  const f=ST.gearFilter;
+  const list=all.filter(o=> f==='all'?true : (f==='undis'? !o.dispatched : o.dispatched));
+  const rows = list.length ? list.map(o=>`<tr>
+      <td><b>${esc(o.name||'—')}</b>${o.classInfo?`<div class="mut">${esc(o.classInfo)}</div>`:''}</td>
+      <td>${esc(o.items||'—')}</td>
+      <td>${money(o.amount)}</td>
+      <td><span class="pill">${esc(o.src||'')}</span>${o.hasPay?' <a class="lnk" onclick="alert(\'付款截圖喺報名/器材訂單分頁，可經 報名審核 tab 開\')">📎</a>':''}<div class="mut">${esc(o.status||'')}</div></td>
+      <td>${o.dispatched?'<span class="tag ok">已派</span>':'<span class="tag warn">未派</span>'}</td>
+      <td>${o.dispatched
+        ? `<button class="btn gray sm" onclick="dispatch('${esc(o.id)}',0)">取消已派</button>`
+        : `<button class="btn ok sm" onclick="dispatch('${esc(o.id)}',1)">標記已派</button>`}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="mut">未有訂單</td></tr>';
+  tc().innerHTML=`
+  <div class="card">
+    <h2>🎒 器材派發追蹤</h2>
+    <div class="stats" style="margin-bottom:12px">
+      <div class="stat"><div class="n">${total}</div><div class="l">總訂單</div></div>
+      <div class="stat"><div class="n" style="color:var(--warn)">${undis}</div><div class="l">未派</div></div>
+      <div class="stat"><div class="n" style="color:var(--ok)">${dis}</div><div class="l">已派</div></div>
+    </div>
+    <div class="seg">
+      <button class="${f==='all'?'active':''}" onclick="setGearFilter('all')">全部</button>
+      <button class="${f==='undis'?'active':''}" onclick="setGearFilter('undis')">未派</button>
+      <button class="${f==='dis'?'active':''}" onclick="setGearFilter('dis')">已派</button>
+    </div>
+    <div class="msg" id="gmsg"></div>
+    <div class="scroll"><table><tr><th>學生 / 班別</th><th>器材</th><th>金額</th><th>來源</th><th>派發</th><th>操作</th></tr>${rows}</table></div>
+  </div>`;
+}
+async function dispatch(id,to){
+  const label=to?'標記為「已派」':'改回「未派」';
+  if(!confirm(`確認${label}？（訂單 ${id}）`)) return;
+  const msg=document.getElementById('gmsg');
+  try{
+    const r=await apiPost(API4,{action:'gearDispatch',id,dispatched:to});
+    if(r&&r.ok){ ST.gear=null; renderGear(); }
+    else if(msg){ msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+}
+
+/* ════════════════════ TAB 4 學生檔案 ════════════════════
+   夾埋：enrollRecords(全期,filter姓名) + rosterList(兩系統) + gearOrdersList(filter姓名)*/
+async function renderProfile(){
+  tc().innerHTML=`
+  <div class="card">
+    <h2>👤 學生檔案</h2>
+    <div class="fld" style="margin-bottom:8px"><label>搜尋學生中文姓名</label>
+      <input id="pq" placeholder="例：陳大文" onkeydown="if(event.key==='Enter')doProfile()"></div>
+    <button class="btn" onclick="doProfile()">搜尋</button>
+    <div class="msg" id="pmsg"></div>
+  </div>
+  <div id="pres"></div>`;
+}
+async function doProfile(){
+  const q=document.getElementById('pq').value.trim();
+  const msg=document.getElementById('pmsg'), pres=document.getElementById('pres');
+  if(!q){ msg.className='msg err'; msg.textContent='請輸入姓名'; return; }
+  msg.className='msg'; msg.style.display='none';
+  pres.innerHTML='<div class="load">搜尋中…</div>';
+  try{
+    const [recR, r4, rsa, gearR]=await Promise.all([
+      apiPost(API4,{action:'enrollRecords'}),                       // 全期
+      apiGet(API4,{action:'rosterList'}),
+      apiGet(APISA,{action:'rosterList'}),
+      apiPost(API4,{action:'gearOrdersList'})
+    ]);
+    const recs=((recR&&recR.records)||[]).filter(r=>String(r['學生姓名']||'').trim()===q);
+    const inClasses=[];
+    ((r4&&r4.classes)||[]).forEach(c=>{ if((c.students||[]).includes(q)) inClasses.push('跳繩｜'+c.label); });
+    ((rsa&&rsa.classes)||[]).forEach(c=>{ if((c.students||[]).includes(q)) inClasses.push('運動班｜'+c.label); });
+    const gears=((gearR&&gearR.orders)||[]).filter(o=>String(o.name||'').trim()===q);
+
+    if(!recs.length && !inClasses.length && !gears.length){
+      pres.innerHTML=`<div class="card"><div class="mut">搵唔到「${esc(q)}」嘅任何報名／名冊／器材記錄。請確認中文全名。</div></div>`;
+      return;
+    }
+    // 報名記錄
+    let paid=0, pend=0;
+    const recRows=recs.map(r=>{
+      const stt=String(r['狀態']||''); const net=num(r['實收']), addon=feeAddon(r['備註']);
+      if(stt==='已核實') paid+=net+addon; else if(stt!=='取消') pend+=net+addon;
+      const note=String(r['備註']||'');
+      return `<tr><td>${esc(r['期數']||'—')}</td><td>${esc(r['報名課程']||'')}</td>
+        <td>${money(r['實收'])}${addon?`<div class="mut">+器材/制服 ${money(addon)}</div>`:''}</td>
+        <td><span class="st ${esc(stt)}">${esc(stt)}</span></td>
+        <td>${note?`<div class="mut">${esc(note)}</div>`:'—'}</td></tr>`;
+    }).join('') || '<tr><td colspan="5" class="mut">冇報名記錄</td></tr>';
+    // 器材
+    const gearRows=gears.map(o=>`<tr><td>${esc(o.items||'')}</td><td>${money(o.amount)}</td>
+      <td><span class="pill">${esc(o.src||'')}</span></td><td>${o.dispatched?'<span class="tag ok">已派</span>':'<span class="tag warn">未派</span>'}</td></tr>`).join('')
+      || '<tr><td colspan="4" class="mut">冇器材訂單</td></tr>';
+
+    pres.innerHTML=`
+    <div class="card">
+      <h2>${esc(q)}</h2>
+      <div class="stats">
+        <div class="stat"><div class="n">${inClasses.length}</div><div class="l">現有班數</div></div>
+        <div class="stat"><div class="n">${recs.length}</div><div class="l">報名次數</div></div>
+        <div class="stat"><div class="n">${money(paid)}</div><div class="l">已核實實付</div></div>
+        <div class="stat"><div class="n" style="color:var(--warn)">${money(pend)}</div><div class="l">待付</div></div>
+      </div>
+      <div class="mut" style="margin-top:12px;font-weight:700">現時所屬班別</div>
+      <div class="names" style="margin-top:4px">${inClasses.length?inClasses.map(esc).join('<br>'):'<span class="mut">冇（未入任何名冊）</span>'}</div>
+    </div>
+    <div class="card"><h2>報名記錄（全期）</h2>
+      <div class="scroll"><table><tr><th>期數</th><th>課程</th><th>實收</th><th>狀態</th><th>備註</th></tr>${recRows}</table></div>
+    </div>
+    <div class="card"><h2>器材訂單</h2>
+      <div class="scroll"><table><tr><th>器材</th><th>金額</th><th>來源</th><th>派發</th></tr>${gearRows}</table></div>
+    </div>`;
+  }catch(e){ pres.innerHTML=errBox('搜尋失敗，請再試'); }
+}
+
+/* ════════════════════ TAB 5 收費總覽 ════════════════════
+   route: enrollRecords(period) + enrollAdjustFee(dryRun→確認)*/
+async function renderFee(){
+  loading('載入收費資料…');
+  try{
+    if(!ST.feePeriod) ST.feePeriod=ST.enrollPeriod||(ST.sum&&ST.sum.curPeriod)||'';
+    if(!ST.feeRecs){ const r=await apiPost(API4,{action:'enrollRecords',period:ST.feePeriod||undefined});
+      if(!r||r.ok===false) throw new Error((r&&r.err)||'讀取失敗');
+      ST.feeRecs=r.records||[]; ST._feePeriods=r.periods||[]; if(!ST.feePeriod) ST.feePeriod=r.curPeriod||''; }
+  }catch(e){ tc().innerHTML=errBox(e.message); return; }
+  drawFee();
+}
+async function changeFeePeriod(v){ ST.feePeriod=v; ST.feeRecs=null; renderFee(); }
+function drawFee(){
+  const recs=(ST.feeRecs||[]).filter(r=>String(r['備註']||'').indexOf('測試')<0 && String(r['學生姓名']||'').trim()!=='示範學員' && String(r['狀態']||'')!=='取消');
+  let revenue=0, verified=0, pending=0;
+  const rows=recs.map(r=>{
+    const stt=String(r['狀態']||''), net=num(r['實收']), addon=feeAddon(r['備註']), base=num(r['原價']);
+    if(stt==='已核實'){ revenue+=net+addon; verified++; } else pending++;
+    const id=r['記錄編號'];
+    return `<tr>
+      <td><b>${esc(r['學生姓名'])}</b></td>
+      <td>${esc(r['報名課程']||'')}</td>
+      <td>${money(base)}</td>
+      <td><b>${money(net)}</b>${addon?`<div class="mut">+${money(addon)} 制服/器材</div>`:''}</td>
+      <td><span class="st ${esc(stt)}">${esc(stt)}</span></td>
+      <td><button class="btn sm gray" onclick="adjustFee('${esc(id)}','${esc(r['學生姓名'])}',${net})">調整</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="mut">此期未有報名記錄</td></tr>';
+  tc().innerHTML=`
+  ${periodSelector('feePeriod', ST._feePeriods, ST.feePeriod, 'changeFeePeriod')}
+  <div class="card">
+    <h2>💰 收費總覽</h2>
+    <div class="stats" style="margin-bottom:12px">
+      <div class="stat"><div class="n">${money(revenue)}</div><div class="l">已核實收入</div></div>
+      <div class="stat"><div class="n" style="color:var(--ok)">${verified}</div><div class="l">已核實人數</div></div>
+      <div class="stat"><div class="n" style="color:var(--warn)">${pending}</div><div class="l">待付/待核實</div></div>
+    </div>
+    <div class="mut" style="margin:-2px 0 8px">「已核實收入」= 已核實記錄嘅實收 ＋ 制服/器材。調整實收前有預覽同確認。</div>
+    <div class="msg" id="fmsg"></div>
+    <div class="scroll"><table><tr><th>學生</th><th>課程</th><th>原價</th><th>實收</th><th>狀態</th><th>操作</th></tr>${rows}</table></div>
+  </div>`;
+}
+async function adjustFee(id,nm,curNet){
+  const msg=document.getElementById('fmsg');
+  const ds=prompt(`調整「${nm}」實收（${id}）。\n目前實收 $${curNet}。\n輸入增減金額（正數加、負數減，例：-100）：`,'');
+  if(ds===null) return;
+  const delta=Number(String(ds).replace(/[^0-9.\-]/g,''));
+  if(!delta){ if(msg){ msg.className='msg err'; msg.textContent='金額無效（需非零數字）'; } return; }
+  const note=prompt('調整原因／備註（會寫入記錄）：','')||'';
+  try{
+    const dry=await apiPost(API4,{action:'enrollAdjustFee',id,delta,note,dryRun:1});
+    if(!dry||dry.ok===false){ if(msg){ msg.className='msg err'; msg.textContent=(dry&&dry.err)||'預覽失敗'; } return; }
+    if(!confirm(`確認調整？\n\n學生：${dry.name}\n實收：$${dry.oldNet} → $${dry.newNet}（${delta>0?'+':''}${delta}）\n備註：${dry.note}`)) return;
+    const r=await apiPost(API4,{action:'enrollAdjustFee',id,delta,note});
+    if(r&&r.ok){ if(msg){ msg.className='msg ok'; msg.textContent=`✅ ${r.name}：$${r.oldNet} → $${r.newNet}`; } ST.feeRecs=null; ST.sum=null; setTimeout(renderFee,700); }
+    else if(msg){ msg.className='msg err'; msg.textContent=(r&&r.err)||'調整失敗'; }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗，請再試'; } }
+}
+
 renderLogin();
 </script>
 </body>
