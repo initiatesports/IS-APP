@@ -87,6 +87,7 @@ const CHECKS = [
   { file:'is-enroll.html', fn:'submitGearOrder', must:'gearOrder', why:'器材店提交→後端 gearOrder route' },
   { file:'is-enroll.html', fn:'renderHome', must:'renderPtInfo', why:'首頁「私人訓練」入口(官網私訓內容+WhatsApp查詢)' },
   { file:'is-enroll.html', fn:'renderPtInfo', must:'PT_WA', why:'私訓頁要有WhatsApp查詢預約按鈕' },
+  { file:'is-enroll.html', fn:'renderPtInfo', must:'is-pt-enroll.html', why:'私訓頁→獨立私訓報名系統入口(老闆 2026-08-28)' },
   { file:'is-enroll.html', fn:'renderMakeupInfo', must:'MAKEUP_URL', why:'請假補堂介紹頁→連去家長請假補堂系統(MAKEUP_URL=is-parent.html)' },
   { file:'is-enroll.html', fn:'submitAdult', must:'adultEnroll', why:'成人報名提交→後端 adultEnroll route' },
   { file:'is-enroll.html', fn:'submitAdult', must:'payImg', why:'成人提交要帶付款截圖(對齊兒童提交前上載)' },
