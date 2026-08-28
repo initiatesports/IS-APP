@@ -55,6 +55,10 @@ const HIST_CUTOFF = "2026-06-16";
 // 有 timeout 就會拋 error → 行返原本嘅重試邏輯 → 最壞情況變一個 ERR，唔會拖冧成次檢測。
 const LOGIN_MS = 90000;    // 單個家長登入
 const HEAVY_MS = 180000;   // 教練 load / audit（讀全校 grid，正常較慢）
+// 🛡️ 總時限：即使逐個請求都有硬死線，111 個學生 × 重試 × 逾時 最壞仍可行幾個鐘。排程係每日一次，
+//   行到夜晚都冇意思 —— 到期即出「已測部分」報告 + 明確講剩幾多個未測，好過完全冇報告靜靜死。
+const RUN_DEADLINE = Date.now() + Number(process.env.QA_MAX_MIN || 50) * 60000;
+const outOfTime = () => Date.now() > RUN_DEADLINE;
 
 // 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向會丟失 body → 請求變咗落 doGet，後端見 action=undefined，
 //   回一個「合法 JSON 但係假錯誤」：#4/#9 = {ok:false,err:"unknown action"}，#11 = {"error":"Unknown action: undefined"}。
@@ -65,18 +69,39 @@ function isLostPost(j) {
   return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m);
 }
 
+// 🛡️ 2026-08-28：AbortSignal.timeout 唔一定殺到「連線期卡死」嘅 socket。今日實測 #9 一個 ping 卡咗
+//   >146 秒都冇 abort，令成個每日 QA 靜靜卡死近 2 個鐘、零報告（同 2026-08-12 一樣症狀；當時以為
+//   加 AbortSignal.timeout 就根治，其實蓋唔住呢一類）。檢測工具靜靜死 = 老闆以為系統健康，最危險。
+//   → 加「硬死線」：唔理 fetch 有冇 abort 到，到期即拋錯行返重試邏輯，卡死嘅 socket 交畀 GC。
+async function fetchText(url, opts, ms, tag) {
+  const ac = new AbortController();
+  const inner = (async () => {
+    const r = await fetch(url, { ...opts, signal: ac.signal });
+    return await r.text();
+  })();
+  let t;
+  try {
+    return await Promise.race([
+      inner,
+      new Promise((_, rej) => { t = setTimeout(() => rej(new Error("HARD_TIMEOUT:" + tag)), ms); }),
+    ]);
+  } finally {
+    clearTimeout(t);
+    try { ac.abort(); } catch { /* 已完成／已 abort */ }
+    inner.catch(() => {});   // 免 unhandled rejection
+  }
+}
+
 async function callLogin(exec, name, cred) {
   let lastErr = "";
   for (let attempt = 0; attempt < 3; attempt++) {   // 重試 3 次，防短暫網絡
     try {
-      const res = await fetch(exec, {
+      const txt = await fetchText(exec, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "login", name, last4: cred }),
         redirect: "follow",
-        signal: AbortSignal.timeout(LOGIN_MS),
-      });
-      const txt = await res.text();
+      }, LOGIN_MS, "login");
       try {
         const j = JSON.parse(txt);
         if (!isLostPost(j)) return j;
@@ -93,14 +118,12 @@ async function callLogin(exec, name, cred) {
 async function callLoad(exec, coachPass) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(exec, {
+      const txt = await fetchText(exec, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "load", coachPass }),
         redirect: "follow",
-        signal: AbortSignal.timeout(HEAVY_MS),
-      });
-      const txt = await res.text();
+      }, HEAVY_MS, "load");
       try { const j = JSON.parse(txt); if (!isLostPost(j)) return j; } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
     await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
@@ -111,11 +134,9 @@ async function callLoad(exec, coachPass) {
 async function callAudit(exec, coachPass) {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      const res = await fetch(exec + "?" + new URLSearchParams({ action: "audit", coachPass }), {
+      const txt = await fetchText(exec + "?" + new URLSearchParams({ action: "audit", coachPass }), {
         redirect: "follow",
-        signal: AbortSignal.timeout(HEAVY_MS),
-      });
-      const txt = await res.text();
+      }, HEAVY_MS, "audit");
       try { const j = JSON.parse(txt); if (!isLostPost(j)) return j; } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
     await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
@@ -128,14 +149,12 @@ async function callAudit(exec, coachPass) {
 async function callHomeReport(name, last4, token) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch(EXEC11, {
+      const txt = await fetchText(EXEC11, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "homeReport", name, last4, token }),
         redirect: "follow",
-        signal: AbortSignal.timeout(LOGIN_MS),
-      });
-      const txt = await res.text();
+      }, LOGIN_MS, "homeReport");
       try { const j = JSON.parse(txt); if (!isLostPost(j)) return j; } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
     await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
@@ -234,6 +253,10 @@ async function sweep(label, exec, rows, withPin) {
   let okCount = 0, idx = 0;
   const failed = [];
   for (const [name, last4] of students) {
+    if (outOfTime()) {
+      add("ERR", label, "—", `⏱ 已達 QA 總時限，仲有 ${students.length - idx} 個未測（後端異常慢／卡死，請查該後端部署）`);
+      break;
+    }
     const cred = (withPin && PIN4[pad4(last4)]) ? PIN4[pad4(last4)] : pad4(last4);
     // 進度寫 stderr（唔影響 stdout 尾行嘅 JSON 解析）；只出序號唔出姓名（私隱）。
     // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
@@ -247,7 +270,10 @@ async function sweep(label, exec, rows, withPin) {
   // callLogin 內部 3 次重試只覆蓋約 3.6 秒，蓋唔住呢種窗口 → 2026-08-13 實測連續 15 個
   // 「登入失敗」、窗口過咗逐個重試 15/15 即刻成功，成功率被拉低到 74% 觸發假警報。
   // 所以整輪掃完（窗口多數已過）之後，隔一陣再試一次先當真失敗。
-  if (failed.length) {
+  if (failed.length && outOfTime()) {
+    // 已冇時間做第二輪 → 唔可以靜靜當冇事，逐個報返出嚟（寧願多報，唔可以漏報）。
+    for (const [name, , err0] of failed) add("ERR", label, name, "登入失敗（未及第二輪重試，QA 已達總時限）：" + err0);
+  } else if (failed.length) {
     process.stderr.write(`\r[${label}] 第二輪重試 ${failed.length} 個…   `);
     await new Promise(r => setTimeout(r, 20000));
     for (const [name, cred, err0] of failed) {
