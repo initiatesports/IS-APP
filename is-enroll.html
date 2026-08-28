@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-28-floworder';
+const FRONTEND_VERSION='enroll-2026-08-28-blocklist';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1255,7 +1255,7 @@ async function doIdentify(skipSuggest){
     if(_as){   // 預覽指定真實學員（老闆核對用）：用真身 identify 顯示佢實際新/舊生價＋券餘額，但預覽照樣唔會真提交
       apiPost({action:'enrollIdentify', name:_as, last4:_pin}, 20000).then(res=>{
         if(!res||res.ok===false){ app.innerHTML='<div class="card"><div class="msg err">預覽身份核對失敗（'+esc(_as)+'）：'+esc((res&&res.err)||'請確認 as=姓名 同 pin=電話後4位')+'</div></div>'; return; }
-        S.family={name:_as,phone:'',last4:_pin,isOld:!!res.isOld,tier:(res.tier||'新生')+'（預覽）'}; S.isNew=!res.isOld;
+        S.family={name:_as,phone:'',last4:_pin,isOld:!!res.isOld,tier:(res.tier||'新生')+'（預覽）',blocked:!!res.blocked}; S.isNew=!res.isOld;
         S.oldPrices=res.oldPrices||null; S.profile=res.profile||{}; S.courses=[]; S.quote=null; S.payImg='';
         S.credit={remaining:res.creditRemaining||0,summer:res.summer||0,referral:res.referral||0}; renderPriceTable();
       }).catch(()=>{ app.innerHTML='<div class="card"><div class="msg err">預覽核對連線逾時，請再試。</div></div>'; });
@@ -1289,7 +1289,7 @@ async function doIdentify(skipSuggest){
       + `<div style="margin-top:8px;font-size:12.5px;line-height:1.7;color:var(--muted)">如果係<b>同一位</b>學生（中文名可能有異體字或打錯咗），撳返正確名即可享<b>舊生優惠價</b>。<br>如果真係<b>新學生</b>，請撳 <button type="button" onclick="doIdentify(true)" style="background:none;border:none;color:var(--teal);text-decoration:underline;cursor:pointer;font-size:12.5px;padding:0">繼續用「${esc(name)}」報名 →</button></div>`;
     return;
   }
-  S.family={name, phone, last4, isOld:!!res.isOld, tier:res.tier||'新生'};
+  S.family={name, phone, last4, isOld:!!res.isOld, tier:res.tier||'新生', blocked:!!res.blocked};   // 婉拒名單：全部班顯示已滿＋報價 $0（老闆 2026-08-28）
   S.isNew=!res.known;
   S.oldPrices=res.oldPrices||null;   // 舊生價 map（只有已驗證舊生先攞到；新生為 null）→ 課程卡/收費一覽用呢個顯示舊生價
   S.profile=res.profile||null;
@@ -1532,7 +1532,8 @@ function renderCourses(){
     const meta=[c.day&&c.day!=='待定'?c.day:'', c.time&&c.time!=='待定'?c.time:'', c.venue&&c.venue!=='待定'?c.venue:'']
       .filter(Boolean).join(' · ') || '時間 / 地點稍後公佈';
     const left = c.cap - (c.enrolled||0);
-    const seat = c.full ? '<span style="color:var(--err);font-weight:700">已滿（可候補）</span>'
+    const _full = c.full || !!(S.family&&S.family.blocked);   // 婉拒名單：全部班顯示已滿（老闆 2026-08-28）
+    const seat = _full ? '<span style="color:var(--err);font-weight:700">已滿（可候補）</span>'
       : (left<=3 ? `<span style="color:var(--warn);font-weight:700">尚餘 ${left} 位</span>` : `餘 ${left}/${c.cap} 位`);
     const datesLine=(c.dates&&c.dates.length)?`<div class="cm" style="color:var(--teal-dark);margin-top:3px">📅 共 ${c.dates.length} 堂：${c.dates.map(fmtMD).join('、')}</div>`:'';
     return `<label class="course ${on?'on':''}" data-id="${c.id}" style="align-items:flex-start">
