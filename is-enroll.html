@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-28-blocklist';
+const FRONTEND_VERSION='enroll-2026-08-28-pt';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -700,8 +700,9 @@ function renderPtInfo(){
         </div>
       </div>
       <div class="ptx-cta">
-        <a class="ptx-cta-btn" href="${PT_WA}" target="_blank" rel="noopener">💬 WhatsApp 查詢及預約</a>
-        <div class="ptx-cta-note">點擊後將直接開啟 WhatsApp 與教練對話</div>
+        <a class="ptx-cta-btn" href="is-pt-enroll.html" style="text-decoration:none">📝 立即報名私人訓練 →</a>
+        <a class="ptx-cta-btn" href="${PT_WA}" target="_blank" rel="noopener" style="margin-top:8px;text-decoration:none;background:transparent;border:1.5px solid #fff;color:#fff">💬 WhatsApp 查詢</a>
+        <div class="ptx-cta-note">報名收費面議，提交後教練會 WhatsApp 你夾時間及報價</div>
       </div>
     </div>
   </div>
