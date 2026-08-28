@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-28-taborder';
+const FRONTEND_VERSION='enroll-2026-08-28-floworder';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -772,8 +772,8 @@ function renderGearSelect(){
     ${rows}
     <div class="q net" style="margin-top:6px"><span>器材小計</span><span><b>${money(total)}</b></span></div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderFee()">返回</button>
-      <button class="btn" onclick="renderNotes()">下一步 →</button>
+      <button class="btn ghost sm" onclick="renderMakeupInfo(true)">返回</button>
+      <button class="btn" onclick="renderFee()">下一步 →</button>
     </div>
   </div>`;
 }
@@ -918,7 +918,7 @@ function renderGearDone(r){
 const MAKEUP_URL='https://initiatesports.github.io/IS-APP/is-parent.html';
 function renderMakeupInfo(inFlow){
   const nav = inFlow
-    ? `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderWeather()">‹ 返回</button><button class="btn" onclick="renderPriceTable()">下一步（睇收費）→</button></div>`
+    ? `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderWeather()">‹ 返回</button><button class="btn" onclick="renderGearSelect()">下一步 →</button></div>`
     : `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>`;
   app.innerHTML=`
   <div class="card">
@@ -1196,7 +1196,7 @@ function renderPriceTable(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(3)}
+    ${steps(1)}
     <h2>收費一覽 ${isOld?'<span class="pill">舊學員價</span>':''}</h2>
     <p class="hint">以下係 <b>${esc(S.family.name)}</b> 各課程嘅全期學費。</p>
     <div class="quote">${rows}</div>
@@ -1207,8 +1207,8 @@ function renderPriceTable(){
       <br>• 推薦新生第一次買 20 堂私人訓練 → 推薦人可獲 <b>2 堂私人訓練</b>（以此類推）</div>
     <p class="hint">私人訓練（1 對 1 或 1 對 2）另按需要安排，收費面議，歡迎 WhatsApp 6331 7403 查詢。</p>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderProfileScreen()">‹ 返回</button>
-      <button class="btn" id="pt_go">開始報名 →</button>
+      <button class="btn ghost sm" onclick="renderLogin()">‹ 返回</button>
+      <button class="btn" id="pt_go">揀課程 →</button>
     </div>
   </div>`;
   document.getElementById('pt_go').onclick=renderCourses;
@@ -1257,7 +1257,7 @@ async function doIdentify(skipSuggest){
         if(!res||res.ok===false){ app.innerHTML='<div class="card"><div class="msg err">預覽身份核對失敗（'+esc(_as)+'）：'+esc((res&&res.err)||'請確認 as=姓名 同 pin=電話後4位')+'</div></div>'; return; }
         S.family={name:_as,phone:'',last4:_pin,isOld:!!res.isOld,tier:(res.tier||'新生')+'（預覽）'}; S.isNew=!res.isOld;
         S.oldPrices=res.oldPrices||null; S.profile=res.profile||{}; S.courses=[]; S.quote=null; S.payImg='';
-        S.credit={remaining:res.creditRemaining||0,summer:res.summer||0,referral:res.referral||0}; renderProfileScreen();
+        S.credit={remaining:res.creditRemaining||0,summer:res.summer||0,referral:res.referral||0}; renderPriceTable();
       }).catch(()=>{ app.innerHTML='<div class="card"><div class="msg err">預覽核對連線逾時，請再試。</div></div>'; });
       return;
     }
@@ -1265,11 +1265,11 @@ async function doIdentify(skipSuggest){
     if(_pt==='old'||_pt==='舊生'){   // 舊生預覽：借測試用「示範學員」身份，令揀課同費用頁都顯示舊生價（quote 亦用此名）
       apiPost({action:'enrollIdentify', name:'示範學員', last4:'1234'}, 20000).then(res=>{
         S.family={name:'示範學員',phone:'00000000',last4:'1234',isOld:true,tier:'舊生（示範）'}; S.isNew=false;
-        S.oldPrices=(res&&res.oldPrices)||null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderProfileScreen();
-      }).catch(()=>{ S.family={name:'示範學員',phone:'00000000',last4:'1234',isOld:true,tier:'舊生（示範）'}; S.isNew=false; S.oldPrices=null; S.profile={}; S.courses=[]; renderProfileScreen(); });
+        S.oldPrices=(res&&res.oldPrices)||null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderPriceTable();
+      }).catch(()=>{ S.family={name:'示範學員',phone:'00000000',last4:'1234',isOld:true,tier:'舊生（示範）'}; S.isNew=false; S.oldPrices=null; S.profile={}; S.courses=[]; renderPriceTable(); });
       return;
     }
-    S.family={name:'預覽用戶',phone:'00000000',last4:'0000',isOld:false,tier:'新生'}; S.isNew=true; S.oldPrices=null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderProfileScreen(); return; }
+    S.family={name:'預覽用戶',phone:'00000000',last4:'0000',isOld:false,tier:'新生'}; S.isNew=true; S.oldPrices=null; S.profile={}; S.courses=[]; S.quote=null; S.payImg=''; S.credit={remaining:0,summer:0,referral:0}; renderPriceTable(); return; }
   const name=document.getElementById('li_name').value.trim();
   const phone=(document.getElementById('li_phone').value||'').replace(/\D/g,'');
   const msg=document.getElementById('li_msg');
@@ -1296,7 +1296,7 @@ async function doIdentify(skipSuggest){
   if(S.isNew){ S.profile=S.profile||{}; if(!S.profile['聯絡電話']) S.profile['聯絡電話']=phone; }   // 新生：登入已畀電話，後續預填唔使再入
   S.courses=[]; S.quote=null; S.payImg='';   // 換學生時清空上一位嘅揀選
   S.credit={remaining:res.creditRemaining||0, summer:res.summer||0, referral:res.referral||0};
-  renderProfileScreen();   // 登入後 → 先填/核對資料，再顯示收費（老闆調序）
+  renderPriceTable();   // 登入後 → 先睇收費一覽，再揀課程（老闆調序 2026-08-28）
 }
 function pickSuggest(n){   // 家長撳返正確名 → 用該名重新核對（會認到現有生、享舊生價）
   const el=document.getElementById('li_name'); if(el) el.value=n;
@@ -1332,12 +1332,12 @@ function renderProfilePreview(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(1)}
+    ${steps(3)}
     <h2>核對資料 · <em>${esc(S.family.name)}</em>${S.family.isOld?'<span class="pill">舊學員</span>':''}</h2>
     <p class="hint">以下係你之前登記嘅資料，已自動帶出。核對一次即可，有需要先按「修改」改嗰一項；電話等資料一般唔使再填。</p>
     <div class="pvlist">${rows}</div>
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
+      <button class="btn ghost sm" onclick="renderCourses()">返回</button>
       <button class="btn" id="pf_go">核對無誤，繼續</button>
     </div>
     <div class="msg" id="pf_msg"></div>
@@ -1380,13 +1380,13 @@ function renderProfile(){
   </div>`;
   app.innerHTML=`
   <div class="card">
-    ${steps(1)}
+    ${steps(3)}
     <h2>學生資料 · <em>${esc(S.family.name)}</em></h2>
     ${known}
     ${fieldsHtml}
     ${parqHtml}
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderLogin()">返回</button>
+      <button class="btn ghost sm" onclick="renderCourses()">返回</button>
       <button class="btn" id="pf_go">儲存並繼續</button>
     </div>
     <div class="msg" id="pf_msg"></div>
@@ -1489,7 +1489,7 @@ function renderUniform(){
     <p class="hint" style="margin-top:6px">尺碼僅供參考，測量方式不同可能有 1–2cm 誤差。</p></div>`:'';
   app.innerHTML=`
   <div class="card">
-    ${steps(2)}
+    ${steps(4)}
     <h2>INITIATE SPORTS 制服</h2>
     <p class="hint">上堂必須穿著 INITIATE SPORTS 訓練服。如未有，請選購。制服費用會加入最後總數。</p>
     <img class="jersey" src="${JERSEY_SRC}" alt="INITIATE SPORTS 制服套裝" onerror="this.style.display='none'">
@@ -1542,7 +1542,7 @@ function renderCourses(){
   }).join('');
   app.innerHTML=`
   <div class="card">
-    ${steps(4)}
+    ${steps(2)}
     <h2>揀課程 <span class="pill">可多選</span></h2>
     <p class="hint">揀你要報嘅恆常班，可一次過報多項（報 2 班或以上，每多一班即減 $100）。每班已列出<b>${esc(S.cfg.period||'')}上課日期同堂數</b>（大部分全期 8 堂；網球 9 月試辦 3 堂）。</p>
     ${list}
@@ -1564,7 +1564,7 @@ function renderCourses(){
     saveDraft();
   });
   document.getElementById('cs_go').onclick=()=>{
-    if(PREVIEW){ if(!S.courses.length){ const _f=(S.cfg.courses||[])[0]; if(_f) S.courses=[_f.id]; } renderFee(); return; }
+    if(PREVIEW){ if(!S.courses.length){ const _f=(S.cfg.courses||[])[0]; if(_f) S.courses=[_f.id]; } renderProfileScreen(); return; }
     const msg=document.getElementById('cs_msg');
     if(!S.courses.length){ msg.className='msg err'; msg.textContent='請最少揀一項課程。'; return; }
     // 同日同時段衝突檢查
@@ -1572,14 +1572,14 @@ function renderCourses(){
     const seen={}; let clash='';
     picked.forEach(c=>{ const k=(c.day||'')+'|'+(c.time||''); if(c.day!=='待定'&&c.time!=='待定'){ if(seen[k]) clash=c.day+' '+c.time; seen[k]=1; } });
     if(clash){ msg.className='msg err'; msg.textContent='揀咗兩班喺同一時段（'+clash+'），一個學生唔可以同時上兩班，請改一改。'; return; }
-    renderFee();
+    renderProfileScreen();
   };
 }
 /* ════ ④ 費用 ════ */
 async function renderFee(){
   app.innerHTML=`<div class="card">${steps(5)}<div class="load">計緊費用…</div></div>`;
   const res=await apiPost({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
-  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請再試。</div><div class="navbtns"><button class="btn ghost sm" onclick="renderCourses()">返回</button><button class="btn" onclick="renderFee()">🔄 重試</button></div></div>`; return; }
+  if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請再試。</div><div class="navbtns"><button class="btn ghost sm" onclick="renderGearSelect()">返回</button><button class="btn" onclick="renderFee()">🔄 重試</button></div></div>`; return; }
   S.quote=res;
   const cs = res.courses||[];
   const priced = res.base>0;
@@ -1625,11 +1625,11 @@ async function renderFee(){
     <p class="hint">${esc(S.cfg.period)}｜${cs.map(c=>esc(c.sport)).join('、')||'未選'}</p>
     ${body}
     <div class="navbtns">
-      <button class="btn ghost sm" onclick="renderCourses()">返回</button>
-      <button class="btn" id="fee_go">下一步（同意條款）</button>
+      <button class="btn ghost sm" onclick="renderGearSelect()">返回</button>
+      <button class="btn" id="fee_go">下一步 →</button>
     </div>
   </div>`;
-  document.getElementById('fee_go').onclick=renderGearSelect;   // 費用(學費)後 → 器材選購 → 注意事項
+  document.getElementById('fee_go').onclick=renderNotes;   // 費用後 → 注意事項（器材已移前 2026-08-28）
 }
 /* ════ ⑤B 課程注意事項（家長逐項閱讀及同意；合約 PDF 會列明）════ */
 function renderNotes(){
