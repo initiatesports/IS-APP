@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-28-feeclear';
+const FRONTEND_VERSION='enroll-2026-08-28-resume';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -221,9 +221,32 @@ function copyTxt(t,btn){ try{ navigator.clipboard.writeText(String(t)); if(btn){
 const DRAFT_KEY='is_enroll_draft_v1';
 // 「繼續上次報名」已移除（老闆 2026-08-15，私隱：共用裝置唔應殘留上一位家長嘅姓名／電話）。
 // saveDraft 唔再存任何資料；loadDraft 永遠回 null，並順手清走任何舊殘留。
-function saveDraft(){ /* 已停用：唔再存 draft */ }
-function loadDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} return null; }
-function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+// 🔄 報名途中自動續傳（老闆 2026-08-28：家長反映簽名頁 reload 就彈返首頁、前功盡廢）。
+//   用 sessionStorage：頁面 reload（手機背景 tab 被重載/手滑 refresh）保留 → 可續傳；閂 tab 自動清 → 共用裝置零殘留（正正解決當初停用 localStorage 草稿嘅私隱憂慮）。
+//   版本守衛：部署新版後唔續舊版資料（免結構不符）。3 小時過期。
+const FLOW_KEY='is_enroll_flow_v1';
+function saveDraft(){ if(PREVIEW) return; try{ if(S.family && S.family.name) sessionStorage.setItem(FLOW_KEY, JSON.stringify({v:FRONTEND_VERSION, ts:Date.now(), step:S.step||'', family:S.family||null, courses:S.courses||[], uniform:S.uniform||null, profile:S.profile||null, signEn:S.signEn||'', signId:S.signId||'', referrer:S.referrer||''})); }catch(e){} }
+function clearDraft(){ try{ sessionStorage.removeItem(FLOW_KEY); }catch(e){} try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+function loadDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} return null; }   // 舊 localStorage 草稿永久停用（私隱）
+function flowStep(n){ S.step=n; saveDraft(); }   // 每個流程頁頂記錄步驟 + 存狀態
+function flowRestore(){ try{ const j=JSON.parse(sessionStorage.getItem(FLOW_KEY)||'null'); if(!j||!j.step||!j.family||!j.family.name) return null; if(j.v!==FRONTEND_VERSION){ clearDraft(); return null; } if(Date.now()-(j.ts||0)>3*3600*1000){ clearDraft(); return null; } return j; }catch(e){ return null; } }
+async function flowResume(j){
+  S.family=j.family; S.courses=j.courses||[]; S.uniform=j.uniform||null; S.profile=j.profile||null; S.signEn=j.signEn||''; S.signId=j.signId||''; S.referrer=j.referrer||''; S.isNew=!(j.family&&j.family.isOld);
+  const needQuote=['renderFee','renderNotes','renderTerms','renderPay'].indexOf(j.step)>=0;
+  if(needQuote && S.courses.length){ try{ const q=await apiPost({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')}); if(q&&q.ok) S.quote=q; }catch(e){} }
+  const fn=window[j.step];
+  if(typeof fn==='function' && j.step!=='renderLogin'){ try{ fn(); return; }catch(e){} }
+  renderHome();
+}
+function renderResumePrompt(j){
+  const nm={renderPriceTable:'收費一覽',renderCourses:'揀課程',renderProfile:'學生資料',renderUniform:'制服',renderWeather:'惡劣天氣須知',renderMakeupInfo:'請假／補堂須知',renderGearSelect:'器材選購',renderFee:'費用',renderNotes:'注意事項',renderTerms:'聲明及簽署',renderPay:'付款'}[j.step]||'報名';
+  app.innerHTML=`<div class="card"><h2>繼續上次報名？</h2>
+    <p class="hint">偵測到你之前有一個未完成嘅報名（學員：<b>${esc((j.family&&j.family.name)||'')}</b>，已填到「<b>${esc(nm)}</b>」）。你嘅資料仲喺度，唔使重新填。</p>
+    <button class="btn" id="rs_go">繼續上次報名 →</button>
+    <button class="btn ghost" id="rs_new" style="margin-top:10px">重新開始（清除上次資料）</button></div>`;
+  document.getElementById('rs_go').onclick=()=>flowResume(j);
+  document.getElementById('rs_new').onclick=()=>{ clearDraft(); S.family=null; S.courses=[]; S.uniform=null; S.profile=null; S.signEn=''; S.signId=''; S.quote=null; renderHome(); };
+}
 
 // ── 檔案欄位（label / key＝saveProfile參數 / sheet header＝profile帶出）──
 // 舊生唔問「認識途徑」同「推薦人」（佢哋已係我哋學生，唔屬新客來源，亦唔涉推薦獎賞）；新生照問。老闆 2026-08-15
@@ -482,6 +505,8 @@ async function boot(){
   await loadOfficialCourses();   // 同步官網課程介紹（失敗＝用內置 fallback）
   // 預覽直達成人流程：?preview=1&flow=adult
   if(PREVIEW && (new URLSearchParams(location.search).get('flow')||'').toLowerCase()==='adult'){ renderAdultForm(); return; }
+  const _rf=flowRestore();   // 🔄 reload 後續傳：有未完成報名（同版本、3 小時內）就問繼續／重新開始（老闆 2026-08-28）
+  if(_rf){ renderResumePrompt(_rf); return; }
   renderHome();
 }
 /* ════ ⓪ 首頁：課程介紹 ════ */
@@ -745,7 +770,7 @@ function setGearQty(sku,d){ const s=GEAR_SKUS.find(x=>x.sku===sku);
 function setGearColor(sku,c){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].color=c; }
 function setGearCord(sku,c){ S.gear[sku]=S.gear[sku]||{qty:0,color:''}; S.gear[sku].cord=c; }
 function setCanvasQty(color,d){ const bc=canvasByColor(); bc[color]=Math.max(0,Math.min(20,(Number(bc[color])||0)+d)); renderGearSelect(); }
-function renderGearSelect(){
+function renderGearSelect(){ flowStep("renderGearSelect");
   const stepper=(minus,plus,val)=>`<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
     <button type="button" class="btn ghost sm" style="padding:2px 10px" onclick="${minus}">−</button>
     <b style="min-width:18px;text-align:center;font-variant-numeric:tabular-nums">${val}</b>
@@ -917,7 +942,7 @@ function renderGearDone(r){
 }
 /* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
 const MAKEUP_URL='https://initiatesports.github.io/IS-APP/is-parent.html';
-function renderMakeupInfo(inFlow){
+function renderMakeupInfo(inFlow){ if(inFlow)flowStep("renderMakeupInfo");
   const nav = inFlow
     ? `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderWeather()">‹ 返回</button><button class="btn" onclick="renderGearSelect()">下一步 →</button></div>`
     : `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button></div>`;
@@ -1132,7 +1157,7 @@ function renderAdultDone(r){
   </div>`;
 }
 /* ════ 惡劣天氣特別安排（獨立資訊頁）════ */
-function renderWeather(){
+function renderWeather(){ flowStep("renderWeather");
   const items=[
     {ic:'🌀',t:'一號及三號風球',d:'所有課程<b>如常進行</b>。',c:'ok'},
     {ic:'🟡🔴',t:'黃色及紅色暴雨警告',d:'所有課程<b>如常進行</b>。',c:'ok'},
@@ -1184,7 +1209,7 @@ function openCourseDetail(i){
   window.scrollTo(0,0);
 }
 /* ════ ①B 價格表（登入後，全部課程 + 優惠）════ */
-function renderPriceTable(){
+function renderPriceTable(){ flowStep("renderPriceTable");
   const cs=(S.cfg.courses||[]).filter(c=>c.sport!=='成人增肌減脂班');   // 兒童報名流程唔顯示成人班（成人有獨立入口）
   const isOld=!!(S.family&&S.family.isOld);
   // 只顯示每個課程一次（同名去重）、唔顯示時間
@@ -1357,7 +1382,7 @@ function editField(k){
   const el=vv.querySelector('input,select'); if(el) el.focus();
 }
 /* ════ ② 新生：填一次基本資料 ════ */
-function renderProfile(){
+function renderProfile(){ flowStep("renderProfile");
   const pf=S.profile||{};
   const val=(f)=> esc(pf[f.h]||'');
   const lab=f=> f.label+(f.req?' <span style="color:var(--err)">*</span>':' <span style="font-weight:400;color:#aab4b8">(可留空)</span>');
@@ -1477,7 +1502,7 @@ function uShort(){ const v=S.uniform&&S.uniform.opt; return v===3?'制服＋速�
 function uniformCost(){ return (S.uniform&&S.uniform.cost)||0; }
 function setUOpt(v){ const o=UNIFORM_OPTS.find(x=>x.v===v); S.uniform={opt:v,cost:o.cost,size:(v===1?'':(S.uniform&&S.uniform.size)||'')}; renderUniform(); }
 function setUSize(s){ S.uniform=S.uniform||{}; S.uniform.size=s; renderUniform(); }
-function renderUniform(){
+function renderUniform(){ flowStep("renderUniform");
   if(!S.uniform) S.uniform={opt:(S.isNew?2:0),cost:(S.isNew?180:0),size:''};
   const _isOld=!!(S.family&&S.family.isOld);   // 只買上衣／短褲＝舊生補件專屬（老闆 2026-08-16）；新生一定買整套或已有
   const opts=UNIFORM_OPTS.filter(o=> !o.oldOnly || _isOld);
@@ -1516,7 +1541,7 @@ function renderUniform(){
   };
 }
 /* ════ ③ 揀課程 ════ */
-function renderCourses(){
+function renderCourses(){ flowStep("renderCourses");
   const cs=(S.cfg.courses||[]).filter(c=>c.sport!=='成人增肌減脂班');   // 兒童報名流程唔顯示成人班（成人有獨立入口）
   const list=cs.map(c=>{
     const on=S.courses.indexOf(c.id)>=0;
@@ -1578,7 +1603,7 @@ function renderCourses(){
   };
 }
 /* ════ ④ 費用 ════ */
-async function renderFee(){
+async function renderFee(){ flowStep("renderFee");
   app.innerHTML=`<div class="card">${steps(5)}<div class="load">計緊費用…</div></div>`;
   const res=await apiPost({action:'enrollQuote', name:S.family.name, last4:S.family.last4, courses:S.courses.join(',')});
   if(!res||res.ok===false){ app.innerHTML=`<div class="card">${steps(5)}<div class="msg err">計費失敗，請再試。</div><div class="navbtns"><button class="btn ghost sm" onclick="renderGearSelect()">返回</button><button class="btn" onclick="renderFee()">🔄 重試</button></div></div>`; return; }
@@ -1640,7 +1665,7 @@ async function renderFee(){
   document.getElementById('fee_go').onclick=renderNotes;   // 費用後 → 注意事項（器材已移前 2026-08-28）
 }
 /* ════ ⑤B 課程注意事項（家長逐項閱讀及同意；合約 PDF 會列明）════ */
-function renderNotes(){
+function renderNotes(){ flowStep("renderNotes");
   const common=S.cfg.commonNotes||[];
   const picked=(S.cfg.courses||[]).filter(c=>S.courses.indexOf(c.id)>=0);
   const seen={}, blocks=[];
@@ -1683,7 +1708,7 @@ function renderNotes(){
   };
 }
 /* ════ ⑤ 條款 ════ */
-function renderTerms(){
+function renderTerms(){ flowStep("renderTerms");
   const t=S.cfg.terms||{statements:[],version:''};
   const pf=S.profile||{};
   const sEn=esc(S.signEn||pf['簽署人英文名']||'');   // 唔預填學生英文名，聲明人應為家長本人
@@ -1755,7 +1780,7 @@ function setupSigPad(_retry){
 function clearSig(){ if(_sig.ctx&&_sig.cv) _sig.ctx.clearRect(0,0,_sig.cv.width,_sig.cv.height); _sig.has=false; S.signImg=''; }
 function sigDataUrl(){ return (_sig.has&&_sig.cv)?_sig.cv.toDataURL('image/png'):''; }
 /* ════ ⑥ 付款 + 提交 ════ */
-function renderPay(){
+function renderPay(){ flowStep("renderPay");
   const q=S.quote||{};
   const courseNet=q.net||0, uCost=uniformCost(), gearCost=gearCostClient();
   const allWait = (q.courses||[]).length>0 && (q.courses||[]).every(c=>c.full);   // 全部課程都候補
