@@ -245,7 +245,7 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-26-famretry';
+const APP_VERSION='growth-2026-08-28-lostpost';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -1159,8 +1159,15 @@ async function homeReportWithRetry(grant){
     try{
       const res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeReport',name:grant.name,last4:grant.last4,token:grant.token})});
       const txt=(await res.text()).trim();
-      if(txt.startsWith('{')||txt.startsWith('[')) return JSON.parse(txt);   // 正常 JSON（含 auth 失敗，唔重試）
-      lastErr='伺服器暫時繁忙';   // 收到 HTML（#11 cold start/redirect）→ 重試
+      if(txt.startsWith('{')||txt.startsWith('[')){
+        const j=JSON.parse(txt);
+        // 🛡️ 2026-08-28：Apps Script 偶發 302 重導向丟失 POST body → 請求落咗 doGet，回合法 JSON
+        //   {"error":"Unknown action: undefined"}。舊 code 當佢真錯誤即刻放棄，家長見到
+        //   「未能載入報告：Unknown action: undefined」。呢個係 transient，要重試（唯讀 route，安全）。
+        const em=String((j&&(j.error||j.err))||'').trim();
+        if(!(/^unknown action$/i.test(em)||/unknown action:\s*undefined/i.test(em))) return j;   // 正常 JSON（含 auth 失敗，唔重試）
+        lastErr='伺服器暫時繁忙';
+      } else lastErr='伺服器暫時繁忙';   // 收到 HTML（#11 cold start/redirect）→ 重試
     }catch(e){ lastErr=(e&&e.message)||'網絡問題'; }
     await new Promise(r=>setTimeout(r, 700*(i+1)));
   }

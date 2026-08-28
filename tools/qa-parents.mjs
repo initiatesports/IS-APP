@@ -56,6 +56,15 @@ const HIST_CUTOFF = "2026-06-16";
 const LOGIN_MS = 90000;    // 單個家長登入
 const HEAVY_MS = 180000;   // 教練 load / audit（讀全校 grid，正常較慢）
 
+// 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向會丟失 body → 請求變咗落 doGet，後端見 action=undefined，
+//   回一個「合法 JSON 但係假錯誤」：#4/#9 = {ok:false,err:"unknown action"}，#11 = {"error":"Unknown action: undefined"}。
+//   舊 code 只重試「非 JSON / fetch 拋錯」，呢個合法 JSON 直接當真失敗 → 每日 QA 出無中生有嘅 REPORT/ERR 誤報
+//   （2026-08-28 實測：同一唯讀 route 連打 12 次，4 次中招）。全部 QA route 都係唯讀，重試安全。
+function isLostPost(j) {
+  const m = String((j && (j.err || j.error)) || "").trim();
+  return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m);
+}
+
 async function callLogin(exec, name, cred) {
   let lastErr = "";
   for (let attempt = 0; attempt < 3; attempt++) {   // 重試 3 次，防短暫網絡
@@ -68,7 +77,11 @@ async function callLogin(exec, name, cred) {
         signal: AbortSignal.timeout(LOGIN_MS),
       });
       const txt = await res.text();
-      try { return JSON.parse(txt); } catch { lastErr = "NON_JSON:" + txt.slice(0, 80); }
+      try {
+        const j = JSON.parse(txt);
+        if (!isLostPost(j)) return j;
+        lastErr = "LOST_POST(302 丟 body)";   // 假錯誤 → 重試
+      } catch { lastErr = "NON_JSON:" + txt.slice(0, 80); }
     } catch (e) { lastErr = e.message || String(e); }
     await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
   }
@@ -88,7 +101,7 @@ async function callLoad(exec, coachPass) {
         signal: AbortSignal.timeout(HEAVY_MS),
       });
       const txt = await res.text();
-      try { return JSON.parse(txt); } catch { /* 重試 */ }
+      try { const j = JSON.parse(txt); if (!isLostPost(j)) return j; } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
     await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
   }
@@ -103,7 +116,7 @@ async function callAudit(exec, coachPass) {
         signal: AbortSignal.timeout(HEAVY_MS),
       });
       const txt = await res.text();
-      try { return JSON.parse(txt); } catch { /* 重試 */ }
+      try { const j = JSON.parse(txt); if (!isLostPost(j)) return j; } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
     await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
   }
@@ -123,7 +136,7 @@ async function callHomeReport(name, last4, token) {
         signal: AbortSignal.timeout(LOGIN_MS),
       });
       const txt = await res.text();
-      try { return JSON.parse(txt); } catch { /* 重試 */ }
+      try { const j = JSON.parse(txt); if (!isLostPost(j)) return j; } catch { /* 重試 */ }
     } catch (e) { /* 重試 */ }
     await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
   }

@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-24-sibcap';
+const FRONTEND_VERSION = 'lm-2026-08-28-lostpost';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -364,6 +364,20 @@ async function api(action, payload={}){
     headers:{"Content-Type":"text/plain;charset=utf-8"},
     body: JSON.stringify({action,...base,...payload}), signal:c.signal});
     return await res.json(); } finally{ clearTimeout(tm); }
+}
+/* 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向丟失 body → 請求變咗落 doGet，後端見 action=undefined，
+   回 {ok:false,err:"unknown action"}。唔係真錯誤，但家長會見到英文 "unknown action" toast，以為登入壞咗。
+   ⚠️ 只可用喺「唯讀」action（login 等）；write action（請假/補堂/取消）重試會雙寫，唔可以用呢個。 */
+function isLostPost_(r){ const m=String((r&&(r.err||r.error))||'').trim();
+  return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m); }
+async function apiRO(action, payload={}, tries=3){
+  let r=null;
+  for(let i=0;i<tries;i++){
+    r=await api(action,payload);
+    if(!isLostPost_(r)) return r;
+    await new Promise(s=>setTimeout(s,600*(i+1)));
+  }
+  return r;
 }
 function demoApi(action,p){
   return new Promise(r=>setTimeout(()=>r(demoHandle(action,p)),180));
@@ -543,7 +557,7 @@ async function doLogin(){
   if(!name||last4.length!==4) return toast("請填中文全名同 4 位數字");
   $("#li-go").disabled=true; $("#li-go").textContent="登入中…";
   let r;
-  try{ r=await api("login",{name,last4}); }
+  try{ r=await apiRO("login",{name,last4}); }
   catch(e){ $("#li-go").disabled=false; $("#li-go").textContent="登入"; return toast((e&&e.name==='AbortError')?"連線逾時，請檢查網絡後再試":"連線失敗，請檢查網絡後再試"); }   // 🛡️ audit#5：主登入補 try/catch，否則逾時會令按鈕永遠卡「登入中…」且無提示
   $("#li-go").disabled=false; $("#li-go").textContent="登入";
   if(!r||!r.ok) return toast((r&&r.err)||"登入失敗");
@@ -558,7 +572,7 @@ function applyLMResp(r,name,last4){
 /* ⚡ 即時快取：只喺身分吻合上次先用（安全）；背景刷新永遠行，幾秒校正 */
 function saveLMCache(name,last4,r){ try{ localStorage.setItem('is_lm_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
 function readLMCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('is_lm_cache')||'null'); if(c&&c.name===name&&c.last4===last4&&c.r&&(Date.now()-c.t<7*864e5)) return c.r; }catch(e){} return null; }
-async function bgRefreshLM(name,last4){ try{ const r=await api("login",{name,last4});
+async function bgRefreshLM(name,last4){ try{ const r=await apiRO("login",{name,last4});
   if(r&&r.ok){ applyLMResp(r,name,last4); saveLMCache(name,last4,r); routeMain(); }
   else if(r&&r.ok===false){ try{ localStorage.removeItem('is_lm_cache'); }catch(e){} } }catch(e){} }
 
@@ -795,7 +809,7 @@ async function refresh(){
   const nm=S.family.authName, l4=S.family.last4;
   // 🔒 審計：refresh 逾時/冷啟動唔可以 throw（否則提交流程 await refresh() 一炸，收據永遠唔顯示，
   //    家長交咗成功但畫面靜靜關窗、以為失敗 → 重複提交）。對齊 parent-sports audit#14。
-  let r; try{ r=await api("login",{name:nm,last4:l4}); }catch(e){ return; }
+  let r; try{ r=await apiRO("login",{name:nm,last4:l4}); }catch(e){ return; }
   if(r&&r.ok){ applyLMResp(r,nm,l4); saveLMCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取
 }
 
@@ -1297,7 +1311,7 @@ async function bootSSO(){
   const fresh = sso && sso.last4 && Array.isArray(sso.names) && sso.names.length && (Date.now()-(sso.t||0) < 120000);
   if(fresh){
     for(const nm of sso.names){
-      try{ const r=await api('login',{name:nm,last4:sso.last4});
+      try{ const r=await apiRO("login",{name:nm,last4:sso.last4});
         if(r&&r.ok){
           const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||nm,classes:r.classes||[]}];
           S.family={authName:nm,last4:sso.last4,children:kids}; S.session={name:nm,last4:sso.last4};

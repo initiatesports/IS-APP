@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-26-hidepast2';
+const FRONTEND_VERSION='parent-2026-08-28-lostpost';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -530,6 +530,21 @@ async function api(action,payload={}){
   try{ const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); }
 }
 async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal});return await r.json();}finally{clearTimeout(tm);}}
+/* 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向丟失 body → 請求變咗落 doGet，後端見 action=undefined，
+   回 {ok:false,err:"unknown action"}（#11 係 "Unknown action: undefined"）。呢個唔係真錯誤，但家長會見到
+   英文 "unknown action" toast，以為登入壞咗（實測 12 次抽樣中 ~2 次中招）。→ 對唯讀 action 自動重試。
+   ⚠️ 只可用喺「唯讀」action（login 等）；write action 重試會雙寫，唔可以用呢個。 */
+function isLostPost_(r){ const m=String((r&&(r.err||r.error))||'').trim();
+  return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m); }
+async function apiRO(action,payload={},tries=3){
+  let r=null;
+  for(let i=0;i<tries;i++){
+    r=await api(action,payload);
+    if(!isLostPost_(r)) return r;
+    await new Promise(s=>setTimeout(s,600*(i+1)));
+  }
+  return r;
+}
 async function syncHolidays(){
   // 只攞公眾假期（輕量、非敏感）；唔再拉成個 load，避免匿名攞到全校資料。
   try{ const d=await apiGet({action:'holidays'});
@@ -588,7 +603,7 @@ function saveParentCache(name,last4,r){ try{ localStorage.setItem('is_parent_cac
 function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('is_parent_cache')||'null');
   if(c && c.name===name && c.last4===last4 && c.r && (Date.now()-c.t < 7*864e5)) return c.r; }catch(e){} return null; }
 async function bgRefresh(name,last4){
-  try{ const r=await api('login',{name,last4});
+  try{ const r=await apiRO('login',{name,last4});
     if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); }
     else if(r&&r.ok===false){ try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
   }catch(e){}
@@ -609,7 +624,7 @@ async function doLogin(){
     return;
   }
   const btn=$('li-go'); btn.disabled=true; btn.textContent=t('loggingIn');
-  let r; try{ r=await api('login',{name,last4}); }catch(e){ btn.disabled=false; btn.textContent=t('login'); return toast(t('netFail')); }
+  let r; try{ r=await apiRO('login',{name,last4}); }catch(e){ btn.disabled=false; btn.textContent=t('login'); return toast(t('netFail')); }
   btn.disabled=false; btn.textContent=t('login');
   if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   applyLoginResp(r,name,last4);
@@ -633,7 +648,7 @@ async function refresh(){
   const nm=S.family.authName, l4=S.family.last4;
   // 🔒 審計：refresh 逾時/冷啟動唔可以 throw（否則提交流程 await refresh() 一炸，收據彈窗永遠唔行，
   //    家長交咗成功但畫面靜靜關窗、以為失敗 → 重複提交）。對齊 parent-sports audit#14。
-  let r; try{ r=await api('login',{name:nm,last4:l4}); }catch(e){ return; }
+  let r; try{ r=await apiRO('login',{name:nm,last4:l4}); }catch(e){ return; }
   if(r&&r.ok){ applyLoginResp(r,nm,l4); saveParentCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取，令下次秒開係最新
 }
 
