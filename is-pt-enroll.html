@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#28B8C8">
+<title>INITIATE SPORTS 私人訓練報名</title>
+<style>
+:root{ --teal:#28B8C8; --teal-dark:#1F9DAC; --teal-dim:rgba(40,184,200,0.10); --ink:#1f2a30; --mut:#66757c; --line:#e3e9ec; --bg:#f5f8f9; --ok:#1a9e6a; --warn:#c47f00; --err:#c0392b; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+.wrap{max-width:520px;margin:0 auto;padding:16px 16px 60px;}
+header.top{display:flex;align-items:center;gap:10px;padding:6px 2px 14px;}
+header.top .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);}
+header.top h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.3px;}
+header.top .sub{font-size:12px;color:var(--mut);margin-left:auto;}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.03);}
+/* 課程時間表（2026–2027）poster 風格 */
+.tt{background:#f3efe4;color:#2b3a42;padding:22px 15px 24px;}
+.tt-head{text-align:center;margin-bottom:6px;}
+.tt-yr{letter-spacing:.34em;font-size:11.5px;font-weight:700;color:#b3934f;}
+.tt-ttl{font-size:24px;font-weight:800;color:#223a4d;margin:7px 0 8px;letter-spacing:.02em;}
+.tt-sub{font-size:12.5px;color:#6a7680;max-width:320px;margin:0 auto;line-height:1.6;}
+.tt-rule{height:2px;width:52px;background:#b3934f;margin:12px auto 2px;border-radius:2px;}
+.tt-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px;}
+@media(min-width:560px){.tt-grid{grid-template-columns:1fr 1fr;}}
+.tt-day{background:#faf7f0;border:1px solid #e7ddc8;border-radius:14px;overflow:hidden;align-self:start;}
+.tt-dh{background:#223a4d;color:#fff;font-weight:800;letter-spacing:.3em;text-align:center;padding:9px 0;font-size:14px;}
+.tt-slot{display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-top:1px solid #efe7d6;}
+.tt-slot:first-of-type{border-top:0;}
+.tt-time{font-size:12px;color:#94836a;font-weight:600;white-space:nowrap;flex:none;}
+.tt-act{font-size:13.5px;font-weight:700;color:#223a4d;text-align:right;}
+.tt-note{font-size:11.5px;color:#94836a;padding:8px 14px 11px;background:#f4ecdc;line-height:1.55;}
+.tt-info{margin-top:16px;background:#faf7f0;border:1px solid #e7ddc8;border-radius:14px;padding:16px 16px 8px;}
+.tt-info h3{margin:0 0 11px;font-size:15px;color:#223a4d;}
+.tt-info ul{margin:0;padding:0;}
+.tt-info li{font-size:12.5px;color:#3f4d55;line-height:1.55;margin-bottom:9px;list-style:none;padding-left:17px;position:relative;}
+.tt-info li:before{content:"◆";color:#b3934f;position:absolute;left:0;top:2px;font-size:9px;}
+.card h2{font-size:16px;margin:0 0 4px;font-weight:800;}
+.card h2 em{font-style:normal;color:var(--teal);}
+.card .hint{font-size:12.5px;color:var(--mut);margin:0 0 14px;}
+.steps{display:flex;gap:5px;margin:0 0 14px;}
+.steps .s{flex:1;height:4px;border-radius:2px;background:var(--line);}
+.steps .s.on{background:var(--teal);}
+.fld{margin-bottom:12px;}
+.fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;font-weight:600;}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--teal);}
+.row2{display:flex;gap:10px;} .row2 .fld{flex:1;}
+.btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;padding:14px;font-family:inherit;cursor:pointer;margin-top:4px;}
+.btn:active{background:var(--teal-dark);} .btn:disabled{opacity:.45;}
+.btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal);}
+.btn.sm{padding:10px;font-size:14px;width:auto;}
+.navbtns{display:flex;gap:10px;margin-top:6px;} .navbtns .btn{margin-top:0;}
+.banner{background:var(--teal-dim);border:1px solid var(--teal);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--teal-dark);margin-bottom:14px;font-weight:600;}
+.course{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--line);border-radius:13px;padding:13px;margin-bottom:10px;cursor:pointer;transition:.12s;}
+.course.on{border-color:var(--teal);background:var(--teal-dim);}
+.course input{margin-top:3px;width:20px;height:20px;accent-color:var(--teal);flex-shrink:0;}
+.course .cn{font-weight:800;font-size:15px;}
+.course .cm{font-size:12.5px;color:var(--mut);margin-top:2px;}
+.course .cp{margin-left:auto;text-align:right;font-weight:800;color:var(--teal-dark);font-size:14px;white-space:nowrap;}
+.quote{border:1.5px solid var(--line);border-radius:13px;overflow:hidden;}
+.quote .q{display:flex;justify-content:space-between;padding:11px 14px;font-size:14px;border-bottom:1px solid var(--line);}
+.quote .q.dim{color:var(--mut);} .quote .q.credit{color:var(--ok);}
+.quote .q.net{font-weight:800;font-size:17px;background:var(--teal-dim);border-bottom:none;}
+.pvlist{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.pvrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line);}
+.pvrow:last-child{border-bottom:none;}
+.pvk{font-size:12.5px;color:var(--mut);font-weight:600;flex-shrink:0;max-width:42%;}
+.pvv{display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;text-align:right;min-width:0;}
+.pvtext{font-size:14px;font-weight:600;overflow-wrap:anywhere;}
+.pvedit{background:none;border:none;color:var(--teal);font-size:12.5px;font-weight:700;cursor:pointer;padding:2px 4px;flex-shrink:0;white-space:nowrap;}
+.pvv input,.pvv select{width:100%;padding:8px 10px;border:1.5px solid var(--teal);border-radius:9px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);}
+.cd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cd-title{font-size:18px;font-weight:800;color:var(--ink);}
+.cd-sum{font-size:13.5px;color:var(--teal-dark);background:var(--teal-dim);border-radius:11px;padding:11px 13px;margin:10px 0 4px;line-height:1.55;font-weight:600;}
+.cd-body{margin-top:6px;}
+.cd-sec{padding:11px 0;border-bottom:1px solid var(--line);}
+.cd-sec:last-child{border-bottom:none;}
+.cd-h{font-size:14px;font-weight:800;margin:0 0 6px;color:var(--ink);}
+.cd-p{font-size:13px;color:#3a464c;line-height:1.6;margin:0;}
+.cd-ul{margin:0;padding-left:18px;}
+.cd-ul li{font-size:13px;color:#3a464c;line-height:1.55;margin-bottom:4px;}
+.terms{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;padding:12px;font-size:12.5px;color:#3a464c;background:#fafcfc;margin-bottom:12px;}
+.terms p{margin:0 0 9px;} .terms p b{color:var(--ink);}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;margin-bottom:12px;}
+.cbox{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+.cbox .chk{margin-bottom:0;}
+.uopt{display:flex;align-items:flex-start;gap:10px;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;}
+.uopt.on{border-color:var(--teal);background:var(--teal-dim);}
+.uopt input{margin-top:3px;width:18px;height:18px;accent-color:var(--teal);flex-shrink:0;}
+.usize{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.usize button{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-family:inherit;font-size:12px;cursor:pointer;line-height:1.25;text-align:center;}
+.usize button.on{border-color:var(--teal);background:var(--teal-dim);color:var(--teal-dark);font-weight:700;}
+.usize button b{display:block;font-size:13px;}
+.chk input{width:20px;height:20px;accent-color:var(--teal);margin-top:1px;flex-shrink:0;}
+.sumline{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-bottom:1px dashed var(--line);}
+.sumline .k{color:var(--mut);}
+.msg{font-size:13px;padding:10px 12px;border-radius:10px;margin-top:10px;display:none;}
+.msg.err{background:#fdecea;color:var(--err);display:block;} .msg.ok{background:#e8f7ef;color:var(--ok);display:block;}
+.done{text-align:center;padding:20px 6px;}
+.done .big{font-size:44px;} .done h2{margin:8px 0 6px;} .done .rid{font-weight:800;color:var(--teal-dark);font-size:20px;letter-spacing:1px;margin:6px 0;}
+.pill{display:inline-block;background:var(--teal-dim);color:var(--teal-dark);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:6px;}
+.foot{text-align:center;font-size:11px;color:#9aa7ac;margin-top:18px;}
+.socials{display:flex;gap:8px;justify-content:center;margin-top:6px;flex-wrap:wrap;}
+.social{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1.5px solid var(--teal);border-radius:20px;color:var(--teal);font-weight:700;font-size:12.5px;text-decoration:none;background:#fff;}
+.social:active{background:var(--teal-dim);}
+.load{text-align:center;color:var(--mut);padding:40px 0;font-size:14px;}
+.jersey{width:100%;max-width:100%;border-radius:12px;border:1px solid var(--line);margin:2px 0 6px;display:block;}
+.uchartwrap{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+.uchartwrap>summary{font-weight:700;color:var(--teal-dark);cursor:pointer;font-size:13px;list-style:revert;}
+.uchartscroll{overflow-x:auto;margin-top:8px;-webkit-overflow-scrolling:touch;}
+.uctitle{font-weight:700;font-size:12px;color:var(--teal-dark);margin:8px 0 4px;}
+table.uchart{border-collapse:collapse;font-size:11px;min-width:520px;}
+table.uchart th,table.uchart td{border:1px solid #dde7e9;padding:4px 6px;text-align:center;white-space:nowrap;}
+table.uchart thead th{background:var(--teal);color:#fff;}
+table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight:700;text-align:left;position:sticky;left:0;}
+/* 私人訓練（照搬官網 .ptx-*）*/
+.ptx{font-family:inherit;text-align:left;color:#222;position:relative;}
+.ptx *{box-sizing:border-box;}
+.ptx-header{border-radius:16px 16px 0 0;padding:26px 24px 22px;color:#fff;background:linear-gradient(135deg,#c89020 0%,#7a5000 100%);}
+.ptx-header .ptx-emoji{font-size:40px;margin-bottom:8px;display:block;}
+.ptx-header h2{font-size:24px;font-weight:900;margin:0 0 8px;color:#fff;}
+.ptx-header .ptx-desc{font-size:13.5px;opacity:0.93;line-height:1.7;margin:0;}
+.ptx-body{background:#fff;border-radius:0 0 16px 16px;padding:22px;}
+.ptx-sec{font-size:15px;font-weight:800;color:#333;margin:22px 0 12px;display:flex;align-items:center;gap:8px;}
+.ptx-sec:first-child{margin-top:0;}
+.ptx-sec::after{content:'';flex:1;height:1px;background:#e5e5e5;}
+.ptx-notice{background:#f0f8ff;border:1.5px solid #90c8f0;border-radius:10px;padding:13px 16px;font-size:13px;color:#1a4a7a;margin-bottom:14px;line-height:1.9;}
+.ptx-notice strong{color:#0f3a63;}
+.ptx-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px;}
+.ptx-info-card{background:#faf7ef;border-radius:10px;padding:12px 14px;border:1px solid #ececec;}
+.ptx-info-card .ptx-label{font-size:12px;color:#7a5000;font-weight:700;margin-bottom:4px;}
+.ptx-info-card .ptx-value{font-size:13px;font-weight:600;color:#333;line-height:1.5;}
+.ptx-trial{background:#f0faf4;border:2px dashed #1a8a4a;border-radius:12px;padding:14px 16px;text-align:center;margin-bottom:16px;}
+.ptx-trial .ptx-tp{font-size:24px;font-weight:900;color:#1a8a4a;}
+.ptx-trial .ptx-tn{font-size:12px;color:#888;margin-top:2px;}
+.ptx-sub{font-size:13px;font-weight:700;color:#7a5000;letter-spacing:0.05em;margin:18px 0 8px;}
+.ptx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:4px;}
+.ptx-card{border-radius:12px;padding:16px;border:2px solid #ececec;text-align:center;position:relative;background:#fff;}
+.ptx-card.feat{border-color:#c89020;background:linear-gradient(135deg,#fffbf0,#fef5d0);}
+.ptx-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#c89020;color:#fff;font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;white-space:nowrap;}
+.ptx-card .ptx-s{font-size:22px;font-weight:900;color:#222;margin-bottom:2px;}
+.ptx-card .ptx-t{font-size:20px;font-weight:800;color:#c89020;margin-bottom:2px;}
+.ptx-card .ptx-p{font-size:12px;color:#888;margin-bottom:6px;line-height:1.6;}
+.ptx-card .ptx-e{font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:6px;margin-top:6px;}
+.ptx-venue{background:#f8f8f8;border:1px solid #ececec;border-radius:10px;padding:13px 16px;font-size:13px;margin-bottom:4px;}
+.ptx-venue .ptx-vm{font-weight:700;color:#222;margin-bottom:4px;}
+.ptx-venue .ptx-vb{color:#666;font-size:12px;margin-top:4px;}
+.ptx-cta{margin-top:24px;padding-top:20px;border-top:1px solid #e5e5e5;text-align:center;}
+.ptx-cta-btn{display:inline-block;padding:15px 36px;border-radius:50px;font-size:16px;font-weight:800;color:#fff;text-decoration:none;background:#25D366;}
+.ptx-cta-note{font-size:12px;color:#999;margin-top:8px;}
+.ptx-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.ptx-tab{flex:1;padding:11px 8px;border:2px solid #ececec;border-radius:12px;background:#faf7ef;color:#999;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1.3;}
+.ptx-tab.active{border-color:#c89020;background:linear-gradient(135deg,#fffbf0,#fef5d0);color:#7a5000;}
+@media(max-width:560px){.ptx-info-grid{grid-template-columns:1fr 1fr;}.ptx-body{padding:16px;}.ptx-header{padding:22px 18px 18px;}.ptx-tab{font-size:12px;padding:10px 6px;}}
+</style>
+<style>
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.topbar .logo{height:34px;width:auto;}
+.topbar .ptt{font-weight:800;font-size:16px;color:var(--ink);line-height:1.15;}
+.topbar .ptt span{display:block;font-weight:600;font-size:12px;color:var(--teal-dark);}
+.topbar .sp{flex:1;}
+.topbar .period{font-size:12px;color:var(--mut);}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.chip{display:inline-block;padding:7px 13px;border:1.5px solid var(--line);border-radius:20px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;user-select:none;transition:.12s;background:#fff;}
+.chip:hover{border-color:var(--teal);}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fff;}
+.ptbanner{background:linear-gradient(135deg,#28B8C8,#1F9DAC);color:#fff;border-radius:14px;padding:20px 18px;text-align:center;}
+.ptbanner h2{color:#fff;}
+.ptbanner .hint{color:#e8f7fa;}
+.pte{font-size:34px;display:block;line-height:1;}
+textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box;background:#fff;color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><img src="is-logo.png" alt="" class="logo" onerror="this.style.display='none'"><div class="ptt">INITIATE SPORTS<span>私人訓練報名</span></div><div class="sp"></div><span class="period" id="periodLbl"></span></div>
+  <div id="app"><div class="card"><div class="msg">載入中…</div></div></div>
+  <div class="foot">INITIATE SPORTS · 查詢 WhatsApp <b>6331 7403</b><br><span id="ver" style="font-size:11px;color:var(--mut)"></span></div>
+</div>
+<script>
+const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
+const PT_VERSION='pt-enroll-2026-08-28-v1';
+const PREVIEW=/[?&]preview=1/.test(location.search);
+const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
+const app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},ms); }
+const S={ stu:{}, goals:{}, pack:{}, referrer:'', consents:{}, opsAgree:false, signEn:'', signId:'' };
+document.getElementById('ver').textContent=PT_VERSION+(PREVIEW?' · 預覽模式':'');
+
+/* ── 進度條 ── */
+function steps(n){ let h='<div class="steps">'; for(let i=1;i<=4;i++) h+='<div class="s '+(i<=n?'on':'')+'"></div>'; return h+'</div>'; }
+
+/* ══ PAR-Q ══ */
+const PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
+
+/* ══ 私訓條款（老闆 2026-08-28 審批中）══ */
+const PT_CONSENTS=[
+ '健康聲明：本人確認學員身體狀況適合參與私人體能訓練，並已如實填寫健康問卷（PAR-Q）；如學員有任何健康狀況、傷患、長期病或服藥情況，已於報名時告知教練。',
+ '緊急醫療授權：如學員於訓練期間發生意外或身體不適，而未能即時聯絡家長／監護人，本人授權 INITIATE SPORTS 教練安排必要之緊急醫療護理，相關費用由本人承擔。',
+ '私隱政策：本人同意 INITIATE SPORTS 依《個人資料（私隱）條例》收集及使用所提供之個人資料，作報名、聯絡及訓練安排用途。',
+ '資料屬實：本人確認以上所填之資料真實無誤。',
+ '（選擇性）拍攝及公開：本人同意教練於訓練期間拍攝之相片／短片，可用於教學紀錄及機構宣傳。'
+];
+const PT_TERMS=[
+ '意向登記：本報名為私人訓練「意向登記」。私人訓練為 1 對 1（或按需要 1 對 2）度身訂造，收費面議；實際收費、堂數、上課時間及地點以雙方其後確認之報價及安排為準，本報名並未構成最終收費或課堂預留。',
+ '套票及有效期：私人訓練以套票形式購買（如 10 節、20 節）。套票須由首堂起計 4 個月內用完，逾期未用之堂數作放棄論，不設退款或順延（特殊情況經教練書面同意除外）。',
+ '改期：如需改期，請於該堂開始前 24 小時通知教練，可免費改期；少於 24 小時通知或缺席（no-show），該堂作已使用論、照扣一節。',
+ '病假：如因病未能上課並於 48 小時內提交醫生證明，可安排改期；否則作已使用論。',
+ '遲到：學員遲到，教練將按原定時間結束，不另補時。',
+ '退款：套票一經確認購買，恕不退款或轉讓；如因教練方未能提供已購買而未使用之堂數，將按未使用堂數退回相應款項。',
+ '教練及時間安排：上課時間、地點及教練須經雙方協調確認。如遇教練因病或不可抗力未能上課，將另約時間補回，該堂不作損失。',
+ '惡劣天氣：8 號或以上熱帶氣旋警告信號或黑色暴雨警告懸掛期間之課堂順延改期，不作損失；三號風球或黃／紅雨一般照常，如有更改教練會另行通知。',
+ '推薦獎賞：推薦新朋友首次購買私人訓練套票，每 10 節可獲 1 節私人訓練獎賞（20 節送 2 節，如此類推）；獎賞於被推薦人完成購買後加入推薦人帳戶。',
+ '服飾及器材：學員須穿著合適運動服裝及運動鞋；部分訓練或需自備指定器材，教練會另行通知。',
+ '風險聲明：體能及運動訓練涉及固有運動風險。本人明白並自願讓學員參加，已了解相關風險並願意承擔；INITIATE SPORTS 已盡合理謹慎，惟對非因本機構疏忽所致之意外不負責任。',
+ '個人資料：本機構所收集之個人資料只用於訓練及聯絡用途，不會在未經同意下轉交第三方。'
+];
+
+/* ════ ⓪ 首頁 ════ */
+function renderHome(){
+  app.innerHTML=`
+  <div class="card">
+    <div class="ptbanner"><span class="pte">⭐</span>
+      <h2 style="margin:6px 0 4px">私人訓練 1 對 1</h2>
+      <p class="hint" style="color:#e8f7fa">由前香港隊運動員、運動科學背景教練親自指導。度身訂造，兒童青少年到成人樂齡都有合適方案。</p></div>
+    <div class="fld" style="margin-top:14px"><label>私人訓練特色</label>
+      <div class="cbox" style="align-items:flex-start"><span>• 度身訂造：按學員年齡、程度、目標設計專屬計劃</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 靈活時間：上課時間、地點、教練由雙方協調</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 套票購買：如 10 節 / 20 節，收費面議</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 推薦獎賞：推薦新朋友首次買套票，每 10 節送 1 節</span></div>
+    </div>
+    <div class="banner" style="margin-top:12px">📝 私人訓練<b>收費面議</b>。填好呢份報名，教練會 WhatsApp 你<b>夾時間、報價</b>，確認先開始，<b>唔使即時付款</b>。</div>
+    <button class="btn" id="pt_go" style="margin-top:12px">開始報名 →</button>
+    <a class="btn ghost" href="${WA('我想查詢私人訓練')}" target="_blank" rel="noopener" style="margin-top:10px;display:block;text-align:center;text-decoration:none">💬 WhatsApp 查詢</a>
+  </div>`;
+  document.getElementById('pt_go').onclick=renderStudent;
+}
+
+/* ════ ① 學員資料 + PAR-Q ════ */
+function renderStudent(){
+  const s=S.stu;
+  app.innerHTML=`
+  <div class="card">
+    ${steps(1)}
+    <h2>學員資料</h2>
+    <p class="hint">先填學員及家長聯絡資料（<span style="color:var(--err)">*</span> 必填）。</p>
+    <div class="fld"><label>學員中文姓名 <span style="color:var(--err)">*</span></label><input id="st_name" value="${esc(s.name||'')}" placeholder="例：陳大文"></div>
+    <div class="fld"><label>學員出生年份（或年齡）<span style="color:var(--err)">*</span></label><input id="st_age" value="${esc(s.age||'')}" placeholder="例：2016 或 9 歲"></div>
+    <div class="fld"><label>家長／聯絡人姓名 <span style="color:var(--err)">*</span></label><input id="st_parent" value="${esc(s.parent||'')}" placeholder="家長姓名"></div>
+    <div class="fld"><label>聯絡電話 <span style="color:var(--err)">*</span></label><input id="st_phone" inputmode="numeric" value="${esc(s.phone||'')}" placeholder="8 位香港電話"></div>
+    <div class="fld"><label>電郵（收確認）</label><input id="st_email" value="${esc(s.email||'')}" placeholder="name@email.com"></div>
+    <div class="fld"><label>健康篩查 PAR-Q（未滿 18 歲由家長填）<span style="color:var(--err)">*</span></label>
+      <div class="terms" style="max-height:150px;font-size:12px">${PARQ.map((q,i)=>`<p>${i+1}. ${esc(q)}</p>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="st_parqok" ${s.parqok?'checked':''}><span>以上 7 項全部答「否」，健康良好、適合參加運動。</span></label>
+      <input id="st_parqnote" value="${esc(s.parqnote||'')}" placeholder="如有任何一項為「是」，請喺此註明（並先徵詢醫生）"></div>
+    <div class="msg" id="st_msg"></div>
+    <div class="navbtns"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button><button class="btn" id="st_next">下一步 →</button></div>
+  </div>`;
+  document.getElementById('st_next').onclick=()=>{
+    const g=id=>(document.getElementById(id).value||'').trim();
+    const st={name:g('st_name'),age:g('st_age'),parent:g('st_parent'),phone:g('st_phone'),email:g('st_email'),
+      parqok:document.getElementById('st_parqok').checked, parqnote:g('st_parqnote')};
+    const msg=document.getElementById('st_msg');
+    if(!PREVIEW){
+      if(!st.name||!st.age||!st.parent||!st.phone){ msg.className='msg err'; msg.textContent='請填齊學員姓名、年份、家長姓名及電話。'; return; }
+      if(!/^\d{8}$/.test(st.phone.replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='請輸入正確 8 位香港電話。'; return; }
+      if(!st.parqok && !st.parqnote){ msg.className='msg err'; msg.textContent='請剔選健康聲明，或喺註明欄填寫需要注意嘅健康狀況。'; return; }
+    }
+    S.stu=st; renderGoals();
+  };
+}
+
+/* ════ ② 訓練目標 + 時段/頻率 ════ */
+const GOAL_CHIPS=['全面體能提升','運動專項強化','基礎動作技能','爆發力／速度','敏捷／協調','減脂／增肌','復康／改善姿勢','為比賽備戰'];
+const TIME_CHIPS=['平日上午','平日下午','平日晚上','週末上午','週末下午','週末晚上'];
+function renderGoals(){
+  const gg=S.goals;
+  const chip=(arr,sel,cls)=>arr.map(x=>`<span class="chip ${sel.indexOf(x)>=0?'on':''}" data-v="${esc(x)}" data-cls="${cls}">${esc(x)}</span>`).join('');
+  app.innerHTML=`
+  <div class="card">
+    ${steps(2)}
+    <h2>訓練目標 & 時間</h2>
+    <p class="hint">揀低你想達到嘅目標同方便時段，教練會據此設計計劃、夾時間。</p>
+    <div class="fld"><label>訓練目標（可多選）</label><div class="chips" id="g_goals">${chip(GOAL_CHIPS,gg.goals||[],'goals')}</div></div>
+    <div class="fld"><label>其他目標／特別要求</label><textarea id="g_note" rows="2" placeholder="例：想改善跑姿、為校隊選拔備戰…">${esc(gg.note||'')}</textarea></div>
+    <div class="fld"><label>方便時段（可多選）</label><div class="chips" id="g_times">${chip(TIME_CHIPS,gg.times||[],'times')}</div></div>
+    <div class="fld"><label>希望每週上堂次數</label>
+      <div class="chips" id="g_freq">${['每週 1 次','每週 2 次','每週 3 次或以上','未定'].map(x=>`<span class="chip ${gg.freq===x?'on':''}" data-v="${esc(x)}" data-cls="freq">${esc(x)}</span>`).join('')}</div></div>
+    <div class="navbtns"><button class="btn ghost sm" onclick="renderStudent()">‹ 返回</button><button class="btn" id="g_next">下一步 →</button></div>
+  </div>`;
+  const sel={goals:(gg.goals||[]).slice(), times:(gg.times||[]).slice(), freq:gg.freq||''};
+  app.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const v=c.getAttribute('data-v'), cls=c.getAttribute('data-cls');
+    if(cls==='freq'){ sel.freq=(sel.freq===v?'':v); app.querySelectorAll('.chip[data-cls=freq]').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.freq)); }
+    else { const a=sel[cls]; const i=a.indexOf(v); if(i>=0)a.splice(i,1); else a.push(v); c.classList.toggle('on'); }
+  });
+  document.getElementById('g_next').onclick=()=>{
+    S.goals={goals:sel.goals, times:sel.times, freq:sel.freq, note:(document.getElementById('g_note').value||'').trim()};
+    renderPackage();
+  };
+}
+
+/* ════ ③ 套票堂數意向 + 推薦人 ════ */
+function renderPackage(){
+  const pk=S.pack;
+  app.innerHTML=`
+  <div class="card">
+    ${steps(3)}
+    <h2>套票 & 推薦</h2>
+    <p class="hint">私人訓練以套票購買，收費面議。揀返你嘅意向，最終堂數同價錢報價後確認。</p>
+    <div class="fld"><label>想購買嘅套票（意向）</label>
+      <div class="chips" id="pk_size">${['10 節','20 節','30 節或以上','先試 1 節','未定'].map(x=>`<span class="chip ${pk.size===x?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div></div>
+    <div class="fld"><label>對象</label>
+      <div class="chips" id="pk_who">${['兒童 / 青少年','成人','樂齡人士'].map(x=>`<span class="chip ${pk.who===x?'on':''}" data-v="${esc(x)}" data-k="who">${esc(x)}</span>`).join('')}</div></div>
+    <div class="fld"><label>推薦人中文全名（如有）</label><input id="pk_ref" value="${esc(S.referrer||'')}" placeholder="推薦你嘅朋友中文全名（享推薦獎賞用）">
+      <div class="hint" style="margin-top:4px">🎁 推薦新朋友首次買套票，每 10 節送 1 節畀推薦人。</div></div>
+    <div class="navbtns"><button class="btn ghost sm" onclick="renderGoals()">‹ 返回</button><button class="btn" id="pk_next">下一步 →</button></div>
+  </div>`;
+  const sel={size:pk.size||'', who:pk.who||''};
+  app.querySelectorAll('#pk_size .chip').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_size .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.size)); });
+  app.querySelectorAll('#pk_who .chip').forEach(c=>c.onclick=()=>{ sel.who=(sel.who===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_who .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.who)); });
+  document.getElementById('pk_next').onclick=()=>{ S.pack={size:sel.size, who:sel.who}; S.referrer=(document.getElementById('pk_ref').value||'').trim(); renderTerms(); };
+}
+
+/* ════ ④ 私訓條款 + 聲明簽署 ════ */
+function renderTerms(){
+  const reqC=PT_CONSENTS.map((s,i)=>({s,i})).filter(x=>!/拍攝/.test(x.s));
+  const photoC=PT_CONSENTS.map((s,i)=>({s,i})).find(x=>/拍攝/.test(x.s));
+  app.innerHTML=`
+  <div class="card">
+    ${steps(4)}
+    <h2>私人訓練條款及聲明</h2>
+    <p class="hint">私人訓練條款與恆常班<b>不同</b>。以下每項須逐項剔選同意先可提交（安全所需）。</p>
+    ${reqC.map(x=>`<div class="cbox"><label class="chk"><input type="checkbox" class="pt_consent" data-i="${x.i}"><span>${esc(x.s)}</span></label></div>`).join('')}
+    ${photoC?`<div class="cbox" style="border-color:var(--teal)"><label class="chk"><input type="checkbox" id="pt_photo" checked><span>${esc(photoC.s)}</span></label><div class="hint" style="margin-left:26px;margin-top:4px">📷 此項為<b>選擇性</b>——不同意亦可完成報名，取消勾選即表示不同意。</div></div>`:''}
+    <div class="fld" style="margin-top:6px"><label>私人訓練課程條款</label>
+      <div class="terms">${PT_TERMS.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="pt_ops"><span>本人已閱讀並<b>同意</b>以上私人訓練條款。</span></label></div>
+    <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ 請填家長本人<b>真實英文全名</b>及<b>證件號碼首 4 位</b>作報名確認之用。</div>
+    <div class="fld"><label>家長／監護人英文全名 <span style="color:var(--err)">*</span></label><input id="tm_en" value="${esc(S.signEn||'')}" placeholder="e.g. Chan Tai Man"></div>
+    <div class="fld"><label>家長證件號碼首 4 位（e.g. A123）<span style="color:var(--err)">*</span></label><input id="tm_id" value="${esc(S.signId||'')}" maxlength="8"></div>
+    <div class="fld"><label>家長／監護人手寫簽名 <span style="color:var(--err)">*</span></label>
+      <canvas id="sigpad" style="width:100%;height:170px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="hint">請喺上面簽名，作正式報名確認。</span>
+        <button type="button" class="btn ghost sm" style="padding:3px 10px" onclick="clearSig()">清除重簽</button></div></div>
+    <div class="msg" id="tm_msg"></div>
+    <div class="navbtns"><button class="btn ghost sm" onclick="renderPackage()">‹ 返回</button><button class="btn" id="tm_go">確認提交報名</button></div>
+  </div>`;
+  initSig();
+  document.getElementById('tm_go').onclick=submitPt;
+}
+
+/* ══ 簽名板 ══ */
+let _sig={cv:null,ctx:null,has:false};
+function initSig(){ const cv=document.getElementById('sigpad'); if(!cv) return;
+  const ratio=window.devicePixelRatio||1; const r=cv.getBoundingClientRect();
+  cv.width=r.width*ratio; cv.height=r.height*ratio;
+  const ctx=cv.getContext('2d'); ctx.scale(ratio,ratio); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0f2233';
+  _sig={cv,ctx,has:false}; let drawing=false,px=0,py=0;
+  const pos=e=>{ const b=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return [t.clientX-b.left,t.clientY-b.top]; };
+  const start=e=>{ e.preventDefault(); drawing=true; [px,py]=pos(e); };
+  const move=e=>{ if(!drawing)return; e.preventDefault(); const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(x,y); ctx.stroke(); [px,py]=[x,y]; _sig.has=true; S.signImg=cv.toDataURL('image/png'); };
+  const end=()=>{ drawing=false; };
+  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
+}
+function clearSig(){ if(_sig.ctx&&_sig.cv) _sig.ctx.clearRect(0,0,_sig.cv.width,_sig.cv.height); _sig.has=false; S.signImg=''; }
+
+/* ══ 提交 ══ */
+async function submitPt(){
+  const msg=document.getElementById('tm_msg'), btn=document.getElementById('tm_go');
+  const consentEls=[...document.querySelectorAll('.pt_consent')];
+  const allConsent=consentEls.every(c=>c.checked);
+  const ops=document.getElementById('pt_ops').checked;
+  const en=(document.getElementById('tm_en').value||'').trim();
+  const id=(document.getElementById('tm_id').value||'').trim();
+  const photo=document.getElementById('pt_photo')?document.getElementById('pt_photo').checked:true;
+  if(PREVIEW){ msg.className='msg'; msg.textContent='（預覽模式）唔會真提交報名。'; return; }
+  if(!allConsent){ msg.className='msg err'; msg.textContent='請逐項剔選同意健康聲明、緊急醫療授權、私隱及資料屬實。'; return; }
+  if(!ops){ msg.className='msg err'; msg.textContent='請剔選同意私人訓練條款。'; return; }
+  if(!en){ msg.className='msg err'; msg.textContent='請填家長英文全名。'; return; }
+  if(!/^[A-Za-z]\d{3}$/.test(id.replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='證件號碼首 4 位格式：1 個英文字母 + 3 個數字（e.g. A123）。'; return; }
+  if(!S.signImg){ msg.className='msg err'; msg.textContent='請喺簽名格簽上家長／監護人簽名。'; document.getElementById('sigpad').scrollIntoView({block:'center'}); return; }
+  btn.disabled=true; btn.textContent='提交中…';
+  if(!S.clientToken) S.clientToken='pt_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  let res;
+  try{
+    res=await apiPost({ action:'ptEnroll',
+      name:S.stu.name, age:S.stu.age, parent:S.stu.parent, phone:S.stu.phone, email:S.stu.email,
+      parq:(S.stu.parqok?'全部否（適合運動）':('有需要注意：'+(S.stu.parqnote||''))),
+      goals:(S.goals.goals||[]).join('、'), goalNote:S.goals.note||'',
+      times:(S.goals.times||[]).join('、'), freq:S.goals.freq||'',
+      packSize:S.pack.size||'', packWho:S.pack.who||'', referrer:S.referrer||'',
+      signEn:en, signId:id, signImg:S.signImg||'', photoConsent:(photo?'1':'0'),
+      clientToken:S.clientToken, agree:'同意' }, 30000);
+  }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>，請 WhatsApp 6331 7403 確認，切勿以為失敗而重複提交。'; return; }
+  btn.disabled=false; btn.textContent='確認提交報名';
+  if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'提交失敗，請再試或 WhatsApp 6331 7403。'; return; }
+  renderDone(res);
+}
+
+/* ════ 完成 ════ */
+function renderDone(res){
+  app.innerHTML=`
+  <div class="card">
+    <div class="ptbanner" style="background:linear-gradient(135deg,#1a9e6a,#12805a)"><span class="pte">✅</span><h2 style="margin:6px 0 4px">已收到你嘅報名！</h2>
+      <p class="hint" style="color:#e8f7fa">${res&&res.id?('報名編號：<b>'+esc(res.id)+'</b>'):''}</p></div>
+    <div class="banner" style="margin-top:14px">📱 教練會盡快 <b>WhatsApp 你</b>夾上課時間、地點同<b>報價</b>；確認後先開始，唔使即時付款。</div>
+    <div class="fld" style="margin-top:10px"><label>你提交嘅內容</label>
+      <div class="cbox"><span>學員：<b>${esc(S.stu.name)}</b>（${esc(S.stu.age)}）</span></div>
+      <div class="cbox"><span>聯絡：${esc(S.stu.parent)}　${esc(S.stu.phone)}</span></div>
+      ${S.pack.size?`<div class="cbox"><span>套票意向：${esc(S.pack.size)}${S.pack.who?('　'+esc(S.pack.who)):''}</span></div>`:''}
+      ${(S.goals.goals||[]).length?`<div class="cbox"><span>目標：${esc((S.goals.goals||[]).join('、'))}</span></div>`:''}
+    </div>
+    <a class="btn" href="${WA('我啱啱交咗私人訓練報名：'+esc(S.stu.name))}" target="_blank" rel="noopener" style="margin-top:12px;display:block;text-align:center;text-decoration:none">💬 WhatsApp 教練</a>
+    <button class="btn ghost" style="margin-top:10px" onclick="location.reload()">再報一位</button>
+  </div>`;
+}
+
+/* ══ 啟動 ══ */
+renderHome();
+</script>
+</body>
+</html>
