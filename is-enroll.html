@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-28-pt';
+const FRONTEND_VERSION='enroll-2026-08-28-feeclear';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1587,14 +1587,18 @@ async function renderFee(){
   const priced = res.base>0;
   const anyWait = cs.some(c=>c.full);
   const chargedN = cs.filter(c=>!c.full).length;
-  const hasDisc = (res.multiDisc>0)||(res.credit>0)||(res.scholarship>0);
+  const hasDisc = (res.multiDisc>0)||(res.credit>0)||(res.scholarship>0)||((Number(res.adjust)||0)!==0);
   const tierTxt = res.isOld ? `<span class="pill">舊學員價</span>` : '';   // 只對舊生正面標示；新生唔顯示，免見價差
   const itemLines = cs.map(c=> c.full
     ? `<div class="q dim"><span>${esc(c.sport)} <span class="pill" style="background:#fdecea;color:var(--err);margin:0">候補</span></span><span>暫免</span></div>`
     : `<div class="q dim"><span>${esc(c.sport)}</span><span>${money(c.price)}</span></div>`).join('');
-  const multiLine = res.multiDisc>0 ? `<div class="q credit"><span>多堂折扣（報 ${res.multiCount} 班，每多一班減 $100）</span><span>− ${money(res.multiDisc)}</span></div>` : '';
-  const creditLine = res.credit>0 ? `<div class="q credit"><span>優惠券／推薦折扣</span><span>− ${money(res.credit)}</span></div>` : '';
-  const scholarLine = res.scholarship>0 ? `<div class="q credit"><span>🎓 獎學金券${res.scholarshipCode?('（'+esc(res.scholarshipCode)+'）'):''}</span><span>− ${money(res.scholarship)}</span></div>` : '';
+  const subNote = t => `<div style="font-size:11px;color:var(--mut);padding:2px 14px 9px;line-height:1.45;background:#fff">${t}</div>`;   // 扣減原因小註（收費明細清晰化，老闆 2026-08-28）
+  const multiLine = res.multiDisc>0 ? `<div class="q credit"><span>🏷 多堂折扣</span><span>− ${money(res.multiDisc)}</span></div>`+subNote(`同一學生本期報 ${res.multiCount} 班，每多一班減 $100（不封頂）`) : '';
+  const _cSrc=[]; if(res.summer>0)_cSrc.push(`暑期券 ${money(res.summer)}`); if(res.referral>0)_cSrc.push(`推薦獎賞 ${money(res.referral)}`);
+  const creditLine = res.credit>0 ? `<div class="q credit"><span>🎟 優惠券／推薦（本期抵用）</span><span>− ${money(res.credit)}</span></div>`+subNote(`${_cSrc.length?('你嘅餘額：'+_cSrc.join('＋')+'。'):''}每期最多抵 $200，餘額自動順延下期`) : '';
+  const scholarLine = res.scholarship>0 ? `<div class="q credit"><span>🎓 獎學金券${res.scholarshipCode?('（'+esc(res.scholarshipCode)+'）'):''}</span><span>− ${money(res.scholarship)}</span></div>`+subNote('得獎學生專用優惠，不佔用優惠券餘額') : '';
+  const _adj=Number(res.adjust)||0;
+  const adjLine = _adj!==0 ? `<div class="q ${_adj<0?'credit':'dim'}"><span>📋 ${esc(res.adjustReason||(_adj<0?'個別優惠調整':'個別費用調整'))}</span><span>${_adj<0?('− '+money(-_adj)):('＋ '+money(_adj))}</span></div>` : '';
   const pendNote = res.creditRemaining>0 ? `<p class="hint">你仲有 ${money(res.creditRemaining)} 優惠餘額（每期最多抵 $200，餘額自動順延下期）。</p>` : '';
   const perNote = (chargedN===1 && !anyWait && res.net>0) ? `（約每堂 $${Math.round(res.net/(res.sessions||8))}）` : '';
   // 混合堂數(如網球3堂+跳繩8堂)唔用單一「共N堂」誤導；逐科堂數已喺上面各行日期顯示。
@@ -1613,10 +1617,12 @@ async function renderFee(){
     // 單科無折無制服無器材：淨顯示一行「學費」，唔用「原價」字眼（免新生察覺有折）
     quoteInner = `<div class="q net"><span>學費（全期 ${res.sessions||8} 堂）</span><span>${money(res.net)}</span></div>`;
   }else{
+    const feeOnly = (uCost===0 && gearCost===0);
     quoteInner = `${itemLines}
-      ${hasDisc?`<div class="q dim"><span>小計${tierTxt}</span><span>${money(res.base)}</span></div>`:''}
-      ${multiLine}${creditLine}${scholarLine}${uLine}${gLine}
-      <div class="q net"><span>${(uCost>0||gearCost>0)?'總計應付':'實付'}</span><span>${money(grand)}</span></div>`;
+      ${hasDisc?`<div class="q dim"><span>原價小計${tierTxt}</span><span>${money(res.base)}</span></div>`:''}
+      ${multiLine}${creditLine}${scholarLine}${adjLine}
+      <div class="q net"><span>${feeOnly?'學費實付':'學費小計'}</span><span>${money(res.net)}</span></div>
+      ${feeOnly?'':`${uLine}${gLine}<div class="q net" style="background:var(--teal);color:#fff"><span>應付總額</span><span>${money(grand)}</span></div>`}`;
   }
   const body = priced ? `<div class="quote">${quoteInner}</div>${sessNote}${pendNote}` :
     `<div class="banner">課程收費稍後公佈。你嘅優惠餘額：暑期券／推薦共 ${money(res.creditRemaining)}（每期最多抵 $200，順延下期）。</div>`;
