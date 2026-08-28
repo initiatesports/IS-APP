@@ -1255,7 +1255,7 @@ async function doIdentify(skipSuggest){
     if(_as){   // 預覽指定真實學員（老闆核對用）：用真身 identify 顯示佢實際新/舊生價＋券餘額，但預覽照樣唔會真提交
       apiPost({action:'enrollIdentify', name:_as, last4:_pin}, 20000).then(res=>{
         if(!res||res.ok===false){ app.innerHTML='<div class="card"><div class="msg err">預覽身份核對失敗（'+esc(_as)+'）：'+esc((res&&res.err)||'請確認 as=姓名 同 pin=電話後4位')+'</div></div>'; return; }
-        S.family={name:_as,phone:'',last4:_pin,isOld:!!res.isOld,tier:(res.tier||'新生')+'（預覽）'}; S.isNew=!res.isOld;
+        S.family={name:_as,phone:'',last4:_pin,isOld:!!res.isOld,tier:(res.tier||'新生')+'（預覽）',blocked:!!res.blocked}; S.isNew=!res.isOld;
         S.oldPrices=res.oldPrices||null; S.profile=res.profile||{}; S.courses=[]; S.quote=null; S.payImg='';
         S.credit={remaining:res.creditRemaining||0,summer:res.summer||0,referral:res.referral||0}; renderPriceTable();
       }).catch(()=>{ app.innerHTML='<div class="card"><div class="msg err">預覽核對連線逾時，請再試。</div></div>'; });
