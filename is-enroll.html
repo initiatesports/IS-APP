@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-27-gearpreview';
+const FRONTEND_VERSION='enroll-2026-08-28-taborder';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -508,10 +508,10 @@ function renderHome(){
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
     <button class="btn" id="hm_adult" style="margin-top:10px;background:#0f766e">成人課程報名 →</button>
+    <button class="btn ghost" id="hm_pt" style="margin-top:10px">⭐ 私人訓練（1 對 1 度身訂造）</button>
     <button class="btn ghost" id="hm_timetable" style="margin-top:10px">📅 課程時間表（2026–2027 學年）</button>
     <button class="btn ghost" id="hm_makeup" style="margin-top:10px">🗓 請假 / 補堂（自助辦理）</button>
     <button class="btn ghost" id="hm_gear" style="margin-top:10px">🛒 器材選購</button>
-    <button class="btn ghost" id="hm_pt" style="margin-top:10px">⭐ 私人訓練（1 對 1 度身訂造）</button>
     <button class="btn ghost" id="hm_look" style="margin-top:10px">查詢我嘅報名狀態</button>
   </div>`;
   document.getElementById('hm_go').onclick=renderLogin;
