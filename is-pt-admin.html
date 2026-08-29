@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#28B8C8">
+<title>INITIATE SPORTS 私訓預設（教練端）</title>
+<style>
+:root{ --teal:#28B8C8; --teal-dark:#1F9DAC; --teal-dim:rgba(40,184,200,0.10); --ink:#1f2a30; --mut:#66757c; --line:#e3e9ec; --bg:#f5f8f9; --ok:#1a9e6a; --warn:#c47f00; --err:#c0392b; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 60px;}
+header.top{display:flex;align-items:center;gap:10px;padding:6px 2px 12px;}
+header.top .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);}
+header.top h1{font-size:16px;margin:0;font-weight:800;}
+header.top .rf{margin-left:auto;font-size:13px;color:var(--teal);background:none;border:1px solid var(--teal);border-radius:8px;padding:5px 10px;cursor:pointer;}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:13px;}
+.card h2{font-size:15px;margin:0 0 4px;font-weight:800;}
+.hint{font-size:12.5px;color:var(--mut);margin:0 0 12px;}
+.fld{margin-bottom:11px;} .fld label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;font-weight:600;}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--teal);}
+.fld textarea{min-height:60px;resize:vertical;}
+.row2{display:flex;gap:10px;} .row2 .fld{flex:1;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:20px;padding:8px 15px;font-size:14px;font-weight:700;cursor:pointer;color:var(--mut);}
+.chip.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+.btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:800;padding:13px;font-family:inherit;cursor:pointer;margin-top:4px;}
+.btn:active{background:var(--teal-dark);} .btn:disabled{opacity:.45;}
+.btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal);}
+.btn.sm{padding:7px 11px;font-size:12.5px;width:auto;}
+.btn.err{background:var(--err);}
+.msg{font-size:13px;padding:9px 11px;border-radius:9px;margin-top:8px;display:none;}
+.msg.err{background:#fdecea;color:var(--err);display:block;} .msg.ok{background:#e8f7ef;color:var(--ok);display:block;} .msg.info{background:var(--teal-dim);color:var(--teal-dark);display:block;}
+.plist{border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+.prow{padding:11px 13px;border-bottom:1px solid var(--line);}
+.prow:last-child{border-bottom:none;}
+.prow .pn{font-weight:800;font-size:14.5px;}
+.prow .pm{font-size:12.5px;color:#3a464c;margin-top:2px;line-height:1.5;}
+.prow .pact{display:flex;gap:6px;margin-top:7px;}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;}
+.tag.ok{background:#e8f7ef;color:var(--ok);} .tag.used{background:#eef2f3;color:var(--mut);}
+.foot{text-align:center;color:var(--mut);font-size:11px;padding:14px 0 4px;}
+.pvbanner{background:#fff7ed;border:1px solid #fb923c;color:#9a3412;border-radius:11px;padding:10px 13px;font-size:12.5px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><span class="dot"></span><h1>INITIATE SPORTS 私訓預設</h1><button class="rf" id="rfbtn" style="display:none" onclick="loadList()">🔄 重新整理</button></header>
+  <div id="app"><div class="hint" style="text-align:center;padding:30px">…</div></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+const API4='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
+const PT_ADMIN_VERSION='pt-admin-2026-08-29-v1';
+const app=document.getElementById('app');
+const PREVIEW=/[?&]preview=1/.test(location.search);
+let CP='';
+let EDIT=null;   // 編輯緊嘅 preset（null=新增）
+let SEL={mode:'1對1', priceMode:'標準'};
+const DEMO=[
+  {id:'PP-DEMO-1',ts:'2026-08-29 10:00',name:'陳大文',phone4:'1234',mode:'1對2',startDate:'2026-09-08',priceMode:'自訂',priceNote:'1 對 2 每人 $450/堂（10 節 $4,500）',note:'同陳小明一齊',status:'生效',used:''},
+  {id:'PP-DEMO-2',ts:'2026-08-28 09:00',name:'李樂晴',phone4:'5678',mode:'1對1',startDate:'2026-09-05',priceMode:'標準',priceNote:'',note:'',status:'已用',used:'PT2609001'}
+];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+document.getElementById('foot').textContent='版本 '+PT_ADMIN_VERSION+(PREVIEW?' · 預覽':'');
+
+async function api(action, body){
+  if(PREVIEW){
+    if(action==='ptPresetList') return {ok:true,presets:DEMO};
+    return {ok:false,err:'🔎 預覽模式：唔會真改動'};
+  }
+  const ac=new AbortController(); const t=setTimeout(()=>ac.abort(),45000);
+  try{
+    const r=await fetch(API4,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(Object.assign({action,coachPass:CP},body||{})),signal:ac.signal});
+    clearTimeout(t); return await r.json();
+  }catch(e){ clearTimeout(t); return {ok:false,err:'網絡逾時／中斷'}; }
+}
+
+function renderLogin(){
+  app.innerHTML=`
+  <div class="card">
+    <h2>教練登入</h2>
+    <p class="hint">輸入教練密碼即可管理私訓預設。</p>
+    <div class="fld"><label>教練密碼</label><input id="cp" type="password" placeholder="密碼" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="msg" id="lmsg"></div>
+    <button class="btn" onclick="doLogin()">登入 →</button>
+  </div>`;
+}
+async function doLogin(){
+  CP=(document.getElementById('cp').value||'').trim();
+  const m=document.getElementById('lmsg');
+  if(!CP){ m.className='msg err'; m.textContent='請輸入密碼'; return; }
+  m.className='msg info'; m.textContent='登入中…';
+  const r=await api('ptPresetList',{});
+  if(!r||r.ok===false){ m.className='msg err'; m.textContent=(r&&r.err)||'密碼錯誤'; return; }
+  document.getElementById('rfbtn').style.display='';
+  renderMain(r.presets||[]);
+}
+
+function renderMain(presets){
+  EDIT=null; SEL={mode:'1對1', priceMode:'標準'};
+  app.innerHTML=(PREVIEW?`<div class="pvbanner">🔎 <b>預覽模式（示範資料）</b>：唔會真新增／刪除。</div>`:'')+formCard()+listCard(presets);
+  bindForm();
+}
+function formCard(){
+  const e=EDIT||{};
+  SEL.mode=e.mode||SEL.mode||'1對1'; SEL.priceMode=e.priceMode||SEL.priceMode||'標準';
+  return `
+  <div class="card">
+    <h2>${EDIT?'✏️ 編輯預設':'➕ 新增學員預設'}</h2>
+    <p class="hint">按<b>姓名＋電話</b>認人；學員之後填私訓報名表，姓名＋電話夾到即刻套用。</p>
+    <div class="row2">
+      <div class="fld"><label>學員姓名 *</label><input id="f_name" value="${esc(e.name||'')}" placeholder="中文姓名"></div>
+      <div class="fld"><label>聯絡電話 *</label><input id="f_phone" inputmode="numeric" value="${esc(e.phone4||'')}" placeholder="8 位或後 4 位"></div>
+    </div>
+    <div class="fld"><label>訓練形式</label>
+      <div class="chips" id="f_mode">${['1對1','1對2'].map(x=>`<span class="chip ${SEL.mode===x?'on':''}" data-v="${x}">${x}</span>`).join('')}</div></div>
+    <div class="fld"><label>首課生效日期</label><input id="f_date" type="date" value="${esc(e.startDate||'')}"></div>
+    <div class="fld"><label>價格</label>
+      <div class="chips" id="f_pmode">${['標準','自訂'].map(x=>`<span class="chip ${SEL.priceMode===x?'on':''}" data-v="${x}">${x==='標準'?'跟標準價表':'自訂價格'}</span>`).join('')}</div></div>
+    <div class="fld" id="f_pnwrap" style="${SEL.priceMode==='自訂'?'':'display:none'}"><label>自訂價格說明（會顯示畀學員）</label>
+      <textarea id="f_pnote" placeholder="例：1 對 2 每人 $450/堂（10 節 $4,500）；或 10 節特價 $4,500">${esc(e.priceNote||'')}</textarea></div>
+    <div class="fld"><label>備註（只教練睇）</label><input id="f_note" value="${esc(e.note||'')}" placeholder="內部備註（如：同 XXX 一齊 1對2）"></div>
+    <div class="msg" id="fmsg"></div>
+    <button class="btn" onclick="saveForm()">${EDIT?'儲存修改':'新增預設'}</button>
+    ${EDIT?'<button class="btn ghost" style="margin-top:8px" onclick="loadList()">取消</button>':''}
+  </div>`;
+}
+function listCard(presets){
+  const rows=(presets||[]).map(p=>{
+    const used=(p.status==='已用');
+    return `<div class="prow">
+      <div><span class="pn">${esc(p.name)}</span> <span class="mut" style="font-size:12px;color:var(--mut)">·${esc(p.phone4)}</span>
+        ${used?'<span class="tag used">已用</span>':'<span class="tag ok">生效</span>'}</div>
+      <div class="pm">形式 <b>${esc(p.mode)}</b>${p.startDate?('　首課 <b>'+esc(p.startDate)+'</b>'):''}${p.priceMode==='自訂'?('<br>💰 '+esc(p.priceNote||'')):'　💰 標準價'}${p.note?('<br><span style="color:var(--mut)">📝 '+esc(p.note)+'</span>'):''}${used&&p.used?('<br><span style="color:var(--mut)">↳ 已用於報名 '+esc(p.used)+'</span>'):''}</div>
+      <div class="pact">
+        <button class="btn ghost sm" onclick='startEdit(${JSON.stringify(p).replace(/'/g,"&#39;")})'>編輯</button>
+        <button class="btn err sm" onclick="delPreset('${esc(p.id)}','${esc(p.name)}')">刪除</button>
+      </div></div>`;
+  }).join('')||'<div class="prow mut" style="color:var(--mut)">未有預設。</div>';
+  return `<div class="card"><h2>📋 現有預設（${(presets||[]).length}）</h2><div class="plist">${rows}</div></div>`;
+}
+function bindForm(){
+  app.querySelectorAll('#f_mode .chip').forEach(c=>c.onclick=()=>{ SEL.mode=c.getAttribute('data-v'); app.querySelectorAll('#f_mode .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===SEL.mode)); });
+  app.querySelectorAll('#f_pmode .chip').forEach(c=>c.onclick=()=>{ SEL.priceMode=c.getAttribute('data-v'); app.querySelectorAll('#f_pmode .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===SEL.priceMode)); document.getElementById('f_pnwrap').style.display=(SEL.priceMode==='自訂')?'':'none'; });
+}
+function startEdit(p){ EDIT=p; SEL={mode:p.mode||'1對1',priceMode:p.priceMode||'標準'}; window.scrollTo(0,0);
+  api('ptPresetList',{}).then(r=>{ app.innerHTML=(PREVIEW?`<div class="pvbanner">🔎 預覽模式</div>`:'')+formCard()+listCard((r&&r.presets)||[]); bindForm(); });
+}
+async function saveForm(){
+  const g=id=>(document.getElementById(id).value||'').trim();
+  const m=document.getElementById('fmsg');
+  const name=g('f_name'), phone=g('f_phone');
+  if(!name||!phone){ m.className='msg err'; m.textContent='請填學員姓名及電話。'; return; }
+  const body={name,phone,mode:SEL.mode,startDate:g('f_date'),priceMode:SEL.priceMode,priceNote:(SEL.priceMode==='自訂'?g('f_pnote'):''),note:g('f_note')};
+  m.className='msg info'; m.textContent='儲存中…';
+  const r=await api('ptPresetSet',body);
+  if(!r||r.ok===false){ m.className='msg err'; m.textContent=(r&&r.err)||'儲存失敗'; return; }
+  m.className='msg ok'; m.textContent=(r.updated?'已更新':'已新增')+'預設 ✓';
+  setTimeout(loadList,600);
+}
+async function delPreset(id,name){
+  if(!confirm('確定刪除「'+name+'」嘅預設？')) return;
+  const r=await api('ptPresetDelete',{id});
+  if(!r||r.ok===false){ alert((r&&r.err)||'刪除失敗'); return; }
+  loadList();
+}
+async function loadList(){
+  const r=await api('ptPresetList',{});
+  if(!r||r.ok===false){ if(!PREVIEW){ renderLogin(); return; } }
+  renderMain((r&&r.presets)||[]);
+}
+
+if(PREVIEW){ CP='(預覽)'; document.getElementById('rfbtn').style.display=''; renderMain(DEMO); }
+else renderLogin();
+</script>
+</body>
+</html>
