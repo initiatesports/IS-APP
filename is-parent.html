@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-28-curperiod';
+const FRONTEND_VERSION='parent-2026-08-29-leavenextp';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1313,8 +1313,19 @@ let LF={};
 function openLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   const today0=todayStr();
-  // 只列當前選定期數（S.period）嘅未上堂，同 class card 顯示一致；否則 7-8月申請請假會彈埋 9-10月日期。
-  const opts=(c.sessions||[]).filter(s=>s.date>=today0 && !s.status && biMonthOf(s.date)===S.period).map(s=>s.date);
+  /* 只列未上堂；期數限制＝當前期【或下一期】。老闆 2026-08-28 定「只顯示當前期」（減少洩露），
+     但嗰個係**顯示**層決定，唔應該連**操作**都封死：
+     🔒 審計#23（2026-08-29）：visiblePeriods() 已改成硬回 [currentPeriodIdx()]，S.period 鎖死，
+        於是 `biMonthOf(s.date)===S.period` 令期尾幾日完全請唔到下一期嘅假 ——
+        今日 8/29 想幫細路預先請 9/7 嘅假，會彈「已經冇可請假嘅未來堂數」，
+        而公司規矩係事假要提前一日、當日唔可以請（[[makeup-6h-and-summer-sick]]）→ 家長兩頭唔到岸。
+     改成收「當前期 + 下一期」，保留原意（唔會彈埋更遠嘅期數，亦唔會翻舊帳），
+     但期尾預先請假行得通。*/
+  const opts=(c.sessions||[]).filter(s=>{
+    if(s.date<today0 || s.status) return false;
+    const bp=biMonthOf(s.date);
+    return bp===S.period || bp===S.period+1;
+  }).map(s=>s.date);
   // 兄弟姊妹：其他小朋友有同一日（同 dayZh）嘅班 → 可一齊請假
   const sibs=(S.family.children||[]).map((ch,idx)=>({ch,idx})).filter(o=>o.idx!==ki)
     .map(o=>{ const sc=(o.ch.classes||[]).find(x=>x.wd===c.wd); return sc?{idx:o.idx,name:o.ch.name,sc}:null; }).filter(Boolean);
