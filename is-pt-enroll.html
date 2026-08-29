@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v3';
+const PT_VERSION='pt-enroll-2026-08-29-v4';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -247,20 +247,32 @@ function renderHome(){
   document.getElementById('pt_go').onclick=renderStudent;
 }
 
-/* ════ ① 學員資料 + PAR-Q ════ */
+/* ════ ① 為誰報名 + 學員資料 + PAR-Q ════ */
+function capStu(){   // 捕捉現有輸入，切換「為誰報名」重畫時唔會清走已填內容
+  const g=id=>{ const e=document.getElementById(id); return e?(e.value||'').trim():(S.stu[({st_name:'name',st_age:'age',st_parent:'parent',st_phone:'phone',st_email:'email',st_parqnote:'parqnote',st_healthnote:'healthnote'})[id]]||''); };
+  S.stu.name=g('st_name'); S.stu.age=g('st_age'); S.stu.parent=g('st_parent'); S.stu.phone=g('st_phone'); S.stu.email=g('st_email');
+  const pq=document.getElementById('st_parqok'); if(pq) S.stu.parqok=pq.checked;
+  S.stu.parqnote=g('st_parqnote');
+  const hs=document.querySelectorAll('.st_health'); if(hs.length) S.stu.health=[...document.querySelectorAll('.st_health:checked')].map(x=>x.value);
+  S.stu.healthnote=g('st_healthnote');
+}
 function renderStudent(){
-  const s=S.stu;
+  const s=S.stu; const adult=(s.forWho==='adult');
   app.innerHTML=`
   <div class="card">
     ${steps(1)}
-    <h2>學員資料</h2>
-    <p class="hint">先填學員及家長聯絡資料（<span style="color:var(--err)">*</span> 必填）。</p>
-    <div class="fld"><label>學員中文姓名 <span style="color:var(--err)">*</span></label><input id="st_name" value="${esc(s.name||'')}" placeholder="例：陳大文"></div>
-    <div class="fld"><label>學員出生年份<span style="color:var(--err)">*</span></label><input id="st_age" inputmode="numeric" maxlength="4" value="${esc(s.age||'')}" placeholder="例：2016"></div>
-    <div class="fld"><label>家長／聯絡人姓名 <span style="color:var(--err)">*</span></label><input id="st_parent" value="${esc(s.parent||'')}" placeholder="家長姓名"></div>
-    <div class="fld"><label>聯絡電話 <span style="color:var(--err)">*</span></label><input id="st_phone" inputmode="numeric" value="${esc(s.phone||'')}" placeholder="8 位香港電話"></div>
+    <h2>${adult?'你的資料':'學員資料'}</h2>
+    <p class="hint">先揀為誰報名，再填資料（<span style="color:var(--err)">*</span> 必填）。</p>
+    <div class="fld"><label>為誰報名？<span style="color:var(--err)">*</span></label>
+      <div class="chips" id="fw_pick">
+        <span class="chip ${!adult?'on':''}" data-fw="child">為小朋友／青少年報名</span>
+        <span class="chip ${adult?'on':''}" data-fw="adult">我自己（成人）報名</span></div></div>
+    <div class="fld"><label>${adult?'你的中文姓名':'學員中文姓名'} <span style="color:var(--err)">*</span></label><input id="st_name" value="${esc(s.name||'')}" placeholder="例：陳大文"></div>
+    <div class="fld"><label>${adult?'你的出生年份':'學員出生年份'}<span style="color:var(--err)">*</span></label><input id="st_age" inputmode="numeric" maxlength="4" value="${esc(s.age||'')}" placeholder="例：${adult?'1990':'2016'}"></div>
+    ${adult?'':`<div class="fld"><label>家長／聯絡人姓名 <span style="color:var(--err)">*</span></label><input id="st_parent" value="${esc(s.parent||'')}" placeholder="家長姓名"></div>`}
+    <div class="fld"><label>${adult?'你的聯絡電話':'聯絡電話'} <span style="color:var(--err)">*</span></label><input id="st_phone" inputmode="numeric" value="${esc(s.phone||'')}" placeholder="8 位香港電話"></div>
     <div class="fld"><label>電郵（收確認）</label><input id="st_email" value="${esc(s.email||'')}" placeholder="name@email.com"></div>
-    <div class="fld"><label>健康篩查 PAR-Q（未滿 18 歲由家長填）<span style="color:var(--err)">*</span></label>
+    <div class="fld"><label>健康篩查 PAR-Q（${adult?'請本人填寫':'未滿 18 歲由家長填'}）<span style="color:var(--err)">*</span></label>
       <div class="terms" style="max-height:150px;font-size:12px">${PARQ.map((q,i)=>`<p>${i+1}. ${esc(q)}</p>`).join('')}</div>
       <label class="chk"><input type="checkbox" id="st_parqok" ${s.parqok?'checked':''}><span>以上 7 項全部答「否」，健康良好、適合參加運動。</span></label>
       <input id="st_parqnote" value="${esc(s.parqnote||'')}" placeholder="如有任何一項為「是」，請喺此註明（並先徵詢醫生）"></div>
@@ -270,21 +282,19 @@ function renderStudent(){
     <div class="msg" id="st_msg"></div>
     <div class="navbtns"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button><button class="btn" id="st_next">下一步 →</button></div>
   </div>`;
+  app.querySelectorAll('#fw_pick .chip').forEach(c=>c.onclick=()=>{ capStu(); S.stu.forWho=c.getAttribute('data-fw'); renderStudent(); });
   document.getElementById('st_next').onclick=()=>{
-    const g=id=>(document.getElementById(id).value||'').trim();
-    const health=[...document.querySelectorAll('.st_health:checked')].map(x=>x.value);
-    const st={name:g('st_name'),age:g('st_age'),parent:g('st_parent'),phone:g('st_phone'),email:g('st_email'),
-      parqok:document.getElementById('st_parqok').checked, parqnote:g('st_parqnote'),
-      health:health, healthnote:g('st_healthnote')};
+    capStu(); const st=S.stu; const isA=(st.forWho==='adult');
     const msg=document.getElementById('st_msg');
     if(!PREVIEW){
-      if(!st.name||!st.age||!st.parent||!st.phone){ msg.className='msg err'; msg.textContent='請填齊學員姓名、出生年份、家長姓名及電話。'; return; }
-      if(!/^(19|20)\d{2}$/.test(st.age)){ msg.className='msg err'; msg.textContent='請填學員出生年份（4 位數，例：2016）。'; return; }
-      if(!/^\d{8}$/.test(st.phone.replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='請輸入正確 8 位香港電話。'; return; }
+      if(!st.name||!st.age||!st.phone||(!isA && !st.parent)){ msg.className='msg err'; msg.textContent=isA?'請填齊你的姓名、出生年份及電話。':'請填齊學員姓名、出生年份、家長姓名及電話。'; return; }
+      if(!/^(19|20)\d{2}$/.test(st.age)){ msg.className='msg err'; msg.textContent='請填'+(isA?'你的':'學員')+'出生年份（4 位數，例：'+(isA?'1990':'2016')+'）。'; return; }
+      if(!/^\d{8}$/.test(String(st.phone).replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='請輸入正確 8 位香港電話。'; return; }
       if(!st.parqok && !st.parqnote){ msg.className='msg err'; msg.textContent='請剔選健康聲明，或喺註明欄填寫需要注意嘅健康狀況。'; return; }
-      if(!health.length && !st.healthnote){ msg.className='msg err'; msg.textContent='請剔選健康狀況（如全部沒有，請剔「以上不適用」）。'; return; }
-      if(health.indexOf(HEALTH_NONE)>=0 && health.length>1){ msg.className='msg err'; msg.textContent='已剔「以上不適用」就唔可以同時剔其他健康狀況。'; return; }
+      if(!(st.health||[]).length && !st.healthnote){ msg.className='msg err'; msg.textContent='請剔選健康狀況（如全部沒有，請剔「以上不適用」）。'; return; }
+      if((st.health||[]).indexOf(HEALTH_NONE)>=0 && st.health.length>1){ msg.className='msg err'; msg.textContent='已剔「以上不適用」就唔可以同時剔其他健康狀況。'; return; }
     }
+    if(isA) st.parent=st.parent||'本人（成人自行報名）';
     S.stu=st; renderGoals();
   };
 }
@@ -320,22 +330,25 @@ function renderGoals(){
 }
 
 /* ════ ③ 套票堂數意向 + 推薦人 ════ */
+const PT_PACK={ child:['5 節','10 節','20 節'], adult:['10 節','20 節','30 節','50 節'] };
 function renderPackage(){
-  const pk=S.pack;
+  const pk=S.pack; const adult=(S.stu.forWho==='adult');
+  const SIZES=adult?PT_PACK.adult:PT_PACK.child;
+  const WHO=adult?['成人','樂齡人士']:['兒童 / 青少年'];
   app.innerHTML=`
   <div class="card">
     ${steps(3)}
     <h2>套票 & 推薦</h2>
     <p class="hint">私人訓練以套票購買，收費面議。揀返你嘅意向，最終堂數同價錢報價後確認。</p>
     <div class="fld"><label>想購買嘅套票（意向）</label>
-      <div class="chips" id="pk_size">${['10 節','20 節','30 節或以上','先試 1 節','未定'].map(x=>`<span class="chip ${pk.size===x?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div></div>
+      <div class="chips" id="pk_size">${SIZES.map(x=>`<span class="chip ${pk.size===x?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div></div>
     <div class="fld"><label>對象</label>
-      <div class="chips" id="pk_who">${['兒童 / 青少年','成人','樂齡人士'].map(x=>`<span class="chip ${pk.who===x?'on':''}" data-v="${esc(x)}" data-k="who">${esc(x)}</span>`).join('')}</div></div>
+      <div class="chips" id="pk_who">${WHO.map(x=>`<span class="chip ${(pk.who===x||WHO.length===1)?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div>${adult?'':'<div class="hint" style="margin-top:4px">為小朋友報名，對象自動為「兒童 / 青少年」。</div>'}</div>
     <div class="fld"><label>推薦人中文全名（如有）</label><input id="pk_ref" value="${esc(S.referrer||'')}" placeholder="推薦你嘅朋友中文全名（享推薦獎賞用）">
       <div class="hint" style="margin-top:4px">🎁 推薦新朋友首次買套票，每 10 節送 1 節畀推薦人。</div></div>
     <div class="navbtns"><button class="btn ghost sm" onclick="renderGoals()">‹ 返回</button><button class="btn" id="pk_next">下一步 →</button></div>
   </div>`;
-  const sel={size:pk.size||'', who:pk.who||''};
+  const sel={size:pk.size||'', who:(WHO.length===1?WHO[0]:(pk.who||''))};
   app.querySelectorAll('#pk_size .chip').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_size .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.size)); });
   app.querySelectorAll('#pk_who .chip').forEach(c=>c.onclick=()=>{ sel.who=(sel.who===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_who .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.who)); });
   document.getElementById('pk_next').onclick=()=>{ S.pack={size:sel.size, who:sel.who}; S.referrer=(document.getElementById('pk_ref').value||'').trim(); renderTerms(); };
@@ -343,6 +356,7 @@ function renderPackage(){
 
 /* ════ ④ 私訓條款 + 聲明簽署 ════ */
 function renderTerms(){
+  const _sg=(S.stu.forWho==='adult')?'本人':'家長／監護人';
   const reqC=PT_CONSENTS.map((s,i)=>({s,i})).filter(x=>!/拍攝/.test(x.s));
   const photoC=PT_CONSENTS.map((s,i)=>({s,i})).find(x=>/拍攝/.test(x.s));
   app.innerHTML=`
@@ -355,10 +369,10 @@ function renderTerms(){
     <div class="fld" style="margin-top:6px"><label>私人訓練課程條款</label>
       <div class="terms">${PT_TERMS.map((s,i)=>`<p><b>${i+1}.</b> ${s}</p>`).join('')}</div>
       <label class="chk"><input type="checkbox" id="pt_ops"><span>本人已閱讀並<b>同意</b>以上私人訓練條款。</span></label></div>
-    <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ 請填家長本人<b>真實英文全名</b>及<b>證件號碼首 4 位</b>作報名確認之用。</div>
-    <div class="fld"><label>家長／監護人英文全名 <span style="color:var(--err)">*</span></label><input id="tm_en" value="${esc(S.signEn||'')}" placeholder="e.g. Chan Tai Man"></div>
-    <div class="fld"><label>家長證件號碼首 4 位（e.g. A123）<span style="color:var(--err)">*</span></label><input id="tm_id" value="${esc(S.signId||'')}" maxlength="8"></div>
-    <div class="fld"><label>家長／監護人手寫簽名 <span style="color:var(--err)">*</span></label>
+    <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ 請填${_sg}本人<b>真實英文全名</b>及<b>證件號碼首 4 位</b>作報名確認之用。</div>
+    <div class="fld"><label>${_sg}英文全名 <span style="color:var(--err)">*</span></label><input id="tm_en" value="${esc(S.signEn||'')}" placeholder="e.g. Chan Tai Man"></div>
+    <div class="fld"><label>${_sg}證件號碼首 4 位（e.g. A123）<span style="color:var(--err)">*</span></label><input id="tm_id" value="${esc(S.signId||'')}" maxlength="8"></div>
+    <div class="fld"><label>${_sg}手寫簽名 <span style="color:var(--err)">*</span></label>
       <canvas id="sigpad" style="width:100%;height:170px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="hint">請喺上面簽名，作正式報名確認。</span>
         <button type="button" class="btn ghost sm" style="padding:3px 10px" onclick="clearSig()">清除重簽</button></div></div>
@@ -406,6 +420,7 @@ async function submitPt(){
   try{
     res=await apiPost({ action:'ptEnroll',
       name:S.stu.name, age:S.stu.age, parent:S.stu.parent, phone:S.stu.phone, email:S.stu.email,
+      forWho:(S.stu.forWho==='adult'?'成人自行報名':'為小朋友／青少年報名'),
       parq:(S.stu.parqok?'全部否（適合運動）':('有需要注意：'+(S.stu.parqnote||''))),
       health:((S.stu.health||[]).join('、')+((S.stu.healthnote)?('；其他：'+S.stu.healthnote):''))||'—',
       goals:(S.goals.goals||[]).join('、'), goalNote:S.goals.note||'',
@@ -427,8 +442,8 @@ function renderDone(res){
       <p class="hint" style="color:#e8f7fa">${res&&res.id?('報名編號：<b>'+esc(res.id)+'</b>'):''}</p></div>
     <div class="banner" style="margin-top:14px">📱 教練會盡快 <b>WhatsApp 你</b>夾上課時間、地點同<b>報價</b>；確認後先開始，唔使即時付款。</div>
     <div class="fld" style="margin-top:10px"><label>你提交嘅內容</label>
-      <div class="cbox"><span>學員：<b>${esc(S.stu.name)}</b>（${esc(S.stu.age)}）</span></div>
-      <div class="cbox"><span>聯絡：${esc(S.stu.parent)}　${esc(S.stu.phone)}</span></div>
+      <div class="cbox"><span>${S.stu.forWho==='adult'?'報名者（本人）':'學員'}：<b>${esc(S.stu.name)}</b>（${esc(S.stu.age)}）</span></div>
+      <div class="cbox"><span>聯絡：${S.stu.forWho==='adult'?'':esc(S.stu.parent)+'　'}${esc(S.stu.phone)}</span></div>
       ${S.pack.size?`<div class="cbox"><span>套票意向：${esc(S.pack.size)}${S.pack.who?('　'+esc(S.pack.who)):''}</span></div>`:''}
       ${(S.goals.goals||[]).length?`<div class="cbox"><span>目標：${esc((S.goals.goals||[]).join('、'))}</span></div>`:''}
     </div>
