@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-28-lostpost';
+const FRONTEND_VERSION = 'lm-2026-08-29-extraguard';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -715,7 +715,8 @@ function cancelToday(child){
 function upcomingMakeups(child){
   const t=iso(new Date()), out=[];
   (child.classes||[]).forEach(c=>{
-    (c.makeups||[]).forEach(m=>{ if(m.date>=t && m.status!=="出席" && m.status!=="缺席" && m.status!=="停課") out.push({date:m.date,to:m.to}); });
+    // 審計#3：加操唔係補堂 → 唔應該計入「即將補堂」摘要數字（否則 banner 個數同班卡 label 都錯）
+    (c.makeups||[]).forEach(m=>{ if(!m.extra && m.date>=t && m.status!=="出席" && m.status!=="缺席" && m.status!=="停課") out.push({date:m.date,to:m.to}); });
   });
   return out.sort((a,b)=>a.date<b.date?-1:1);
 }
@@ -990,7 +991,13 @@ async function submitCancelLeave(){
 /* ---------- 取消補堂 ---------- */
 function cancellableMakeups(c){
   const t=iso(new Date());
-  return (c.makeups||[]).filter(m=> m.date>=t && m.status!=="出席" && m.status!=="缺席");
+  /* 🔒 審計#3（老闆 2026-08-29）：一定要剔走「加操」(m.extra)。
+     加操係額外付費加堂，喺補堂表同樣佔一行，所以原本會被列入「取消補堂」清單畀家長撳，
+     而後端 apiCancelMakeup 亦冇閘 → 一撳即 deleteRow：已收錢嗰堂人間蒸發，冇退款記錄、
+     owed 唔會加返（加操本身唔計 owed）、教練當日點名表亦少咗個人。
+     同一份檔案 line 746 出席歷史嗰度一路都有 filter(m=>!m.extra)，得呢度同 upcomingMakeups 冇
+     ——典型「改咗 N−1 處」。後端今次亦已加 isExtraMk_ 硬閘（前端唔可以係唯一防線）。*/
+  return (c.makeups||[]).filter(m=> !m.extra && m.date>=t && m.status!=="出席" && m.status!=="缺席");
 }
 let XF={};
 function openCancelMakeup(ki,ci){
