@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-28-v2';
+const FRONTEND_VERSION='admin-2026-08-29-gearshot';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -463,7 +463,7 @@ function drawGear(){
       <td><b>${esc(o.name||'—')}</b>${o.classInfo?`<div class="mut">${esc(o.classInfo)}</div>`:''}</td>
       <td>${esc(o.items||'—')}</td>
       <td>${money(o.amount)}</td>
-      <td><span class="pill">${esc(o.src||'')}</span>${o.hasPay?' <a class="lnk" onclick="alert(\'付款截圖喺報名/器材訂單分頁，可經 報名審核 tab 開\')">📎</a>':''}<div class="mut">${esc(o.status||'')}</div></td>
+      <td><span class="pill">${esc(o.src||'')}</span>${o.payLink?` <a class="lnk" onclick="viewSecureFile('${esc(o.payLink)}')">📎 睇截圖</a>`:(o.hasPay?' <span class="mut" title="截圖喺報名記錄，可去報名審核 tab 開">📎</span>':'')}<div class="mut">${esc(o.status||'')}</div></td>
       <td>${o.dispatched?'<span class="tag ok">已派</span>':'<span class="tag warn">未派</span>'}</td>
       <td>${o.dispatched
         ? `<button class="btn gray sm" onclick="dispatch('${esc(o.id)}',0)">取消已派</button>`
