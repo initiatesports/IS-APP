@@ -79,16 +79,18 @@ async function fetchText(url, opts, ms, tag) {
     const r = await fetch(url, { ...opts, signal: ac.signal });
     return await r.text();
   })();
-  let t;
+  let t, timedOut = false;
+  inner.catch(() => {});   // 免逾時後 inner 遲到嘅 rejection 變 unhandled
   try {
     return await Promise.race([
       inner,
-      new Promise((_, rej) => { t = setTimeout(() => rej(new Error("HARD_TIMEOUT:" + tag)), ms); }),
+      new Promise((_, rej) => { t = setTimeout(() => { timedOut = true; rej(new Error("HARD_TIMEOUT:" + tag)); }, ms); }),
     ]);
   } finally {
     clearTimeout(t);
-    try { ac.abort(); } catch { /* 已完成／已 abort */ }
-    inner.catch(() => {});   // 免 unhandled rejection
+    // ⚠️ 只可以喺「真係逾時」先 abort。成功之後照 abort 會扯甩 undici keep-alive 連線池,
+    //    令跟住嗰批請求接連 "fetch failed"（2026-08-28 首版實測：#9 尾段 11 個 + 兩個 audit 中招）。
+    if (timedOut) { try { ac.abort(); } catch { /* 已完成 */ } }
   }
 }
 
@@ -250,21 +252,35 @@ function analyze(label, name, r) {
 
 async function sweep(label, exec, rows, withPin) {
   const students = uniqByName(rows);
-  let okCount = 0, idx = 0;
+  let okCount = 0, idx = 0, cursor = 0, attempted = 0;
   const failed = [];
-  for (const [name, last4] of students) {
-    if (outOfTime()) {
-      add("ERR", label, "—", `⏱ 已達 QA 總時限，仲有 ${students.length - idx} 個未測（後端異常慢／卡死，請查該後端部署）`);
-      break;
+  // 🛡️ 2026-08-29：逐個順序登入，112 個學生 × 每個約 25s ＝ 47 分鐘，撞爆 50 分鐘總時限
+  //   → 每日淨測到約 95%，尾段學生日日冇覆蓋（#9 有 5 個未測），而且「未測」會扮成 ERR 睇落似後端壞咗。
+  //   實測當時後端其實健康（#9 login 5.3s、#4 load 16s / 200 OK）＝ 樽頸係 harness 自己順序行。
+  //   → 加有限並行（預設 3，QA_CONC 可調）：覆蓋率返到 100%，時間縮到約 1/3，仍遠低於 Apps Script
+  //   同時呼叫上限。全部 route 唯讀，並行安全；anomalies / clsDate 只係累加，同次序無關。
+  const CONC = Math.max(1, Number(process.env.QA_CONC || 3));
+  async function worker() {
+    for (;;) {
+      const i = cursor++;
+      if (i >= students.length) return;
+      if (outOfTime()) return;          // 剩低嘅由 attempted 差額報返出嚟
+      attempted++;
+      const [name, last4] = students[i];
+      const cred = (withPin && PIN4[pad4(last4)]) ? PIN4[pad4(last4)] : pad4(last4);
+      // 進度寫 stderr（唔影響 stdout 尾行嘅 JSON 解析）；只出序號唔出姓名（私隱）。
+      // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
+      process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
+      const r = await callLogin(exec, name, cred);
+      if (!r || !r.ok) { failed.push([name, cred, (r && r.err) || "?"]); continue; }
+      okCount++;
+      analyze(label, name, r);
     }
-    const cred = (withPin && PIN4[pad4(last4)]) ? PIN4[pad4(last4)] : pad4(last4);
-    // 進度寫 stderr（唔影響 stdout 尾行嘅 JSON 解析）；只出序號唔出姓名（私隱）。
-    // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
-    process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
-    const r = await callLogin(exec, name, cred);
-    if (!r || !r.ok) { failed.push([name, cred, (r && r.err) || "?"]); continue; }
-    okCount++;
-    analyze(label, name, r);
+  }
+  await Promise.all(Array.from({ length: Math.min(CONC, students.length) }, worker));
+  const untested = students.length - attempted;
+  if (untested > 0) {
+    add("ERR", label, "—", `⏱ 已達 QA 總時限，仲有 ${untested} 個未測（後端異常慢／卡死，請查該後端部署）`);
   }
   // 第二輪重試：Apps Script 偶然有幾十秒嘅短暫故障窗口，令連續一批學生同時 fetch failed。
   // callLogin 內部 3 次重試只覆蓋約 3.6 秒，蓋唔住呢種窗口 → 2026-08-13 實測連續 15 個
