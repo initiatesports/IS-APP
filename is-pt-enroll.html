@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v4';
+const PT_VERSION='pt-enroll-2026-08-29-v5';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -211,8 +211,8 @@ const PT_CONSENTS=[
  '（選擇性）拍攝及公開：本人同意教練於訓練期間拍攝之相片／短片，可用於教學紀錄及機構宣傳。'
 ];
 const PT_TERMS=[
- '意向登記：本報名為私人訓練「意向登記」。私人訓練為 1 對 1（或按需要 1 對 2）度身訂造，收費面議；實際收費、堂數、上課時間及地點以雙方其後確認之報價及安排為準，本報名並未構成最終收費或課堂預留。',
- '套票及有效期：私人訓練以套票形式購買（如 10 節、20 節）。套票須由首堂起計 4 個月內用完，逾期未用之堂數作放棄論，不設退款、不設順延（特殊情況經教練書面同意除外）。',
+ '報名登記：私人訓練為 1 對 1（或按需要 1 對 2）度身訂造訓練。1 對 1 設標準套票參考價（見套票價格表，已包青衣／荃灣區場租）；1 對 2、其他地區或上門服務面議。實際收費、堂數、上課時間及地點以雙方確認之報價及安排為準。',
+ '套票及有效期：套票須於各套票標明之使用限期內用完（見價格表，例如兒童 5 節 2 個月、20 節 8 個月；成人 10 節 4 個月、50 節 1 年，均由首堂起計）；逾期未用之堂數作放棄論，不設退款、不設順延（特殊情況經教練書面同意除外）。',
  '付款方式：套票須於首堂開始前一次過繳付（FPS／指定方式）。款項到帳並經確認後，堂數即時生效並鎖定；未完成繳費者不獲預留課堂或時段。',
  '取消及改期（重要）：如需取消或改期，須於該堂<b>開始前最少 6 小時</b>通知教練，方可免費改期；<b>少於 6 小時通知、臨時取消、或缺席（no-show），該堂一律照扣、作已使用論</b>，不設補堂。',
  '病假：如因病未能上課並於課堂前通知、且於 48 小時內提交醫生證明，可安排改期；否則作已使用論、照扣一節。',
@@ -331,17 +331,38 @@ function renderGoals(){
 
 /* ════ ③ 套票堂數意向 + 推薦人 ════ */
 const PT_PACK={ child:['5 節','10 節','20 節'], adult:['10 節','20 節','30 節','50 節'] };
+/* 私訓標準套票參考價（同官網 index.html 一致，2026-08-29）。1 對 1；1 對 2／其他地區／上門面議 */
+const PT_PRICES={
+  child:{ trial:'試堂 $450（正價 $600／堂）', packs:[
+    {s:'5 節', t:'$2,750', per:'$550 / 堂', exp:'2 個月使用限期'},
+    {s:'10 節', t:'$5,000', per:'$500 / 堂', exp:'4 個月使用限期', feat:'🔥 最受歡迎'},
+    {s:'20 節', t:'$9,000', per:'$450 / 堂', exp:'8 個月使用限期', feat:'💎 最高性價比'} ]},
+  adult:{ trial:'試堂 $600（1 對 1 個人化訓練體驗）', packs:[
+    {s:'10 節', t:'$6,500', per:'$650 / 堂', exp:'4 個月使用限期'},
+    {s:'20 節', t:'$12,000', per:'$600 / 堂', exp:'6 個月使用限期'},
+    {s:'30 節', t:'$16,500', per:'$550 / 堂', exp:'9 個月使用限期', feat:'🔥 最受歡迎'},
+    {s:'50 節', t:'$25,000', per:'$500 / 堂', exp:'1 年使用限期'} ]}
+};
+function ptPriceOf(size){ if(!size) return ''; const set=(S.stu.forWho==='adult')?PT_PRICES.adult:PT_PRICES.child; const m=set.packs.find(p=>p.s===size); return m?m.t:''; }
 function renderPackage(){
   const pk=S.pack; const adult=(S.stu.forWho==='adult');
-  const SIZES=adult?PT_PACK.adult:PT_PACK.child;
+  const PR=adult?PT_PRICES.adult:PT_PRICES.child;
   const WHO=adult?['成人','樂齡人士']:['兒童 / 青少年'];
+  const card=(p)=>`<div class="ptp-card" data-v="${esc(p.s)}" style="position:relative;border:2px solid ${pk.size===p.s?'var(--teal)':'var(--line)'};border-radius:12px;padding:14px 10px 11px;cursor:pointer;background:${pk.size===p.s?'#e9f8fb':'#fff'};text-align:center">
+      ${p.feat?`<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--teal);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">${p.feat}</div>`:''}
+      <div style="font-weight:800;font-size:15px">${esc(p.s)}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--teal);margin:2px 0">${esc(p.t)}</div>
+      <div style="font-size:12px;color:#555">${esc(p.per)}</div>
+      <div style="font-size:11px;color:#8a8a8a;margin-top:2px">${esc(p.exp)}</div></div>`;
   app.innerHTML=`
   <div class="card">
     ${steps(3)}
-    <h2>套票 & 推薦</h2>
-    <p class="hint">私人訓練以套票購買，收費面議。揀返你嘅意向，最終堂數同價錢報價後確認。</p>
-    <div class="fld"><label>想購買嘅套票（意向）</label>
-      <div class="chips" id="pk_size">${SIZES.map(x=>`<span class="chip ${pk.size===x?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div></div>
+    <h2>套票價格表 & 推薦</h2>
+    <p class="hint">以下為${adult?'成人 / 樂齡':'兒童 / 青少年'} 1 對 1 私人訓練標準套票價（揀返你想要嘅套票）。</p>
+    <div class="fld"><label>套票及價格</label>
+      <div id="pk_size" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:4px">${PR.packs.map(card).join('')}</div>
+      <div class="hint" style="margin-top:10px">💡 ${esc(PR.trial)}</div>
+      <div class="hint" style="margin-top:2px;line-height:1.6">＊以上為 1 對 1 標準價，已包青衣／荃灣區場租。1 對 2、其他地區或上門服務面議；另設大學生優惠、可分期，詳情報價時確認。</div></div>
     <div class="fld"><label>對象</label>
       <div class="chips" id="pk_who">${WHO.map(x=>`<span class="chip ${(pk.who===x||WHO.length===1)?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div>${adult?'':'<div class="hint" style="margin-top:4px">為小朋友報名，對象自動為「兒童 / 青少年」。</div>'}</div>
     <div class="fld"><label>推薦人中文全名（如有）</label><input id="pk_ref" value="${esc(S.referrer||'')}" placeholder="推薦你嘅朋友中文全名（享推薦獎賞用）">
@@ -349,7 +370,8 @@ function renderPackage(){
     <div class="navbtns"><button class="btn ghost sm" onclick="renderGoals()">‹ 返回</button><button class="btn" id="pk_next">下一步 →</button></div>
   </div>`;
   const sel={size:pk.size||'', who:(WHO.length===1?WHO[0]:(pk.who||''))};
-  app.querySelectorAll('#pk_size .chip').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_size .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.size)); });
+  const paint=()=>app.querySelectorAll('#pk_size .ptp-card').forEach(x=>{ const on=(x.getAttribute('data-v')===sel.size); x.style.borderColor=on?'var(--teal)':'var(--line)'; x.style.background=on?'#e9f8fb':'#fff'; });
+  app.querySelectorAll('#pk_size .ptp-card').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); paint(); });
   app.querySelectorAll('#pk_who .chip').forEach(c=>c.onclick=()=>{ sel.who=(sel.who===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_who .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.who)); });
   document.getElementById('pk_next').onclick=()=>{ S.pack={size:sel.size, who:sel.who}; S.referrer=(document.getElementById('pk_ref').value||'').trim(); renderTerms(); };
 }
@@ -425,7 +447,7 @@ async function submitPt(){
       health:((S.stu.health||[]).join('、')+((S.stu.healthnote)?('；其他：'+S.stu.healthnote):''))||'—',
       goals:(S.goals.goals||[]).join('、'), goalNote:S.goals.note||'',
       times:(S.goals.times||[]).join('、'), freq:S.goals.freq||'',
-      packSize:S.pack.size||'', packWho:S.pack.who||'', referrer:S.referrer||'',
+      packSize:(S.pack.size?(S.pack.size+(ptPriceOf(S.pack.size)?('（'+ptPriceOf(S.pack.size)+'）'):'')):''), packWho:S.pack.who||'', referrer:S.referrer||'',
       signEn:en, signId:id, signImg:S.signImg||'', photoConsent:(photo?'1':'0'),
       clientToken:S.clientToken, agree:'同意' }, 30000);
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>，請 WhatsApp 6331 7403 確認，切勿以為失敗而重複提交。'; return; }
@@ -444,7 +466,7 @@ function renderDone(res){
     <div class="fld" style="margin-top:10px"><label>你提交嘅內容</label>
       <div class="cbox"><span>${S.stu.forWho==='adult'?'報名者（本人）':'學員'}：<b>${esc(S.stu.name)}</b>（${esc(S.stu.age)}）</span></div>
       <div class="cbox"><span>聯絡：${S.stu.forWho==='adult'?'':esc(S.stu.parent)+'　'}${esc(S.stu.phone)}</span></div>
-      ${S.pack.size?`<div class="cbox"><span>套票意向：${esc(S.pack.size)}${S.pack.who?('　'+esc(S.pack.who)):''}</span></div>`:''}
+      ${S.pack.size?`<div class="cbox"><span>套票意向：${esc(S.pack.size)}${ptPriceOf(S.pack.size)?('（'+esc(ptPriceOf(S.pack.size))+'）'):''}${S.pack.who?('　'+esc(S.pack.who)):''}</span></div>`:''}
       ${(S.goals.goals||[]).length?`<div class="cbox"><span>目標：${esc((S.goals.goals||[]).join('、'))}</span></div>`:''}
     </div>
     <a class="btn" href="${WA('我啱啱交咗私人訓練報名：'+esc(S.stu.name))}" target="_blank" rel="noopener" style="margin-top:12px;display:block;text-align:center;text-decoration:none">💬 WhatsApp 教練</a>
