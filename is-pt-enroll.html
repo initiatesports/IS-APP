@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-28-v1';
+const PT_VERSION='pt-enroll-2026-08-29-v2';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -252,7 +252,7 @@ function renderStudent(){
     <h2>學員資料</h2>
     <p class="hint">先填學員及家長聯絡資料（<span style="color:var(--err)">*</span> 必填）。</p>
     <div class="fld"><label>學員中文姓名 <span style="color:var(--err)">*</span></label><input id="st_name" value="${esc(s.name||'')}" placeholder="例：陳大文"></div>
-    <div class="fld"><label>學員出生年份（或年齡）<span style="color:var(--err)">*</span></label><input id="st_age" value="${esc(s.age||'')}" placeholder="例：2016 或 9 歲"></div>
+    <div class="fld"><label>學員出生年份<span style="color:var(--err)">*</span></label><input id="st_age" inputmode="numeric" maxlength="4" value="${esc(s.age||'')}" placeholder="例：2016"></div>
     <div class="fld"><label>家長／聯絡人姓名 <span style="color:var(--err)">*</span></label><input id="st_parent" value="${esc(s.parent||'')}" placeholder="家長姓名"></div>
     <div class="fld"><label>聯絡電話 <span style="color:var(--err)">*</span></label><input id="st_phone" inputmode="numeric" value="${esc(s.phone||'')}" placeholder="8 位香港電話"></div>
     <div class="fld"><label>電郵（收確認）</label><input id="st_email" value="${esc(s.email||'')}" placeholder="name@email.com"></div>
@@ -269,7 +269,8 @@ function renderStudent(){
       parqok:document.getElementById('st_parqok').checked, parqnote:g('st_parqnote')};
     const msg=document.getElementById('st_msg');
     if(!PREVIEW){
-      if(!st.name||!st.age||!st.parent||!st.phone){ msg.className='msg err'; msg.textContent='請填齊學員姓名、年份、家長姓名及電話。'; return; }
+      if(!st.name||!st.age||!st.parent||!st.phone){ msg.className='msg err'; msg.textContent='請填齊學員姓名、出生年份、家長姓名及電話。'; return; }
+      if(!/^(19|20)\d{2}$/.test(st.age)){ msg.className='msg err'; msg.textContent='請填學員出生年份（4 位數，例：2016）。'; return; }
       if(!/^\d{8}$/.test(st.phone.replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='請輸入正確 8 位香港電話。'; return; }
       if(!st.parqok && !st.parqnote){ msg.className='msg err'; msg.textContent='請剔選健康聲明，或喺註明欄填寫需要注意嘅健康狀況。'; return; }
     }
