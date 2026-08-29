@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-26-nomkdeadline';
+const FRONTEND_VERSION = 'coach-2026-08-29-pendclass';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -853,7 +853,16 @@ function daysLeft(deadline){
 }
 function isExpired(deadline){ if(!deadline) return false; return deadline < todayStr(); }
 function getPending(name){ return ABSENCES.filter(a => a.name===name && !a.madeUpDate); }
-function getPendingActive(name){ const now=todayStr(); return ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline>=now); }
+/* 🔒 審計#10（老闆 2026-08-29）：加可選 classId。
+   原本只 filter 姓名、冇 classId —— 而 saveRoll 標「補堂」就係攞呢個 list 第一條去
+   `pending[0].madeUpDate = date`，再經 save_absences 寫落後端。一週上兩班嘅學生
+   （陳曉瑩 c3+c5、梁正宇/梁正軒 c2+c5、梁心朗 c4+9月 c1）喺 c5 標補堂時，
+   會攞到 c3 嗰條最早請假嚟銷 → 銷錯班：c3 個請假被當補咗，c5 真正嗰條仍然掛住。
+   後端 markAbsenceDone_ 本身用 (name, classId, absDate) 精準寫 ledger，所以錯配純粹嚟自前端。
+   同檔 line 1067/1645 嘅統計都有 a.classId===id，唯獨呢個冇 ——「改咗 N−1 處」。
+   ⚠️ 唔傳 classId ＝ 保持舊行為（跨班總待補數），畀學生概覽嗰 3 個 caller 用，零影響；
+      點名／補堂配對嗰 4 個 caller 一律傳 currentClass。*/
+function getPendingActive(name, classId){ const now=todayStr(); return ABSENCES.filter(a => a.name===name && !a.madeUpDate && a.deadline>=now && (!classId || a.classId===classId)); }
 function totalPendingAll(){ const now=todayStr(); return ABSENCES.filter(a => !a.madeUpDate && a.deadline>=now).length; }
 function totalExpiredAll(){ const now=todayStr(); return ABSENCES.filter(a => !a.madeUpDate && a.deadline<now).length; }
 
@@ -1812,7 +1821,7 @@ function renderRollTable(){
   const students = getRollStudents(currentClass, rollSelectedDate);
   list.innerHTML = students.map(name => {
     const st = rollSession[name] || 'present';
-    const pendingActive = getPendingActive(name);
+    const pendingActive = getPendingActive(name, currentClass);   // 審計#10：只計本班待補
     const pendingAll    = getPending(name);
     const expired       = pendingAll.filter(a => isExpired(a.deadline));
     let subText = '', subCls = '';
@@ -1829,7 +1838,7 @@ function renderRollTable(){
     if (st === 'makeup') {
       // 只認未過限期嘅請假（同後端 classesFor_ 配對一致）。之前用 pendingAll（含過期）→ 會顯示
       // 早已過期嘅缺席日（例：梁正宇補堂被標「補 1/5（5月1日）的堂」，但 5/1 限期 7/20 早過）。2026-08-24 修
-      const active = getPendingActive(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));
+      const active = getPendingActive(name, currentClass).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 審計#10：本班
       if (active.length > 0) makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(active[0].absDate)} 的堂</div>`;
     }
     const cardCls = st==='absent'?'is-absent':st==='noshow'?'is-noshow':st==='makeup'?'is-makeup':st==='exempt'?'is-exempt':st==='present'?'is-present':'';
@@ -1865,7 +1874,7 @@ function setRoll(name, status){
   const existing = nameWrap.querySelector('[style*="purple"]');
   if (existing) existing.remove();
   if (status === 'makeup') {
-    const active = getPendingActive(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 未過限期先算（同後端一致）2026-08-24 修
+    const active = getPendingActive(name, currentClass).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 未過限期先算（同後端一致）2026-08-24 修；審計#10 加本班限定
     if (active.length > 0) {
       const hint = document.createElement('div');
       hint.style.cssText = 'font-size:11px;color:var(--purple);margin-top:4px';
@@ -1901,7 +1910,7 @@ function saveRoll(){
       if (!dup) ABSENCES.push({ id:genId(), name, classId:currentClass, absDate:date, deadline:addMonths(date,2), madeUpDate:null });
     }
     if (st === 'makeup') {
-      const pending = getPendingActive(name).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 只認未過限期（同 label／後端一致）2026-08-24 修
+      const pending = getPendingActive(name, currentClass).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 只認未過限期（同 label／後端一致）2026-08-24 修；🔒審計#10：一定要限定本班，否則會銷走學生另一班嘅請假
       if (pending.length > 0) pending[0].madeUpDate = date;
     }
   });
