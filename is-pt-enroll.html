@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v5';
+const PT_VERSION='pt-enroll-2026-08-29-v6';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -205,10 +205,8 @@ const HEALTH_NONE='以上不適用';
 /* ══ 私訓條款（老闆 2026-08-28 審批中）══ */
 const PT_CONSENTS=[
  '健康聲明：本人確認學員身體狀況適合參與私人體能訓練，並已如實填寫健康問卷（PAR-Q）；如學員有任何健康狀況、傷患、長期病或服藥情況，已於報名時告知教練。',
- '緊急醫療授權：如學員於訓練期間發生意外或身體不適，而未能即時聯絡家長／監護人，本人授權 INITIATE SPORTS 教練安排必要之緊急醫療護理，相關費用由本人承擔。',
  '私隱政策：本人同意 INITIATE SPORTS 依《個人資料（私隱）條例》收集及使用所提供之個人資料，作報名、聯絡及訓練安排用途。',
- '資料屬實：本人確認以上所填之資料真實無誤。',
- '（選擇性）拍攝及公開：本人同意教練於訓練期間拍攝之相片／短片，可用於教學紀錄及機構宣傳。'
+ '資料屬實：本人確認以上所填之資料真實無誤。'
 ];
 const PT_TERMS=[
  '報名登記：私人訓練為 1 對 1（或按需要 1 對 2）度身訂造訓練。1 對 1 設標準套票參考價（見套票價格表，已包青衣／荃灣區場租）；1 對 2、其他地區或上門服務面議。實際收費、堂數、上課時間及地點以雙方確認之報價及安排為準。',
@@ -429,11 +427,11 @@ async function submitPt(){
   const ops=document.getElementById('pt_ops').checked;
   const en=(document.getElementById('tm_en').value||'').trim();
   const id=(document.getElementById('tm_id').value||'').trim();
-  const photo=document.getElementById('pt_photo')?document.getElementById('pt_photo').checked:true;
+  const photo=document.getElementById('pt_photo')?(document.getElementById('pt_photo').checked?'1':'0'):'';
   if(PREVIEW){ msg.className='msg'; msg.textContent='（預覽模式）唔會真提交報名。'; return; }
-  if(!allConsent){ msg.className='msg err'; msg.textContent='請逐項剔選同意健康聲明、緊急醫療授權、私隱及資料屬實。'; return; }
+  if(!allConsent){ msg.className='msg err'; msg.textContent='請逐項剔選同意健康聲明、私隱政策及資料屬實。'; return; }
   if(!ops){ msg.className='msg err'; msg.textContent='請剔選同意私人訓練條款。'; return; }
-  if(!en){ msg.className='msg err'; msg.textContent='請填家長英文全名。'; return; }
+  if(!en){ msg.className='msg err'; msg.textContent='請填'+((S.stu.forWho==='adult')?'你的':'家長')+'英文全名。'; return; }
   if(!/^[A-Za-z]\d{3}$/.test(id.replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='證件號碼首 4 位格式：1 個英文字母 + 3 個數字（e.g. A123）。'; return; }
   if(!S.signImg){ msg.className='msg err'; msg.textContent='請喺簽名格簽上家長／監護人簽名。'; document.getElementById('sigpad').scrollIntoView({block:'center'}); return; }
   btn.disabled=true; btn.textContent='提交中…';
@@ -448,7 +446,7 @@ async function submitPt(){
       goals:(S.goals.goals||[]).join('、'), goalNote:S.goals.note||'',
       times:(S.goals.times||[]).join('、'), freq:S.goals.freq||'',
       packSize:(S.pack.size?(S.pack.size+(ptPriceOf(S.pack.size)?('（'+ptPriceOf(S.pack.size)+'）'):'')):''), packWho:S.pack.who||'', referrer:S.referrer||'',
-      signEn:en, signId:id, signImg:S.signImg||'', photoConsent:(photo?'1':'0'),
+      signEn:en, signId:id, signImg:S.signImg||'', photoConsent:photo,
       clientToken:S.clientToken, agree:'同意' }, 30000);
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>，請 WhatsApp 6331 7403 確認，切勿以為失敗而重複提交。'; return; }
   btn.disabled=false; btn.textContent='確認提交報名';
