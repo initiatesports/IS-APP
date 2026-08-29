@@ -180,7 +180,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-08-28-resume';
+const FRONTEND_VERSION='enroll-2026-08-29-waitgear';
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1793,9 +1793,22 @@ function renderPay(){ flowStep("renderPay");
     // 🔎 預覽模式：唔顯示 FPS／唔收截圖，明確叫家長勿過數（防提早付款）
     amtLine = priced ? `<div class="sumline"><span class="k">預計應付</span><span><b>${money(net)}</b></span></div>` : '';
     payBox=`<div class="banner" style="margin-top:12px">🔎 <b>預覽模式</b>：報名將於 <b>${esc(S.cfg.openDate||'8 月中')}</b> 開放。<b>請勿現在過數</b>，開放後返嚟提交先付款。</div>`;
-  }else if(allWait){
+  }else if(allWait && gearCost<=0){
     amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（全部候補，暫免付費）</b></span></div>${uCost>0?`<p class="hint">＊制服費 ${money(uCost)} 待有位轉正後連學費一齊補收，暫毋須付款。</p>`:''}`;
     payBox=`<div class="banner" style="margin-top:12px">你揀嘅課程現時已滿，已為你排候補，<b>暫時無需付款</b>；有位轉正會通知你再繳費。</div>`;
+  }else if(allWait){
+    /* 🔒 審計#4（老闆 2026-08-29）：全候補【但買咗器材】。
+       上面個 net 一直都有計 gearCost（制服有延後邏輯、器材冇——器材係即買即交收，唔跟學位），
+       但原本個 allWait 分支完全唔理 net，硬寫「$0 暫免付費」、提示文字亦只提制服、
+       而且冇 payBox → 家長見唔到金額、冇 FPS、冇截圖上載位，以為唔使俾錢；
+       後端就照記低佢欠器材費「待付款」。上課交收先發現，或者老闆對唔到數。
+       而家：課程學費同制服照樣延後，但器材費要即時收，顯示金額＋FPS＋截圖上載。*/
+    amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b>${money(gearCost)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${gearCost}',this)">複製</button></span></div>
+      <p class="hint">＊你揀嘅課程現時已滿，<b>學費暫時毋須付款</b>${uCost>0?`，制服費 ${money(uCost)} 亦待有位轉正後連學費一齊補收`:''}；<b>器材費 ${money(gearCost)} 請先付款</b>，上課時交收。</p>`;
+    payBox=`<div class="banner" style="margin-top:12px">你揀嘅課程現時已滿，已為你排候補，<b>學費有位轉正先收</b>；今次只需付<b>器材費 ${money(gearCost)}</b>。</div>
+      <p class="hint" style="margin-top:12px">請以 FPS／PayMe 轉數，然後上載轉帳截圖。</p>
+      <div class="sumline"><span class="k">FPS／PayMe 號碼</span><span><b>${esc(S.cfg.fps)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${esc(S.cfg.fps).replace(/\s/g,'')}',this)">複製</button></span></div>
+      <div class="fld" style="margin-top:12px"><label>上載付款截圖</label><input type="file" id="py_file" accept="image/*"><div id="py_thumb" class="hint" style="margin-top:6px"></div></div>`;
   }else if(free){
     amtLine=`<div class="sumline"><span class="k">應付金額</span><span><b style="color:var(--ok)">$0（優惠券全額抵扣）</b></span></div>`;
     payBox=`<div class="banner" style="margin-top:12px">🎉 你嘅優惠券已抵扣全部學費，<b>無需付款</b>，直接提交即可。</div>`;

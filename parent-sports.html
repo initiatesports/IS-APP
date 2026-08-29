@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parentsports-2026-08-25-nofps';
+const FRONTEND_VERSION = 'parentsports-2026-08-29-addonrate';
 const CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm',venue:'青衣',students:['示範學員']},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm',venue:'青衣',students:[]},
@@ -389,7 +389,15 @@ function sessionsFor(cid){
   return out;
 }
 // ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
-function makeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid); return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
+/* 🔒 審計#20（老闆 2026-08-29）：補堂候選一定要限【同一運動】。
+   原本係 CLASS_IDS 淨係扣走自己嘅班（由單一運動嘅 #4 clone 過嚟，冇運動概念）→
+   幼兒（found-tue2）請一次假就見到「成人增肌減脂 星期五 8–9pm」「網球」可以揀，提交仲會成功寫入，
+   教練當日真係見到個 3 歲細路。後端 makeupSlotsFor 喺 2026-08-24 審計#5 加過閘，
+   但嗰個 function 其實淨係俾 apiMakeupAudit 用，apiMakeup 從來冇 call ——「修咗一個冇人用嘅 function」。
+   今次前端加過濾、後端 apiMakeup 亦加咗硬閘（直接 POST 繞唔到前端）。*/
+function makeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid);
+  const sp=(CLASSES[cid]||{}).sport||'';
+  return CLASS_IDS.filter(k=>own.indexOf(k)<0 && (!sp||(CLASSES[k]||{}).sport===sp)).map(k=>({key:k,time:CLASSES[k].time})); }
 // 某日某班特別時間（後端回傳 map，key=cid|date）；有就用嚟覆寫顯示，令補堂/記錄/摘要對得上證據
 function taTime(cid,date){ return (S.timeAdj&&S.timeAdj[cid+'|'+date])||''; }
 /* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
@@ -514,6 +522,7 @@ function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids}; S.session={name,last4};
   S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
+  S.addonRates=r.addonRates||{};   // 審計#20：後端派嘅真實加操費率（cid→$/節）
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
@@ -926,9 +935,13 @@ function addonCumCost(n){ return n>=4?n*110:n*130; }
 let AD={};
 function openAddon(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
-  // 候選：所有班別未來上課日（同一課程）
+  /* 🔒 審計#20（老闆 2026-08-29）：候選只可以係【同一運動】嘅班。
+     原本係 CLASS_IDS 全部 17 個班（由單一運動嘅 #4 clone 過嚟，冇加過濾）→ 幼兒班學生
+     可以加操去「成人增肌減脂」或者網球，仲會真係落格，教練當日見到個 3 歲細路。
+     後端 apiAddSession 今次亦已加硬閘（前端閘擋唔到直接 POST）。*/
+  const _mySport=(CLASSES[c.key||c.sport]||{}).sport||'';
   const cands=[]; const seen={};
-  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });
+  CLASS_IDS.filter(k=>!_mySport||CLASSES[k].sport===_mySport).forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });
   cands.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   const byDate={}; cands.forEach(x=>{ (byDate[x.date]=byDate[x.date]||[]).push(x); });
   AD={ki,ci,name:child.name,pick:null,byDate};
@@ -955,8 +968,14 @@ function pickAddon(date,toKey,el){
   const month=date.slice(0,7);
   const child=S.family.children[AD.ki];
   const n=(child.addons||[]).filter(a=>a.month===month).length;
-  const price=addonCumCost(n+1)-addonCumCost(n);
-  AD.price=price; $('ad-price').innerHTML=t('addonThisPrice',price);
+  /* 💰 審計#20：用後端派嘅真實費率（S.addonRates），唔好再自己計。
+     舊 code 用 addonCumCost（跳繩階梯 $130／滿 4 堂 $110），而後端 2026-08-24 已改成按班真實費率
+     （羽毛球 2 小時 $260/$280、體操 $160…）→ 家長見 $130、confirm 完變 $280，差 2 倍。
+     攞唔到費率就唔顯示金額（fail-safe：寧願唔顯示，都好過顯示錯價再被人話「你頭先明明話 $130」）。*/
+  const rate=(S.addonRates||{})[AD.pick&&AD.pick.toKey]||0;
+  AD.price=rate;
+  $('ad-price').innerHTML = rate>0 ? t('addonThisPrice',rate)
+    : '此堂費用以確認通知為準（系統暫時攞唔到費率，提交後會以正式通知列明金額）。';
   $('ad-go').disabled=false;
 }
 async function submitAddon(){

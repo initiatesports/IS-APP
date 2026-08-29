@@ -1889,7 +1889,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-26-rptdel';
+const FRONTEND_VERSION='attapp-2026-08-29-cmsguard';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -5925,14 +5925,20 @@ function restoreSettings(rows) {
   if (bd && bd.levels) BADGE_DATA = bd;
   const sg = tryParse('student_grades', null);
   if (sg && typeof sg==='object') STUDENT_GRADES = sg;
+  /* 🔒 審計#16（老闆 2026-08-29）：四條 CMS load 一律要加 `.length` 守，唔可以畀空陣列覆蓋內建預設。
+     官網 index.html:2159 一路都有呢個守（`Array.isArray(x) && x.length`），教練端冇 ——「改咗 N−1 處」。
+     實際已經爆緊：live #11 settings 嘅 course_items 係 `[]` → 教練端「課程介紹」一 load 就被空陣列
+     蓋走自己嗰份內建 14 個課程，畫面一片空白。老闆見到空白、加返一個課程再儲存，
+     buildSettingsPayload 就會寫 1 個元素上去 → 官網嗰個 length 守通過 → 官網 14 個課程介紹
+     一夜變 1 個。加咗呢個守之後：後端係空就用返內建完整版，儲存亦唔會剷走官網。*/
   const kp = tryParse('knowledge_posts', null);
-  if (Array.isArray(kp)) KNOWLEDGE_POSTS = kp;
+  if (Array.isArray(kp) && kp.length) KNOWLEDGE_POSTS = kp;
   const ei = tryParse('equipment_items', null);
-  if (Array.isArray(ei)) EQUIPMENT_ITEMS = ei;
+  if (Array.isArray(ei) && ei.length) EQUIPMENT_ITEMS = ei;
   const ci = tryParse('course_items', null);
-  if (Array.isArray(ci)) COURSE_ITEMS = ci;
+  if (Array.isArray(ci) && ci.length) COURSE_ITEMS = ci;
   const ach = tryParse('achievements', null);
-  if (Array.isArray(ach)) ACHIEVEMENTS = ach;
+  if (Array.isArray(ach) && ach.length) ACHIEVEMENTS = ach;
   const sy = tryParse('student_years', null);
   if (sy && typeof sy === 'object') Object.assign(STUDENT_YEARS, sy);
 }
