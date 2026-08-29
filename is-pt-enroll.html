@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v10';
+const PT_VERSION='pt-enroll-2026-08-29-v11';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -210,7 +210,7 @@ const PT_CONSENTS=[
 ];
 const PT_TERMS=[
  '報名登記：私人訓練為 1 對 1（或按需要 1 對 2）度身訂造訓練。1 對 1 設標準套票參考價（見套票價格表，已包青衣／荃灣區場租）；1 對 2、其他地區或上門服務面議。實際收費、堂數、上課時間及地點以雙方確認之報價及安排為準。',
- '套票及有效期：套票須於各套票標明之使用限期內用完（見價格表，例如兒童 5 節 2 個月、20 節 8 個月；成人 10 節 4 個月、50 節 1 年，均由首堂起計）；逾期未用之堂數作放棄論，不設退款、不設順延（特殊情況經教練書面同意除外）。',
+ '套票及有效期：套票須於使用限期內用完，<b>均由首堂起計</b>——兒童／青少年：5 節 2 個月、10 節 4 個月、20 節 8 個月；成人／樂齡：10 節 4 個月、20 節 6 個月、30 節 9 個月、50 節 1 年。逾期未用之堂數作放棄論，不設退款、不設順延（特殊情況經教練書面同意除外）。',
  '付款方式：套票須於首堂開始前一次過繳付（FPS／指定方式）。款項到帳並經確認後，堂數即時生效並鎖定；未完成繳費者不獲預留課堂或時段。',
  '價格調整：本公司保留因應營運成本檢討及調整私人訓練收費之權利。收費一律以<b>購買（繳付）當日之價目為準</b>；價格調整只適用於調整生效後之新購買或續購套票，<b>已完成付款之套票按原價履行，不受影響</b>。如有調整，本公司會於報名頁及／或以訊息公佈更新後之價目。',
  '取消及改期（重要）：如需取消或改期，須於該堂<b>開始前最少 6 小時</b>通知教練，方可免費改期；<b>少於 6 小時通知、臨時取消、或缺席（no-show），該堂一律照扣、作已使用論</b>，不設補堂。',
