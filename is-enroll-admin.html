@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-preview';
+const FRONTEND_VERSION='admin-2026-08-29-gearuniform';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -87,7 +87,8 @@ const DEMO={
   transfersList:{ok:true,transfers:[{row:2,name:'李大文',from:'星期一 5–6pm',to:'星期三 5–6pm',date:'2026-09-07'}]},
   gearOrdersList:{ok:true,orders:[
     {id:'G-DEMO-1',src:'獨立訂單',ts:'2026-08-27 10:00',name:'陳小明',classInfo:'花式跳繩・星期一',items:'專業硬珠拍子繩（藍×1）＝$100',amount:100,hasPay:true,payLink:'',status:'待核實',dispatched:false},
-    {id:'G-DEMO-2',src:'隨報名',ts:'2026-08-26 09:00',name:'王小美',classInfo:'',items:'帆布跳繩袋（×1）',amount:20,hasPay:false,dispatched:true}],catalog:{}}
+    {id:'e:EN-DEMO-2',src:'隨報名器材',ts:'2026-08-26 09:00',name:'王小美',classInfo:'',items:'帆布跳繩袋（×1）',amount:20,hasPay:false,dispatched:true},
+    {id:'u:EN-DEMO-3',src:'隨報名制服',ts:'2026-08-25 14:00',name:'李大文',classInfo:'',items:'制服M',amount:180,hasPay:false,dispatched:false}],catalog:{}}
 };
 
 /* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
@@ -491,7 +492,7 @@ function drawGear(){
     </tr>`).join('') : '<tr><td colspan="6" class="mut">未有訂單</td></tr>';
   tc().innerHTML=`
   <div class="card">
-    <h2>🎒 器材派發追蹤</h2>
+    <h2>🎒 器材／制服派發追蹤</h2>
     <div class="stats" style="margin-bottom:12px">
       <div class="stat"><div class="n">${total}</div><div class="l">總訂單</div></div>
       <div class="stat"><div class="n" style="color:var(--warn)">${undis}</div><div class="l">未派</div></div>
@@ -503,7 +504,7 @@ function drawGear(){
       <button class="${f==='dis'?'active':''}" onclick="setGearFilter('dis')">已派</button>
     </div>
     <div class="msg" id="gmsg"></div>
-    <div class="scroll"><table><tr><th>學生 / 班別</th><th>器材</th><th>金額</th><th>來源</th><th>派發</th><th>操作</th></tr>${rows}</table></div>
+    <div class="scroll"><table><tr><th>學生 / 班別</th><th>器材／制服</th><th>金額</th><th>來源</th><th>派發</th><th>操作</th></tr>${rows}</table></div>
   </div>`;
 }
 async function dispatch(id,to){
