@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-receipt';
+const FRONTEND_VERSION='admin-2026-08-29-receipt2';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -675,9 +675,9 @@ async function renderReceipt(){
       <div class="seg" id="rc_pay">${['現金繳付','銀行過帳'].map(x=>`<button data-v="${x}" class="${RC_PAY===x?'active':''}">${x}</button>`).join('')}</div></div>
     <div class="fld"><label>日期</label><input id="rc_date" type="date" value="${rcToday()}"></div>
     <div class="fld"><label>備註（選填）</label><input id="rc_note" placeholder="如：私訓 10 節套票、期數等"></div>
-    <div class="fld"><label>收款人簽名 *</label>
+    <div class="fld"><label>收款人簽名（可留空）</label>
       <canvas id="rc_sig" style="width:100%;height:160px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="mut">喺上面簽名。</span><button class="btn gray sm" onclick="rcClearSig()">清除重簽</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="mut">可留空 — 收據靠 QR 核實真偽，唔簽名亦有效（免簽名被盜用）。</span><button class="btn gray sm" onclick="rcClearSig()">清除</button></div></div>
     <div class="msg" id="rc_msg"></div>
     <button class="btn" id="rc_gen" onclick="rcGen()" style="width:100%">生成收據 PDF</button>
   </div>
@@ -719,8 +719,7 @@ async function rcGen(){
   const items=RC_ITEMS.map(x=>({desc:(x.desc||'').trim(),amt:Number(x.amt)||0})).filter(x=>x.desc||x.amt>0);
   if(!name){ msg.className='msg err'; msg.textContent='請填收款對象姓名。'; return; }
   if(!items.length){ msg.className='msg err'; msg.textContent='請至少填一個項目及金額。'; return; }
-  if(!RC_SIG.has){ msg.className='msg err'; msg.textContent='請喺簽名格簽名。'; return; }
-  const sig=RC_SIG.cv.toDataURL('image/png');
+  const sig=RC_SIG.has?RC_SIG.cv.toDataURL('image/png'):'';
   msg.className='msg'; msg.style.cssText='display:block;background:var(--teal-dim);color:var(--teal-dark)'; msg.textContent='生成中…'; btn.disabled=true; btn.textContent='生成中…';
   let r; try{ r=await apiPost(API4,{action:'receiptCreate',name,items,payMethod:RC_PAY,date:g('rc_date'),note:g('rc_note'),signImg:sig}); }catch(e){ r=null; }
   btn.disabled=false; btn.textContent='生成收據 PDF'; msg.style.cssText='';
