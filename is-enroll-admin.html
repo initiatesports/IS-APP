@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-receipt2';
+const FRONTEND_VERSION='admin-2026-08-29-ptpreset';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -89,7 +89,10 @@ const DEMO={
     {id:'G-DEMO-1',src:'獨立訂單',ts:'2026-08-27 10:00',name:'陳小明',classInfo:'花式跳繩・星期一',items:'專業硬珠拍子繩（藍×1）＝$100',amount:100,hasPay:true,payLink:'',status:'待核實',dispatched:false},
     {id:'e:EN-DEMO-2',src:'隨報名器材',ts:'2026-08-26 09:00',name:'王小美',classInfo:'',items:'帆布跳繩袋（×1）',amount:20,hasPay:false,dispatched:true},
     {id:'u:EN-DEMO-3',src:'隨報名制服',ts:'2026-08-25 14:00',name:'李大文',classInfo:'',items:'制服M',amount:180,hasPay:false,dispatched:false}],catalog:{}},
-  receiptList:{ok:true,receipts:[{id:'RC260829001',ts:'2026-08-29 11:00',name:'陳大文',items:'私訓 10 節套票 $5000',total:5000,pay:'銀行過帳',note:'',coach:'INITIATE SPORTS',url:''}]}
+  receiptList:{ok:true,receipts:[{id:'RC260829001',ts:'2026-08-29 11:00',name:'陳大文',items:'私訓 10 節套票 $5000',total:5000,pay:'銀行過帳',note:'',coach:'INITIATE SPORTS',url:''}]},
+  ptPresetList:{ok:true,presets:[
+    {id:'PP-DEMO-1',ts:'2026-08-29 10:00',name:'陳大文',phone4:'1234',mode:'1對2',startDate:'2026-09-08',priceMode:'自訂',priceNote:'1 對 2 每人 $450/堂（10 節 $4,500）',note:'同陳小明一齊',status:'生效',used:''},
+    {id:'PP-DEMO-2',ts:'2026-08-28 09:00',name:'李樂晴',phone4:'5678',mode:'1對1',startDate:'2026-09-05',priceMode:'標準',priceNote:'',note:'',status:'已用',used:'PT2609001'}]}
 };
 
 /* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
@@ -184,7 +187,8 @@ const TABS=[
   ['gear','🎒 器材派發'],
   ['profile','👤 學生檔案'],
   ['fee','💰 收費總覽'],
-  ['receipt','🧾 出收據']
+  ['receipt','🧾 出收據'],
+  ['ptpreset','🎯 私訓預設']
 ];
 function renderShell(){
   const pv = PREVIEW ? `<div class="card" style="background:#fff7ed;border:1px solid #fb923c;color:#9a3412;padding:11px 14px;margin-bottom:10px;font-size:13px">🔎 <b>預覽模式（示範資料）</b>：以下係假資料；核實／調班／派發／調費等寫入<b>唔會真改</b>。實際使用請直接登入。</div>` : '';
@@ -202,6 +206,7 @@ function switchTab(name){ CUR=name; setActive();
   else if(name==='profile') renderProfile();
   else if(name==='fee') renderFee();
   else if(name==='receipt') renderReceipt();
+  else if(name==='ptpreset') renderPtPreset();
 }
 function refreshCur(){
   if(CUR==='enroll'){ ST.sum=null; ST.recs=null; renderEnroll(); }
@@ -682,7 +687,7 @@ async function renderReceipt(){
     <button class="btn" id="rc_gen" onclick="rcGen()" style="width:100%">生成收據 PDF</button>
   </div>
   <div id="rc_result"></div>
-  ${recs.length?`<div class="card"><h2>🗂️ 最近收據（${recs.length}）</h2><div class="scroll"><table><tr><th>收款對象</th><th>金額</th><th>繳費</th><th>日期／編號</th></tr>${recs.slice(0,30).map(r=>`<tr><td><b>${esc(r.name)}</b><div class="mut">${esc(r.items)}</div></td><td>$${r.total}</td><td>${esc(r.pay)}</td><td class="mut">${esc(String(r.ts).slice(0,10))}<br>${esc(r.id)}</td></tr>`).join('')}</table></div></div>`:''}`;
+  ${recs.length?`<div class="card"><h2>🗂️ 最近收據（${recs.length}）</h2><div class="scroll"><table><tr><th>收款對象</th><th>金額</th><th>繳費</th><th>日期／編號</th><th></th></tr>${recs.slice(0,30).map(r=>`<tr><td><b>${esc(r.name)}</b><div class="mut">${esc(r.items)}</div></td><td>$${r.total}</td><td>${esc(r.pay)}</td><td class="mut">${esc(String(r.ts).slice(0,10))}<br>${esc(r.id)}</td><td><button class="btn err sm" onclick="rcDel('${esc(r.id)}','${esc(r.name)}')">刪</button></td></tr>`).join('')}</table></div></div>`:''}`;
   rcDrawItems();
   tc().querySelectorAll('#rc_pay button').forEach(b=>b.onclick=()=>{ RC_PAY=b.getAttribute('data-v'); tc().querySelectorAll('#rc_pay button').forEach(x=>x.classList.toggle('active',x.getAttribute('data-v')===RC_PAY)); });
   rcInitSig();
@@ -731,6 +736,73 @@ async function rcGen(){
     <iframe src="${dataUri}" style="width:100%;height:420px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:10px"></iframe></div>`;
   document.getElementById('rc_result').scrollIntoView({behavior:'smooth'});
 }
+
+async function rcDel(id,name){
+  if(!confirm('確定刪除收據「'+name+'」（'+id+'）？收據 PDF 亦會移入垃圾桶。')) return;
+  const r=await apiPost(API4,{action:'receiptDelete',id});
+  if(!r||r.ok===false){ alert((r&&r.err)||'刪除失敗'); return; }
+  renderReceipt();
+}
+
+/* ════════════════════ TAB 7 私訓預設 ════════════════════
+   route: ptPresetList/Set/Delete（#4）。教練預設學員首課日/1對1或1對2/特別價 → 學員填私訓報名表按姓名+電話套用。老闆 2026-08-29 整合入報名管理，唔想咁多網址。*/
+let PP_EDIT=null, PP_SEL={mode:'1對1',priceMode:'標準'};
+async function renderPtPreset(){
+  loading('載入私訓預設…');
+  let ps=[];
+  try{ const r=await apiPost(API4,{action:'ptPresetList'}); if(r&&r.ok) ps=r.presets||[]; else if(!PREVIEW){ tc().innerHTML=errBox(r&&r.err); return; } }catch(e){ tc().innerHTML=errBox(); return; }
+  PP_EDIT=null; PP_SEL={mode:'1對1',priceMode:'標準'};
+  tc().innerHTML=ppForm()+ppList(ps);
+  ppBind();
+}
+function ppSeg(id,opts,cur){ return `<div class="seg" id="${id}">${opts.map(o=>`<button data-v="${o[0]}" class="${cur===o[0]?'active':''}">${o[1]}</button>`).join('')}</div>`; }
+function ppForm(){
+  const e=PP_EDIT||{};
+  PP_SEL.mode=e.mode||PP_SEL.mode||'1對1'; PP_SEL.priceMode=e.priceMode||PP_SEL.priceMode||'標準';
+  return `
+  <div class="card">
+    <h2>${PP_EDIT?'✏️ 編輯私訓預設':'➕ 新增學員私訓預設'}</h2>
+    <p class="mut" style="margin:-4px 0 12px">按<b>姓名＋電話</b>認人；學員之後填私訓報名表，姓名＋電話夾到即刻套用（首課日／形式／自訂價）。</p>
+    <div class="fld"><label>學員姓名 *</label><input id="pp_name" value="${esc(e.name||'')}" placeholder="中文姓名"></div>
+    <div class="fld"><label>聯絡電話 *（8 位或後 4 位）</label><input id="pp_phone" inputmode="numeric" value="${esc(e.phone4||'')}" placeholder="認人用"></div>
+    <div class="fld"><label>訓練形式</label>${ppSeg('pp_mode',[['1對1','1 對 1'],['1對2','1 對 2']],PP_SEL.mode)}</div>
+    <div class="fld"><label>首課生效日期</label><input id="pp_date" type="date" value="${esc(e.startDate||'')}"></div>
+    <div class="fld"><label>價格</label>${ppSeg('pp_pmode',[['標準','跟標準價表'],['自訂','自訂價格']],PP_SEL.priceMode)}</div>
+    <div class="fld" id="pp_pnwrap" style="${PP_SEL.priceMode==='自訂'?'':'display:none'}"><label>自訂價格說明（會顯示畀學員）</label>
+      <textarea id="pp_pnote" placeholder="例：1 對 2 每人 $450/堂（10 節 $4,500）">${esc(e.priceNote||'')}</textarea></div>
+    <div class="fld"><label>備註（只教練睇）</label><input id="pp_note" value="${esc(e.note||'')}" placeholder="內部備註"></div>
+    <div class="msg" id="pp_msg"></div>
+    <button class="btn" onclick="ppSave()">${PP_EDIT?'儲存修改':'新增預設'}</button>
+    ${PP_EDIT?'<button class="btn gray" style="margin-left:8px" onclick="renderPtPreset()">取消</button>':''}
+  </div>`;
+}
+function ppList(ps){
+  const rows=(ps||[]).map(p=>{
+    const used=(p.status==='已用');
+    return `<tr>
+      <td><b>${esc(p.name)}</b> <span class="mut">·${esc(p.phone4)}</span> ${used?'<span class="tag" style="background:#eef2f3;color:var(--mut)">已用</span>':'<span class="tag ok">生效</span>'}
+        <div class="mut">形式 ${esc(p.mode)}${p.startDate?('・首課 '+esc(p.startDate)):''}${p.priceMode==='自訂'?('・💰 '+esc(p.priceNote||'')):'・標準價'}${p.note?('・📝 '+esc(p.note)):''}</div></td>
+      <td><div class="rowact"><button class="btn gray sm" onclick='ppEdit(${JSON.stringify(p).replace(/</g,"&lt;").replace(/'/g,"&#39;")})'>編輯</button><button class="btn err sm" onclick="ppDel('${esc(p.id)}','${esc(p.name)}')">刪</button></div></td>
+    </tr>`;
+  }).join('')||'<tr><td class="mut">未有預設。</td></tr>';
+  return `<div class="card"><h2>📋 現有預設（${(ps||[]).length}）</h2><div class="scroll"><table>${rows}</table></div></div>`;
+}
+function ppBind(){
+  tc().querySelectorAll('#pp_mode button').forEach(b=>b.onclick=()=>{ PP_SEL.mode=b.getAttribute('data-v'); tc().querySelectorAll('#pp_mode button').forEach(x=>x.classList.toggle('active',x.getAttribute('data-v')===PP_SEL.mode)); });
+  tc().querySelectorAll('#pp_pmode button').forEach(b=>b.onclick=()=>{ PP_SEL.priceMode=b.getAttribute('data-v'); tc().querySelectorAll('#pp_pmode button').forEach(x=>x.classList.toggle('active',x.getAttribute('data-v')===PP_SEL.priceMode)); document.getElementById('pp_pnwrap').style.display=(PP_SEL.priceMode==='自訂')?'':'none'; });
+}
+function ppEdit(p){ PP_EDIT=p; PP_SEL={mode:p.mode||'1對1',priceMode:p.priceMode||'標準'}; tc().innerHTML=ppForm()+ppList([]); ppBind(); window.scrollTo(0,0); apiPost(API4,{action:'ptPresetList'}).then(r=>{ tc().innerHTML=ppForm()+ppList((r&&r.presets)||[]); ppBind(); }); }
+async function ppSave(){
+  const g=id=>(document.getElementById(id).value||'').trim();
+  const m=document.getElementById('pp_msg'); const name=g('pp_name'), phone=g('pp_phone');
+  if(!name||!phone){ m.className='msg err'; m.textContent='請填學員姓名及電話。'; return; }
+  m.className='msg'; m.style.cssText='display:block;background:var(--teal-dim);color:var(--teal-dark)'; m.textContent='儲存中…';
+  const r=await apiPost(API4,{action:'ptPresetSet',name,phone,mode:PP_SEL.mode,startDate:g('pp_date'),priceMode:PP_SEL.priceMode,priceNote:(PP_SEL.priceMode==='自訂'?g('pp_pnote'):''),note:g('pp_note')});
+  m.style.cssText='';
+  if(!r||r.ok===false){ m.className='msg err'; m.textContent=(r&&r.err)||'儲存失敗'; return; }
+  m.className='msg ok'; m.textContent=(r.updated?'已更新':'已新增')+'預設 ✓'; setTimeout(renderPtPreset,700);
+}
+async function ppDel(id,name){ if(!confirm('確定刪除「'+name+'」嘅私訓預設？')) return; const r=await apiPost(API4,{action:'ptPresetDelete',id}); if(!r||r.ok===false){ alert((r&&r.err)||'刪除失敗'); return; } renderPtPreset(); }
 
 if(PREVIEW){ CP='(預覽)'; ST.sum=JSON.parse(JSON.stringify(DEMO.enrollSummary)); ST.enrollPeriod='2026 9-10月'; document.getElementById('rfbtn').style.display=''; renderShell(); switchTab('enroll'); }
 else renderLogin();
