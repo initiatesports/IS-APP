@@ -199,6 +199,8 @@ function steps(n){ let h='<div class="steps">'; for(let i=1;i<=4;i++) h+='<div c
 
 /* ══ PAR-Q ══ */
 const PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
+const HEALTH_OPTS=['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'];
+const HEALTH_NONE='以上不適用';
 
 /* ══ 私訓條款（老闆 2026-08-28 審批中）══ */
 const PT_CONSENTS=[
@@ -260,19 +262,26 @@ function renderStudent(){
       <div class="terms" style="max-height:150px;font-size:12px">${PARQ.map((q,i)=>`<p>${i+1}. ${esc(q)}</p>`).join('')}</div>
       <label class="chk"><input type="checkbox" id="st_parqok" ${s.parqok?'checked':''}><span>以上 7 項全部答「否」，健康良好、適合參加運動。</span></label>
       <input id="st_parqnote" value="${esc(s.parqnote||'')}" placeholder="如有任何一項為「是」，請喺此註明（並先徵詢醫生）"></div>
+    <div class="fld"><label>健康狀況（可多選；如全部沒有，請剔「以上不適用」）<span style="color:var(--err)">*</span></label>
+      <div class="terms" style="max-height:170px">${HEALTH_OPTS.map((o,i)=>`<label class="chk"><input type="checkbox" class="st_health" value="${esc(o)}" ${((s.health||[]).indexOf(o)>=0)?'checked':''}><span>${esc(o)}</span></label>`).join('')}</div>
+      <input id="st_healthnote" value="${esc(s.healthnote||'')}" placeholder="其他健康狀況／過敏／需注意事項（如有）"></div>
     <div class="msg" id="st_msg"></div>
     <div class="navbtns"><button class="btn ghost sm" onclick="renderHome()">‹ 返回</button><button class="btn" id="st_next">下一步 →</button></div>
   </div>`;
   document.getElementById('st_next').onclick=()=>{
     const g=id=>(document.getElementById(id).value||'').trim();
+    const health=[...document.querySelectorAll('.st_health:checked')].map(x=>x.value);
     const st={name:g('st_name'),age:g('st_age'),parent:g('st_parent'),phone:g('st_phone'),email:g('st_email'),
-      parqok:document.getElementById('st_parqok').checked, parqnote:g('st_parqnote')};
+      parqok:document.getElementById('st_parqok').checked, parqnote:g('st_parqnote'),
+      health:health, healthnote:g('st_healthnote')};
     const msg=document.getElementById('st_msg');
     if(!PREVIEW){
       if(!st.name||!st.age||!st.parent||!st.phone){ msg.className='msg err'; msg.textContent='請填齊學員姓名、出生年份、家長姓名及電話。'; return; }
       if(!/^(19|20)\d{2}$/.test(st.age)){ msg.className='msg err'; msg.textContent='請填學員出生年份（4 位數，例：2016）。'; return; }
       if(!/^\d{8}$/.test(st.phone.replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='請輸入正確 8 位香港電話。'; return; }
       if(!st.parqok && !st.parqnote){ msg.className='msg err'; msg.textContent='請剔選健康聲明，或喺註明欄填寫需要注意嘅健康狀況。'; return; }
+      if(!health.length && !st.healthnote){ msg.className='msg err'; msg.textContent='請剔選健康狀況（如全部沒有，請剔「以上不適用」）。'; return; }
+      if(health.indexOf(HEALTH_NONE)>=0 && health.length>1){ msg.className='msg err'; msg.textContent='已剔「以上不適用」就唔可以同時剔其他健康狀況。'; return; }
     }
     S.stu=st; renderGoals();
   };
@@ -396,6 +405,7 @@ async function submitPt(){
     res=await apiPost({ action:'ptEnroll',
       name:S.stu.name, age:S.stu.age, parent:S.stu.parent, phone:S.stu.phone, email:S.stu.email,
       parq:(S.stu.parqok?'全部否（適合運動）':('有需要注意：'+(S.stu.parqnote||''))),
+      health:((S.stu.health||[]).join('、')+((S.stu.healthnote)?('；其他：'+S.stu.healthnote):''))||'—',
       goals:(S.goals.goals||[]).join('、'), goalNote:S.goals.note||'',
       times:(S.goals.times||[]).join('、'), freq:S.goals.freq||'',
       packSize:S.pack.size||'', packWho:S.pack.who||'', referrer:S.referrer||'',
