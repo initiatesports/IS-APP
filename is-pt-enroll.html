@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v2';
+const PT_VERSION='pt-enroll-2026-08-29-v3';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -212,17 +212,19 @@ const PT_CONSENTS=[
 ];
 const PT_TERMS=[
  '意向登記：本報名為私人訓練「意向登記」。私人訓練為 1 對 1（或按需要 1 對 2）度身訂造，收費面議；實際收費、堂數、上課時間及地點以雙方其後確認之報價及安排為準，本報名並未構成最終收費或課堂預留。',
- '套票及有效期：私人訓練以套票形式購買（如 10 節、20 節）。套票須由首堂起計 4 個月內用完，逾期未用之堂數作放棄論，不設退款或順延（特殊情況經教練書面同意除外）。',
- '改期：如需改期，請於該堂開始前 24 小時通知教練，可免費改期；少於 24 小時通知或缺席（no-show），該堂作已使用論、照扣一節。',
- '病假：如因病未能上課並於 48 小時內提交醫生證明，可安排改期；否則作已使用論。',
+ '套票及有效期：私人訓練以套票形式購買（如 10 節、20 節）。套票須由首堂起計 4 個月內用完，逾期未用之堂數作放棄論，不設退款、不設順延（特殊情況經教練書面同意除外）。',
+ '付款方式：套票須於首堂開始前一次過繳付（FPS／指定方式）。款項到帳並經確認後，堂數即時生效並鎖定；未完成繳費者不獲預留課堂或時段。',
+ '取消及改期（重要）：如需取消或改期，須於該堂<b>開始前最少 6 小時</b>通知教練，方可免費改期；<b>少於 6 小時通知、臨時取消、或缺席（no-show），該堂一律照扣、作已使用論</b>，不設補堂。',
+ '病假：如因病未能上課並於課堂前通知、且於 48 小時內提交醫生證明，可安排改期；否則作已使用論、照扣一節。',
  '遲到：學員遲到，教練將按原定時間結束，不另補時。',
- '退款：套票一經確認購買，恕不退款或轉讓；如因教練方未能提供已購買而未使用之堂數，將按未使用堂數退回相應款項。',
+ '退款政策（重要）：<b>每次繳費一經完成，恕不退款、不轉讓、不設冷靜期</b>；已購買之套票及堂數不可退回現金。唯一例外：如純因教練方原因未能提供已購買而尚未使用之堂數，將按未使用堂數退回相應款項。',
  '教練及時間安排：上課時間、地點及教練須經雙方協調確認。如遇教練因病或不可抗力未能上課，將另約時間補回，該堂不作損失。',
  '惡劣天氣：8 號或以上熱帶氣旋警告信號或黑色暴雨警告懸掛期間之課堂順延改期，不作損失；三號風球或黃／紅雨一般照常，如有更改教練會另行通知。',
  '推薦獎賞：推薦新朋友首次購買私人訓練套票，每 10 節可獲 1 節私人訓練獎賞（20 節送 2 節，如此類推）；獎賞於被推薦人完成購買後加入推薦人帳戶。',
  '服飾及器材：學員須穿著合適運動服裝及運動鞋；部分訓練或需自備指定器材，教練會另行通知。',
  '風險聲明：體能及運動訓練涉及固有運動風險。本人明白並自願讓學員參加，已了解相關風險並願意承擔；INITIATE SPORTS 已盡合理謹慎，惟對非因本機構疏忽所致之意外不負責任。',
- '個人資料：本機構所收集之個人資料只用於訓練及聯絡用途，不會在未經同意下轉交第三方。'
+ '個人資料：本機構所收集之個人資料只用於訓練及聯絡用途，不會在未經同意下轉交第三方。',
+ '條款持續生效（重要）：本條款於學員參與私人訓練期間持續有效，並<b>同樣適用於日後所有續購或加購之套票</b>，無需每次重新簽署；家長每次繳費購買套票，即視為已閱讀並同意當時生效之本條款。如條款日後有更新，INITIATE SPORTS 會另行以書面／訊息通知，並以更新後版本為準。'
 ];
 
 /* ════ ⓪ 首頁 ════ */
@@ -351,7 +353,7 @@ function renderTerms(){
     ${reqC.map(x=>`<div class="cbox"><label class="chk"><input type="checkbox" class="pt_consent" data-i="${x.i}"><span>${esc(x.s)}</span></label></div>`).join('')}
     ${photoC?`<div class="cbox" style="border-color:var(--teal)"><label class="chk"><input type="checkbox" id="pt_photo" checked><span>${esc(photoC.s)}</span></label><div class="hint" style="margin-left:26px;margin-top:4px">📷 此項為<b>選擇性</b>——不同意亦可完成報名，取消勾選即表示不同意。</div></div>`:''}
     <div class="fld" style="margin-top:6px"><label>私人訓練課程條款</label>
-      <div class="terms">${PT_TERMS.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div>
+      <div class="terms">${PT_TERMS.map((s,i)=>`<p><b>${i+1}.</b> ${s}</p>`).join('')}</div>
       <label class="chk"><input type="checkbox" id="pt_ops"><span>本人已閱讀並<b>同意</b>以上私人訓練條款。</span></label></div>
     <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ 請填家長本人<b>真實英文全名</b>及<b>證件號碼首 4 位</b>作報名確認之用。</div>
     <div class="fld"><label>家長／監護人英文全名 <span style="color:var(--err)">*</span></label><input id="tm_en" value="${esc(S.signEn||'')}" placeholder="e.g. Chan Tai Man"></div>
