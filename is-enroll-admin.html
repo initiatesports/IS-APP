@@ -68,10 +68,27 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-gearshot';
+const FRONTEND_VERSION='admin-2026-08-29-preview';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
+/* 🔎 預覽模式（?preview=1）：免密碼、用示範資料、寫入動作唔會真改。畀老闆手機 review 個設計。老闆 2026-08-29。*/
+const PREVIEW=/[?&]preview=1/.test(location.search);
+const DEMO={
+  enrollSummary:{ok:true,period:'2026 9-10月',curPeriod:'2026 9-10月',periods:['2026 7-8月','2026 9-10月'],open:true,masterOpen:true,closeDate:'2026-10-31',
+    stat:{total:3,verified:2,pending:1,waitlist:0,revenue:3140},
+    courses:[{id:'c1',sport:'花式跳繩',day:'星期一',time:'5–6pm',cap:12,price:1040,enrolled:8,full:false,openable:true,active:['陳小明','李大文','張三','黃四','周五','吳六','鄭七','王八'],waitlist:[]},
+             {id:'gym-sat2',sport:'體操',day:'星期六',time:'4–5pm',cap:8,price:1200,enrolled:5,full:false,openable:true,active:['王小美','林小強','何小明','劉小花','蔡小文'],waitlist:['候補生']}]},
+  enrollRecords:{ok:true,periods:['2026 7-8月','2026 9-10月'],curPeriod:'2026 9-10月',records:[
+    {'記錄編號':'DEMO-01','時間戳':'2026-08-20 10:00','學生姓名':'陳小明','家長電話':'1234','報名課程':'花式跳繩|星期一 5–6pm','期數':'2026 9-10月','原價':1040,'實收':1040,'狀態':'已核實','課程編號':'c1','正取編號':'c1','備註':'','付款截圖':'','確認PDF':''},
+    {'記錄編號':'DEMO-02','時間戳':'2026-08-21 11:00','學生姓名':'王小美','家長電話':'5678','報名課程':'體操|星期六 4–5pm','期數':'2026 9-10月','原價':1200,'實收':1080,'狀態':'待付款','課程編號':'gym-sat2','正取編號':'gym-sat2','備註':'器材（帆布跳繩袋×1）＝$20','付款截圖':'','確認PDF':''},
+    {'記錄編號':'DEMO-03','時間戳':'2026-08-22 09:00','學生姓名':'李大文','家長電話':'9012','報名課程':'花式跳繩|星期一 5–6pm','期數':'2026 9-10月','原價':1040,'實收':1020,'狀態':'待核實','課程編號':'c1','正取編號':'','備註':'','付款截圖':'','確認PDF':''}]},
+  rosterList:{ok:true,classes:[{cid:'c1',label:'星期一 5–6pm',students:['陳小明','李大文','張三']},{cid:'c2',label:'星期一 6–7pm',students:['王五','趙六']},{cid:'gym-sat2',label:'星期六 4–5pm',students:['王小美']}]},
+  transfersList:{ok:true,transfers:[{row:2,name:'李大文',from:'星期一 5–6pm',to:'星期三 5–6pm',date:'2026-09-07'}]},
+  gearOrdersList:{ok:true,orders:[
+    {id:'G-DEMO-1',src:'獨立訂單',ts:'2026-08-27 10:00',name:'陳小明',classInfo:'花式跳繩・星期一',items:'專業硬珠拍子繩（藍×1）＝$100',amount:100,hasPay:true,payLink:'',status:'待核實',dispatched:false},
+    {id:'G-DEMO-2',src:'隨報名',ts:'2026-08-26 09:00',name:'王小美',classInfo:'',items:'帆布跳繩袋（×1）',amount:20,hasPay:false,dispatched:true}],catalog:{}}
+};
 
 /* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -85,6 +102,7 @@ async function rawFetch(url,opt){
   } finally{ clearTimeout(t); }
 }
 async function apiPost(api,body){
+  if(PREVIEW){ await sleep(120); const a=(body&&body.action)||''; if(DEMO[a]) return JSON.parse(JSON.stringify(DEMO[a])); return {ok:false, err:'🔎 預覽模式：唔會真改動（'+a+'）。實際使用請登入。'}; }
   let last;
   for(let i=0;i<3;i++){
     try{ return await rawFetch(api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({coachPass:CP},body||{}))}); }
@@ -93,6 +111,7 @@ async function apiPost(api,body){
   throw last;
 }
 async function apiGet(api,params){
+  if(PREVIEW){ await sleep(120); const a=(params&&params.action)||''; if(DEMO[a]) return JSON.parse(JSON.stringify(DEMO[a])); return {ok:false, err:'預覽模式'}; }
   let last;
   for(let i=0;i<3;i++){
     try{ return await rawFetch(api+'?'+new URLSearchParams(Object.assign({coachPass:CP},params||{}))); }
@@ -165,8 +184,9 @@ const TABS=[
   ['fee','💰 收費總覽']
 ];
 function renderShell(){
-  app.innerHTML=`<div class="tabbar">${TABS.map(t=>`<button data-tab="${t[0]}" onclick="switchTab('${t[0]}')">${t[1]}</button>`).join('')}</div><div id="tabc"><div class="load">…</div></div>`;
-  document.getElementById('foot').textContent='版本 '+FRONTEND_VERSION;
+  const pv = PREVIEW ? `<div class="card" style="background:#fff7ed;border:1px solid #fb923c;color:#9a3412;padding:11px 14px;margin-bottom:10px;font-size:13px">🔎 <b>預覽模式（示範資料）</b>：以下係假資料；核實／調班／派發／調費等寫入<b>唔會真改</b>。實際使用請直接登入。</div>` : '';
+  app.innerHTML=`${pv}<div class="tabbar">${TABS.map(t=>`<button data-tab="${t[0]}" onclick="switchTab('${t[0]}')">${t[1]}</button>`).join('')}</div><div id="tabc"><div class="load">…</div></div>`;
+  document.getElementById('foot').textContent='版本 '+FRONTEND_VERSION+(PREVIEW?' · 預覽':'');
 }
 function setActive(){ document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.tab===CUR)); }
 function tc(){ return document.getElementById('tabc'); }
@@ -630,7 +650,8 @@ async function adjustFee(id,nm,curNet){
   }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗，請再試'; } }
 }
 
-renderLogin();
+if(PREVIEW){ CP='(預覽)'; ST.sum=JSON.parse(JSON.stringify(DEMO.enrollSummary)); ST.enrollPeriod='2026 9-10月'; document.getElementById('rfbtn').style.display=''; renderShell(); switchTab('enroll'); }
+else renderLogin();
 </script>
 </body>
 </html>
