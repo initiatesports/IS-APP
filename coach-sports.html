@@ -443,7 +443,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coachsports-2026-08-25-timeout';
+const FRONTEND_VERSION = 'coachsports-2026-08-31-dmy';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -773,7 +773,7 @@ function goBack(){
 }
 
 /* ═══════════ 私人訓練（與恆常班分開；只記上課日，無請假補堂）═══════════ */
-function fmtPtDate(d){ return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]}`; }
+function fmtPtDate(d){ return `${d.getFullYear()}年${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} 星期${'日一二三四五六'[d.getDay()]}`; }
 async function renderPt(){
   const box = document.getElementById('pt-content');
   let r = _readCache['pt'];
@@ -919,7 +919,7 @@ function renderHome(){
   const greet = h < 12 ? '早晨 ☀' : h < 18 ? '午安 👋' : '晚上好 🌙';
   document.getElementById('greeting-text').textContent = greet;
   document.getElementById('greeting-date').textContent =
-    new Date().toLocaleDateString('zh-HK', {timeZone:'Asia/Hong_Kong',weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    (()=>{const n=new Date(),p=x=>String(x).padStart(2,'0');return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+'（星期'+'日一二三四五六'[n.getDay()]+'）';})();   // DD/MM/YYYY
 
   // 總學生數＝unique 活躍學生：去重（一週上兩堂只計一次）＋排除示範 demo ＋排除本期暫停（PERIOD_VOID）。
   // 原本 reduce 逐班加會重複計跨班學生、又計埋 demo/暫停 → 數字偏高（如 57 實際 52）。
@@ -1399,7 +1399,7 @@ function loadRollSession(){
     document.getElementById('roll-already-saved').style.display = 'none';
   }
   const d = new Date(rollSelectedDate + 'T00:00:00');
-  document.getElementById('roll-info-bar').textContent = `📅 ${d.getMonth()+1}月${d.getDate()}日 · 預設全部出席，只需標記請假或補堂`;
+  document.getElementById('roll-info-bar').textContent = `📅 ${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} · 預設全部出席，只需標記請假或補堂`;
   renderRollTable();
   showSummerMakeups(currentClass, rollSelectedDate);   // 暑期跳繩補堂：藍色純提示（出席喺 #9 記，唔喺此點名）
 }
@@ -2169,7 +2169,7 @@ async function loadDaily(){
 function renderDailyList(r, box){
   if (!r.list || !r.list.length) {
     const d = new Date(coachDate + 'T00:00:00');
-    box.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${d.getMonth()+1}月${d.getDate()}日（星期${'日一二三四五六'[d.getDay()]}）<br>當日冇班別上課</p></div>`;
+    box.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}（星期${'日一二三四五六'[d.getDay()]}）<br>當日冇班別上課</p></div>`;
     return;
   }
   box.innerHTML = r.list.map((g, gi) => {

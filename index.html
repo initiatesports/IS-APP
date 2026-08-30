@@ -1778,7 +1778,7 @@ function getStarPeriodLabel(n){
 // ═══════════════════════
 function todayStr(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function daysLeft(dl){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=dl.split('-').map(Number);return Math.ceil((new Date(y,m-1,d)-t)/86400000)}
-function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${y}年${+m}月${+d}日`}
+function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');const p=n=>String(+n).padStart(2,'0');return`${p(d)}/${p(m)}/${y}`}   // DD/MM/YYYY（老闆 2026-08-31 全系統規則）
 function getPB(name,mid){const r=PERF_RECORDS[name]?.[mid];if(!r||!r.length)return null;const m=METRICS.find(x=>x.id===mid);return m.higher?Math.max(...r.map(x=>x.val)):Math.min(...r.map(x=>x.val))}
 function ensureDateStr(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const d=new Date(s);if(isNaN(d.getTime()))return s;return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 const NAME_ALIASES={'余悅':'悅悅'};
