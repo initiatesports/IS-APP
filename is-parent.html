@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-29-leavenextp';
+const FRONTEND_VERSION='parent-2026-08-31-attrate';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -828,7 +828,8 @@ function attendanceViz(c){
   const dots=past.map(s=>{ let cls='d-none';
     if(s.status==='出席'){cls='d-go';att++;base++;}
     else if(s.status==='補堂'){cls='d-mk';att++;base++;}
-    else if(s.status==='請假'){cls='d-leave';base++;}
+    // 已補堂嘅請假＝當日缺席但已補返 → 計入出席（同「已補堂」pill、owed=0 對齊，唔再扣出席率）。老闆 2026-08-31。
+    else if(s.status==='請假'){ if(s.madeUp){cls='d-mk';att++;base++;} else {cls='d-leave';base++;} }
     return `<span class="a-dot ${cls}"></span>`;
   }).join('');
   const pct=base?Math.round(att/base*100):null;
@@ -883,9 +884,10 @@ function classCard(child,ki,c,ci){
     })()}
     ${(function(){
       const today=todayStr();
-      // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂顯示喺佢對應請假嗰期；早過最早可見 tab 嘅請假(如3-4月)歸入最早 tab。避免 7-8月補堂撈落 5-6月。
-      const _earlyP=visiblePeriods((S.family&&S.family.children)||[])[0];   // kids-aware 最早可見期（同 tab 一致；此函數非 renderParent scope，故重算）
-      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period || (S.period===_earlyP && lp<_earlyP); }).sort((a,b)=>a.date<b.date?-1:1);
+      // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂只顯示喺佢對應請假嗰期。
+      // 2026-08-31 移除「早過最早可見 tab 嘅請假歸入最早 tab」lump：會令舊期(如5-6月)已完成補堂撈入當前期(7-8月)、家長覺得毫不相干。
+      // pending(未上)補堂唔會因此漏睇——頂部 upcomingMakeups 摘要已跨期列出所有未來已約補堂。
+      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period; }).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
         ${up.map(m=>{

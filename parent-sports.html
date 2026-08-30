@@ -208,7 +208,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'parentsports-2026-08-29-addonrate';
+const FRONTEND_VERSION = 'parentsports-2026-08-31-mkperiod';
 const CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm',venue:'青衣',students:['示範學員']},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm',venue:'青衣',students:[]},
@@ -743,9 +743,8 @@ function classCard(child,ki,c,ci){
     })()}
     ${(function(){
       const today=todayStr();
-      // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂顯示喺佢對應請假嗰期；早過最早可見 tab 嘅請假(如3-4月)歸入最早 tab。避免 7-8月補堂撈落 5-6月。
-      const _visP=visiblePeriods(), _earlyP=_visP[0];
-      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period || (S.period===_earlyP && lp<_earlyP); }).sort((a,b)=>a.date<b.date?-1:1);
+      // 已約補堂：只顯示喺佢對應請假嗰期。2026-08-31 移除「早過最早 tab 歸入最早 tab」lump（會令舊期補堂撈入當前期，家長覺得毫不相干；pending 補堂頂部 upcomingMakeups 已跨期列）。
+      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period; }).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
         ${up.map(m=>{
