@@ -50,7 +50,7 @@ function ok(r){
       <div class="r tot"><span class="k">總額</span><span class="v">$${esc(r.total)}</span></div>
       <div class="r"><span class="k">繳費方式</span><span class="v">${esc(r.pay)}</span></div>
       ${r.note?`<div class="r"><span class="k">備註</span><span class="v">${esc(r.note)}</span></div>`:''}
-      <div class="r"><span class="k">開立日期</span><span class="v">${esc(r.date)}</span></div>
+      <div class="r"><span class="k">開立日期</span><span class="v">${esc(String(r.date||'').replace(/^(\d{4})-(\d{2})-(\d{2}).*/,'$3/$2/$1'))}</span></div>
     </div>`;
 }
 (async()=>{
