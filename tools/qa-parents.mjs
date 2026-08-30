@@ -57,8 +57,38 @@ const LOGIN_MS = 90000;    // 單個家長登入
 const HEAVY_MS = 180000;   // 教練 load / audit（讀全校 grid，正常較慢）
 // 🛡️ 總時限：即使逐個請求都有硬死線，111 個學生 × 重試 × 逾時 最壞仍可行幾個鐘。排程係每日一次，
 //   行到夜晚都冇意思 —— 到期即出「已測部分」報告 + 明確講剩幾多個未測，好過完全冇報告靜靜死。
-const RUN_DEADLINE = Date.now() + Number(process.env.QA_MAX_MIN || 50) * 60000;
+let RUN_DEADLINE = Date.now() + Number(process.env.QA_MAX_MIN || 50) * 60000;
 const outOfTime = () => Date.now() > RUN_DEADLINE;
+
+// 🛡️ 2026-08-30：本機（MacBook）喺 QA 途中入 Maintenance Sleep，Date.now() 直接跳前成個鐘。
+//   實測：20:49:30 開跑，做完 3 個登入部機就瞓，22:29:06 先醒（pmset log 有證據），3 個 worker
+//   一醒返即見「已達總時限」→ 報「後端異常慢／卡死，請查該後端部署」。但同一刻實測單次 login
+//   只需 6–13s、兩個後端 200 OK，重跑即 57/57 + 55/55 全綠 ＝ 純粹假警報，屈錯後端。
+//   假警報比冇報告更貴：老闆會去查一個冇壞嘅部署，下次見到真 ERR 反而唔信。
+//   → 心跳對錶：每 5 秒睇 Date.now() 有冇跳（瞓覺時 timer 唔會行，醒返一次過補飛）。跳超過
+//     30 秒即當本機休眠：① 把嗰段時間補返落死線（醒返繼續做完，唔會白行）；② 記低總休眠時間，
+//     令逾時訊息講返真兇係本機休眠，唔好再叫老闆查後端。休眠補時封頂，免得瞓咗一晚朝早先狂跑。
+const HB_MS = 5000;
+const SUSPEND_GAP_MS = 30000;                 // 跳超過呢個秒數先當「部機瞓咗」，唔當一般 GC/負載抖動
+const SUSPEND_CREDIT_CAP_MS = 120 * 60000;    // 最多補 2 個鐘
+let SUSPENDED_MS = 0, suspendCredited = 0, hbLast = Date.now();
+const hb = setInterval(() => {
+  const now = Date.now();
+  const drift = now - hbLast - HB_MS;
+  hbLast = now;
+  if (drift > SUSPEND_GAP_MS) {
+    SUSPENDED_MS += drift;
+    const credit = Math.min(drift, Math.max(0, SUSPEND_CREDIT_CAP_MS - suspendCredited));
+    suspendCredited += credit;
+    RUN_DEADLINE += credit;
+    process.stderr.write(`\n💤 本機休眠約 ${Math.round(drift / 60000)} 分鐘，死線順延 ${Math.round(credit / 60000)} 分鐘\n`);
+  }
+}, HB_MS);
+hb.unref();
+// 逾時原因：本機瞓咗 vs 後端真係慢／卡死。兩者處理方法完全唔同，唔可以混為一談。
+const timeoutCause = () => (SUSPENDED_MS > 60000
+  ? `本機曾休眠約 ${Math.round(SUSPENDED_MS / 60000)} 分鐘（非後端問題，請查部機電源設定／唔好瞓）`
+  : "後端異常慢／卡死，請查該後端部署");
 
 // 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向會丟失 body → 請求變咗落 doGet，後端見 action=undefined，
 //   回一個「合法 JSON 但係假錯誤」：#4/#9 = {ok:false,err:"unknown action"}，#11 = {"error":"Unknown action: undefined"}。
@@ -280,7 +310,7 @@ async function sweep(label, exec, rows, withPin) {
   await Promise.all(Array.from({ length: Math.min(CONC, students.length) }, worker));
   const untested = students.length - attempted;
   if (untested > 0) {
-    add("ERR", label, "—", `⏱ 已達 QA 總時限，仲有 ${untested} 個未測（後端異常慢／卡死，請查該後端部署）`);
+    add("ERR", label, "—", `⏱ 已達 QA 總時限，仲有 ${untested} 個未測（${timeoutCause()}）`);
   }
   // 第二輪重試：Apps Script 偶然有幾十秒嘅短暫故障窗口，令連續一批學生同時 fetch failed。
   // callLogin 內部 3 次重試只覆蓋約 3.6 秒，蓋唔住呢種窗口 → 2026-08-13 實測連續 15 個
