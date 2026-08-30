@@ -245,7 +245,8 @@ svg{width:1em;height:1em;flex:none}
    +後端寫前自動備份+空值防呆+鎖序列化）。零回歸：唔掂後端/其他前端，純新增一頁。
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const APP_VERSION='growth-2026-08-28-mobilefit2';
+const API4='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
+const APP_VERSION='growth-2026-08-29-enrollroster';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -253,7 +254,8 @@ let BODY={};                     // {name:[{date,height,weight}]}
 let SETTINGS={};                 // key→parsed value
 let PHOTOS={};                   // name→dataURI
 let ROSTER=[];                   // 學生中文名（去重排序）
-let CLASSMAP={};                 // name→[cid] （由 settings class_*_students）
+let CLASSMAP={};                 // name→[cid] （由 settings class_*_students ＋ #4 報名名冊）
+let ENROLL_ROSTER={};            // {cid:[名]} 由 #4 rosterList（現有已核實報名生）→ 令新生喺成長中心有帳戶
 
 /* ---------- Metric 設定（14 項，對齊教練 app 操作命名；全部↑=越大越好）----------
    dual=多次嘗試(v1/v2/v3,val取最佳)。rope2m 依老闆定名「1分鐘跳繩」。 */
@@ -330,8 +332,27 @@ async function loadCloud(){
   setSync('load','載入中…');
   const r=await apiPost({action:'load',coachPass:CP});
   if(r.error||r.err) throw new Error(r.error||r.err);
-  DATA=r; ingest(r); saveLocal();
+  DATA=r; ingest(r); await mergeEnrollRoster(); saveLocal();
   setSync('ok','已同步 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+}
+/* 由 #4（報名真來源）攞現有已核實報名生，併入成長中心名冊 → 新生自動有帳戶（唔使手動加/唔會 drift）。
+   只讀 #4 顯示層，唔寫 #11、唔碰家長報告 auth。攞唔到就靜靜降級（靠返 #11 perf/body）。老闆 2026-08-29。*/
+async function mergeEnrollRoster(){
+  ENROLL_ROSTER={};
+  try{
+    const r=await fetch(API4,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rosterList',coachPass:CP})}).then(x=>x.json());
+    if(r&&r.ok&&Array.isArray(r.classes)){
+      r.classes.forEach(c=>{
+        const list=(c.students||[]).map(n=>String(n).trim()).filter(Boolean);
+        if(list.length) ENROLL_ROSTER[c.cid]=list;
+        list.forEach(nm=>{
+          if(!(CLASSMAP[nm]||[]).includes(c.cid)) (CLASSMAP[nm]=CLASSMAP[nm]||[]).push(c.cid);
+          if(ROSTER.indexOf(nm)<0) ROSTER.push(nm);
+        });
+      });
+      ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));
+    }
+  }catch(e){/* #4 攞唔到唔阻成長中心 */}
 }
 /* 把 load 結果正規化成 PERF/BODY/SETTINGS */
 function ingest(r){
@@ -437,7 +458,9 @@ function classLabel(cid){
   const dz=SETTINGS['class_'+cid+'_dayZh']||'', tm=SETTINGS['class_'+cid+'_time']||'';
   return (dz||cid)+(tm?(' '+tm):'');
 }
-function classStudents(cid){const s=SETTINGS['class_'+cid+'_students'];return Array.isArray(s)?s.slice():[];}
+function classStudents(cid){const s=SETTINGS['class_'+cid+'_students'];const a=Array.isArray(s)?s.slice():[];
+  (ENROLL_ROSTER[cid]||[]).forEach(nm=>{if(a.indexOf(nm)<0)a.push(nm);});   // 併入 #4 報名名冊（新生：#11 settings 冇）
+  return a;}
 function activeClasses(){return CLASS_IDS.filter(c=>classStudents(c).length>0);}
 
 /* ═══════════════════ 分析工具 ═══════════════════ */
