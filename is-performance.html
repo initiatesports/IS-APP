@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-08-29-enrollroster';
+const APP_VERSION='growth-2026-08-31-dmy';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -287,7 +287,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const num=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
 const round=(n,d=0)=>{const p=Math.pow(10,d);return Math.round(n*p)/p;};
 const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-const md=iso=>{const p=String(iso).split('-');return p.length===3?(+p[1])+'/'+(+p[2]):iso;};
+const md=iso=>{const p=String(iso).split('-');return p.length===3?(String(+p[2]).padStart(2,'0')+'/'+String(+p[1]).padStart(2,'0')+'/'+p[0]):iso;};   // DD/MM/YYYY（老闆 2026-08-31）
 const dmy=iso=>{const p=String(iso).split('-');return p.length===3?(+p[2])+'/'+(+p[1])+'/'+p[0]:iso;};
 const initials=n=>String(n||'?').trim().slice(0,1);
 function toast(msg,kind){const t=$('#toast');t.className='';t.innerHTML=(kind==='ok'?ico('check'):kind==='err'?ico('alert'):ico('info'))+'<span>'+esc(msg)+'</span>';if(kind)t.classList.add(kind);t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2600);}
