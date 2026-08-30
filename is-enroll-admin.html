@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-ptpreset';
+const FRONTEND_VERSION='admin-2026-08-29-ptenroll';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -92,7 +92,9 @@ const DEMO={
   receiptList:{ok:true,receipts:[{id:'RC260829001',ts:'2026-08-29 11:00',name:'陳大文',items:'私訓 10 節套票 $5000',total:5000,pay:'銀行過帳',note:'',coach:'INITIATE SPORTS',url:''}]},
   ptPresetList:{ok:true,presets:[
     {id:'PP-DEMO-1',ts:'2026-08-29 10:00',name:'陳大文',phone4:'1234',mode:'1對2',startDate:'2026-09-08',priceMode:'自訂',priceNote:'1 對 2 每人 $450/堂（10 節 $4,500）',note:'同陳小明一齊',status:'生效',used:''},
-    {id:'PP-DEMO-2',ts:'2026-08-28 09:00',name:'李樂晴',phone4:'5678',mode:'1對1',startDate:'2026-09-05',priceMode:'標準',priceNote:'',note:'',status:'已用',used:'PT2609001'}]}
+    {id:'PP-DEMO-2',ts:'2026-08-28 09:00',name:'李樂晴',phone4:'5678',mode:'1對1',startDate:'2026-09-05',priceMode:'標準',priceNote:'',note:'',status:'已用',used:'PT2609001'}]},
+  ptEnrollList:{ok:true,rows:[
+    {id:'PT2608001',ts:'2026-08-28 20:00',name:'陳大文',birthYear:'2016',parent:'陳媽媽',phone:'61234567',email:'chan@email.com',parq:'全部否（適合運動）',health:'以上不適用',goals:'全面體能提升、敏捷／協調',goalNote:'想改善跑姿',times:'平日晚上、週末上午',freq:'每週 1 次',packSize:'10 節（$5,000）',who:'兒童 / 青少年',referrer:'',signEn:'Chan Tai Man',signId:'A123',signLink:'',photo:'同意',status:'待跟進',note:'',startDate:'2026-09-10',mode:'1對1',priceNote:''}]}
 };
 
 /* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
@@ -188,6 +190,7 @@ const TABS=[
   ['profile','👤 學生檔案'],
   ['fee','💰 收費總覽'],
   ['receipt','🧾 出收據'],
+  ['ptenroll','⭐ 私訓報名'],
   ['ptpreset','🎯 私訓預設']
 ];
 function renderShell(){
@@ -206,6 +209,7 @@ function switchTab(name){ CUR=name; setActive();
   else if(name==='profile') renderProfile();
   else if(name==='fee') renderFee();
   else if(name==='receipt') renderReceipt();
+  else if(name==='ptenroll') renderPtEnroll();
   else if(name==='ptpreset') renderPtPreset();
 }
 function refreshCur(){
@@ -803,6 +807,40 @@ async function ppSave(){
   m.className='msg ok'; m.textContent=(r.updated?'已更新':'已新增')+'預設 ✓'; setTimeout(renderPtPreset,700);
 }
 async function ppDel(id,name){ if(!confirm('確定刪除「'+name+'」嘅私訓預設？')) return; const r=await apiPost(API4,{action:'ptPresetDelete',id}); if(!r||r.ok===false){ alert((r&&r.err)||'刪除失敗'); return; } renderPtPreset(); }
+
+/* ════════════════════ TAB 私訓報名 ════════════════════
+   route: ptEnrollList + ptEnrollSetStatus（#4）。學員經 is-pt-enroll 提交嘅私訓報名資料。老闆 2026-08-29。*/
+const PTE_STATUSES=['待跟進','跟進中','已確認','已取消'];
+async function renderPtEnroll(){
+  loading('載入私訓報名…');
+  let rows=[];
+  try{ const r=await apiPost(API4,{action:'ptEnrollList'}); if(r&&r.ok) rows=r.rows||[]; else if(!PREVIEW){ tc().innerHTML=errBox(r&&r.err); return; } }catch(e){ tc().innerHTML=errBox(); return; }
+  const card=r=>`<div class="card" style="border-left:3px solid var(--teal)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <div><b style="font-size:15px">${esc(r.name)}</b> <span class="mut">${esc(r.birthYear)}年 · ${esc(r.who||'')}</span>
+        <div class="mut">${esc(r.id)} · ${esc(String(r.ts).slice(0,16))}</div></div>
+      <select class="pte-st" data-id="${esc(r.id)}" style="padding:5px 8px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;background:#fff">${PTE_STATUSES.map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select>
+    </div>
+    <div class="scroll"><table><tbody>
+      <tr><td class="mut" style="width:82px">聯絡</td><td>${esc(r.parent||'—')}　📞 ${esc(r.phone||'—')}${r.email?('　✉️ '+esc(r.email)):''}</td></tr>
+      <tr><td class="mut">套票意向</td><td><b>${esc(r.packSize||'—')}</b></td></tr>
+      <tr><td class="mut">訓練目標</td><td>${esc(r.goals||'—')}${r.goalNote?('（'+esc(r.goalNote)+'）'):''}</td></tr>
+      <tr><td class="mut">方便時段</td><td>${esc(r.times||'—')}　·　${esc(r.freq||'—')}</td></tr>
+      <tr><td class="mut">健康</td><td>PAR-Q：${esc(r.parq||'—')}<br>狀況：${esc(r.health||'—')}</td></tr>
+      ${(r.mode||r.startDate||r.priceNote)?`<tr><td class="mut">教練預設</td><td>${esc(r.mode||'')}${r.startDate?('　首課 '+esc(r.startDate)):''}${r.priceNote?('　💰 '+esc(r.priceNote)):''}</td></tr>`:''}
+      ${r.referrer?`<tr><td class="mut">推薦人</td><td>${esc(r.referrer)}</td></tr>`:''}
+      <tr><td class="mut">簽署</td><td>${esc(r.signEn||'—')} · ${esc(r.signId||'—')} ${r.signLink?`<a class="lnk" onclick="viewSecureFile('${esc(r.signLink)}')">📎 睇簽名</a>`:''}</td></tr>
+    </tbody></table></div>
+  </div>`;
+  tc().innerHTML=`<div class="card"><h2>⭐ 私訓報名（${rows.length}）</h2>
+    <p class="mut" style="margin:-4px 0 0">學員經私訓報名表提交嘅資料。收費面議 → WhatsApp 夾時間報價；右上角可更新跟進狀態。</p></div>
+    ${rows.length?rows.map(card).join(''):'<div class="card"><div class="mut">未有私訓報名。</div></div>'}`;
+  tc().querySelectorAll('.pte-st').forEach(sel=>sel.onchange=async()=>{
+    const id=sel.getAttribute('data-id'), st=sel.value; sel.disabled=true;
+    const r=await apiPost(API4,{action:'ptEnrollSetStatus',id,status:st}); sel.disabled=false;
+    if(!r||r.ok===false){ alert((r&&r.err)||'更新失敗'); }
+  });
+}
 
 if(PREVIEW){ CP='(預覽)'; ST.sum=JSON.parse(JSON.stringify(DEMO.enrollSummary)); ST.enrollPeriod='2026 9-10月'; document.getElementById('rfbtn').style.display=''; renderShell(); switchTab('enroll'); }
 else renderLogin();
