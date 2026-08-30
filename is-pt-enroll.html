@@ -184,14 +184,14 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v11';
+const PT_VERSION='pt-enroll-2026-08-29-v12';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},ms); }
-const S={ stu:{}, goals:{}, pack:{}, referrer:'', consents:{}, opsAgree:false, signEn:'', signId:'' };
+const S={ stu:{}, goals:{}, pack:{}, referrer:'', consents:{}, opsAgree:false, signEn:'', signId:'', preset:null };
 document.getElementById('ver').textContent=PT_VERSION+(PREVIEW?' · 預覽模式':'');
 
 /* ── 進度條 ── */
@@ -301,7 +301,15 @@ function renderStudent(){
       if((st.health||[]).indexOf(HEALTH_NONE)>=0 && st.health.length>1){ msg.className='msg err'; msg.textContent='已剔「以上不適用」就唔可以同時剔其他健康狀況。'; return; }
     }
     if(isA) st.parent=st.parent||'本人（成人自行報名）';
-    S.stu=st; renderGoals();
+    S.stu=st;
+    // 教練預設 lookup（姓名＋電話夾到即套用：形式／首課生效日／專屬價）——公開唯讀，fail-open
+    (async()=>{
+      const btn=document.getElementById('st_next'); if(btn){ btn.disabled=true; btn.textContent='處理中…'; }
+      try{ const r=await apiPost({action:'ptPresetLookup', name:st.name, phone:st.phone}, 15000);
+        S.preset=(r&&r.found)?{id:r.id,mode:r.mode,startDate:r.startDate,priceMode:r.priceMode,priceNote:r.priceNote,note:r.note}:null;
+      }catch(e){ S.preset=null; }
+      renderGoals();
+    })();
   };
 }
 
@@ -353,22 +361,32 @@ function ptPriceOf(size){ if(!size) return ''; const set=(S.stu.forWho==='adult'
 function renderPackage(){
   const pk=S.pack; const adult=(S.stu.forWho==='adult');
   const PR=adult?PT_PRICES.adult:PT_PRICES.child;
+  const SIZES=adult?PT_PACK.adult:PT_PACK.child;
   const WHO=adult?['成人','樂齡人士']:['兒童 / 青少年'];
+  const custom=!!(S.preset && S.preset.priceMode==='自訂');
+  const pbanner=S.preset?`<div class="banner" style="background:#eef9fb;border-color:var(--teal)">🎯 教練已為你預設：形式 <b>${esc(S.preset.mode||'')}</b>${S.preset.startDate?`　首課生效日 <b>${esc(S.preset.startDate)}</b>`:''}</div>`:'';
   const card=(p)=>`<div class="ptp-card" data-v="${esc(p.s)}" style="position:relative;border:2px solid ${pk.size===p.s?'var(--teal)':'var(--line)'};border-radius:12px;padding:14px 10px 11px;cursor:pointer;background:${pk.size===p.s?'#e9f8fb':'#fff'};text-align:center">
       ${p.feat?`<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--teal);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">${p.feat}</div>`:''}
       <div style="font-weight:800;font-size:15px">${esc(p.s)}</div>
       <div style="font-size:20px;font-weight:800;color:var(--teal);margin:2px 0">${esc(p.t)}</div>
       <div style="font-size:12px;color:#555">${esc(p.per)}</div>
       <div style="font-size:11px;color:#8a8a8a;margin-top:2px">${esc(p.exp)}</div></div>`;
+  const priceBlock=custom
+    ? `<div class="fld"><label>你的專屬價格（教練預設）</label>
+        <div style="border:2px solid var(--teal);border-radius:12px;padding:14px;background:#e9f8fb;white-space:pre-wrap;font-size:14px;font-weight:700;color:var(--teal-dark)">${esc(S.preset.priceNote||'（詳情教練會同你確認）')}</div>
+        <div class="hint" style="margin:10px 0 5px">揀返你想要嘅套票堂數（作意向，最終以教練報價為準）：</div>
+        <div class="chips" id="pk_size">${SIZES.map(x=>`<span class="chip ${pk.size===x?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div></div>`
+    : `<div class="fld"><label>套票及價格</label>
+        <div id="pk_size" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:4px">${PR.packs.map(card).join('')}</div>
+        <div class="hint" style="margin-top:10px">💡 ${esc(PR.trial)}</div>
+        <div class="hint" style="margin-top:2px;line-height:1.6">＊以上為 1 對 1 標準價，已包青衣／荃灣區場租。1 對 2、其他地區或上門服務面議；另設大學生優惠、可分期，詳情報價時確認。</div></div>`;
   app.innerHTML=`
   <div class="card">
     ${steps(3)}
-    <h2>套票價格表 & 推薦</h2>
-    <p class="hint">以下為${adult?'成人 / 樂齡':'兒童 / 青少年'} 1 對 1 私人訓練標準套票價（揀返你想要嘅套票）。</p>
-    <div class="fld"><label>套票及價格</label>
-      <div id="pk_size" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:4px">${PR.packs.map(card).join('')}</div>
-      <div class="hint" style="margin-top:10px">💡 ${esc(PR.trial)}</div>
-      <div class="hint" style="margin-top:2px;line-height:1.6">＊以上為 1 對 1 標準價，已包青衣／荃灣區場租。1 對 2、其他地區或上門服務面議；另設大學生優惠、可分期，詳情報價時確認。</div></div>
+    ${pbanner}
+    <h2>${custom?'套票 & 推薦':'套票價格表 & 推薦'}</h2>
+    <p class="hint">${custom?'教練已為你設定專屬價格（見下方）。':`以下為${adult?'成人 / 樂齡':'兒童 / 青少年'} 1 對 1 私人訓練標準套票價（揀返你想要嘅套票）。`}</p>
+    ${priceBlock}
     <div class="fld"><label>對象</label>
       <div class="chips" id="pk_who">${WHO.map(x=>`<span class="chip ${(pk.who===x||WHO.length===1)?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div>${adult?'':'<div class="hint" style="margin-top:4px">為小朋友報名，對象自動為「兒童 / 青少年」。</div>'}</div>
     <div class="fld"><label>推薦人中文全名（如有）</label><input id="pk_ref" value="${esc(S.referrer||'')}" placeholder="推薦你嘅朋友中文全名（享推薦獎賞用）">
@@ -376,8 +394,12 @@ function renderPackage(){
     <div class="navbtns"><button class="btn ghost sm" onclick="renderGoals()">‹ 返回</button><button class="btn" id="pk_next">下一步 →</button></div>
   </div>`;
   const sel={size:pk.size||'', who:(WHO.length===1?WHO[0]:(pk.who||''))};
-  const paint=()=>app.querySelectorAll('#pk_size .ptp-card').forEach(x=>{ const on=(x.getAttribute('data-v')===sel.size); x.style.borderColor=on?'var(--teal)':'var(--line)'; x.style.background=on?'#e9f8fb':'#fff'; });
-  app.querySelectorAll('#pk_size .ptp-card').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); paint(); });
+  if(custom){
+    app.querySelectorAll('#pk_size .chip').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_size .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.size)); });
+  } else {
+    const paint=()=>app.querySelectorAll('#pk_size .ptp-card').forEach(x=>{ const on=(x.getAttribute('data-v')===sel.size); x.style.borderColor=on?'var(--teal)':'var(--line)'; x.style.background=on?'#e9f8fb':'#fff'; });
+    app.querySelectorAll('#pk_size .ptp-card').forEach(c=>c.onclick=()=>{ sel.size=(sel.size===c.getAttribute('data-v')?'':c.getAttribute('data-v')); paint(); });
+  }
   app.querySelectorAll('#pk_who .chip').forEach(c=>c.onclick=()=>{ sel.who=(sel.who===c.getAttribute('data-v')?'':c.getAttribute('data-v')); app.querySelectorAll('#pk_who .chip').forEach(x=>x.classList.toggle('on',x.getAttribute('data-v')===sel.who)); });
   document.getElementById('pk_next').onclick=()=>{ S.pack={size:sel.size, who:sel.who}; S.referrer=(document.getElementById('pk_ref').value||'').trim(); renderTerms(); };
 }
@@ -454,6 +476,7 @@ async function submitPt(){
       goals:(S.goals.goals||[]).join('、'), goalNote:S.goals.note||'',
       times:(S.goals.times||[]).join('、'), freq:S.goals.freq||'',
       packSize:(S.pack.size?(S.pack.size+(ptPriceOf(S.pack.size)?('（'+ptPriceOf(S.pack.size)+'）'):'')):''), packWho:S.pack.who||'', referrer:S.referrer||'',
+      presetId:(S.preset&&S.preset.id)||'', startDate:(S.preset&&S.preset.startDate)||'', ptMode:(S.preset&&S.preset.mode)||'', priceNote:(S.preset&&S.preset.priceMode==='自訂'?S.preset.priceNote:'')||'',
       signEn:en, signId:id, signImg:S.signImg||'', photoConsent:photo,
       clientToken:S.clientToken, agree:'同意' }, 30000);
   }catch(e){ btn.disabled=false; btn.textContent='確認提交報名'; msg.className='msg err'; msg.innerHTML='網絡逾時／中斷。你嘅報名<b>可能已提交</b>，請 WhatsApp 6331 7403 確認，切勿以為失敗而重複提交。'; return; }
@@ -473,6 +496,7 @@ function renderDone(res){
       <div class="cbox"><span>${S.stu.forWho==='adult'?'報名者（本人）':'學員'}：<b>${esc(S.stu.name)}</b>（${esc(S.stu.age)}）</span></div>
       <div class="cbox"><span>聯絡：${S.stu.forWho==='adult'?'':esc(S.stu.parent)+'　'}${esc(S.stu.phone)}</span></div>
       ${S.pack.size?`<div class="cbox"><span>套票意向：${esc(S.pack.size)}${ptPriceOf(S.pack.size)?('（'+esc(ptPriceOf(S.pack.size))+'）'):''}${S.pack.who?('　'+esc(S.pack.who)):''}</span></div>`:''}
+      ${S.preset?`<div class="cbox" style="border-color:var(--teal)"><span>🎯 教練預設：${esc(S.preset.mode||'')}${S.preset.startDate?('　首課生效日 '+esc(S.preset.startDate)):''}${S.preset.priceMode==='自訂'&&S.preset.priceNote?('　專屬價：'+esc(S.preset.priceNote)):''}</span></div>`:''}
       ${(S.goals.goals||[]).length?`<div class="cbox"><span>目標：${esc((S.goals.goals||[]).join('、'))}</span></div>`:''}
     </div>
     <a class="btn" href="${WA('我啱啱交咗私人訓練報名：'+esc(S.stu.name))}" target="_blank" rel="noopener" style="margin-top:12px;display:block;text-align:center;text-decoration:none">💬 WhatsApp 教練</a>

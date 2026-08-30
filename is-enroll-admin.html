@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-preview';
+const FRONTEND_VERSION='admin-2026-08-29-ptpreset';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -87,7 +87,12 @@ const DEMO={
   transfersList:{ok:true,transfers:[{row:2,name:'李大文',from:'星期一 5–6pm',to:'星期三 5–6pm',date:'2026-09-07'}]},
   gearOrdersList:{ok:true,orders:[
     {id:'G-DEMO-1',src:'獨立訂單',ts:'2026-08-27 10:00',name:'陳小明',classInfo:'花式跳繩・星期一',items:'專業硬珠拍子繩（藍×1）＝$100',amount:100,hasPay:true,payLink:'',status:'待核實',dispatched:false},
-    {id:'G-DEMO-2',src:'隨報名',ts:'2026-08-26 09:00',name:'王小美',classInfo:'',items:'帆布跳繩袋（×1）',amount:20,hasPay:false,dispatched:true}],catalog:{}}
+    {id:'e:EN-DEMO-2',src:'隨報名器材',ts:'2026-08-26 09:00',name:'王小美',classInfo:'',items:'帆布跳繩袋（×1）',amount:20,hasPay:false,dispatched:true},
+    {id:'u:EN-DEMO-3',src:'隨報名制服',ts:'2026-08-25 14:00',name:'李大文',classInfo:'',items:'制服M',amount:180,hasPay:false,dispatched:false}],catalog:{}},
+  receiptList:{ok:true,receipts:[{id:'RC260829001',ts:'2026-08-29 11:00',name:'陳大文',items:'私訓 10 節套票 $5000',total:5000,pay:'銀行過帳',note:'',coach:'INITIATE SPORTS',url:''}]},
+  ptPresetList:{ok:true,presets:[
+    {id:'PP-DEMO-1',ts:'2026-08-29 10:00',name:'陳大文',phone4:'1234',mode:'1對2',startDate:'2026-09-08',priceMode:'自訂',priceNote:'1 對 2 每人 $450/堂（10 節 $4,500）',note:'同陳小明一齊',status:'生效',used:''},
+    {id:'PP-DEMO-2',ts:'2026-08-28 09:00',name:'李樂晴',phone4:'5678',mode:'1對1',startDate:'2026-09-05',priceMode:'標準',priceNote:'',note:'',status:'已用',used:'PT2609001'}]}
 };
 
 /* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
@@ -181,7 +186,9 @@ const TABS=[
   ['transfer','🔁 調班／轉班'],
   ['gear','🎒 器材派發'],
   ['profile','👤 學生檔案'],
-  ['fee','💰 收費總覽']
+  ['fee','💰 收費總覽'],
+  ['receipt','🧾 出收據'],
+  ['ptpreset','🎯 私訓預設']
 ];
 function renderShell(){
   const pv = PREVIEW ? `<div class="card" style="background:#fff7ed;border:1px solid #fb923c;color:#9a3412;padding:11px 14px;margin-bottom:10px;font-size:13px">🔎 <b>預覽模式（示範資料）</b>：以下係假資料；核實／調班／派發／調費等寫入<b>唔會真改</b>。實際使用請直接登入。</div>` : '';
@@ -198,6 +205,8 @@ function switchTab(name){ CUR=name; setActive();
   else if(name==='gear') renderGear();
   else if(name==='profile') renderProfile();
   else if(name==='fee') renderFee();
+  else if(name==='receipt') renderReceipt();
+  else if(name==='ptpreset') renderPtPreset();
 }
 function refreshCur(){
   if(CUR==='enroll'){ ST.sum=null; ST.recs=null; renderEnroll(); }
@@ -491,7 +500,7 @@ function drawGear(){
     </tr>`).join('') : '<tr><td colspan="6" class="mut">未有訂單</td></tr>';
   tc().innerHTML=`
   <div class="card">
-    <h2>🎒 器材派發追蹤</h2>
+    <h2>🎒 器材／制服派發追蹤</h2>
     <div class="stats" style="margin-bottom:12px">
       <div class="stat"><div class="n">${total}</div><div class="l">總訂單</div></div>
       <div class="stat"><div class="n" style="color:var(--warn)">${undis}</div><div class="l">未派</div></div>
@@ -503,7 +512,7 @@ function drawGear(){
       <button class="${f==='dis'?'active':''}" onclick="setGearFilter('dis')">已派</button>
     </div>
     <div class="msg" id="gmsg"></div>
-    <div class="scroll"><table><tr><th>學生 / 班別</th><th>器材</th><th>金額</th><th>來源</th><th>派發</th><th>操作</th></tr>${rows}</table></div>
+    <div class="scroll"><table><tr><th>學生 / 班別</th><th>器材／制服</th><th>金額</th><th>來源</th><th>派發</th><th>操作</th></tr>${rows}</table></div>
   </div>`;
 }
 async function dispatch(id,to){
@@ -649,6 +658,151 @@ async function adjustFee(id,nm,curNet){
     else if(msg){ msg.className='msg err'; msg.textContent=(r&&r.err)||'調整失敗'; }
   }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗，請再試'; } }
 }
+
+/* ════════════════════ TAB 6 出收據 ════════════════════
+   route: receiptCreate + receiptList（#4）。教練填收款對象+項目+繳費方式(現金/銀行過帳)+簽名→PDF→下載自行WhatsApp。老闆 2026-08-29 整合入報名管理，唔想咁多網址。*/
+let RC_ITEMS=[], RC_PAY='現金繳付', RC_SIG={cv:null,ctx:null,has:false,px:0,py:0,drawing:false};
+function rcToday(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+async function renderReceipt(){
+  loading('載入收據…');
+  let recs=[];
+  try{ const r=await apiPost(API4,{action:'receiptList'}); if(r&&r.ok) recs=r.receipts||[]; }catch(e){}
+  RC_PAY='現金繳付'; RC_ITEMS=[{desc:'',amt:''}];
+  tc().innerHTML=`
+  <div class="card">
+    <h2>🧾 出收據</h2>
+    <p class="mut" style="margin:-4px 0 12px">填收款對象、項目同繳費方式，簽名後生成 PDF，可下載自行 WhatsApp 畀學員。</p>
+    <div class="fld"><label>收款對象姓名 *</label><input id="rc_name" placeholder="學員／家長姓名"></div>
+    <div class="fld"><label>項目及金額 *</label><div id="rc_items"></div>
+      <button class="btn gray" style="width:100%;margin-top:2px" onclick="rcAddItem()">＋ 加多一項</button>
+      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:16px;padding:10px 2px 2px;border-top:1px solid var(--line);margin-top:8px"><span>總額</span><span id="rc_tot">$0</span></div></div>
+    <div class="fld"><label>繳費方式 *</label>
+      <div class="seg" id="rc_pay">${['現金繳付','銀行過帳'].map(x=>`<button data-v="${x}" class="${RC_PAY===x?'active':''}">${x}</button>`).join('')}</div></div>
+    <div class="fld"><label>日期</label><input id="rc_date" type="date" value="${rcToday()}"></div>
+    <div class="fld"><label>備註（選填）</label><input id="rc_note" placeholder="如：私訓 10 節套票、期數等"></div>
+    <div class="fld"><label>收款人簽名（可留空）</label>
+      <canvas id="rc_sig" style="width:100%;height:160px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="mut">可留空 — 收據靠 QR 核實真偽，唔簽名亦有效（免簽名被盜用）。</span><button class="btn gray sm" onclick="rcClearSig()">清除</button></div></div>
+    <div class="msg" id="rc_msg"></div>
+    <button class="btn" id="rc_gen" onclick="rcGen()" style="width:100%">生成收據 PDF</button>
+  </div>
+  <div id="rc_result"></div>
+  ${recs.length?`<div class="card"><h2>🗂️ 最近收據（${recs.length}）</h2><div class="scroll"><table><tr><th>收款對象</th><th>金額</th><th>繳費</th><th>日期／編號</th><th></th></tr>${recs.slice(0,30).map(r=>`<tr><td><b>${esc(r.name)}</b><div class="mut">${esc(r.items)}</div></td><td>$${r.total}</td><td>${esc(r.pay)}</td><td class="mut">${esc(String(r.ts).slice(0,10))}<br>${esc(r.id)}</td><td><button class="btn err sm" onclick="rcDel('${esc(r.id)}','${esc(r.name)}')">刪</button></td></tr>`).join('')}</table></div></div>`:''}`;
+  rcDrawItems();
+  tc().querySelectorAll('#rc_pay button').forEach(b=>b.onclick=()=>{ RC_PAY=b.getAttribute('data-v'); tc().querySelectorAll('#rc_pay button').forEach(x=>x.classList.toggle('active',x.getAttribute('data-v')===RC_PAY)); });
+  rcInitSig();
+}
+function rcAddItem(){ RC_ITEMS.push({desc:'',amt:''}); rcDrawItems(); }
+function rcDelItem(i){ RC_ITEMS.splice(i,1); if(!RC_ITEMS.length) RC_ITEMS.push({desc:'',amt:''}); rcDrawItems(); }
+function rcDrawItems(){
+  const box=document.getElementById('rc_items'); if(!box) return;
+  box.innerHTML=RC_ITEMS.map((it,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+    <input style="flex:1" data-i="${i}" data-k="desc" placeholder="項目描述（如：私訓 10 節套票）" value="${esc(it.desc)}">
+    <input style="width:100px" data-i="${i}" data-k="amt" inputmode="numeric" placeholder="金額" value="${esc(it.amt)}">
+    ${RC_ITEMS.length>1?`<button class="btn err sm" style="flex-shrink:0" onclick="rcDelItem(${i})">✕</button>`:''}</div>`).join('');
+  box.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{ const i=+inp.getAttribute('data-i'),k=inp.getAttribute('data-k'); RC_ITEMS[i][k]=inp.value; if(k==='amt') rcUpdTot(); });
+  rcUpdTot();
+}
+function rcUpdTot(){ const t=RC_ITEMS.reduce((s,x)=>s+(Number(x.amt)||0),0); const el=document.getElementById('rc_tot'); if(el) el.textContent='$'+t; }
+function rcInitSig(){
+  const cv=document.getElementById('rc_sig'); if(!cv) return;
+  const rect=cv.getBoundingClientRect(); cv.width=rect.width*2; cv.height=rect.height*2;
+  const ctx=cv.getContext('2d'); ctx.scale(2,2); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#1f2a30';
+  RC_SIG={cv,ctx,has:false,px:0,py:0,drawing:false};
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return [p.clientX-r.left,p.clientY-r.top]; };
+  const start=e=>{ e.preventDefault(); RC_SIG.drawing=true; [RC_SIG.px,RC_SIG.py]=pos(e); };
+  const move=e=>{ if(!RC_SIG.drawing)return; e.preventDefault(); const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(RC_SIG.px,RC_SIG.py); ctx.lineTo(x,y); ctx.stroke(); [RC_SIG.px,RC_SIG.py]=[x,y]; RC_SIG.has=true; };
+  const end=()=>{ RC_SIG.drawing=false; };
+  cv.onmousedown=start; cv.onmousemove=move; window.addEventListener('mouseup',end);
+  cv.ontouchstart=start; cv.ontouchmove=move; cv.ontouchend=end;
+}
+function rcClearSig(){ if(RC_SIG.cv){ RC_SIG.ctx.clearRect(0,0,RC_SIG.cv.width,RC_SIG.cv.height); RC_SIG.has=false; } }
+async function rcGen(){
+  const g=id=>(document.getElementById(id).value||'').trim();
+  const msg=document.getElementById('rc_msg'), btn=document.getElementById('rc_gen');
+  const name=g('rc_name');
+  const items=RC_ITEMS.map(x=>({desc:(x.desc||'').trim(),amt:Number(x.amt)||0})).filter(x=>x.desc||x.amt>0);
+  if(!name){ msg.className='msg err'; msg.textContent='請填收款對象姓名。'; return; }
+  if(!items.length){ msg.className='msg err'; msg.textContent='請至少填一個項目及金額。'; return; }
+  const sig=RC_SIG.has?RC_SIG.cv.toDataURL('image/png'):'';
+  msg.className='msg'; msg.style.cssText='display:block;background:var(--teal-dim);color:var(--teal-dark)'; msg.textContent='生成中…'; btn.disabled=true; btn.textContent='生成中…';
+  let r; try{ r=await apiPost(API4,{action:'receiptCreate',name,items,payMethod:RC_PAY,date:g('rc_date'),note:g('rc_note'),signImg:sig}); }catch(e){ r=null; }
+  btn.disabled=false; btn.textContent='生成收據 PDF'; msg.style.cssText='';
+  if(!r||r.ok===false){ msg.className='msg err'; msg.textContent=(r&&r.err)||'生成失敗'; return; }
+  msg.className='msg ok'; msg.textContent='收據 '+r.id+' 已生成並存底 ✓（下方可預覽／下載）';
+  const dataUri='data:application/pdf;base64,'+r.pdfBase64;
+  document.getElementById('rc_result').innerHTML=`<div class="card"><h2>✅ ${esc(r.id)}　$${r.total}</h2>
+    <a class="btn" href="${dataUri}" download="${esc(r.filename)}" style="display:block;text-align:center;text-decoration:none">⬇️ 下載 PDF（再 WhatsApp 畀學員）</a>
+    <iframe src="${dataUri}" style="width:100%;height:420px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:10px"></iframe></div>`;
+  document.getElementById('rc_result').scrollIntoView({behavior:'smooth'});
+}
+
+async function rcDel(id,name){
+  if(!confirm('確定刪除收據「'+name+'」（'+id+'）？收據 PDF 亦會移入垃圾桶。')) return;
+  const r=await apiPost(API4,{action:'receiptDelete',id});
+  if(!r||r.ok===false){ alert((r&&r.err)||'刪除失敗'); return; }
+  renderReceipt();
+}
+
+/* ════════════════════ TAB 7 私訓預設 ════════════════════
+   route: ptPresetList/Set/Delete（#4）。教練預設學員首課日/1對1或1對2/特別價 → 學員填私訓報名表按姓名+電話套用。老闆 2026-08-29 整合入報名管理，唔想咁多網址。*/
+let PP_EDIT=null, PP_SEL={mode:'1對1',priceMode:'標準'};
+async function renderPtPreset(){
+  loading('載入私訓預設…');
+  let ps=[];
+  try{ const r=await apiPost(API4,{action:'ptPresetList'}); if(r&&r.ok) ps=r.presets||[]; else if(!PREVIEW){ tc().innerHTML=errBox(r&&r.err); return; } }catch(e){ tc().innerHTML=errBox(); return; }
+  PP_EDIT=null; PP_SEL={mode:'1對1',priceMode:'標準'};
+  tc().innerHTML=ppForm()+ppList(ps);
+  ppBind();
+}
+function ppSeg(id,opts,cur){ return `<div class="seg" id="${id}">${opts.map(o=>`<button data-v="${o[0]}" class="${cur===o[0]?'active':''}">${o[1]}</button>`).join('')}</div>`; }
+function ppForm(){
+  const e=PP_EDIT||{};
+  PP_SEL.mode=e.mode||PP_SEL.mode||'1對1'; PP_SEL.priceMode=e.priceMode||PP_SEL.priceMode||'標準';
+  return `
+  <div class="card">
+    <h2>${PP_EDIT?'✏️ 編輯私訓預設':'➕ 新增學員私訓預設'}</h2>
+    <p class="mut" style="margin:-4px 0 12px">按<b>姓名＋電話</b>認人；學員之後填私訓報名表，姓名＋電話夾到即刻套用（首課日／形式／自訂價）。</p>
+    <div class="fld"><label>學員姓名 *</label><input id="pp_name" value="${esc(e.name||'')}" placeholder="中文姓名"></div>
+    <div class="fld"><label>聯絡電話 *（8 位或後 4 位）</label><input id="pp_phone" inputmode="numeric" value="${esc(e.phone4||'')}" placeholder="認人用"></div>
+    <div class="fld"><label>訓練形式</label>${ppSeg('pp_mode',[['1對1','1 對 1'],['1對2','1 對 2']],PP_SEL.mode)}</div>
+    <div class="fld"><label>首課生效日期</label><input id="pp_date" type="date" value="${esc(e.startDate||'')}"></div>
+    <div class="fld"><label>價格</label>${ppSeg('pp_pmode',[['標準','跟標準價表'],['自訂','自訂價格']],PP_SEL.priceMode)}</div>
+    <div class="fld" id="pp_pnwrap" style="${PP_SEL.priceMode==='自訂'?'':'display:none'}"><label>自訂價格說明（會顯示畀學員）</label>
+      <textarea id="pp_pnote" placeholder="例：1 對 2 每人 $450/堂（10 節 $4,500）">${esc(e.priceNote||'')}</textarea></div>
+    <div class="fld"><label>備註（只教練睇）</label><input id="pp_note" value="${esc(e.note||'')}" placeholder="內部備註"></div>
+    <div class="msg" id="pp_msg"></div>
+    <button class="btn" onclick="ppSave()">${PP_EDIT?'儲存修改':'新增預設'}</button>
+    ${PP_EDIT?'<button class="btn gray" style="margin-left:8px" onclick="renderPtPreset()">取消</button>':''}
+  </div>`;
+}
+function ppList(ps){
+  const rows=(ps||[]).map(p=>{
+    const used=(p.status==='已用');
+    return `<tr>
+      <td><b>${esc(p.name)}</b> <span class="mut">·${esc(p.phone4)}</span> ${used?'<span class="tag" style="background:#eef2f3;color:var(--mut)">已用</span>':'<span class="tag ok">生效</span>'}
+        <div class="mut">形式 ${esc(p.mode)}${p.startDate?('・首課 '+esc(p.startDate)):''}${p.priceMode==='自訂'?('・💰 '+esc(p.priceNote||'')):'・標準價'}${p.note?('・📝 '+esc(p.note)):''}</div></td>
+      <td><div class="rowact"><button class="btn gray sm" onclick='ppEdit(${JSON.stringify(p).replace(/</g,"&lt;").replace(/'/g,"&#39;")})'>編輯</button><button class="btn err sm" onclick="ppDel('${esc(p.id)}','${esc(p.name)}')">刪</button></div></td>
+    </tr>`;
+  }).join('')||'<tr><td class="mut">未有預設。</td></tr>';
+  return `<div class="card"><h2>📋 現有預設（${(ps||[]).length}）</h2><div class="scroll"><table>${rows}</table></div></div>`;
+}
+function ppBind(){
+  tc().querySelectorAll('#pp_mode button').forEach(b=>b.onclick=()=>{ PP_SEL.mode=b.getAttribute('data-v'); tc().querySelectorAll('#pp_mode button').forEach(x=>x.classList.toggle('active',x.getAttribute('data-v')===PP_SEL.mode)); });
+  tc().querySelectorAll('#pp_pmode button').forEach(b=>b.onclick=()=>{ PP_SEL.priceMode=b.getAttribute('data-v'); tc().querySelectorAll('#pp_pmode button').forEach(x=>x.classList.toggle('active',x.getAttribute('data-v')===PP_SEL.priceMode)); document.getElementById('pp_pnwrap').style.display=(PP_SEL.priceMode==='自訂')?'':'none'; });
+}
+function ppEdit(p){ PP_EDIT=p; PP_SEL={mode:p.mode||'1對1',priceMode:p.priceMode||'標準'}; tc().innerHTML=ppForm()+ppList([]); ppBind(); window.scrollTo(0,0); apiPost(API4,{action:'ptPresetList'}).then(r=>{ tc().innerHTML=ppForm()+ppList((r&&r.presets)||[]); ppBind(); }); }
+async function ppSave(){
+  const g=id=>(document.getElementById(id).value||'').trim();
+  const m=document.getElementById('pp_msg'); const name=g('pp_name'), phone=g('pp_phone');
+  if(!name||!phone){ m.className='msg err'; m.textContent='請填學員姓名及電話。'; return; }
+  m.className='msg'; m.style.cssText='display:block;background:var(--teal-dim);color:var(--teal-dark)'; m.textContent='儲存中…';
+  const r=await apiPost(API4,{action:'ptPresetSet',name,phone,mode:PP_SEL.mode,startDate:g('pp_date'),priceMode:PP_SEL.priceMode,priceNote:(PP_SEL.priceMode==='自訂'?g('pp_pnote'):''),note:g('pp_note')});
+  m.style.cssText='';
+  if(!r||r.ok===false){ m.className='msg err'; m.textContent=(r&&r.err)||'儲存失敗'; return; }
+  m.className='msg ok'; m.textContent=(r.updated?'已更新':'已新增')+'預設 ✓'; setTimeout(renderPtPreset,700);
+}
+async function ppDel(id,name){ if(!confirm('確定刪除「'+name+'」嘅私訓預設？')) return; const r=await apiPost(API4,{action:'ptPresetDelete',id}); if(!r||r.ok===false){ alert((r&&r.err)||'刪除失敗'); return; } renderPtPreset(); }
 
 if(PREVIEW){ CP='(預覽)'; ST.sum=JSON.parse(JSON.stringify(DEMO.enrollSummary)); ST.enrollPeriod='2026 9-10月'; document.getElementById('rfbtn').style.display=''; renderShell(); switchTab('enroll'); }
 else renderLogin();

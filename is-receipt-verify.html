@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#28B8C8">
+<title>INITIATE SPORTS 收據核實</title>
+<style>
+:root{ --teal:#28B8C8; --teal-dark:#1F9DAC; --teal-dim:rgba(40,184,200,0.10); --ink:#1f2a30; --mut:#66757c; --line:#e3e9ec; --bg:#f5f8f9; --ok:#1a9e6a; --err:#c0392b; }
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;}
+.wrap{max-width:480px;margin:0 auto;padding:22px 16px 60px;}
+.brand{text-align:center;margin-bottom:14px;}
+.brand .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--teal);margin-right:7px;}
+.brand b{font-size:15px;font-weight:800;letter-spacing:.3px;}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.status{text-align:center;padding:8px 0 4px;}
+.status .ic{font-size:40px;}
+.status h1{font-size:19px;margin:6px 0 2px;font-weight:800;}
+.status.ok h1{color:var(--ok);} .status.bad h1{color:var(--err);}
+.status p{font-size:13px;color:var(--mut);margin:0;}
+.kv{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:16px;}
+.kv .r{display:flex;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px;}
+.kv .r:last-child{border-bottom:none;}
+.kv .k{color:var(--mut);flex-shrink:0;} .kv .v{font-weight:700;text-align:right;overflow-wrap:anywhere;}
+.kv .r.tot{background:var(--teal-dim);} .kv .r.tot .v{color:var(--teal-dark);font-size:17px;font-weight:800;}
+.note{font-size:12px;color:var(--mut);margin-top:14px;line-height:1.6;text-align:center;}
+.load{text-align:center;color:var(--mut);padding:40px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="dot"></span><b>INITIATE SPORTS</b></div>
+  <div class="card" id="box"><div class="load">核實中…</div></div>
+  <div class="note">此頁顯示 INITIATE SPORTS 系統內收據正本內容。如與你手上文件不符，該文件即屬偽造或經竄改。查詢 WhatsApp 6331 7403。</div>
+</div>
+<script>
+const API4='https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec';
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function qp(k){ return new URLSearchParams(location.search).get(k)||''; }
+function bad(msg){ document.getElementById('box').innerHTML=`<div class="status bad"><div class="ic">⚠️</div><h1>無法核實</h1><p>${esc(msg||'查無此收據，或連結無效／已被竄改。')}</p></div>`; }
+function ok(r){
+  document.getElementById('box').innerHTML=`
+    <div class="status ok"><div class="ic">✅</div><h1>正本收據</h1><p>此收據由 INITIATE SPORTS 系統核實為真</p></div>
+    <div class="kv">
+      <div class="r"><span class="k">收據編號</span><span class="v">${esc(r.id)}</span></div>
+      <div class="r"><span class="k">收款對象</span><span class="v">${esc(r.name)}</span></div>
+      <div class="r"><span class="k">項目</span><span class="v">${esc(r.items)}</span></div>
+      <div class="r tot"><span class="k">總額</span><span class="v">$${esc(r.total)}</span></div>
+      <div class="r"><span class="k">繳費方式</span><span class="v">${esc(r.pay)}</span></div>
+      ${r.note?`<div class="r"><span class="k">備註</span><span class="v">${esc(r.note)}</span></div>`:''}
+      <div class="r"><span class="k">開立日期</span><span class="v">${esc(r.date)}</span></div>
+    </div>`;
+}
+(async()=>{
+  const id=qp('id'), t=qp('t');
+  if(!id){ bad('連結缺少收據編號。'); return; }
+  try{
+    const r=await fetch(API4+'?action=receiptVerify&id='+encodeURIComponent(id)+'&t='+encodeURIComponent(t),{redirect:'follow'});
+    const j=await r.json();
+    if(j&&j.ok&&j.found) ok(j); else bad();
+  }catch(e){ bad('網絡問題，請稍後再試。'); }
+})();
+</script>
+</body>
+</html>
