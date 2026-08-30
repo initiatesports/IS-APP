@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-term9';
+const FRONTEND_VERSION='parent-2026-08-31-term9b';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -725,6 +725,7 @@ function renderParent(){
   // 🌐 官網入口（登入後置頂）
   html+=`<a class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;box-shadow:0 6px 18px rgba(27,141,155,.25)" href="is-home.html">🌐 ${LANG==='en'?'INITIATE SPORTS Website':'INITIATE SPORTS 官網'}　›</a>`;
   // ☀️ 暑期班已結束（2026-08-31）→ 暑期補堂橋接按鈕已移除（暑期補堂系統改為關閉頁）。三個功能按鈕直接置頂。
+  const promoActive=false;   // 冇任何限時推廣按鈕；下面 if(promoActive) 嘅底部 featureLinks 唔會再 render（避免重複）
   html+=featureLinks();
   html+=socialCard();
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
