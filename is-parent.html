@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-term9b';
+const FRONTEND_VERSION='parent-2026-08-31-kpikid';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -462,8 +462,8 @@ function effectiveDefaultPeriod(kids){
   const cur=currentPeriodIdx(), ps=termPeriods(), next=cur+1, today=todayStr();
   if(ps.indexOf(next)<0) return cur;
   const allClasses=[]; (kids||[]).forEach(ch=>(ch.classes||[]).forEach(c=>allClasses.push(c)));
-  const hasFutureCur=allClasses.some(c=>(c.sessions||[]).some(s=>biMonthOf(s.date)===cur && s.date>=today));
-  if(hasFutureCur) return cur;                                              // 當前期仲有堂 → 唔跳
+  const hasFutureCur=allClasses.some(c=>(c.sessions||[]).some(s=>biMonthOf(s.date)===cur && s.date>today));   // 用 >today：今日係最後一堂就當該期完，跳去下一期（老闆 2026-08-31，梁正宇個案）
+  if(hasFutureCur) return cur;                                              // 當前期仲有「今日之後」嘅堂 → 唔跳
   const hasNext=allClasses.some(c=>(c.sessions||[]).some(s=>biMonthOf(s.date)===next));
   return hasNext ? next : cur;                                             // 下一期已排期先跳（未排期就留返當前期）
 }
@@ -601,7 +601,7 @@ async function ensureLatestBeforeLogin(){
 function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids,childTokens:(r.childTokens||{})}; S.session={name,last4};
-  S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
+  S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.enrollPeriodLabel=r.enrollPeriodLabel||'9-10月';
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
@@ -689,13 +689,16 @@ function famSummary(kids){
   let next=null; shown.forEach(c=>{ let nx; try{nx=nextClassInfo(c);}catch(e){} if(nx&&nx.date&&(!next||nx.date<next.date)) next=nx; });
   let due=0, payShown=false; try{payShown=payOpen(S.period);}catch(e){}
   if(payShown) shown.forEach(c=>{ let f; try{f=feeForPeriod(c,S.period);}catch(e){} if(f&&f.status!=='已繳'&&f.status!=='豁免') due+=Number(f.net)||0; });
+  // 新報名期(9-10月)：以報名核實為準（fee status 對報名/未報名都係豁免）→ 有未報名子女就當「未激活」，唔好誤報「已繳清」（老闆 2026-08-31）
+  const _notEnrolled9 = S.enrollPeriodLabel && periodLabel(S.period)===S.enrollPeriodLabel && shown.some(c=>c.enrolled9===false);
   let nTop,nSub;
   if(next){ const dl=daysLeft(next.date); const d=new Date(next.date+'T00:00:00');
-    nTop=`${d.getMonth()+1}/${d.getDate()}`;
+    nTop=`${d.getDate()}/${d.getMonth()+1}`;   // D/M（老闆 2026-08-31 日期規則）
     nSub=dl<=0?L('今日','Today'):(dl===1?L('聽日','Tmr'):L(dl+'天後',dl+'d'));
   } else { nTop='—'; nSub=L('暫無','None'); }
   let dTop,dSub,dClear;
   if(!payShown){ dTop='—'; dSub=L('未開放','—'); dClear=false; }
+  else if(_notEnrolled9){ dTop='🔒'; dSub=L('未激活','inactive'); dClear=false; }   // 未報名新期 → 未激活（唔顯示已繳清）
   else if(due>0){ dTop=`<small>$</small>${due}`; dSub=L('待繳','due'); dClear=false; }
   else { dTop='✓'; dSub=L('已繳清','paid'); dClear=true; }
   return `<div class="fam-sum">
@@ -747,7 +750,7 @@ function renderParent(){
     html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px">${kids.map((c,i)=>`<button onclick="setKid(${i})" style="flex:1;min-width:88px;padding:12px 8px;border-radius:12px;border:2px solid ${i===S.kid?'var(--teal,#28B8C8)':'var(--line,#e3e3e3)'};background:${i===S.kid?'var(--teal,#28B8C8)':'#fff'};color:${i===S.kid?'#fff':'var(--ink,#202020)'};font-weight:800;font-size:14.5px;cursor:pointer">${c.name}</button>`).join('')}</div>`;
   }
   const showIdx = multi ? [S.kid] : kids.map((_,i)=>i);
-  html+=famSummary(kids);   // 🧭 家庭概覽（下一堂／待補堂／本期待繳；純顯示）
+  html+=famSummary(showIdx.map(i=>kids[i]).filter(Boolean));   // 🧭 概覽（下一堂／待補堂／本期待繳）——只計顯示緊嗰個小朋友，同下面班卡一致（老闆 2026-08-31：多孩家庭 KPI 跟選中嗰個，唔好因兄弟姊妹未報名而誤報未激活）
   // 💳 付款功能區：緊貼月份／小朋友選擇器下面（退出可回歸學生唔顯示，改用回歸面板）
   showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable && !child.ptOnly) html+=paymentCard(child,ki); });
   showIdx.forEach(ki=>{
@@ -788,7 +791,11 @@ function renderParent(){
         <div style="font-size:11.5px;opacity:.85;margin-top:4px">${t('upMkHint')}</div></div>`;
     }
     html+=`<div class="cards-grid">`;
-    (child.classes||[]).forEach((c,ci)=> html+=classCard(child,ki,c,ci));
+    (child.classes||[]).forEach((c,ci)=>{
+      const sessP=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).length;
+      if(sessP===0 && (Number(c.owed)||0)===0) return;   // 該期冇堂又冇待補堂（如已 drop／未報嗰班）→ 唔顯示空卡（老闆 2026-08-31，梁正宇 c2 已 drop）
+      html+=classCard(child,ki,c,ci);
+    });
     html+=ptCard(child);
     html+=extrasCard(child,ki);
     html+=`</div>`;
@@ -865,7 +872,7 @@ function classCard(child,ki,c,ci){
       <div class="stat"><div class="n">${pLeave}</div><div class="k">${t('onLeave')}</div></div>
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
-    ${attendanceViz(c)}
+    ${''/* 全期出席趨勢圖已移除（老闆 2026-08-31）：過期未補請假會拉低%，家長易誤會＝小朋友出席差，其實係佢哋自己冇補。attendanceViz() 保留備日後需要。*/}
     ${owed>0&&mkDl?`<div class="dlnote">${t('dlNote',owed,fmtDate(mkDl))}</div>`:''}
     ${(function(){
       const active=termActivated(child,S.period);
@@ -999,8 +1006,11 @@ function isPeriodActive(child,idx){ if(idx<=currentPeriodIdx()) return true; con
 //   但只有真・「未繳」先當未激活；待核實(已交截圖)/部分/已繳/豁免 一律當 active，唔會誤灰化交咗錢嘅家長。
 function termActivated(child,idx){
   if(idx < currentPeriodIdx()) return true;                 // 過去期一律 active（唔灰化已完成期）
+  // 🆕 新報名期（9-10月新學年）：收費喺報名系統繳，fee status 對所有人都係「豁免」→ 唔可靠。
+  //    以「已核實報名」(child.enrolled9) 為激活準：報咗名核實＝已繳→active；未報名＝真・未繳→灰化。（老闆 2026-08-31）
+  if(S.enrollPeriodLabel && periodLabel(idx)===S.enrollPeriodLabel) return child.enrolled9!==false;   // 只有明確「未報名核實」(false)先灰化；舊 cache(undefined) 當 active 免誤灰，refresh 後即準
   const f=feeForPeriod(child,idx);
-  if(!f) return idx <= currentPeriodIdx();                  // 冇費記錄：當前期當 active（現有生無新費），純未來期未激活
+  if(!f) return idx <= currentPeriodIdx();                  // 其他期：冇費記錄→當前期 active、純未來期未激活
   return f.status !== '未繳';                                 // 有費記錄：只有真・未繳先灰化
 }
 // 未補堂摘要：仲可補嘅堂數 + 最近限期 + 已過期數
