@@ -35,11 +35,13 @@ function ptBlock(file) {
 
 // ── 1) 私人訓練內容三檔一致（官網為準）────────────────────────────────────────
 console.log('\n[1] 私人訓練 (PT) 內容跨檔一致 — 以 index.html 官網為準');
-const PT_FILES = ['index.html', 'is-parent.html', 'is-leave-makeup.html'];
+// 2026-08-31：index.html 改用 v3 設計，PT 用獨立 panel（唔再係 ptx-pane modal）→ 唔再納入 modal 一致性檢查；
+//   剩返 is-parent / is-leave-makeup 兩個仍有 ptx-pane 嘅 web app 互相對齊，以 is-parent 為基準。
+const PT_FILES = ['is-parent.html', 'is-leave-makeup.html'];
 const blocks = PT_FILES.map((f) => ({ f, b: ptBlock(f) }));
 const canonical = blocks[0].b;
 if (!canonical) {
-  bad('搵唔到 index.html 嘅 PT 內容區（官網基準遺失？）');
+  bad('搵唔到 is-parent.html 嘅 PT 內容區（基準遺失？）');
 } else {
   for (const { f, b } of blocks) {
     if (b === null) bad(`${f} 缺少 PT 內容區（ptx-pane-kid…/ptx-pane-adult）`);
@@ -84,8 +86,9 @@ console.log('\n[4] is-attendance-app.html 章別 BADGE_DATA Level 1–14 齊全'
 console.log('\n[5] index.html 器材清單核心項目存在');
 {
   const t = read('index.html');
-  for (const name of ['拍子繩', '鋼絲繩', '膠繩', '跳繩袋']) {
-    if (t.includes(`name:'${name}'`)) ok(`器材「${name}」存在`);
+  // 2026-08-31：v3 器材用全名（專業硬珠拍子繩／鋼絲速度繩／速度膠繩／帆布跳繩袋）→ 改用子字串比對，防格式綁死
+  for (const name of ['拍子繩', '鋼絲', '膠繩', '跳繩袋']) {
+    if (t.includes(name)) ok(`器材「${name}」存在`);
     else bad(`器材「${name}」遺失`);
   }
 }
