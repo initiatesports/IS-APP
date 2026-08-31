@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-29-leavenextp';
+const FRONTEND_VERSION='parent-2026-08-31-term9b';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -414,7 +414,7 @@ function dow(d){ return LANG==='en'?`(${WD.en[d.getDay()]})`:`（星期${WD.zh[d
 /* ═══════════ 工具 ═══════════ */
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function todayStr(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
-function fmt(d){return LANG==='en'?`${MON_EN[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`:`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
+function fmt(d){const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;}   // 日期一律 DD/MM/YYYY（老闆 2026-08-31 全系統規則）
 function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-').map(Number);return fmt(new Date(y,m-1,d));}
 function classLabel(cid){const c=CLASSES[cid];if(!c)return cid;const day=LANG==='en'?({'星期一':'Mon','星期二':'Tue','星期三':'Wed','星期四':'Thu','星期五':'Fri','星期六':'Sat','星期日':'Sun'}[c.dayZh]||c.dayZh):c.dayZh;return day+' '+c.time;}
 function classKey(c){return c.key||c.sport;}
@@ -456,11 +456,22 @@ function periodHasBookableMakeup_(kids,p){
   }
   return false;
 }
+// 有效顯示期：預設當前期；但若當前期所有堂都已上完（冇今日或之後嘅堂），而下一期已排期（有堂）
+//   → 直接顯示下一期（老闆 2026-08-31：學員上完當期、下堂等到下一期，就直接見到新一期）。
+function effectiveDefaultPeriod(kids){
+  const cur=currentPeriodIdx(), ps=termPeriods(), next=cur+1, today=todayStr();
+  if(ps.indexOf(next)<0) return cur;
+  const allClasses=[]; (kids||[]).forEach(ch=>(ch.classes||[]).forEach(c=>allClasses.push(c)));
+  const hasFutureCur=allClasses.some(c=>(c.sessions||[]).some(s=>biMonthOf(s.date)===cur && s.date>=today));
+  if(hasFutureCur) return cur;                                              // 當前期仲有堂 → 唔跳
+  const hasNext=allClasses.some(c=>(c.sessions||[]).some(s=>biMonthOf(s.date)===next));
+  return hasNext ? next : cur;                                             // 下一期已排期先跳（未排期就留返當前期）
+}
 function visiblePeriods(kids){
-  // 老闆 2026-08-28：只顯示「當前期」，前後期都唔顯示（減少洩露，家長唔會翻舊帳／預先睇未來期）。
-  //   ⚠️ 過去期未補嘅請假唔會因此消失：班卡「申請補堂」掣用 c.owed（跨所有期數總和），過去期欠堂照樣 book 得到（見 classCard 851-857、openMakeup）。
-  //   保留 kids 參數同 periodHasBookableMakeup_ 定義以維持相容，唔再用嚟擴充顯示期。
-  return [currentPeriodIdx()];
+  // 老闆 2026-08-28：只顯示單一期（減少洩露，家長唔翻舊帳／預先睇未來期）。
+  //   2026-08-31：由 effectiveDefaultPeriod 決定係當前期定係（上完後）下一期。
+  //   ⚠️ 過去期未補嘅請假唔會消失：班卡「申請補堂」掣用 c.owed（跨所有期總和），過去期欠堂照樣 book 得到。
+  return [effectiveDefaultPeriod(kids)];
 }
 // 未來期付款開放日＝該期首月前一個月「倒數第二個星期日」（如 9-10月 → 8月倒數第2個禮拜日 2026-08-23）
 function penultSundayISO(y,m){const last=new Date(y,m,0).getDate();const sun=[];for(let d=1;d<=last;d++)if(new Date(y,m-1,d).getDay()===0)sun.push(d);const dd=sun[sun.length-2]||sun[sun.length-1]||1;return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;}
@@ -705,27 +716,17 @@ function openGrowthReport(name){
 function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
   const kids=(S.family&&S.family.children)||[];
-  if(S.period==null) S.period=currentPeriodIdx();
+  if(S.period==null) S.period=effectiveDefaultPeriod(kids);
   const periods=visiblePeriods(kids);
-  if(periods.indexOf(S.period)<0) S.period=currentPeriodIdx();
+  if(periods.indexOf(S.period)<0) S.period=periods[0];
   // 只得當前期就唔顯示期數 tab（孤零零一個 tab 冇意思；班卡本身有標「X-Y月・共N堂」）。老闆 2026-08-28。
   const selector = periods.length>1 ? `<div class="period-bar">${periods.map(i=>`<button class="period-btn ${i===S.period?'on':''}" onclick="setPeriod(${i})">${periodLabel(i)}</button>`).join('')}</div>` : '';
   let html=`<div class="wrap">`;
   // 🌐 官網入口（登入後置頂）
   html+=`<a class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;text-decoration:none;font-weight:800;background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;box-shadow:0 6px 18px rgba(27,141,155,.25)" href="is-home.html">🌐 ${LANG==='en'?'INITIATE SPORTS Website':'INITIATE SPORTS 官網'}　›</a>`;
-  // 限時推廣按鈕是否仍在生效（6–7月特別課程已提前暫停 → 只剩暑期班補堂橋接）
-  const promoActive = !!S.summerBridge;
-  // 推廣按鈕都過期後，三個功能按鈕自動升上頂部
-  if(!promoActive) html+=featureLinks();
-  // 📣 6–7月特別課程已提前暫停（2026-06-27），報名按鈕已移除
-  // ☀️ 暑期班請假補堂橋接（後端 summerBridge 控制；2026-09-01 起自動消失）
-  if(S.summerBridge){
-    html+=`<div class="card" style="border:0;margin:0 0 12px;padding:14px 16px;background:linear-gradient(135deg,#ffb347,#ff8c42);color:#fff;box-shadow:0 6px 18px rgba(255,140,66,.3)">
-      <div style="font-weight:800;font-size:15px;display:flex;align-items:center;gap:7px">☀️ ${LANG==='en'?'Summer course leave / make-up':'暑期班請假・補堂'}</div>
-      <div style="font-size:12.5px;line-height:1.5;margin:5px 0 11px;opacity:.95">${LANG==='en'?'Got a child enrolled in a summer course? Handle their leave and make-up here too.':'小朋友有報暑期班？暑期班嘅請假同補堂，喺呢度一齊搞掂。'}</div>
-      <button class="btn" style="background:#fff;color:#d2691e;font-weight:800;box-shadow:none" onclick="openSummer()">${LANG==='en'?'Open summer leave / make-up':'前往暑期班請假補堂'}　›</button>
-    </div>`;
-  }
+  // ☀️ 暑期班已結束（2026-08-31）→ 暑期補堂橋接按鈕已移除（暑期補堂系統改為關閉頁）。三個功能按鈕直接置頂。
+  const promoActive=false;   // 冇任何限時推廣按鈕；下面 if(promoActive) 嘅底部 featureLinks 唔會再 render（避免重複）
+  html+=featureLinks();
   html+=socialCard();
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
   html+=`<div style="display:flex;justify-content:flex-end;margin:2px 0 6px"><button class="btn ghost" style="width:auto;padding:7px 14px;font-size:13px" onclick="openPin()">${t('pinBtn')}</button></div>`;
@@ -828,7 +829,8 @@ function attendanceViz(c){
   const dots=past.map(s=>{ let cls='d-none';
     if(s.status==='出席'){cls='d-go';att++;base++;}
     else if(s.status==='補堂'){cls='d-mk';att++;base++;}
-    else if(s.status==='請假'){cls='d-leave';base++;}
+    // 已補堂嘅請假＝當日缺席但已補返 → 計入出席（同「已補堂」pill、owed=0 對齊，唔再扣出席率）。老闆 2026-08-31。
+    else if(s.status==='請假'){ if(s.madeUp){cls='d-mk';att++;base++;} else {cls='d-leave';base++;} }
     return `<span class="a-dot ${cls}"></span>`;
   }).join('');
   const pct=base?Math.round(att/base*100):null;
@@ -865,27 +867,47 @@ function classCard(child,ki,c,ci){
     </div>
     ${attendanceViz(c)}
     ${owed>0&&mkDl?`<div class="dlnote">${t('dlNote',owed,fmtDate(mkDl))}</div>`:''}
-    ${ isPeriodActive(child,S.period) ? `
-    <div class="rowbtns">
+    ${(function(){
+      const active=termActivated(child,S.period);
+      const owed=c.owed||0;
+      const mkBtn = owed>0
+        ? `<button class="btn sm" onclick="openMakeup(${ki},${ci})">${t('applyMk')} (${owed})</button>`
+        : `<button class="btn sm" disabled>${t('applyMk')}</button>`;
+      if(active){
+        return `<div class="rowbtns">
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">${t('applyLeave')}</button>
-      <button class="btn sm" onclick="openMakeup(${ki},${ci})" ${(c.owed||0)<=0?'disabled':''}>${t('applyMk')}${(c.owed||0)>0?` (${c.owed})`:''}</button>
+      ${mkBtn}
     </div>
     <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>
-    ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}
-    ` : (S.period>currentPeriodIdx() && !payOpen(S.period)
-        ? `<div class="banner" style="margin-top:8px;background:#eef7f8;border-color:#bfe3e7;color:#0a6b74">🗓️ ${periodLabel(S.period)}${LANG==='en'?' schedule ready; payment opens '+fmtDate(payOpenDate(S.period)):' 課堂表已排定；付款將於 '+fmtDate(payOpenDate(S.period))+' 開放'}</div>`
-        : `<div class="banner cancel" style="margin-top:8px">${t('feeLock',periodLabel(S.period))}</div>`) }
+    ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}`;
+      }
+      // 未激活・付款未開放（更遠嘅未來期）→ 排定通知
+      if(S.period>currentPeriodIdx() && !payOpen(S.period)){
+        return `<div class="banner" style="margin-top:8px;background:#eef7f8;border-color:#bfe3e7;color:#0a6b74">🗓️ ${periodLabel(S.period)}${LANG==='en'?' schedule ready; payment opens '+fmtDate(payOpenDate(S.period)):' 課堂表已排定；付款將於 '+fmtDate(payOpenDate(S.period))+' 開放'}</div>`;
+      }
+      // 未激活・已開放但未繳費 → 灰化提示（老闆 2026-08-31）；仲有補堂就照畀約
+      const payMsg=`<div class="banner" style="margin-top:8px;background:#f4f6f7;border:1px solid #dde3e6;color:#5f6f74;text-align:center;line-height:1.65;padding:12px 14px">
+        🔒 <b>${periodLabel(S.period)}</b> ${LANG==='en'?'not activated yet':'課堂尚未激活'}<br>
+        <span style="font-size:12.5px">${LANG==='en'?'Please contact your coach to pay and activate this term’s sessions.':'請盡快聯絡教練繳費，以激活新一期課堂堂數。'}</span></div>`;
+      const mkLeftover = owed>0 ? `<div style="margin-top:8px;padding:11px 13px;border-radius:12px;background:var(--amber-dim,rgba(217,138,31,.1));border:1px solid rgba(217,138,31,.3)">
+          <div style="font-size:13px;color:var(--amber);font-weight:700;margin-bottom:8px">⏳ ${LANG==='en'?`You still have ${owed} class(es) to make up`:`你仲有 ${owed} 堂補堂未約`}</div>
+          ${mkBtn}
+        </div>` : '';
+      return payMsg + mkLeftover;
+    })()}
     ${(function(){
       const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
       const madeUp=new Set((c.makeups||[]).filter(m=>m.status==='出席'&&m.from).map(m=>m.from));
-      return `<div style="margin-top:10px">${list.map(s=>sessRow(s,c.key,madeUp)).join('')}</div>`;
+      const greyed = !termActivated(child,S.period);   // 未激活（未繳費）→ 課堂表灰化
+      return `<div style="margin-top:10px${greyed?';opacity:.5;filter:grayscale(.55)':''}">${list.map(s=>sessRow(s,c.key,madeUp)).join('')}</div>`;
     })()}
     ${(function(){
       const today=todayStr();
-      // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂顯示喺佢對應請假嗰期；早過最早可見 tab 嘅請假(如3-4月)歸入最早 tab。避免 7-8月補堂撈落 5-6月。
-      const _earlyP=visiblePeriods((S.family&&S.family.children)||[])[0];   // kids-aware 最早可見期（同 tab 一致；此函數非 renderParent scope，故重算）
-      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period || (S.period===_earlyP && lp<_earlyP); }).sort((a,b)=>a.date<b.date?-1:1);
+      // 已約補堂：按「原請假期」歸位（老闆定）—— 補堂只顯示喺佢對應請假嗰期。
+      // 2026-08-31 移除「早過最早可見 tab 嘅請假歸入最早 tab」lump：會令舊期(如5-6月)已完成補堂撈入當前期(7-8月)、家長覺得毫不相干。
+      // pending(未上)補堂唔會因此漏睇——頂部 upcomingMakeups 摘要已跨期列出所有未來已約補堂。
+      const up=(c.makeups||[]).filter(m=>{ const lp=(m.from?biMonthOf(m.from):biMonthOf(m.date)); return lp===S.period; }).sort((a,b)=>a.date<b.date?-1:1);
       if(!up.length) return '';
       return `<div class="mk-booked"><div class="h">${t('booked')}</div>
         ${up.map(m=>{
@@ -972,6 +994,15 @@ function socialCard(){
 }
 function feeForPeriod(child,idx){ const lbl=periodLabel(idx); return (child.fees||[]).find(x=>String(x.period).endsWith(lbl)); }
 function isPeriodActive(child,idx){ if(idx<=currentPeriodIdx()) return true; const f=feeForPeriod(child,idx); return !!(f&&f.active); }
+// 新一期「已激活」＝已繳費／豁免／已提交待核實／部分繳（老闆 2026-08-31：未繳先灰化提示繳費激活）。
+//   同 isPeriodActive 分別：呢個對「當前期」都會 gate（令 9-10月 一到 9/1 變當前期、未繳都繼續灰化），
+//   但只有真・「未繳」先當未激活；待核實(已交截圖)/部分/已繳/豁免 一律當 active，唔會誤灰化交咗錢嘅家長。
+function termActivated(child,idx){
+  if(idx < currentPeriodIdx()) return true;                 // 過去期一律 active（唔灰化已完成期）
+  const f=feeForPeriod(child,idx);
+  if(!f) return idx <= currentPeriodIdx();                  // 冇費記錄：當前期當 active（現有生無新費），純未來期未激活
+  return f.status !== '未繳';                                 // 有費記錄：只有真・未繳先灰化
+}
 // 未補堂摘要：仲可補嘅堂數 + 最近限期 + 已過期數
 function owedSummary(child){
   const h=childHistory(child);

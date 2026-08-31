@@ -1889,7 +1889,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-29-cmsguard';
+const FRONTEND_VERSION='attapp-2026-08-31-dmy';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -2296,7 +2296,7 @@ function loadRollSession() {
   }
 
   const d = new Date(rollSelectedDate + 'T00:00:00');
-  const label = `${d.getMonth()+1}月${d.getDate()}日 · 預設全部出席，只需標記請假或補堂`;
+  const label = `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} · 預設全部出席，只需標記請假或補堂`;
   document.getElementById('roll-info-bar').textContent = '📅 ' + label;
 
   renderRollTable();
@@ -2309,7 +2309,7 @@ function renderHome() {
   const h = new Date().getHours();
   const greet = h < 12 ? '早晨 ☀' : h < 18 ? '午安 👋' : '晚上好 🌙';
   document.getElementById('greeting-text').textContent = greet;
-  document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('zh-HK', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('greeting-date').textContent = (()=>{const n=new Date(),p=x=>String(x).padStart(2,'0');return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+'（星期'+'日一二三四五六'[n.getDay()]+'）';})();   // DD/MM/YYYY
 
   // 總學生數＝unique 活躍學生：去重（一週上兩堂只計一次）＋排除示範 demo。
   // （本頁無 PERIOD_VOID 資料，暫停學生以 coach.html 為準；此處先修「重複計＋demo」兩大主因。）
@@ -3185,7 +3185,7 @@ function getFeeDates(classId, period) {
 }
 
 function fmtFeeDate(d) {
-  return `${d.getMonth()+1}月${d.getDate()}日`;
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 }
 
 function renderFee() {
