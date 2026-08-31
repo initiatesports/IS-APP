@@ -561,7 +561,7 @@ function render(){
 function revealScan(){var vh=window.innerHeight;document.querySelectorAll('[data-reveal]').forEach(function(el){if(el.getBoundingClientRect().top<vh*0.94)el.classList.add('rv-in');});}
 window.addEventListener('scroll',function(){if(window._rvraf)return;window._rvraf=requestAnimationFrame(function(){window._rvraf=null;revealScan();});},{passive:true});
 var _mq=window.matchMedia('(min-width:1024px)');_mq.addEventListener('change',render);
-/* ── #11 CMS 動態載入：證書驗證(cert_registry) + 學生成就(achievements)（老闆 2026-08-31 做法1；課程/知識/器材暫用 code 內容，日後改 admin 再全駁）──
+/* ── #11 CMS 動態載入：證書驗證(cert_registry) + 學生成就(achievements) + 知識分享(knowledge_posts)（老闆 2026-08-31；器材/課程做法2進行中，seed #11+改admin後再接）──
    格式同 v3 CERTS / ACH 一致（已核實）；#11 有資料就覆寫內建預設，令教練端 admin 新增證書/成就即時反映、證書驗證唔會凍結。*/
 var CMS_API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 function _cmsArr(map,k){ var v=map[k]; if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(e){ return null; } } return Array.isArray(v)?v:null; }
@@ -577,6 +577,11 @@ function cmsApply(settings){
     if(d.length) AWARDS=d;
   }
   var ac=_cmsArr(map,'achievements'); if(ac&&ac.length) ACH=ac;
+  // 知識分享（#11 knowledge_posts；欄位兼容 v3 POSTS，正規化後覆寫，有值先覆蓋）——老闆 2026-08-31 做法2
+  var kp=_cmsArr(map,'knowledge_posts');
+  if(kp&&kp.length){ POSTS=kp.filter(function(p){return p&&(p.title||p.body);}).map(function(p){
+    return {id:String(p.id||('k'+(p.title||'').length)), tag:String(p.tag||''), title:String(p.title||''),
+      image:String(p.image||p.img||''), summary:String(p.summary||''), body:String(p.body||'')}; }); }
 }
 function cmsLoad(){
   try{ fetch(CMS_API+'?action=home&_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){ try{ cmsApply((d&&d.settings)||[]); render(); }catch(e){} }).catch(function(){}); }catch(e){}
