@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-enroll9';
+const FRONTEND_VERSION='parent-2026-08-31-kpi9';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -689,13 +689,16 @@ function famSummary(kids){
   let next=null; shown.forEach(c=>{ let nx; try{nx=nextClassInfo(c);}catch(e){} if(nx&&nx.date&&(!next||nx.date<next.date)) next=nx; });
   let due=0, payShown=false; try{payShown=payOpen(S.period);}catch(e){}
   if(payShown) shown.forEach(c=>{ let f; try{f=feeForPeriod(c,S.period);}catch(e){} if(f&&f.status!=='已繳'&&f.status!=='豁免') due+=Number(f.net)||0; });
+  // 新報名期(9-10月)：以報名核實為準（fee status 對報名/未報名都係豁免）→ 有未報名子女就當「未激活」，唔好誤報「已繳清」（老闆 2026-08-31）
+  const _notEnrolled9 = S.enrollPeriodLabel && periodLabel(S.period)===S.enrollPeriodLabel && shown.some(c=>c.enrolled9===false);
   let nTop,nSub;
   if(next){ const dl=daysLeft(next.date); const d=new Date(next.date+'T00:00:00');
-    nTop=`${d.getMonth()+1}/${d.getDate()}`;
+    nTop=`${d.getDate()}/${d.getMonth()+1}`;   // D/M（老闆 2026-08-31 日期規則）
     nSub=dl<=0?L('今日','Today'):(dl===1?L('聽日','Tmr'):L(dl+'天後',dl+'d'));
   } else { nTop='—'; nSub=L('暫無','None'); }
   let dTop,dSub,dClear;
   if(!payShown){ dTop='—'; dSub=L('未開放','—'); dClear=false; }
+  else if(_notEnrolled9){ dTop='🔒'; dSub=L('未激活','inactive'); dClear=false; }   // 未報名新期 → 未激活（唔顯示已繳清）
   else if(due>0){ dTop=`<small>$</small>${due}`; dSub=L('待繳','due'); dClear=false; }
   else { dTop='✓'; dSub=L('已繳清','paid'); dClear=true; }
   return `<div class="fam-sum">
