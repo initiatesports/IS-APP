@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-term9b';
+const FRONTEND_VERSION='parent-2026-08-31-enroll9';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -601,7 +601,7 @@ async function ensureLatestBeforeLogin(){
 function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids,childTokens:(r.childTokens||{})}; S.session={name,last4};
-  S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge;
+  S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.enrollPeriodLabel=r.enrollPeriodLabel||'9-10月';
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
@@ -999,8 +999,11 @@ function isPeriodActive(child,idx){ if(idx<=currentPeriodIdx()) return true; con
 //   但只有真・「未繳」先當未激活；待核實(已交截圖)/部分/已繳/豁免 一律當 active，唔會誤灰化交咗錢嘅家長。
 function termActivated(child,idx){
   if(idx < currentPeriodIdx()) return true;                 // 過去期一律 active（唔灰化已完成期）
+  // 🆕 新報名期（9-10月新學年）：收費喺報名系統繳，fee status 對所有人都係「豁免」→ 唔可靠。
+  //    以「已核實報名」(child.enrolled9) 為激活準：報咗名核實＝已繳→active；未報名＝真・未繳→灰化。（老闆 2026-08-31）
+  if(S.enrollPeriodLabel && periodLabel(idx)===S.enrollPeriodLabel) return child.enrolled9!==false;   // 只有明確「未報名核實」(false)先灰化；舊 cache(undefined) 當 active 免誤灰，refresh 後即準
   const f=feeForPeriod(child,idx);
-  if(!f) return idx <= currentPeriodIdx();                  // 冇費記錄：當前期當 active（現有生無新費），純未來期未激活
+  if(!f) return idx <= currentPeriodIdx();                  // 其他期：冇費記錄→當前期 active、純未來期未激活
   return f.status !== '未繳';                                 // 有費記錄：只有真・未繳先灰化
 }
 // 未補堂摘要：仲可補嘅堂數 + 最近限期 + 已過期數
