@@ -582,6 +582,11 @@ function cmsApply(settings){
   if(kp&&kp.length){ POSTS=kp.filter(function(p){return p&&(p.title||p.body);}).map(function(p){
     return {id:String(p.id||('k'+(p.title||'').length)), tag:String(p.tag||''), title:String(p.title||''),
       image:String(p.image||p.img||''), summary:String(p.summary||''), body:String(p.body||'')}; }); }
+  // 器材銷售（#11 equipment_items；隱藏缺貨(inStock===false)，有貨先覆寫）——老闆 2026-08-31 做法2
+  var ei=_cmsArr(map,'equipment_items');
+  if(ei&&ei.length){ var ev=ei.filter(function(e){return e&&e.name&&e.inStock!==false;}).map(function(e){
+    return {name:String(e.name||''), price:String(e.price||''), img:String(e.img||e.image||''), desc:String(e.desc||'')}; });
+    if(ev.length) EQUIPMENT=ev; }
 }
 function cmsLoad(){
   try{ fetch(CMS_API+'?action=home&_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){ try{ cmsApply((d&&d.settings)||[]); render(); }catch(e){} }).catch(function(){}); }catch(e){}

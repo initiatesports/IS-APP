@@ -1889,7 +1889,7 @@ html, body {
 <div id="toast"></div>
 
 <script>
-const FRONTEND_VERSION='attapp-2026-08-31-dmy';
+const FRONTEND_VERSION='attapp-2026-08-31-equipcms';
 // ═══════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════
@@ -6442,12 +6442,14 @@ let KNOWLEDGE_POSTS = [
    body:'幫助孩子「吃得下、吸收好、長得高」。健康體重對成長發育至關重要。\n\n【為什麼瘦弱可能是問題】\n體力不足影響運動表現、免疫力下降易生病、生長發育遲緩、學習注意力不集中。\n\n【健康增重三大原則】\n1. 質量勝於數量：唔係「吃多」，而係「吃對」—— 營養密度比純熱量更重要。\n2. 均衡飲食：蛋白質＋碳水＋健康脂肪＋維生素＋礦物質，缺一不可。\n3. 規律進餐：三餐定時＋2–3 次健康小食，避免長時間空腹。\n\n【每日建議份量（6–12歲・中等活動量）】\n主食 4–6 份｜蔬菜 3–5 份｜水果 2–3 份｜蛋白質 3–5 份｜奶類 2 份｜健康脂肪 2–3 茶匙。\n\n【跳繩運動員特別建議】\n運動前 1–2 小時：輕便小食（香蕉、小份三明治）。\n運動後 30 分鐘內（黃金補充期）：蛋白質＋碳水 —— 巧克力牛奶／酸奶＋水果／雞蛋三明治。\n\n【成長能量需求】\n兒童基礎代謝高，平均每公斤體重需 70–90 kcal；30kg 的 8 歲兒童約需 2100–2400 kcal —— 解釋了點解孩子「吃不少卻還是瘦」。\n\n【常見家長誤區】\n✗ 靠垃圾食品增重　✗ 強迫餵食反降食慾　✗ 忽略運動只長脂肪　✗ 過度依賴補品。\n\n📌 與其追求快速「長肉」，更重要是打造強壯體魄＋良好免疫力，這才是成長與運動表現的基石。\n\n若孩子體重持續下降、食慾極差、長期疲勞腹痛，建議找醫生或營養師。'}
 ];
 
-// Equipment items
+// Equipment items（v3 shape：price 為完整文字，img 圖片路徑；官網 index.html 器材銷售同源）
 let EQUIPMENT_ITEMS = [
-  {id:'e1',name:'拍子繩',price:100,unit:'條',desc:'適合初學者及一般練習使用，耐用易控制',image:'',inStock:true},
-  {id:'e2',name:'鋼絲繩',price:120,unit:'條',desc:'競技專用，輕量高速，適合中進階學員',image:'',inStock:true},
-  {id:'e3',name:'膠繩',price:80,unit:'條',desc:'適合初學及花式練習，彈性好易掌握',image:'',inStock:true},
-  {id:'e4',name:'跳繩袋',price:20,unit:'個',desc:'IS品牌專用跳繩收納袋，方便攜帶',image:'',inStock:true},
+  {id:'e1',name:'專業硬珠拍子繩',price:'HK$100 / 條・連繩袋',img:'img/gear/beadrope.jpg',desc:'硬珠節設計，甩繩軌跡清晰、落地聲脆；防滑坑紋手柄，長度可自行調節，新手到進階皆宜。十三色任揀。',inStock:true},
+  {id:'e2',name:'鋼絲速度繩',price:'HK$100 / 條',img:'img/gear/wirerope.jpg',desc:'鋼絲繩芯，轉速極快、軌跡穩定，速度訓練、雙搖三搖首選。八色任揀，替換繩芯 $30/條。',inStock:true},
+  {id:'e3',name:'速度膠繩',price:'HK$80 / 條',img:'img/gear/speedrope.jpg',desc:'輕身膠繩，起動快、控制易，速度訓練同日常練習皆宜。繩柄繩芯顏色自由配搭，替換繩芯 $30/條。',inStock:true},
+  {id:'e4',name:'帆布跳繩袋',price:'HK$20 / 個・3 個 $50',img:'img/gear/canvasbag.jpg',desc:'厚身帆布，雙層容量 —— 跳繩、豆袋、章別手冊一袋收齊。拉鏈開合、可手提，米白／深藍兩色。',inStock:true},
+  {id:'e5',name:'匹克球拍套裝',price:'HK$120 / 套',img:'img/gear/pickleset.jpg',desc:'USA Pickleball Approved 認證拍面，防滑吸汗纏柄。套裝含球拍 ×1、匹克球 ×2、球拍包 ×1，即買即玩。',inStock:true},
+  {id:'e6',name:'隊制運動服',price:'HK$100 / 件・全套 $180',img:'img/gear/uniform.jpg',desc:'深藍漸變隊制設計，正面繡印品牌標誌、背面 INITIATE SPORTS 字樣。輕身透氣，練習比賽皆宜（尺碼 7XS–XS）。',inStock:true},
 ];
 
 // Course items
@@ -6758,12 +6760,12 @@ function renderEquipmentScreen() {
   const itemsHtml = EQUIPMENT_ITEMS.map((item, i) => `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:12px">
       <div style="width:64px;height:64px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden">
-        ${item.image ? `<img src="${item.image}" style="width:100%;height:100%;object-fit:cover">` : '🪢'}
+        ${(item.img||item.image) ? `<img src="${item.img||item.image}" style="width:100%;height:100%;object-fit:cover">` : '🪢'}
       </div>
       <div style="flex:1;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div style="font-size:15px;font-weight:700">${item.name}</div>
-          <span style="font-size:14px;font-weight:900;color:var(--cyan)">HK$${item.price}${item.unit ? `<span style="font-size:11px;font-weight:400;color:var(--muted)">/${item.unit}</span>` : ''}</span>
+          <span style="font-size:13px;font-weight:900;color:var(--cyan);text-align:right;flex-shrink:0">${item.price}</span>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">${item.desc}</div>
         <div style="display:flex;gap:6px;margin-top:8px">
@@ -6782,12 +6784,9 @@ function renderEquipmentScreen() {
     <div id="equipment-editor" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">新增 / 編輯產品</div>
       <input id="ee-name" placeholder="產品名稱" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="ee-price" type="number" placeholder="價格 (HK$)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
-        <input id="ee-unit" placeholder="單位（例：條 / 個）" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;color-scheme:dark">
-      </div>
+      <input id="ee-price" placeholder="價格（例：HK$100 / 條・連繩袋）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:8px;color-scheme:dark">
       <textarea id="ee-desc" placeholder="產品描述" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;resize:vertical;margin-bottom:8px;color-scheme:dark"></textarea>
-      <input id="ee-image" placeholder="圖片URL（選填）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:10px;color-scheme:dark">
+      <input id="ee-image" placeholder="圖片路徑（例：img/gear/beadrope.jpg）" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;padding:9px 12px;outline:none;margin-bottom:10px;color-scheme:dark">
       <input type="hidden" id="ee-idx" value="-1">
       <div style="display:flex;gap:8px">
         <button onclick="saveEquipment()" style="background:var(--cyan);color:#111;border:none;border-radius:10px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">💾 儲存</button>
@@ -6799,27 +6798,24 @@ function renderEquipmentScreen() {
 
 function addEquipment() {
   document.getElementById('ee-name').value='';document.getElementById('ee-price').value='';
-  document.getElementById('ee-unit').value='';
   document.getElementById('ee-desc').value='';document.getElementById('ee-image').value='';
   document.getElementById('ee-idx').value='-1';document.getElementById('equipment-editor').style.display='block';
 }
 function editEquipment(i) {
   const e=EQUIPMENT_ITEMS[i];
-  document.getElementById('ee-name').value=e.name;document.getElementById('ee-price').value=e.price;
-  document.getElementById('ee-unit').value=e.unit||'';
-  document.getElementById('ee-desc').value=e.desc;document.getElementById('ee-image').value=e.image||'';
+  document.getElementById('ee-name').value=e.name;document.getElementById('ee-price').value=e.price||'';
+  document.getElementById('ee-desc').value=e.desc;document.getElementById('ee-image').value=e.img||e.image||'';
   document.getElementById('ee-idx').value=i;document.getElementById('equipment-editor').style.display='block';
 }
 function saveEquipment() {
   const name=document.getElementById('ee-name').value.trim();
-  const price=+document.getElementById('ee-price').value;
-  const unit=document.getElementById('ee-unit').value.trim();
+  const price=document.getElementById('ee-price').value.trim();
   const desc=document.getElementById('ee-desc').value.trim();
-  const image=document.getElementById('ee-image').value.trim();
+  const img=document.getElementById('ee-image').value.trim();
   const idx=+document.getElementById('ee-idx').value;
   if(!name){toast('請填寫產品名稱','⚠');return;}
   const inStock=idx>=0?EQUIPMENT_ITEMS[idx].inStock!==false:true;
-  const item={id:idx>=0?EQUIPMENT_ITEMS[idx].id:'e'+Date.now(),name,price,unit,desc,image,inStock};
+  const item={id:idx>=0?EQUIPMENT_ITEMS[idx].id:'e'+Date.now(),name,price,img,desc,inStock};
   if(idx>=0)EQUIPMENT_ITEMS[idx]=item;else EQUIPMENT_ITEMS.push(item);
   syncCMS();toast('產品已儲存','✓');renderEquipmentScreen();
 }
