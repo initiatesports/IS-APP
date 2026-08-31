@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-kpi9';
+const FRONTEND_VERSION='parent-2026-08-31-noattviz';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -868,7 +868,7 @@ function classCard(child,ki,c,ci){
       <div class="stat"><div class="n">${pLeave}</div><div class="k">${t('onLeave')}</div></div>
       <div class="stat ${owed>0?'alert':''}"><div class="n">${owed}</div><div class="k">${t('owedK')}</div></div>
     </div>
-    ${attendanceViz(c)}
+    ${''/* 全期出席趨勢圖已移除（老闆 2026-08-31）：過期未補請假會拉低%，家長易誤會＝小朋友出席差，其實係佢哋自己冇補。attendanceViz() 保留備日後需要。*/}
     ${owed>0&&mkDl?`<div class="dlnote">${t('dlNote',owed,fmtDate(mkDl))}</div>`:''}
     ${(function(){
       const active=termActivated(child,S.period);
