@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-lastday';
+const FRONTEND_VERSION='parent-2026-08-31-kpikid';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -750,7 +750,7 @@ function renderParent(){
     html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px">${kids.map((c,i)=>`<button onclick="setKid(${i})" style="flex:1;min-width:88px;padding:12px 8px;border-radius:12px;border:2px solid ${i===S.kid?'var(--teal,#28B8C8)':'var(--line,#e3e3e3)'};background:${i===S.kid?'var(--teal,#28B8C8)':'#fff'};color:${i===S.kid?'#fff':'var(--ink,#202020)'};font-weight:800;font-size:14.5px;cursor:pointer">${c.name}</button>`).join('')}</div>`;
   }
   const showIdx = multi ? [S.kid] : kids.map((_,i)=>i);
-  html+=famSummary(kids);   // 🧭 家庭概覽（下一堂／待補堂／本期待繳；純顯示）
+  html+=famSummary(showIdx.map(i=>kids[i]).filter(Boolean));   // 🧭 概覽（下一堂／待補堂／本期待繳）——只計顯示緊嗰個小朋友，同下面班卡一致（老闆 2026-08-31：多孩家庭 KPI 跟選中嗰個，唔好因兄弟姊妹未報名而誤報未激活）
   // 💳 付款功能區：緊貼月份／小朋友選擇器下面（退出可回歸學生唔顯示，改用回歸面板）
   showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable && !child.ptOnly) html+=paymentCard(child,ki); });
   showIdx.forEach(ki=>{
