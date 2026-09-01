@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-08-31-kpikid';
+const FRONTEND_VERSION='parent-2026-09-01-saMerge';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -266,9 +266,49 @@ const CLASSES={
 /* 新開班起始日（同後端 CLASS_START 一致）：sessionsFor 由此日起先排堂 */
 const CLASS_START={c8:'2026-09-07',c9:'2026-10-01'};
 const CLASS_START_HH={c1:'17:00',c2:'18:00',c3:'17:00',c4:'18:00',c5:'18:00',c6:'11:00',c7:'15:00',c8:'17:00',c9:'18:00'}; // 補堂開課鐘點(24h)：CLASSES.time 係顯示字("5–6pm")無法運算，另存機器格式供「開課前6h不可取消」計算
-function mkHrsToStart(toKey,dateIso){ const hh=CLASS_START_HH[toKey]||'00:00'; return (new Date(dateIso+'T'+hh+':00')-new Date())/36e5; }
+function mkHrsToStart(toKey,dateIso){ const hh=(SA_CLASS_START_HH[toKey]||CLASS_START_HH[toKey]||'00:00'); return (new Date(dateIso+'T'+hh+':00')-new Date())/36e5; }
 const CLASS_DOW = { c1:1,c2:1,c3:3,c4:3,c5:5,c6:6,c7:6,c8:4,c9:5 };
 const CLASS_IDS = Object.keys(CLASSES);
+/* ═══════════ 運動班（#SA 非跳繩）合併 ═══════════
+   老闆 2026-09-01：家長一個登入睇晒仔女跳繩＋運動班（體操/羽毛球/田徑/綜合體能等）。
+   純附加：跳繩(#4)路徑完全零改動；#SA 班以 _sa:true 標記，操作路由去 SA_API，補堂/session 用 SA 版 helper。
+   ⚠️ SA_CLASSES / SA_CLASS_START_HH 同 parent-sports.html 一致，改班設定要兩處一齊改。 */
+const SA_API_URL='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';
+const SA_CLASSES={
+  "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm'},
+  "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm'},
+  "cond-tue6":{sport:'綜合運動體能＋田徑',dayZh:'星期二',wd:2,time:'6–7pm'},
+  "cond-sat5":{sport:'綜合運動體能＋田徑',dayZh:'星期六',wd:6,time:'5–6pm'},
+  "cond-sun11":{sport:'綜合運動體能＋田徑',dayZh:'星期日',wd:0,time:'11am–12'},
+  "gym-thu5":{sport:'體操',dayZh:'星期四',wd:4,time:'6–7pm'},
+  "gym-sat2":{sport:'體操',dayZh:'星期六',wd:6,time:'4–5pm'},
+  "gym-sun10":{sport:'體操',dayZh:'星期日',wd:0,time:'10–11am'},
+  "ath-fri":{sport:'田徑',dayZh:'星期五',wd:5,time:'4:50–5:50pm'},
+  "bad-sat8":{sport:'羽毛球',dayZh:'星期六',wd:6,time:'8–10am'},
+  "bad-sun8":{sport:'羽毛球',dayZh:'星期日',wd:0,time:'8–10am'},
+  "bad-sat12":{sport:'羽毛球（其中一小時）',dayZh:'星期六',wd:6,time:'12–2pm'},
+  "tennis-sat":{sport:'網球',dayZh:'星期六',wd:6,time:'6–8pm'},
+  "fit-adult-fri":{sport:'成人增肌減脂',dayZh:'星期五',wd:5,time:'8–9pm'},
+  "fit-adult-sat":{sport:'成人增肌減脂',dayZh:'星期六',wd:6,time:'8–9pm'}
+};
+const SA_CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
+const SA_CLASS_IDS=Object.keys(SA_CLASSES);
+function isSA(cid){ return !!SA_CLASSES[cid]; }
+function clsIsSA(c){ return !!(c && (c._sa || SA_CLASSES[c.key||c.sport||''])); }
+/* #SA 版 sessionsFor：TERM window 逐週，減公眾假期（同 parent-sports 一致；#SA 冇 CLASS_START gate）*/
+function saSessionsFor(cid){
+  const c=SA_CLASSES[cid]; if(!c) return [];
+  const a=CONFIG.TERM_START.split('-').map(Number), b=CONFIG.TERM_END.split('-').map(Number);
+  let cur=new Date(a[0],a[1]-1,a[2]); const end=new Date(b[0],b[1]-1,b[2]);
+  while(cur.getDay()!==c.wd && cur<=end) cur.setDate(cur.getDate()+1);
+  const hol=new Set(PUBLIC_HOLIDAYS), out=[];
+  while(cur<=end){ const s=iso(cur); if(!hol.has(s)) out.push(s); cur.setDate(cur.getDate()+7); }
+  return out;
+}
+/* #SA 版 makeupSlotsFor：只提供【同一運動】嘅補堂目標（審計#20，防幼兒見到成人班）*/
+function saMakeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid);
+  const sp=(SA_CLASSES[cid]||{}).sport||'';
+  return SA_CLASS_IDS.filter(k=>own.indexOf(k)<0 && (!sp||(SA_CLASSES[k]||{}).sport===sp)).map(k=>({key:k,time:SA_CLASSES[k].time})); }
 let PUBLIC_HOLIDAYS = ['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19','2026-07-01'];
 
 /* ═══════════ 狀態 ═══════════ */
@@ -416,12 +456,13 @@ function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'
 function todayStr(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
 function fmt(d){const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;}   // 日期一律 DD/MM/YYYY（老闆 2026-08-31 全系統規則）
 function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-').map(Number);return fmt(new Date(y,m-1,d));}
-function classLabel(cid){const c=CLASSES[cid];if(!c)return cid;const day=LANG==='en'?({'星期一':'Mon','星期二':'Tue','星期三':'Wed','星期四':'Thu','星期五':'Fri','星期六':'Sat','星期日':'Sun'}[c.dayZh]||c.dayZh):c.dayZh;return day+' '+c.time;}
+function classLabel(cid){const sa=SA_CLASSES[cid];const c=sa||CLASSES[cid];if(!c)return cid;const day=LANG==='en'?({'星期一':'Mon','星期二':'Tue','星期三':'Wed','星期四':'Thu','星期五':'Fri','星期六':'Sat','星期日':'Sun'}[c.dayZh]||c.dayZh):c.dayZh;return (sa?(c.sport+'・'):'')+day+' '+c.time;}
 function classKey(c){return c.key||c.sport;}
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400);}
 
 /* client 端 sessionsFor（與後端一致）*/
 function sessionsFor(cid){
+  if(SA_CLASSES[cid]) return saSessionsFor(cid);   // 運動班用 #SA 版（跳繩邏輯不變）
   const c=CLASSES[cid]; if(!c) return [];
   const a=CONFIG.TERM_START.split('-').map(Number), b=CONFIG.TERM_END.split('-').map(Number);
   let cur=new Date(a[0],a[1]-1,a[2]); const end=new Date(b[0],b[1]-1,b[2]);
@@ -434,7 +475,8 @@ function sessionsFor(cid){
   return out;
 }
 // ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
-function makeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid); return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
+function makeupSlotsFor(cid, ownCids){ if(SA_CLASSES[cid]) return saMakeupSlotsFor(cid, ownCids);   // 運動班用 #SA 版（同運動過濾）
+  const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid); return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
 // 某日某班特別時間（後端回傳 map，key=cid|date）；有就用嚟覆寫顯示，令補堂/記錄/摘要對得上證據
 function taTime(cid,date){ return (S.timeAdj&&S.timeAdj[cid+'|'+date])||''; }
 /* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
@@ -533,8 +575,12 @@ function openHistory(ki){
 async function api(action,payload={}){
   const body={action,...payload};
   if(body.code===undefined && S.family && S.family.last4) body.code=S.family.last4;  // 後端驗證家庭身分
+  // 自動路由：操作班別(key/fromKey/toKey/cid)係運動班 → 送去 #SA；否則跳繩 #4（跳繩零影響）。
+  const sa = isSA(payload.key)||isSA(payload.fromKey)||isSA(payload.toKey)||isSA(payload.cid)||payload._sa===true;
+  const url = sa ? SA_API_URL : CONFIG.API_URL;
+  delete body._sa;
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  try{ const r=await fetch(CONFIG.API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); }
+  try{ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); }
 }
 async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal});return await r.json();}finally{clearTimeout(tm);}}
 /* 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向丟失 body → 請求變咗落 doGet，後端見 action=undefined，
@@ -604,6 +650,37 @@ function applyLoginResp(r, name, last4){
   S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.enrollPeriodLabel=r.enrollPeriodLabel||'9-10月';
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
+/* ═══ 運動班(#SA)合併：登入後額外拉 #SA，把仔女嘅運動班合併入 S.family.children（純附加，失敗＝當冇運動班）═══ */
+async function fetchSALogin(name,last4){
+  try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
+    const r=await fetch(SA_API_URL+'?'+new URLSearchParams({action:'login',name,last4}),{signal:c.signal}); clearTimeout(tm);
+    return await r.json(); }catch(e){ return null; }
+}
+function mergeSAInto(sa){
+  if(!sa||!sa.ok||!S.family) return false;
+  // idempotent：先清走現有 #SA 狀態（loadSA 喺登入/refresh 會多次呼叫，唔清會疊出重複班）
+  S.family.children=(S.family.children||[]).filter(k=>!k._saOnly);
+  S.family.children.forEach(k=>{ if(k.classes) k.classes=k.classes.filter(c=>!c._sa); });
+  const kids=(sa.children&&sa.children.length)?sa.children:[]; if(!kids.length) return false;
+  const byName={}; (S.family.children||[]).forEach(k=>byName[k.name]=k);
+  // #SA 特別時間 map 併入（補堂/顯示用；key=cid|date，同 #4 唔會撞因 cid 唔同）
+  if(sa.timeAdj){ S.timeAdj=Object.assign({},S.timeAdj||{},sa.timeAdj); }
+  if(Array.isArray(sa.mkBlock)&&sa.mkBlock.length){ S.mkBlock=(S.mkBlock||[]).concat(sa.mkBlock); }
+  let changed=false;
+  kids.forEach(sk=>{
+    const cls=(sk.classes||[]).map(c=>Object.assign({},c,{_sa:true}));
+    if(!cls.length) return;
+    if(byName[sk.name]){ byName[sk.name].classes=(byName[sk.name].classes||[]).concat(cls); }
+    else { const nk={name:sk.name,classes:cls,fees:(sk.fees||[]),addons:(sk.addons||[]),referralBalance:0,transfers:[],pt:null,_saOnly:true};
+           S.family.children.push(nk); byName[sk.name]=nk; }
+    changed=true;
+  });
+  return changed;
+}
+async function loadSA(name,last4){
+  const sa=await fetchSALogin(name,last4);
+  if(mergeSAInto(sa)){ try{ renderParent(); }catch(e){} }
+}
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
    秒開上次資料，背景刷新永遠會行，幾秒內自動校正到最新。 */
 function saveParentCache(name,last4,r){ try{ localStorage.setItem('is_parent_cache', JSON.stringify({name,last4,r,t:Date.now()})); }catch(e){} }
@@ -611,8 +688,13 @@ function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getIt
   if(c && c.name===name && c.last4===last4 && c.r && (Date.now()-c.t < 7*864e5)) return c.r; }catch(e){} return null; }
 async function bgRefresh(name,last4){
   try{ const r=await apiRO('login',{name,last4});
-    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); }
-    else if(r&&r.ok===false){ try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
+    if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); loadSA(name,last4); }
+    else if(r&&r.ok===false){
+      // #4 fail：可能係純運動班家庭（快取係 #SA 建）→ 試 #SA，唔好即刻登出
+      const sa=await fetchSALogin(name,last4);
+      if(sa&&sa.ok){ applyLoginResp(sa,name,last4); (S.family.children||[]).forEach(k=>(k.classes||[]).forEach(c=>c._sa=true)); renderParent(); }
+      else { try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
+    }
   }catch(e){}
 }
 async function doLogin(){
@@ -628,17 +710,27 @@ async function doLogin(){
     renderParent();
     toast(LANG==='en'?'🔄 Updating…':'🔄 更新緊…');
     bgRefresh(name,last4);
+    loadSA(name,last4);   // 額外拉運動班合併（漸進顯示）
     return;
   }
   const btn=$('li-go'); btn.disabled=true; btn.textContent=t('loggingIn');
   let r; try{ r=await apiRO('login',{name,last4}); }catch(e){ btn.disabled=false; btn.textContent=t('login'); return toast(t('netFail')); }
+  if(!r||!r.ok){
+    // 純運動班家庭（冇跳繩）→ #4 login fail，試 #SA 做主，令佢哋都登入到統一家長頁
+    const sa=await fetchSALogin(name,last4);
+    if(sa&&sa.ok){ applyLoginResp(sa,name,last4); (S.family.children||[]).forEach(k=>(k.classes||[]).forEach(c=>c._sa=true));
+      btn.disabled=false; btn.textContent=t('login');
+      try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(sa&&sa.homeToken)||'',t:Date.now()})); }catch(e){}
+      $('logout-btn').style.display='block'; renderParent(); return; }
+    btn.disabled=false; btn.textContent=t('login'); return toast((r&&r.err)||t('loginFail'));
+  }
   btn.disabled=false; btn.textContent=t('login');
-  if(!r||!r.ok) return toast((r&&r.err)||t('loginFail'));
   applyLoginResp(r,name,last4);
   try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){}
   saveParentCache(name,last4,r);
   $('logout-btn').style.display='block';
   renderParent();
+  loadSA(name,last4);   // 額外拉運動班合併（漸進顯示）
 }
 function logout(){ S.family=null; S.session=null; try{ localStorage.removeItem('is_parent_auth'); localStorage.removeItem('is_parent_cache'); }catch(e){} renderLogin(); }
 /* 暑期班橋接：同源（同 GitHub Pages 目錄）用 localStorage 交接登入身分，避免把姓名/電話放入網址；
@@ -656,7 +748,14 @@ async function refresh(){
   // 🔒 審計：refresh 逾時/冷啟動唔可以 throw（否則提交流程 await refresh() 一炸，收據彈窗永遠唔行，
   //    家長交咗成功但畫面靜靜關窗、以為失敗 → 重複提交）。對齊 parent-sports audit#14。
   let r; try{ r=await apiRO('login',{name:nm,last4:l4}); }catch(e){ return; }
-  if(r&&r.ok){ applyLoginResp(r,nm,l4); saveParentCache(nm,l4,r); renderParent(); }   // ⚡ 順手更新快取，令下次秒開係最新
+  if(r&&r.ok){ applyLoginResp(r,nm,l4); saveParentCache(nm,l4,r); renderParent();   // ⚡ 順手更新快取，令下次秒開係最新
+    // 重新合併運動班（applyLoginResp 由 #4 重建 children 會沖走 #SA，要即刻拉返並重繪）
+    const sa=await fetchSALogin(nm,l4); if(mergeSAInto(sa)){ try{ renderParent(); }catch(e){} }
+  } else {
+    // 純運動班家庭：#4 login fail → 直接刷新 #SA 做主（令運動班操作後畫面更新）
+    const sa=await fetchSALogin(nm,l4);
+    if(sa&&sa.ok){ applyLoginResp(sa,nm,l4); (S.family.children||[]).forEach(k=>(k.classes||[]).forEach(c=>c._sa=true)); renderParent(); }
+  }
 }
 
 /* ═══════════ 家長主頁 ═══════════ */
