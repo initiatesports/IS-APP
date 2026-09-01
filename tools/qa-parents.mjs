@@ -14,6 +14,8 @@
       日後前端切 /exec，呢度要一齊改。 */
 const EXEC4 = "https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec";
 const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
+// #SA sports-attendance /exec（運動班：體操/羽毛球/田徑等；2026-09 統一 is-parent 後家長經呢個後端睇非跳繩班）。
+const EXEC_SA = "https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec";
 // #11 parent-portal /exec（成長中心 is-performance API；成長報告 homeReport route）。
 // ⚠️ 必須同 IS-APP/is-performance.html 個 API 一致；切 /exec 要一齊改。
 const EXEC11 = "https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec";
@@ -26,21 +28,23 @@ const pad4 = x => ("0000" + String(x).replace(/\D/g, "")).slice(-4);
 // ⚠️ 私隱：呢個 repo 係 PUBLIC。學生姓名／電話尾4位／自訂密碼一律「唔可以」寫入呢度。
 // 名冊＋密碼一律由執行時嘅 QA_ROSTER JSON 提供（排程用 MCP 讀 live Roster + 登入密碼，
 // 寫去 /tmp、唔入 repo）。格式：{ "R4":[[姓名,尾4],...], "R9":[[...]], "PIN4":{尾4:密碼} }。
-let R4 = [], R9 = [], PIN4 = {}, ROSTER_SRC = "(未提供)";
+let R4 = [], R9 = [], RSA = [], PIN4 = {}, ROSTER_SRC = "(未提供)";
 if (process.env.QA_ROSTER) {
   try {
     const j = JSON.parse(readFileSync(process.env.QA_ROSTER, "utf8"));
     if (Array.isArray(j.R4)) R4 = j.R4;
-    if (Array.isArray(j.R9)) R9 = j.R9;
+    if (Array.isArray(j.R9)) R9 = j.R9;      // 暑期#9（2026暑期完＝空；2027再讀返即恢復測試）
+    if (Array.isArray(j.RSA)) RSA = j.RSA;   // 運動班#SA（非跳繩；2026-09 統一 is-parent 後新增覆蓋）
     if (j.PIN4 && typeof j.PIN4 === "object") PIN4 = j.PIN4;
     ROSTER_SRC = "live:" + process.env.QA_ROSTER;
   } catch (e) { console.error("⚠️ 讀 QA_ROSTER 失敗：" + e.message); }
 }
 // 已退出學生：名冊 sheet 未移除但已退學 → 硬跳過,唔再誤報登入失敗。新增退學者加入此 Set。
 const EXITED = new Set(["陳靖朗"]);
-R4 = R4.filter(([nm]) => !EXITED.has(String(nm).trim()));
-R9 = R9.filter(([nm]) => !EXITED.has(String(nm).trim()));
-if (!R4.length && !R9.length) {
+R4  = R4.filter(([nm]) => !EXITED.has(String(nm).trim()));
+R9  = R9.filter(([nm]) => !EXITED.has(String(nm).trim()));
+RSA = RSA.filter(([nm]) => !EXITED.has(String(nm).trim()));
+if (!R4.length && !R9.length && !RSA.length) {
   console.error("❌ 冇名冊資料。請設 QA_ROSTER 指向由 live sheet 建立嘅 JSON（見檔頭註解）。本工具唔再內建學生資料（私隱：public repo）。");
   process.exit(2);
 }
@@ -335,12 +339,17 @@ async function sweep(label, exec, rows, withPin) {
 (async () => {
   console.log(`# QA 家長登入自動測試  （日期基準 ${TODAY}，香港時區；名冊來源 ${ROSTER_SRC}）\n`);
   const s4 = await sweep("恆常#4", EXEC4, R4, true);
+  // 運動班#SA（非跳繩）：2026-09 統一 is-parent 後家長經 #SA 睇體操/羽毛球等；同 #4 clone、login 同 shape。
+  const sSA = RSA.length ? await sweep("運動班#SA", EXEC_SA, RSA, true) : { ok:0, tested:0 };
   // withPin=true：#9 credOK9_ 同 #4 一樣尊重共用嘅自訂登入密碼（有自訂密碼就「只」收自訂密碼），
   // 所以掃 #9 一樣要用 PIN4，否則有設自訂密碼嘅家庭（如尾4位 9158）會被當「登入失敗」誤報 ⚪ERR。
-  const s9 = await sweep("暑期#9", EXEC9, R9, true);
+  // 暑期#9：只喺有暑期名冊(R9)先掃；2026暑期完＝R9空＝自動 skip（2027 讀返 R9 即恢復）。
+  const s9 = R9.length ? await sweep("暑期#9", EXEC9, R9, true) : { ok:0, tested:0 };
 
   console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}`);
-  console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}\n`);
+  if (RSA.length) console.log(`運動班#SA：登入 ${sSA.ok}/${sSA.tested}`);
+  if (R9.length)  console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}`);
+  console.log("");
 
   // 🆕 成長報告後端探針（#4 childToken → #11 homeReport）：捉 token 密鑰不同步／route 爆。
   await reportProbe();
@@ -373,7 +382,10 @@ async function sweep(label, exec, rows, withPin) {
   // 🔍 補堂完整性審計（兩系統 audit route）：owed 不變式全校掃。owed 錯計＝真 bug（OWED，紅）；
   //    未來請假顯示已補堂＝提前補堂（歸 MKMADEUP，核對用）。需 COACH_PASS。
   if (process.env.COACH_PASS) {
-    for (const [sys, exec] of [["恆常#4", EXEC4], ["暑期#9", EXEC9]]) {
+    const auditSys = [["恆常#4", EXEC4]];
+    if (RSA.length) auditSys.push(["運動班#SA", EXEC_SA]);   // 運動班補堂完整性
+    if (R9.length)  auditSys.push(["暑期#9", EXEC9]);         // 暑期完＝skip
+    for (const [sys, exec] of auditSys) {
       const au = await callAudit(exec, process.env.COACH_PASS);
       if (!au || !au.ok) { add("ERR", sys, "audit", "審計 route 失敗：" + ((au && au.err) || "?")); continue; }
       for (const x of (au.anomalies || [])) {
