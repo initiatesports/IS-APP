@@ -8,7 +8,7 @@ const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Conte
 const BASE = 'https://initiatesports.github.io/IS-APP/';
 // 審計 2026-08-24：補回最大最常改嘅頁（教練主頁/報名/運動班/成長中心），佢哋白屏或 JS 例外原本測唔到。
 const PAGES = ['index.html','is-parent.html','is-coach.html','is-leave-makeup.html','is-pay.html','is-hub.html','is-guide.html',
-  'coach.html','is-enroll.html','is-pt-enroll.html','coach-sports.html','parent-sports.html','is-performance.html','is-attendance-app.html','is-enroll-admin.html'];
+  'coach.html','is-enroll.html','is-pt-enroll.html','coach-sports.html','is-performance.html','is-attendance-app.html','is-enroll-admin.html'];   // parent-sports.html 已退役(轉址 is-parent，2026-09-01)
 // 明顯無關嘅 console 噪音（唔當錯）：favicon、網絡層、未登入時嘅預期 fetch 失敗
 const BENIGN = /favicon|ERR_|net::|Failed to load resource|the server responded with a status/i;
 

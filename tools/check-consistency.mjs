@@ -97,7 +97,7 @@ console.log('\n[5] index.html 器材清單核心項目存在');
 console.log('\n[6] 前端各頁 JS 語法');
 {
   const pages = ['index.html','is-hub.html','is-parent.html','is-coach.html','is-leave-makeup.html',
-    'is-attendance-app.html','is-pay.html','parent.html','coach.html','is-parent-tour.html','initiate-sports-booking.html'];
+    'is-attendance-app.html','is-pay.html','parent.html','coach.html','is-parent-tour.html'];   // initiate-sports-booking.html 已退役(轉址 is-enroll，2026-09-01)
   for (const f of pages) {
     let t; try { t = read(f); } catch { continue; }
     const re = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
