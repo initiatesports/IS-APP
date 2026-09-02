@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-08-31-dmy';
+const FRONTEND_VERSION = 'coach-2026-09-02-rejoin';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -717,6 +717,7 @@ function applyCoachLoadData(data){
   TRANSFERS_MAP = {};
   (data.transfers || []).forEach(t => { if(t && t.cid && t.date && t.name){ const k=t.cid+'|'+t.date; (TRANSFERS_MAP[k]=TRANSFERS_MAP[k]||[]).push(t.name); } });
   STUDENT_LEAVE_MAP = data.studentLeave || {};
+  STUDENT_REJOIN_MAP = data.studentRejoin || {};   // 🔁 同 studentLeave 一齊用；舊快取冇呢個 key＝空物件＝行返舊行為
   for (var _k in ATT_LOG) delete ATT_LOG[_k];               // 全清 → 用 fresh 覆蓋，唔會殘留舊值
   (data.attendance || []).forEach(row => {
     const key = row.key;
@@ -1692,6 +1693,7 @@ function openRoll(classId){
 let PERIOD_VOID_MAP = {};
 let TRANSFERS_MAP = {};   // 調堂：{ "cid|date": [轉入學生名] }（如周莉晶 c3|2026-07-22）
 let STUDENT_LEAVE_MAP = {};   // 離班日：{ "姓名|cid": "ISO" }，此日起唔喺該班點名清單（如周莉晶 c7 7/12）
+let STUDENT_REJOIN_MAP = {};  // 🔁 回歸日：{ "姓名|cid": "ISO" }，離過班又報返同一班 → 此日起取消隱藏（周莉晶 c7 9/7 回歸）
 let XFER_JOIN_MAP = {};   // 審計#3：入班日 { "姓名|cid": "ISO" }，此日之前唔喺該班點名清單（調班／9月報名新生由 9/7 起）
 function periodLabelOf(dateStr){
   if(!dateStr) return '';
@@ -1707,7 +1709,9 @@ function getRollStudents(classId, dateStr){
   base = base.filter(n => !/示範|測試/.test(n));   // 🧪 測試/示範學生唔喺點名清單
   if (dateStr) base = base.filter(n => !isSuspendedOn(n, dateStr));   // 本期暫停學生（如梁正軒因病）→ 唔喺點名清單
   // 離班日起唔顯示（如周莉晶 c7 7/12；之前歷史照顯示）
-  if (dateStr) base = base.filter(n => { const le=STUDENT_LEAVE_MAP[n+'|'+classId]; return !(le && dateStr>=le); });
+  // 🔁 回歸日之後重新顯示（離班→回歸之間仍然隱藏）：後端 leftOn_ 同一套語意，兩邊一定要對齊
+  if (dateStr) base = base.filter(n => { const k=n+'|'+classId, le=STUDENT_LEAVE_MAP[k], rj=STUDENT_REJOIN_MAP[k];
+    return !(le && dateStr>=le && !(rj && rj>le && dateStr>=rj)); });
   /* 🔒 審計#3：入班日之前唔顯示。roster 而家含 overlay 新生（調班／9月報名），佢哋由生效日
      （9/7）先屬於呢班；冇呢個閘就會由學期第一堂就出現喺點名表，教練見到未入班嘅人。 */
   if (dateStr) base = base.filter(n => { const ji=XFER_JOIN_MAP[n+'|'+classId]; return !(ji && dateStr<ji); });
