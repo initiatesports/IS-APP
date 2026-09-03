@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-08-29-ptenroll-mig4';
+const FRONTEND_VERSION='admin-2026-09-04-swapcourse';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -83,6 +83,11 @@ const DEMO={
     {'記錄編號':'DEMO-01','時間戳':'2026-08-20 10:00','學生姓名':'陳小明','家長電話':'1234','報名課程':'花式跳繩|星期一 5–6pm','期數':'2026 9-10月','原價':1040,'實收':1040,'狀態':'已核實','課程編號':'c1','正取編號':'c1','備註':'','付款截圖':'','確認PDF':''},
     {'記錄編號':'DEMO-02','時間戳':'2026-08-21 11:00','學生姓名':'王小美','家長電話':'5678','報名課程':'體操|星期六 4–5pm','期數':'2026 9-10月','原價':1200,'實收':1080,'狀態':'待付款','課程編號':'gym-sat2','正取編號':'gym-sat2','備註':'器材（帆布跳繩袋×1）＝$20','付款截圖':'','確認PDF':''},
     {'記錄編號':'DEMO-03','時間戳':'2026-08-22 09:00','學生姓名':'李大文','家長電話':'9012','報名課程':'花式跳繩|星期一 5–6pm','期數':'2026 9-10月','原價':1040,'實收':1020,'狀態':'待核實','課程編號':'c1','正取編號':'','備註':'','付款截圖':'','確認PDF':''}]},
+  enrollConfig:{ok:true,courses:[
+    {id:'c1',sport:'花式跳繩',day:'星期一',time:'17:00–18:00'},
+    {id:'rope-wed5',sport:'花式跳繩',day:'星期三',time:'17:00–18:00'},
+    {id:'gym-sat2',sport:'體操',day:'星期六',time:'16:00–17:00'},
+    {id:'bad-sat13',sport:'羽毛球',day:'星期六',time:'13:00–14:00'}]},
   rosterList:{ok:true,classes:[{cid:'c1',label:'星期一 5–6pm',students:['陳小明','李大文','張三']},{cid:'c2',label:'星期一 6–7pm',students:['王五','趙六']},{cid:'gym-sat2',label:'星期六 4–5pm',students:['王小美']}]},
   transfersList:{ok:true,transfers:[{row:2,name:'李大文',from:'星期一 5–6pm',to:'星期三 5–6pm',date:'2026-09-07'}]},
   gearOrdersList:{ok:true,orders:[
@@ -229,10 +234,30 @@ async function renderEnroll(){
     if(!ST.sum||ST.sum.ok===false) throw new Error((ST.sum&&ST.sum.err)||'讀取失敗');
     ST.enrollPeriod=ST.sum.period||ST.enrollPeriod;
     if(!ST.recs) { const rr=await apiPost(API4,{action:'enrollRecords',period:ST.enrollPeriod||undefined}); ST.recs=(rr&&rr.records)||[]; }
+    if(!ST.enrollCourses){ try{ const cc=await apiPost(API4,{action:'enrollConfig'}); ST.enrollCourses=(cc&&cc.courses)||[]; }catch(e){ ST.enrollCourses=[]; } }  // 核實前調班用嘅課程清單
   }catch(e){ tc().innerHTML=errBox(e.message); return; }
   drawEnroll();
 }
 async function changeEnrollPeriod(v){ ST.enrollPeriod=v; ST.sum=null; ST.recs=null; renderEnroll(); }
+
+/* 核實前 inline 調班（老闆 2026-09-04）：改記錄嘅課程 → 核實時發嘅確認電郵就係新課堂時間。route: enrollSwapCourse */
+function courseLbl(c){ return `${c.sport}｜${c.day} ${c.time}`; }
+function courseOpts(selId){ return (ST.enrollCourses||[]).map(c=>`<option value="${esc(c.id)}"${c.id===selId?' selected':''}>${esc(courseLbl(c))}</option>`).join(''); }
+function cidLbl(cid){ const c=(ST.enrollCourses||[]).find(x=>x.id===cid); return c?courseLbl(c):cid; }
+function toggleSwap(id){ const el=document.getElementById('sw_'+CSS.escape(id)); if(el) el.style.display = (el.style.display==='none'||!el.style.display) ? 'block' : 'none'; }
+async function doSwap(id){
+  const msg=document.getElementById('msg');
+  const fe=document.getElementById('swf_'+CSS.escape(id)), te=document.getElementById('swt_'+CSS.escape(id));
+  const fromCid=fe?fe.value:'', toCid=te?te.value:'';
+  if(!fromCid||!toCid){ if(msg){msg.className='msg err';msg.textContent='請揀課程';} return; }
+  if(fromCid===toCid){ if(msg){msg.className='msg err';msg.textContent='目標課程同原本一樣';} return; }
+  if(!confirm(`確認調班？\n\n由：${cidLbl(fromCid)}\n去：${cidLbl(toCid)}\n\n改完之後，核實時發嘅確認電郵就會用新課堂時間。`)) return;
+  try{
+    const r=await apiPost(API4,{action:'enrollSwapCourse',id,fromCid,toCid});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=`✅ 已調班：${r.name||''} → ${cidLbl(toCid)}（核實時電郵會用新時間）`; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'調班失敗'; } }
+  }catch(e){ if(msg){msg.className='msg err';msg.textContent='連線失敗';} }
+  ST.sum=null; ST.recs=null; renderEnroll();
+}
 
 function periodSelector(sel, list, cur, onchange){
   const opts=(list||[]).map(p=>`<option value="${esc(p)}" ${p===cur?'selected':''}>${esc(p)}</option>`).join('');
@@ -274,20 +299,39 @@ function drawEnroll(){
       +` → 學費 <b>${money(net)}</b>`+(addon?` ＋ 制服/器材 ${money(addon)}`:'')+` ＝ 實付 <b style="color:var(--ok)">${money(grand)}</b>`;
     const regRows=rs.map(r=>{
       const id=r['記錄編號'], stt=String(r['狀態']||''), note=String(r['備註']||'');
+      const cids=String(r['課程編號']||'').split(',').map(s=>s.trim()).filter(Boolean);
       const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" onclick="viewSecureFile('${esc(r['付款截圖'])}')">截圖</a>`:'<span class="mut">無截圖</span>';
       const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" onclick="viewSecureFile('${esc(r['確認PDF'])}')">PDF</a>`:'';
       let act='';
       if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setStatus('${esc(id)}','已核實')">核實</button>`;
       if(stt==='候補') act+=`<button class="btn sm" onclick="setStatus('${esc(id)}','待核實')">轉正取</button>`;
+      if(stt!=='取消' && cids.length) act+=`<button class="btn gray sm" onclick="toggleSwap('${esc(id)}')" title="核實前改課堂／時間，確認電郵就會用新時間">調班</button>`;
       if(stt!=='取消') act+=`<button class="btn err sm" onclick="setStatus('${esc(id)}','取消')">取消</button>`;
       if(stt==='取消') act+=`<button class="btn err sm" onclick="delRec('${esc(id)}','${esc(nm)}')" title="永久刪除呢筆記錄">🗑 刪除</button>`;
       const warn=note?`<div style="color:var(--warn);font-size:12px;margin-top:2px">⚠️ ${esc(note)}</div>`:'';
-      return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--line)">
-        <div style="flex:1;min-width:0">
-          <div><span class="mut">${esc(id)}</span> <span class="st ${esc(stt)}">${esc(stt)}</span> · ${esc(r['報名課程'])} · 實收 ${money(r['實收'])}</div>
-          <div style="margin-top:2px">${pay}${pdf}</div>${warn}
+      let swPanel='';
+      if(stt!=='取消' && cids.length){
+        const fromSel = cids.length>1
+          ? `<select id="swf_${esc(id)}" style="width:100%;padding:6px;margin-bottom:6px">${cids.map(cid=>`<option value="${esc(cid)}">${esc(cidLbl(cid))}</option>`).join('')}</select>`
+          : `<input type="hidden" id="swf_${esc(id)}" value="${esc(cids[0])}">`;
+        swPanel=`<div id="sw_${esc(id)}" style="display:none;margin-top:7px;padding:9px 11px;background:var(--soft,#f4f7f9);border:1px solid var(--line);border-radius:9px">
+          <div class="mut" style="font-size:12px;margin-bottom:6px">改咗之後，核實時發畀家長嘅確認電郵就會用<b>新課堂時間</b>（就算家長報錯時段，你改完先核實就啱）。${cids.length>1?'呢個記錄有多過一個課程，請先揀由邊個轉。':''}</div>
+          ${cids.length>1?`<div style="font-size:12px;margin-bottom:3px">由：</div>`+fromSel:fromSel}
+          <div style="font-size:12px;margin:2px 0 3px">轉去：</div>
+          <select id="swt_${esc(id)}" style="width:100%;padding:6px;margin-bottom:8px">${courseOpts(cids[0])}</select>
+          <button class="btn ok sm" onclick="doSwap('${esc(id)}')">確認調班</button>
+          <button class="btn gray sm" onclick="toggleSwap('${esc(id)}')">收起</button>
+        </div>`;
+      }
+      return `<div style="padding:7px 0;border-top:1px dashed var(--line)">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <div><span class="mut">${esc(id)}</span> <span class="st ${esc(stt)}">${esc(stt)}</span> · ${esc(r['報名課程'])} · 實收 ${money(r['實收'])}</div>
+            <div style="margin-top:2px">${pay}${pdf}</div>${warn}
+          </div>
+          <div class="rowact" style="flex-shrink:0">${act}</div>
         </div>
-        <div class="rowact" style="flex-shrink:0">${act}</div>
+        ${swPanel}
       </div>`;
     }).join('');
     return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
