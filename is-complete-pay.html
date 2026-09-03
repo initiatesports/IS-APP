@@ -87,20 +87,43 @@ function render(){
     <h2>3 · 簽署</h2>
     <div class="lbl">家長 / 監護人英文全名（作電子簽署）</div>
     <input class="in" id="signEn" placeholder="Full name in English" autocomplete="off">
-    <div class="lbl">家長證件號碼首 4 位（核實用）</div>
-    <input class="in" id="signId" placeholder="例：A123" maxlength="6" autocomplete="off">
+    <div class="lbl">家長證件號碼首 4 位（英文字母＋首 3 數字，例：A123）</div>
+    <input class="in" id="signId" placeholder="例：A123" maxlength="8" autocomplete="off">
+    <div class="lbl">家長 / 監護人手寫簽名</div>
+    <canvas id="sigpad" style="width:100%;height:160px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block;margin-top:6px"></canvas>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="mut">請用手指或滑鼠喺上面簽名，作正式報名確認之用</span><button type="button" style="border:1px solid var(--line);background:#eef2f5;color:var(--ink);font-size:13px;padding:4px 12px;border-radius:8px;cursor:pointer" onclick="clearSig()">清除重簽</button></div>
     <button class="btn" id="go" onclick="submitPay()">確認並提交付款</button>
     <div class="msg" id="msg"></div>
   </div>`;
+  setupSigPad();
 }
+/* 手寫簽名板（同 is-enroll 一致）：滑鼠＋觸控；toDataURL PNG 傳後端存證 */
+let _sig={draw:false,has:false,ctx:null,cv:null,w:0,h:0};
+function setupSigPad(_retry){
+  const cv=$('sigpad'); if(!cv) return;
+  const rect=cv.getBoundingClientRect(); const ratio=window.devicePixelRatio||1;
+  if(rect.width<50){ if(!_retry) requestAnimationFrame(()=>setupSigPad(true)); return; }
+  cv.width=Math.round(rect.width*ratio); cv.height=Math.round(rect.height*ratio);
+  const ctx=cv.getContext('2d'); ctx.scale(ratio,ratio); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0f2233';
+  _sig={draw:false,has:false,ctx,cv,w:rect.width,h:rect.height};
+  const pos=e=>{ const r=cv.getBoundingClientRect(); const t=(e.touches&&e.touches[0])?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; };
+  const start=e=>{ e.preventDefault(); _sig.draw=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); };
+  const move=e=>{ if(!_sig.draw) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); _sig.has=true; };
+  const end=()=>{ _sig.draw=false; };
+  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
+}
+function clearSig(){ if(_sig.ctx&&_sig.cv) _sig.ctx.clearRect(0,0,_sig.cv.width,_sig.cv.height); _sig.has=false; }
+function sigDataUrl(){ return (_sig.has&&_sig.cv)?_sig.cv.toDataURL('image/png'):''; }
 function onFile(inp){ const f=inp.files&&inp.files[0]; const st=$('fst'); if(!f){PAYIMG='';return;} st.textContent='處理中…'; shrink(f,(d,e)=>{ if(e){st.textContent=e;st.className='mut';PAYIMG='';return;} PAYIMG=d; st.textContent='已揀：'+f.name; st.style.color='var(--green)'; }); }
 async function submitPay(){
   const msg=$('msg'); msg.className='msg';
   if(!PAYIMG){ msg.textContent='請先上載付款截圖'; msg.className='msg err'; return; }
   if(!$('agree').checked){ msg.textContent='請閱讀並勾選同意條款'; msg.className='msg err'; return; }
   const signEn=$('signEn').value.trim(); if(!signEn){ msg.textContent='請填家長英文全名'; msg.className='msg err'; return; }
+  const sig=sigDataUrl(); if(!sig){ msg.textContent='請喺簽名格簽名'; msg.className='msg err'; $('sigpad').scrollIntoView({block:'center'}); return; }
   const go=$('go'); go.disabled=true; go.textContent='提交中…';
-  let r; try{ r=await apiPost({action:'enrollCompletePayment', id:ID, t:TOK, agree:1, signEn:signEn, signId:$('signId').value.trim(), payImg:PAYIMG}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'enrollCompletePayment', id:ID, t:TOK, agree:1, signEn:signEn, signId:$('signId').value.trim(), signImg:sig, payImg:PAYIMG}); }catch(e){ r=null; }
   if(!r||!r.ok){ go.disabled=false; go.textContent='確認並提交付款'; msg.textContent=(r&&r.err)||'提交失敗，請再試一次'; msg.className='msg err'; return; }
   $('app').innerHTML=`<div class="card big-ok"><div class="ic">✅</div><h2 style="margin:10px 0 6px">已收到你的付款截圖！</h2><p>多謝 ${esc(r.name||'')} 家長。我們核實付款後會發出確認電郵，報名即告完成。</p><p class="mut">如課程最終未能開班，已繳學費將全數退還。</p></div>`;
 }
