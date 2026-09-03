@@ -53,8 +53,10 @@ const TERMS_TXT=`收費及退款：學費以「期」為單位（本期共 8 堂
 個人資料收集聲明（PDPO）：本機構收集學員及家長之個人資料（姓名、出生年月、就讀學校及年級、聯絡電話及電郵、緊急聯絡人、健康狀況、家長證件首 4 位、簽署及付款截圖），僅用於課程報名、編班、出席與補堂管理、繳費核實、安全及通訊用途；妥善保存至課程完結後合理期間即刪除，不會在未經同意下轉交無關第三方（法律要求除外）。家長有權查閱及更正，查詢可 WhatsApp 6331 7403。
 
 健康聲明：本人確認學員身體狀況適合參與相關運動訓練，並已如實告知任何需要注意的健康情況。`;
-async function apiGet(p){ const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
-async function apiPost(b){ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}); return r.json(); }
+// 後端 Apps Script 冷啟動時會回一版 Google HTML 錯誤頁（唔係 JSON）→ 重試至暖返（免家長見「連結無效」）。
+async function _tryJson(mk, tries){ tries=tries||5; for(let i=0;i<tries;i++){ try{ const r=await mk(); const t=await r.text(); if(t){ try{ return JSON.parse(t); }catch(e){} } }catch(e){} if(i<tries-1) await new Promise(res=>setTimeout(res, 1500*(i+1))); } return null; }
+async function apiGet(p){ return _tryJson(()=>fetch(API+'?'+new URLSearchParams(p))); }
+async function apiPost(b){ return _tryJson(()=>fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}), 6); }
 function shrink(file,cb){
   if(!file){cb('');return;}
   if(!/^image\//.test(file.type)){ if(file.size>6*1024*1024){cb(null,'檔案太大（上限 6MB）');return;} const r=new FileReader(); r.onload=()=>cb(r.result); r.onerror=()=>cb(null,'讀取失敗'); r.readAsDataURL(file); return; }
@@ -130,7 +132,8 @@ async function submitPay(){
 (async function(){
   if(!ID||!TOK){ $('app').innerHTML='<div class="card center err msg">連結不完整，請用我們提供的完整連結開啟。</div>'; return; }
   let r; try{ r=await apiGet({action:'enrollRecordInfo', id:ID, t:TOK}); }catch(e){ r=null; }
-  if(!r||!r.ok){ $('app').innerHTML=`<div class="card center msg err">${esc((r&&r.err)||'連結無效或已失效，請聯絡我們。')}</div>`; return; }
+  if(!r){ $('app').innerHTML='<div class="card center msg err">系統暫時繁忙（正在喚醒），請等約 10 秒後重新整理此頁再試。如持續無法開啟，請 WhatsApp 6331 7403。</div>'; return; }
+  if(!r.ok){ $('app').innerHTML=`<div class="card center msg err">${esc(r.err||'連結無效或已失效，請聯絡我們。')}</div>`; return; }
   if(r.alreadyPaid){ $('app').innerHTML=`<div class="card big-ok"><div class="ic">✅</div><h2 style="margin:10px 0 6px">你已完成付款</h2><p>我們已收到 ${esc(r.name)} 的付款截圖，核實後會發確認電郵。多謝支持！</p></div>`; return; }
   INFO=r; render();
 })();
