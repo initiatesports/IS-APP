@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-01-saMerge-mig4';
+const FRONTEND_VERSION='parent-2026-09-03-mkinfo';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -309,6 +309,31 @@ function saSessionsFor(cid){
 function saMakeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid);
   const sp=(SA_CLASSES[cid]||{}).sport||'';
   return SA_CLASS_IDS.filter(k=>own.indexOf(k)<0 && (!sp||(SA_CLASSES[k]||{}).sport===sp)).map(k=>({key:k,time:SA_CLASSES[k].time})); }
+/* 🔵 informational 補堂（老闆 2026-09-03）：呢啲班補堂唔自動約日期，只顯示補堂時間 + 私訊教練安排。
+   key = 班 id；有 `targets` 就列多個選擇（幼兒），冇就直接顯示 `note`。 */
+const MK_INFO = {
+  'gym-sat2':   { note:'補堂時間為星期五 17:00–18:00 或星期日 09:00–10:00，具體日期請私訊教練' },
+  'cond-sat5':  { note:'補堂時間為星期五 17:00–18:00 或星期日 10:00–11:00，具體日期請私訊教練' },
+  'bad-sat8':   { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
+  'bad-sat12':  { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
+  'bad-sat12b': { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
+  'bad-sat13':  { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
+  'found-tue5': { targets:[
+    { label:'星期四 花式跳繩班（17:00–18:00）', note:'具體日期請私訊教練' },
+    { label:'星期六 體操班', note:'補堂時間為星期五 17:00–18:00 或星期日 09:00–10:00，具體日期請私訊教練' },
+    { label:'星期六 綜合運動班', note:'補堂時間為星期五 17:00–18:00 或星期日 10:00–11:00，具體日期請私訊教練' },
+  ]},
+};
+function openMakeupInfo(c, owed, info){
+  const body = info.targets
+    ? info.targets.map(x=>`<div class="opt" style="cursor:default;align-items:flex-start"><div><div class="t">${x.label}</div><div class="s" style="white-space:normal">${x.note}</div></div></div>`).join('')
+    : `<div class="notice" style="white-space:normal">${info.note}</div>`;
+  openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
+    <p class="sd">${LANG==='en'?`You have ${owed} make-up class(es) owed. Arrangement:`:`你有 ${owed} 堂待補堂。補堂安排如下：`}</p>
+    ${body}
+    <div class="notice warn" style="margin-top:10px;white-space:normal">📱 ${LANG==='en'?'Please WhatsApp the coach (6331 7403) to arrange the exact make-up date.':'補堂具體日期請私訊教練安排（WhatsApp 6331 7403）。'}</div>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">${t('close')}</button>`);
+}
 let PUBLIC_HOLIDAYS = ['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19','2026-07-01'];
 
 /* ═══════════ 狀態 ═══════════ */
@@ -1586,6 +1611,8 @@ let MF={};
 function openMakeup(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci], owed=c.owed||0;
   if(owed<=0){ openSheet(`<h2>${t('mkApply')}</h2><p class="sd">${t('noOwed')}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
+  // 🔵 informational 補堂（體操/綜合/羽毛球/幼兒）：只顯示時間 + 私訊教練，唔行自動約日期流程（老闆 2026-09-03）
+  const _mkInfoKey=c.key||c.sport; if(MK_INFO[_mkInfoKey]){ openMakeupInfo(c, owed, MK_INFO[_mkInfoKey]); return; }
   // 補堂限期 = 最舊「未補」缺席日之限期。⚠️ 必須用 c.mkExt 逐筆限期覆寫（教練延期），
   // 否則延咗期嘅學生會照用「缺席日+2個月」原限期 → 已過期 → 篩走所有 slot → 錯報「冇可補時段」。
   const leaves=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
