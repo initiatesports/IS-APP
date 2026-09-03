@@ -3,7 +3,7 @@
 // COACH_PASS 只經環境變數傳，唔會寫入任何檔案／log。
 import fs from 'fs';
 
-const EXEC = "https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec";
+const EXEC = "https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec";
 const COACH = process.env.COACH_PASS || "";
 const NEW_N = Number(process.argv[2] || 100);
 if (!COACH) { console.error("需要 COACH_PASS 環境變數"); process.exit(1); }

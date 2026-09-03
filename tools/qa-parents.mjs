@@ -12,7 +12,7 @@
    → 每日 08:04 嘅「家長系統自偵測」測緊一個冇人用嘅版本，家長真撞到嘅 bug 永遠綠燈。
    ⚠️ 呢兩條 URL 必須同 IS-APP/is-parent.html（#4）同 is-leave-makeup.html（#9）一致；
       日後前端切 /exec，呢度要一齊改。 */
-const EXEC4 = "https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec";
+const EXEC4 = "https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec";
 const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
 // #SA sports-attendance /exec（運動班：體操/羽毛球/田徑等；2026-09 統一 is-parent 後家長經呢個後端睇非跳繩班）。
 const EXEC_SA = "https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec";

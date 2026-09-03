@@ -595,7 +595,7 @@ html,body{
 /* ═══════════ 一、設定與常量 ═══════════ */
 /* ⚠️ 部署統一後端 Code.gs 後，把下面 API_URL 改成新嘅 /exec 網址（三個前端都用同一條）。 */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbyNhVCIVKrK4QxRf2jS8xWzH-ST-7hkbcqF-zwLjxQN6b-YWnyJW1aDwQlQWwJfgJPS/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec',
   // 教練密碼唔再硬編喺前端；改為登入時輸入並交後端 Code.gs 驗證（見 coachGateSubmit）
   EXPECTED_VERSION: 'is-unified-v2',    // 期望後端版本（健康檢查）
   WHATSAPP: '85263317403',              // 停課文案查詢電話
@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-02-rejoin';
+const FRONTEND_VERSION = 'coach-2026-09-02-rejoin-mig4';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
