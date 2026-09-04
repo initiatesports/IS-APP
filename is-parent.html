@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-03-mkinfo';
+const FRONTEND_VERSION='parent-2026-09-05-pt';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1078,15 +1078,35 @@ function ptCard(child){
   const rows=cur.map(s=>{const d=new Date(s.date+'T00:00:00');
     return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span></span><span class="pill p-go">${L('第'+s.no+'堂','#'+s.no)}</span></div>`;
   }).join('') || `<div class="period-empty">${L('本期暫未有上課記錄','No sessions this cycle yet')}</div>`;
-  return `<div class="card" style="border-color:rgba(224,169,58,.45)">
-    <div class="topline"><span class="dot" style="background:#e0a93a"></span><h3>⭐ ${L('私人訓練','Private Training')}</h3></div>
-    ${traineeLine}
-    <div class="meta">${L('第 '+cycle+' 期 · 每期 '+cap+' 堂','Cycle '+cycle+' · '+cap+' sessions each')}</div>
+  // 🎟️ 預付套票（如甘卓熹）：剩餘節數 + 到期
+  const pkgs=(pt.packages||[]).filter(x=>x && (x.remaining>0 || (x.daysToExp!=null && x.daysToExp>=0)));
+  const pkgHtml=pkgs.map(pk=>`<div style="margin:8px 0;padding:11px 13px;background:#fff8ec;border:1px solid rgba(224,169,58,.4);border-radius:10px">
+    <div style="font-weight:800;color:#a06a10">🎟️ ${L(pk.sessions+' 節套票','Package · '+pk.sessions)}</div>
+    <div style="font-size:14px;margin-top:3px">${L('剩餘','Remaining')} <b style="font-size:17px;color:#a06a10">${pk.remaining}</b> ${L('節','')}　·　${L('到期','Expires')} ${fmtDate(pk.expiry)}${pk.daysToExp!=null&&pk.daysToExp<=30?` <span style="color:var(--red);font-weight:700">（${L(pk.daysToExp+' 日內',pk.daysToExp+'d')}）</span>`:''}</div>
+  </div>`).join('');
+  // 💰 逐節待繳（如鄧可澄）：私訓待繳 + 逐節明細
+  let owedHtml='';
+  if(pt.bill && (pt.unbilledFee||0)>0){
+    const ss=(pt.unbilledSessions||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const lines=ss.map(s=>{const d=new Date(s.date+'T00:00:00');return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span></span><span style="font-weight:800;color:#c0392b">$${s.effFee}</span></div>`;}).join('');
+    owedHtml=`<div style="margin:8px 0;padding:11px 13px;background:#fdf4f4;border:1px solid rgba(224,82,77,.32);border-radius:10px">
+      <div style="font-weight:800;color:#c0392b">💰 ${L('私人訓練待繳','Private training due')}：$${pt.unbilledFee}</div>
+      <div style="font-size:12px;color:var(--muted,#888);margin:4px 0 6px">${L('共 '+pt.unbilledCount+' 堂・逐節收費（教練會 WhatsApp 跟進收費）','')}</div>
+      ${lines}
+    </div>`;
+  }
+  const cycleHtml=pkgs.length?'':`<div class="meta">${L('第 '+cycle+' 期 · 每期 '+cap+' 堂','Cycle '+cycle+' · '+cap+' sessions each')}</div>
     <div style="display:flex;align-items:center;gap:10px;margin:10px 0 6px">
       <div style="flex:1;height:10px;border-radius:6px;background:var(--surface2,#eee);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
       <div style="font-weight:800;color:#a06a10;white-space:nowrap">${done} / ${cap} ${L('堂','')}</div>
-    </div>
-    <div style="margin-top:10px">${rows}</div>
+    </div>`;
+  return `<div class="card" style="border-color:rgba(224,169,58,.45)">
+    <div class="topline"><span class="dot" style="background:#e0a93a"></span><h3>⭐ ${L('私人訓練','Private Training')}</h3></div>
+    ${traineeLine}
+    ${pkgHtml}
+    ${owedHtml}
+    ${cycleHtml}
+    ${owedHtml?'':`<div style="margin-top:10px">${rows}</div>`}
   </div>`;
 }
 function venueAt(date,cid){ const day=(S.venues||{})[date]; if(!day) return null; if(day.centre||day.room) return day; return day[cid]||day._all||null; }
