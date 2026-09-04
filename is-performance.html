@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-08-31-dmy-mig4';
+const APP_VERSION='growth-2026-09-05-rank';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -922,6 +922,15 @@ function printBatch(){
 
 /* ═══════════════════ 2 頁專業成長報告 ═══════════════════ */
 function rpGoal(v,u){return u==='kg'?Math.ceil(v)+2:Math.round(v*1.12);}
+let FAM_RANKS=null;   // 家長報告模式：#11 homeReport 回嘅本人名次；教練模式=null（報告唔顯示名次，行為不變）
+function rankPill(m){
+  if(!FAM_RANKS||!FAM_RANKS.length) return '';
+  const rk=FAM_RANKS.find(x=>x.metricId===m); if(!rk||!rk.total) return '';
+  const gold=rk.rank<=3;
+  const txt=rk.rank===1?'全校第一':(rk.rank<=3?('全校第 '+rk.rank):('全校 '+rk.rank+'/'+rk.total));
+  const co=(rk.cohortRank&&rk.cohortTotal)?('・同齡 '+rk.cohortRank+'/'+rk.cohortTotal):'';
+  return `<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:800;vertical-align:middle;background:${gold?'#faf1d6':'#eef2f4'};color:${gold?'#9a6f10':'#5b6b73'};white-space:nowrap">🏆 ${txt}${co}</span>`;
+}
 function growthReportHTML(name){
   const g=gradeFor(name);
   const imp=[];['rope30','bike','cross','double','rope2m','sj','cmj'].forEach(m=>{const s=series(name,m);if(s.length<2)return;const first=s[0].val,best=Math.max(...s.map(r=>r.val));const d=round(best-first,1);if(d>0)imp.push({m,d,pct:first?Math.round(d/first*100):0,val:best});});
@@ -934,8 +943,8 @@ function growthReportHTML(name){
   const fitIds=['sj','cmj'].filter(m=>series(name,m).length>0);
   // rope rows
   const ropeRows=ropeIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const single=s.length<2;const d=single?null:round(l-f,1);
-    return `<tr><td class="mn">${esc(mt.lab)}</td><td class="c">${single?'—':f}</td><td class="c v">${l}</td><td class="c"><span class="pb">${best} PB</span></td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c">${rpSpark(s.map(r=>r.val))}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
-  const fitRows=fitIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val;const d=s.length<2?null:round(l-f,1);return `<tr><td class="mn">${esc(mt.lab)}<small>${esc(mt.u)}</small></td><td class="c">${s.length<2?'—':f}</td><td class="c v">${l}</td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
+    return `<tr><td class="mn">${esc(mt.lab)}${rankPill(m)}</td><td class="c">${single?'—':f}</td><td class="c v">${l}</td><td class="c"><span class="pb">${best} PB</span></td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c">${rpSpark(s.map(r=>r.val))}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
+  const fitRows=fitIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val;const d=s.length<2?null:round(l-f,1);return `<tr><td class="mn">${esc(mt.lab)}<small>${esc(mt.u)}</small>${rankPill(m)}</td><td class="c">${s.length<2?'—':f}</td><td class="c v">${l}</td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
   // grip combined
   const gr=series(name,'gripR'),gl=series(name,'gripL');let gripRow='';
   if(gr.length||gl.length){const rl=gr.length?gr[gr.length-1].val:'—',ll=gl.length?gl[gl.length-1].val:'—';gripRow=`<tr><td class="mn">手握力（左 / 右）<small>kg</small></td><td class="c">—</td><td class="c v">${ll} / ${rl}</td><td class="c">—</td><td class="c gl">${gr.length?rpGoal(gr[gr.length-1].val,'kg'):'—'}</td></tr>`;}
@@ -1210,6 +1219,7 @@ async function famReportBoot(){
     return;
   }
   ingest({performance:r.performance||[],body:r.body||[],settings:[]});
+  FAM_RANKS=(r&&r.ranks)||null;   // 🏆 後端計好嘅本人名次（全校＋同齡），報告項目名旁顯示
   if(!hasAnyData(child)){host.innerHTML=famMsg(child+' 暫未有測試記錄','小朋友完成體測／技術測試後，成長報告就會喺呢度顯示。');return;}
   const docHtml=reportDoc([growthReportHTML(child)],child+' 成長報告');
   host.innerHTML=`<div style="position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(135deg,#0f8996,#12a3b2);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)">
@@ -1220,8 +1230,57 @@ async function famReportBoot(){
   const fr=document.getElementById('famFrame');fr.srcdoc=docHtml;
   fr.onload=()=>{try{fr.style.height=(fr.contentWindow.document.body.scrollHeight+40)+'px';}catch(e){fr.style.height='2500px';}};
 }
+/* ═══ 家長版排行榜模式（is-parent.html 開 ?lb=1）═══
+   同 report 模式一樣用 is_report_grant token；#11 homeRank route（verifyParent_ gated）回全校排行榜（名/最佳/年齡/日期）
+   + 本人各項名次。老闆 2026-09-05 選「報告名次＋家長版排行榜」，接受榜顯示其他學生名+成績。*/
+let FAMLB_DATA=null, FAMLB_METRIC='rope30', FAMLB_CHILD='';
+async function famLBBoot(){
+  let grant=null; try{grant=JSON.parse(localStorage.getItem('is_report_grant')||'null');}catch(e){}
+  $('#login').style.display='none'; const host=$('#app'); host.style.display='block';
+  if(!grant||!grant.token){ host.innerHTML=famMsg('連結已失效','請返回家長頁，撳「成績排行榜」重新開啟。'); return; }
+  FAMLB_CHILD=grant.child||grant.name||'';
+  host.innerHTML=famMsg('載入中…','正在準備成績排行榜');
+  let r=null, lastErr='請返回家長頁重新登入。';
+  for(let i=0;i<4;i++){
+    try{
+      const res=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeRank',name:grant.name,last4:grant.last4,token:grant.token})});
+      const txt=(await res.text()).trim();
+      if(txt.startsWith('{')){ const j=JSON.parse(txt); const em=String((j&&(j.error||j.err))||'').trim();
+        if(!(/unknown action/i.test(em))){ r=j; break; } lastErr='伺服器暫時繁忙'; }
+      else lastErr='伺服器暫時繁忙';   // HTML（#11 cold start）→ 重試
+    }catch(e){ lastErr=(e&&e.message)||'網絡問題'; }
+    await new Promise(x=>setTimeout(x,700*(i+1)));
+  }
+  if(!r||r.ok===false||r.error||r.err){ host.innerHTML=famMsg('未能載入排行榜',(r&&(r.error||r.err))||lastErr); return; }
+  FAMLB_DATA=r;
+  const lb=r.leaderboard||{}, order=(r.order||Object.keys(lb));
+  if(!(lb[FAMLB_METRIC]&&lb[FAMLB_METRIC].length)) FAMLB_METRIC=order.find(m=>lb[m]&&lb[m].length)||Object.keys(lb)[0]||'rope30';
+  host.innerHTML=`<div style="position:sticky;top:0;z-index:10;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(135deg,#1b8d9b,#12a3b2);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)">
+      <div style="font-weight:800;font-size:15px">📊 成績排行榜</div>
+      <a href="is-parent.html" style="background:#fff;color:#0f8996;border-radius:10px;padding:8px 14px;font-weight:800;font-size:13px;text-decoration:none">← 返回</a>
+    </div><div id="famLBWrap" style="max-width:640px;margin:0 auto;padding:14px"></div>`;
+  famLBRender();
+}
+function famLBRender(){
+  const r=FAMLB_DATA; if(!r) return;
+  const lb=r.leaderboard||{}, mets=r.metrics||{}, order=(r.order||Object.keys(lb)).filter(m=>lb[m]&&lb[m].length);
+  const cn=String(FAMLB_CHILD).replace(/\s+/g,''), u=(mets[FAMLB_METRIC]||{}).u||'', medal=['#e0b100','#9aa4b0','#c88a4a'];
+  const chips=order.map(m=>`<button onclick="FAMLB_METRIC='${m}';famLBRender()" style="flex:none;padding:8px 14px;border-radius:20px;border:1.5px solid ${m===FAMLB_METRIC?'#0f8996':'#d5dde0'};background:${m===FAMLB_METRIC?'#0f8996':'#fff'};color:${m===FAMLB_METRIC?'#fff':'#556'};font-weight:800;font-size:13px;cursor:pointer">${esc((mets[m]||{}).lab||m)}</button>`).join('');
+  const rows=lb[FAMLB_METRIC]||[];
+  const myRank=(r.childRanks||[]).find(x=>x.metricId===FAMLB_METRIC);
+  const myLine=myRank?`<div style="background:#eaf7f8;border:1px solid #9fd8dd;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px"><b style="color:#0f8996">${esc(FAMLB_CHILD)}</b>：全校第 <b style="font-size:18px;color:#0f8996">${myRank.rank}</b> / ${myRank.total} 名・個人最佳 <b>${myRank.best}</b> ${esc(u)}${myRank.cohortRank?`・同齡第 ${myRank.cohortRank}/${myRank.cohortTotal}`:''}</div>`:'';
+  const table=rows.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead><tr style="text-align:left;color:#889;font-size:12px"><th style="padding:8px 6px;width:46px">名次</th><th style="padding:8px 6px">學生</th><th style="padding:8px 6px;text-align:right">個人最佳</th><th style="padding:8px 6px;text-align:right">日期</th></tr></thead>
+    <tbody>${rows.map((x,i)=>{const me=String(x.name).replace(/\s+/g,'')===cn;return `<tr style="border-top:1px solid #eef2f4;${me?'background:#fff8ec':''}">
+      <td style="padding:9px 6px"><div style="width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800;${i<3?`background:${medal[i]}22;color:${medal[i]}`:'color:#9aa4a9'}">${i+1}</div></td>
+      <td style="padding:9px 6px;font-weight:${me?'900':'600'};color:${me?'#a06a10':'#1e2a30'}">${esc(x.name)}${me?' ⭐':''}${x.age!=null?`<span style="color:#aab;font-weight:400;font-size:11px"> ${x.age}歲</span>`:''}</td>
+      <td style="padding:9px 6px;text-align:right;font-weight:800;color:#12324f">${x.best}<span style="color:#aab;font-weight:400"> ${esc(u)}</span></td>
+      <td style="padding:9px 6px;text-align:right;color:#aab">${md(x.date)}</td></tr>`;}).join('')}</tbody></table></div>`:'<div style="text-align:center;color:#99a;padding:30px">呢個項目未有紀錄</div>';
+  $('#famLBWrap').innerHTML=`<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px">${chips}</div>${myLine}${table}`;
+}
 // auto-login if saved pass (localStorage → 課堂唔使次次登入)
 (function(){
+  if(new URLSearchParams(location.search).get('lb')==='1'){famLBBoot();return;}          // 家長排行榜模式
   if(new URLSearchParams(location.search).get('report')==='1'){famReportBoot();return;}   // 家長報告模式：唔行教練自動登入
   let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}if(p){CP=p;$('#pw').value='';boot();}})();
 // PWA service worker（只 cache 本 app 自己 HTML 作離線開啟；對其他 IS-APP 頁完全透明，唔攔截）
