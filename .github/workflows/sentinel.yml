@@ -1,0 +1,54 @@
+name: 系統哨兵 (External Sentinel)
+
+# 風險3 單機單點：所有偵測都跑喺同一部會瞓覺嘅 Mac。呢個哨兵跑喺 GitHub 雲端，
+# 獨立監察後端 /exec 生存 + 部機心跳新鮮度。後端無回應 → job 失敗 → GitHub email 你（repo owner）。
+# 用唯讀 ping / sentinelStatus route（無 PII、免密碼），所以放喺公開 repo 都安全。
+
+on:
+  schedule:
+    - cron: '23 * * * *'      # 每小時 :23（避開整點/07:00 搶場高峰）
+  workflow_dispatch: {}
+
+concurrency:
+  group: sentinel
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 監察後端生存 + 部機心跳
+        shell: bash
+        run: |
+          E4="https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec"
+          ESA="https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec"
+          fail=0
+
+          # 重試（避免 Apps Script 冷啟動假警報）：4 次、每次隔 15s，任何一次見 ok:true 即當生存
+          alive() {
+            local name="$1" url="$2" i r
+            for i in 1 2 3 4; do
+              r=$(curl -sL --max-time 60 "${url}?action=ping" 2>/dev/null || true)
+              if echo "$r" | grep -q '"ok":true'; then echo "✅ ${name} 生存"; return 0; fi
+              sleep 15
+            done
+            echo "❌ ${name} 後端連續 4 次無回應：$url"
+            return 1
+          }
+
+          alive "#4 unified"      "$E4"  || fail=1
+          alive "#SA sports"      "$ESA" || fail=1
+
+          # 部機心跳（唯讀）：部機每日 cron ping #4；stale = 部機瞓/爆。目前只報告唔當失敗
+          # （待部機心跳 cron 確認長期運作，再改成 fatal 就唔會假警報）。
+          s=$(curl -sL --max-time 60 "${E4}?action=sentinelStatus" 2>/dev/null || true)
+          echo "心跳狀態：$s"
+          if echo "$s" | grep -q '"heartbeatStale":true'; then
+            echo "⚠️ 部機心跳過期/未設（>36h）——如部機心跳 cron 已裝，代表部機可能瞓/爆。"
+          fi
+
+          if [ "$fail" = "1" ]; then
+            echo "::error::系統哨兵偵測到後端無回應——GitHub 會 email 通知（repo owner）。"
+            exit 1
+          fi
+          echo "✅ 全部後端正常"
