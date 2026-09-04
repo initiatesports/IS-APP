@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-04-merge-sa2';
+const FRONTEND_VERSION = 'coach-2026-09-04-merge-sa3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -667,7 +667,10 @@ const ALL_CLASSES = Object.assign({}, CLASSES, SA_CLASSES);   // 合併查表（
 function realStuCount_(cls){ return (cls&&cls.students?cls.students:[]).filter(n=>!/示範|測試/.test(n)).length; }
 function dayOrder_(dow){ return dow===0?7:dow; }   // Mon(1)…Sat(6)…Sun(7)
 function classStartMin_(cls){ var t=String(cls&&cls.time||'').toLowerCase(); var m=t.match(/(\d{1,2})(?::(\d{2}))?/); if(!m) return 9999; var h=+m[1], mm=m[2]?+m[2]:0, isAm=t.indexOf('am')>=0, isPm=(t.indexOf('pm')>=0&&!isAm); if(isAm){ if(h===12)h=0; } else if(isPm){ if(h<12)h+=12; } else if(h<=7){ h+=12; } return h*60+mm; }
-function sortedShownClasses_(){ return Object.entries(ALL_CLASSES).filter(([id,cls])=>realStuCount_(cls)>0).sort((a,b)=>(dayOrder_(anyDow(a[0]))-dayOrder_(anyDow(b[0])))||(classStartMin_(a[1])-classStartMin_(b[1]))); }
+let CLASS_END_MAP = {};   // 停辦班 cid→最後日（由 load 帶入）
+function isDiscontinued_(cid){ try{ return !!(CLASS_END_MAP[cid] && todayStr() > CLASS_END_MAP[cid]); }catch(e){ return false; } }
+// 只出現「夠人開班」（≥4 成班，老闆 2026-09-04）＋非停辦班；時間順序排
+function sortedShownClasses_(){ return Object.entries(ALL_CLASSES).filter(([id,cls])=>realStuCount_(cls)>=4 && !isDiscontinued_(id)).sort((a,b)=>(dayOrder_(anyDow(a[0]))-dayOrder_(anyDow(b[0])))||(classStartMin_(a[1])-classStartMin_(b[1]))); }
 
 const PUBLIC_HOLIDAYS = new Set(['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19']);
 const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
@@ -754,6 +757,7 @@ function applyCoachLoadData(data){
   }
   XFER_JOIN_MAP = data.xferJoin || {};   // 姓名|cid → 生效日：此日之前唔喺該班點名清單
   PERIOD_VOID_MAP = data.periodVoid || {};
+  CLASS_END_MAP = data.classEnd || {};   // 停辦班 cid→最後日 → 班列表隱藏
   TRANSFERS_MAP = {};
   (data.transfers || []).forEach(t => { if(t && t.cid && t.date && t.name){ const k=t.cid+'|'+t.date; (TRANSFERS_MAP[k]=TRANSFERS_MAP[k]||[]).push(t.name); } });
   STUDENT_LEAVE_MAP = data.studentLeave || {};
@@ -790,7 +794,8 @@ function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
     periodVoid:    pv,
     transfers:  [].concat(a.transfers||[],  b.transfers||[]),
     studentLeave:  Object.assign({}, a.studentLeave||{},  b.studentLeave||{}),  // key=name|cid，唔撞
-    studentRejoin: Object.assign({}, a.studentRejoin||{}, b.studentRejoin||{})
+    studentRejoin: Object.assign({}, a.studentRejoin||{}, b.studentRejoin||{}),
+    classEnd:      Object.assign({}, a.classEnd||{},      b.classEnd||{})        // 停辦班 cid→最後日
   };
 }
 async function loadFromSheets(){
