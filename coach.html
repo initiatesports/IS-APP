@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-04-merge-sa';
+const FRONTEND_VERSION = 'coach-2026-09-04-merge-sa2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -663,6 +663,11 @@ function backendFor(cid){ return isSA(cid) ? SA_API_URL : API_URL; }
 function bodyCid_(body){ if(!body) return ''; var k=body.classId||body.cid||body.toKey||body.fromKey||body.key||(body.att&&body.att.key)||(body.data&&body.data.key)||''; return String(k).split('|')[0]; }
 function backendForBody_(body){ return isSA(bodyCid_(body)) ? SA_API_URL : API_URL; }
 const ALL_CLASSES = Object.assign({}, CLASSES, SA_CLASSES);   // 合併查表（值係同一 object ref → students 更新會反映）；畀班列表/點名遍歷兩邊
+// 班列表：只出現有學生（夠人開班）＋時間順序排（老闆 2026-09-04）
+function realStuCount_(cls){ return (cls&&cls.students?cls.students:[]).filter(n=>!/示範|測試/.test(n)).length; }
+function dayOrder_(dow){ return dow===0?7:dow; }   // Mon(1)…Sat(6)…Sun(7)
+function classStartMin_(cls){ var t=String(cls&&cls.time||'').toLowerCase(); var m=t.match(/(\d{1,2})(?::(\d{2}))?/); if(!m) return 9999; var h=+m[1], mm=m[2]?+m[2]:0, isAm=t.indexOf('am')>=0, isPm=(t.indexOf('pm')>=0&&!isAm); if(isAm){ if(h===12)h=0; } else if(isPm){ if(h<12)h+=12; } else if(h<=7){ h+=12; } return h*60+mm; }
+function sortedShownClasses_(){ return Object.entries(ALL_CLASSES).filter(([id,cls])=>realStuCount_(cls)>0).sort((a,b)=>(dayOrder_(anyDow(a[0]))-dayOrder_(anyDow(b[0])))||(classStartMin_(a[1])-classStartMin_(b[1]))); }
 
 const PUBLIC_HOLIDAYS = new Set(['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19']);
 const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
@@ -1301,14 +1306,14 @@ function renderHome(){
   try{ renderTodo(); }catch(e){ console.error('renderTodo',e); }
 
   const todayDow = hkDow();
-  const todayCls = Object.entries(ALL_CLASSES).filter(([id]) => anyDow(id) === todayDow);   // 🔀 跳繩+運動班
+  const todayCls = sortedShownClasses_().filter(([id]) => anyDow(id) === todayDow);   // 🔀 有學生(夠人開班)+今日+時間序
   const todayWrap = document.getElementById('today-classes');
   todayWrap.innerHTML = todayCls.length
     ? todayCls.map(([id, cls]) => classRowHTML(id, cls)).join('')
     : `<div style="padding:12px 4px;color:var(--muted);font-size:14px">今天沒有班別</div>`;
 
   document.getElementById('all-classes').innerHTML =
-    Object.entries(ALL_CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');   // 🔀 跳繩+運動班
+    sortedShownClasses_().map(([id, cls]) => classRowHTML(id, cls)).join('');   // 🔀 有學生(夠人開班)+時間順序
 
   // 首頁精簡（2026-07）：移除「每週通知 / 即將到期補堂 / 每班摘要」（累贅少用），只保留上課地點+WhatsApp。
   // 即將到期補堂仍可喺「補堂」分頁「即將到期」filter 睇；通知功能移除。
