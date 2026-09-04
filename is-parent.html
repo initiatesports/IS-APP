@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-05-pt';
+const FRONTEND_VERSION='parent-2026-09-05-rank';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -802,7 +802,7 @@ function featureLinks(){
   return ''
   + `<a class="btn" style="${base}background:linear-gradient(135deg,#f0a73a,#d98a1f);box-shadow:0 6px 18px rgba(217,138,31,.22)" href="is-home.html?view=badge"><span>🏅 ${LANG==='en'?'Badge Assessment Plan':'章別考核計劃'}</span><span style="font-size:18px">›</span></a>`
   + rptBanner
-  + `<a class="btn" style="${base}background:linear-gradient(135deg,#3ecfcf,#1b8d9b);box-shadow:0 6px 18px rgba(27,141,155,.22)" href="is-home.html?view=lb"><span>📊 ${LANG==='en'?'Leaderboard':'成績排行榜'}</span><span style="font-size:18px">›</span></a>`;
+  + `<button class="btn" style="${base}background:linear-gradient(135deg,#3ecfcf,#1b8d9b);box-shadow:0 6px 18px rgba(27,141,155,.22)" onclick="openLeaderboard()"><span>📊 ${LANG==='en'?'Leaderboard':'成績排行榜'}</span><span style="font-size:18px">›</span></button>`;
 }
 /* 🧭 家庭概覽 KPI 條：下一堂 / 待補堂 / 本期待繳（全部用後端已算好嘅值：nextClassInfo、c.owed、f.net；唔自行計錢）。純顯示、附加，唔影響任何寫入。*/
 function famSummary(kids){
@@ -839,6 +839,20 @@ function openGrowthReport(name){
   try{ localStorage.setItem('is_report_grant', JSON.stringify({name:name,last4:last4,token:tok,child:name,t:Date.now()})); }catch(e){}
   toast(t('reportOpening'));
   window.open('is-performance.html?report=1','_blank');
+}
+/* 📊 家長版成績排行榜：用任一有 token 嘅仔女授權 → is-performance.html?lb=1（#11 homeRank，後端計名次）。 */
+function openLeaderboard(){
+  const kids=(S.family&&S.family.children)||[];
+  const ki=(kids.length>1 && S.kid!=null && S.kid<kids.length)?S.kid:0;
+  let name='', tok='';
+  const pick=(nm)=>{ const tk=(S.family&&S.family.childTokens&&S.family.childTokens[nm])||''; if(tk){name=nm;tok=tk;return true;} return false; };
+  if(kids[ki] && !kids[ki].ptOnly) pick(kids[ki].name);
+  if(!tok){ for(var i=0;i<kids.length;i++){ if(!kids[i].ptOnly && pick(kids[i].name)) break; } }
+  if(!tok){ toast(t('reportUnavail')); return; }
+  const last4=(S.family&&S.family.last4)||'';
+  try{ localStorage.setItem('is_report_grant', JSON.stringify({name:name,last4:last4,token:tok,child:name,t:Date.now()})); }catch(e){}
+  toast(t('reportOpening'));
+  window.open('is-performance.html?lb=1','_blank');
 }
 function renderParent(){
   $('header-title').textContent=t('myClasses'); $('header-sub').textContent=t('mySub');
