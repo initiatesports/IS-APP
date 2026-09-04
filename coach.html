@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-02-rejoin-mig4';
+const FRONTEND_VERSION = 'coach-2026-09-04-share';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1139,10 +1139,13 @@ function openStuProfile(name){
   ov.classList.add('show');
 }
 function closeStuProfile(){ const ov=document.getElementById('stu-profile-ov'); if(ov)ov.classList.remove('show'); }
-/* 📣 智能提醒文案生成：一鍵生成 WhatsApp 提醒（補堂到期／今日課堂／個別學生），慳打字少走漏。純讀資料 + 複製剪貼簿。*/
+/* 📣 智能提醒文案生成：一鍵生成 WhatsApp 提醒（補堂到期／今日課堂／個別學生），慳打字少走漏。純讀資料。
+   2026-09-04：手機直出分享（navigator.share → 揀 WhatsApp 即發，慳「複製→切app→揀群→貼」）；桌面/取消自動退回複製剪貼簿。*/
 function copyMsg_(text, okMsg){ const done=()=>toast(okMsg||'已複製 ✓','✓');
   function fb(){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); done();}catch(e){toast('請長按手動複製','ℹ');} document.body.removeChild(ta); }
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(fb); } else fb();
+  function clip(){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(fb); } else fb(); }
+  if(navigator.share){ navigator.share({text:text}).then(()=>toast('已分享 ✓','✓')).catch(()=>clip()); }   // 手機分享面板→WhatsApp；取消/失敗自動複製
+  else clip();
 }
 function genStuReminder(name){
   const pend=getPendingActive(name), exp=getPending(name).filter(x=>isExpired(x.deadline));
