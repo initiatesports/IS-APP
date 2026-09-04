@@ -101,6 +101,8 @@ var FAQS=[
   {q:'請假可以補堂嗎？',a:'可以。我們設有完整的網上請假補堂系統，家長可自行於家長專區申請請假及預約補堂，安排靈活方便。'},
   {q:'有沒有考核或證書？',a:'現時花式跳繩設有 14 級章別考核制度，讓孩子有清晰的進階目標；我們亦正陸續為其他課程引入相應的評核機制。此外，教練會定期推薦合適的學員參加各區及公開比賽，讓他們在實戰中累積經驗、建立自信，同時定期進行能力評估並提供成長報告，全方位見證孩子的成長。'},
   {q:'收費如何計算？',a:'課程以按堂收費為主，不同課程與班別收費略有不同。為確保你收到最新、最準確的資料，歡迎 WhatsApp 6331 7403 查詢詳情。'}];
+/* SEO：由現有 FAQS 生成 FAQPage 結構化資料（Google 搜尋顯示可展開 FAQ）。單一來源 FAQS，唔會 drift。 */
+(function(){ try{ var ld={"@context":"https://schema.org","@type":"FAQPage","mainEntity":FAQS.map(function(f){return {"@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a}};})}; var s=document.createElement('script'); s.type='application/ld+json'; s.text=JSON.stringify(ld); document.head.appendChild(s); }catch(e){} })();
 var ALL_COURSES=[
   {cat:'幼兒',name:'幼兒全方位運動啟蒙課程',age:'3–6 歲',tag:'FMS 動作啟蒙',dur:'每節 60 分鐘',img:'',sum:'把握 3–6 歲「動作大腦」黃金期，以國際公認嘅 FMS 框架細拆 24 項核心動作元素，用遊戲為孩子打好一生受用嘅運動根基。',chips:['1:10 小班','PRE & POST 報告','室內外交替'],
     full:'3–6 歲係孩子「動作大腦」發展嘅黃金期 —— 呢階段打好基礎，將來學任何運動都事半功倍。本課程以國際公認嘅 FMS 基礎動作技能（Fundamental Movement Skills）為框架，由淺入深，建立孩子一生受用嘅運動底子。\n\n科學化系統，細拆 24 項核心動作元素：\n• 移動技能 Locomotor — 跑、跳、爬行等空間位移與下肢爆發力\n• 穩定技能 Stability — 平衡、核心控制與本體感覺，減低受傷風險\n• 操控技能 Manipulative — 拋、接、踢、拍等手眼／手腳協調與力量控制\n\n室內外交替訓練 · 師生比例 1:10，每班限 10 人 · 附專屬 PRE & POST 數據成長報告'},
