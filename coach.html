@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-04-share';
+const FRONTEND_VERSION = 'coach-2026-09-04-merge-sa';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -632,6 +632,38 @@ const CLASSES = {
 };
 const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6, c8:4, c9:5 };
 
+/* ═══════════ 運動班（#SA 非跳繩）合併（2026-09-04，mirror is-parent）═══════════
+   coach.html 而家同時管跳繩(#4)＋運動班(#SA)。cid 唔會撞（c1..c9 vs found-tue2 等）。
+   逐 operation 按 isSA(cid) 路由去正確 backend。⚠️ 送陣列/blob 嘅寫入(save_roll 等)一定要按
+   backend filter，否則跨系統污染出席。SA_CLASSES / SA_CLASS_DOW 同 coach-sports.html 一致，改班兩處一齊改。 */
+const SA_API_URL = 'https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';
+const SA_CLASSES = {
+  "found-tue2":    { label:'幼兒全方位運動啟蒙 · 星期二 2–3pm', day:'Tue', dayZh:'星期二', time:'2–3pm', sport:'幼兒全方位運動啟蒙', venue:'青衣', students:[] },
+  "found-tue5":    { label:'幼兒全方位運動啟蒙 · 星期二 5–6pm', day:'Tue', dayZh:'星期二', time:'5–6pm', sport:'幼兒全方位運動啟蒙', venue:'青衣', students:[] },
+  "cond-tue6":     { label:'綜合運動體能＋田徑 · 星期二 6–7pm', day:'Tue', dayZh:'星期二', time:'6–7pm', sport:'綜合運動體能＋田徑', venue:'青衣', students:[] },
+  "cond-sat5":     { label:'綜合運動體能＋田徑 · 星期六 5–6pm', day:'Sat', dayZh:'星期六', time:'5–6pm', sport:'綜合運動體能＋田徑', venue:'青衣', students:[] },
+  "cond-sun11":    { label:'綜合運動體能＋田徑 · 星期日 11am–12', day:'Sun', dayZh:'星期日', time:'11am–12', sport:'綜合運動體能＋田徑', venue:'青衣', students:[] },
+  "gym-thu5":      { label:'體操 · 星期四 6–7pm', day:'Thu', dayZh:'星期四', time:'6–7pm', sport:'體操', venue:'青衣', students:[] },
+  "gym-sat2":      { label:'體操 · 星期六 4–5pm', day:'Sat', dayZh:'星期六', time:'4–5pm', sport:'體操', venue:'青衣', students:[] },
+  "gym-sun10":     { label:'體操 · 星期日 10–11am', day:'Sun', dayZh:'星期日', time:'10–11am', sport:'體操', venue:'青衣', students:[] },
+  "ath-fri":       { label:'田徑 · 星期五 4:50–5:50pm', day:'Fri', dayZh:'星期五', time:'4:50–5:50pm', sport:'田徑', venue:'青衣運動場', students:[] },
+  "bad-sat8":      { label:'羽毛球 · 星期六 8–10am', day:'Sat', dayZh:'星期六', time:'8–10am', sport:'羽毛球', venue:'青衣', students:[] },
+  "bad-sun8":      { label:'羽毛球 · 星期日 8–10am', day:'Sun', dayZh:'星期日', time:'8–10am', sport:'羽毛球', venue:'青衣', students:[] },
+  "bad-sat12":     { label:'羽毛球（其中一小時）· 星期六 12–2pm', day:'Sat', dayZh:'星期六', time:'12–2pm', sport:'羽毛球（其中一小時）', venue:'青衣', students:[] },
+  "tennis-sat":    { label:'網球 · 星期六 6–8pm', day:'Sat', dayZh:'星期六', time:'6–8pm', sport:'網球', venue:'青衣公園／翠怡花園／盈翠半島網球場', students:[] },
+  "fit-adult-fri": { label:'成人增肌減脂 · 星期五 8–9pm', day:'Fri', dayZh:'星期五', time:'8–9pm', sport:'成人增肌減脂', venue:'青衣', students:[] },
+  "fit-adult-sat": { label:'成人增肌減脂 · 星期六 8–9pm', day:'Sat', dayZh:'星期六', time:'8–9pm', sport:'成人增肌減脂', venue:'青衣', students:[] }
+};
+const SA_CLASS_DOW = {"found-tue2":2,"found-tue5":2,"cond-tue6":2,"cond-sat5":6,"cond-sun11":0,"gym-thu5":4,"gym-sat2":6,"gym-sun10":0,"ath-fri":5,"bad-sat8":6,"bad-sun8":0,"bad-sat12":6,"tennis-sat":6,"fit-adult-fri":5,"fit-adult-sat":6};
+function isSA(cid){ return !!SA_CLASSES[cid]; }
+function anyClass(cid){ return CLASSES[cid] || SA_CLASSES[cid] || null; }   // 合併查表（cid 唔撞）
+function anyDow(cid){ return isSA(cid) ? SA_CLASS_DOW[cid] : CLASS_DOW[cid]; }
+function backendFor(cid){ return isSA(cid) ? SA_API_URL : API_URL; }
+// 由寫入 body 抽 cid（唔同 action 藏喺唔同欄）→ 決定去邊個 backend。mirror is-parent api() line 604。
+function bodyCid_(body){ if(!body) return ''; var k=body.classId||body.cid||body.toKey||body.fromKey||body.key||(body.att&&body.att.key)||(body.data&&body.data.key)||''; return String(k).split('|')[0]; }
+function backendForBody_(body){ return isSA(bodyCid_(body)) ? SA_API_URL : API_URL; }
+const ALL_CLASSES = Object.assign({}, CLASSES, SA_CLASSES);   // 合併查表（值係同一 object ref → students 更新會反映）；畀班列表/點名遍歷兩邊
+
 const PUBLIC_HOLIDAYS = new Set(['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19']);
 const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
 const CLASS_EXTRA_DATES     = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
@@ -657,7 +689,8 @@ let syncStatus       = 'idle';
 
 /* ═══════════ 三、API 通訊 ═══════════ */
 async function apiGet(params){
-  const url = API_URL + '?' + new URLSearchParams(params);
+  const base = isSA(bodyCid_(params)) ? SA_API_URL : API_URL;   // 🔀 有 cid 就按 backend 路由（無 cid→#4）
+  const url = base + '?' + new URLSearchParams(params);
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
   try{ const res = await fetch(url,{signal:c.signal}); return await res.json(); } finally{ clearTimeout(tm); }
 }
@@ -669,8 +702,9 @@ async function apiPost(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
+  const url = backendForBody_(payload);   // 🔀 按 body 入面 class id 路由 #4/#SA（無 cid→#4）
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  const res = await (async()=>{ try{ return await fetch(API_URL, { method:'POST', body:JSON.stringify(payload), signal:c.signal }); } finally{ clearTimeout(tm); } })();
+  const res = await (async()=>{ try{ return await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal }); } finally{ clearTimeout(tm); } })();
   const j = await res.json();
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
   return j;
@@ -709,7 +743,8 @@ function applyCoachLoadData(data){
      roster 係後端 overlay 之後嘅有效名冊，所以擺喺 restoreSettings 之後覆蓋佢。 */
   if (data.roster && typeof data.roster === 'object') {
     Object.keys(data.roster).forEach(cid => {
-      if (CLASSES[cid] && Array.isArray(data.roster[cid])) CLASSES[cid].students = data.roster[cid].slice();
+      const cls = CLASSES[cid] || SA_CLASSES[cid];   // 🔀 跳繩或運動班名冊都覆蓋
+      if (cls && Array.isArray(data.roster[cid])) cls.students = data.roster[cid].slice();
     });
   }
   XFER_JOIN_MAP = data.xferJoin || {};   // 姓名|cid → 生效日：此日之前唔喺該班點名清單
@@ -735,13 +770,32 @@ function applyCoachLoadData(data){
 }
 function saveCoachLoad(data){ try{ localStorage.setItem('is_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
 function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('is_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
+// 🔀 #SA load（獨立 fetch；失敗當空，唔阻跳繩載入）
+async function _saLoad_(){ try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000); try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); } }catch(e){ return {}; } }
+// 合併兩個 backend 嘅 load（cid 唔撞）。periodVoid 係「期數→名單」，唔可以覆蓋要 union 名單。
+function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
+  const pv={}; [a.periodVoid||{}, b.periodVoid||{}].forEach(m=>Object.keys(m).forEach(p=>{ pv[p]=(pv[p]||[]).concat(m[p]||[]); }));
+  return {
+    settings:   [].concat(a.settings||[],   b.settings||[]),
+    roster:     Object.assign({}, a.roster||{},       b.roster||{}),
+    attendance: [].concat(a.attendance||[], b.attendance||[]),
+    absences:   [].concat(a.absences||[],   b.absences||[]),
+    medNotes:   [].concat(a.medNotes||[],   b.medNotes||[]),
+    xferJoin:      Object.assign({}, a.xferJoin||{},      b.xferJoin||{}),      // key=name|cid，唔撞
+    periodVoid:    pv,
+    transfers:  [].concat(a.transfers||[],  b.transfers||[]),
+    studentLeave:  Object.assign({}, a.studentLeave||{},  b.studentLeave||{}),  // key=name|cid，唔撞
+    studentRejoin: Object.assign({}, a.studentRejoin||{}, b.studentRejoin||{})
+  };
+}
 async function loadFromSheets(){
   // ⚡ 快取秒開：入密碼即刻用上次資料填滿（唔再彈「未載入雲端資料」+ 重新載入），背景 fetch 覆蓋到最新
   if(!CLOUD_LOADED){ const cached=readCoachLoad(); if(cached){ try{ applyCoachLoadData(cached); CLOUD_LOADED=true; setSyncIndicator('ok'); renderHome(); }catch(e){} } }
   setSyncIndicator('loading');
   try{
-    const data = await apiPost({ action:'load' });   // POST：教練密碼隨 body 送出，不出現在網址
-    if (data.error || data.err) throw new Error(data.error || data.err);
+    const [d4, dSA] = await Promise.all([ apiPost({ action:'load' }), _saLoad_() ]);   // 🔀 兩個 backend 各拉一次，合併
+    if (d4.error || d4.err) throw new Error(d4.error || d4.err);
+    const data = _mergeLoad_(d4, dSA);               // cid 唔撞→合併唔會互相清走出席
     applyCoachLoadData(data);
     saveCoachLoad(data);                              // 存快取，下次入密碼秒開
     CLOUD_LOADED = true;
@@ -765,14 +819,15 @@ function restoreSettings(rows){
     if (!r.key || r.value === null || r.value === undefined) return;
     try { map[r.key] = JSON.parse(r.value); } catch(e) { map[r.key] = r.value; }
   });
-  Object.keys(CLASSES).forEach(cid => {
-    if (map[`class_${cid}_students`]) CLASSES[cid].students = map[`class_${cid}_students`];
-    if (map[`class_${cid}_dayZh`])   CLASSES[cid].dayZh    = map[`class_${cid}_dayZh`];
-    if (map[`class_${cid}_day`])      CLASSES[cid].day      = map[`class_${cid}_day`];
-    if (map[`class_${cid}_time`])     CLASSES[cid].time     = map[`class_${cid}_time`];
-    if (map[`class_${cid}_dow`] !== undefined) CLASS_DOW[cid] = map[`class_${cid}_dow`];
+  [...Object.keys(CLASSES), ...Object.keys(SA_CLASSES)].forEach(cid => {   // 🔀 跳繩+運動班都套（cid 唔撞）
+    const cls = CLASSES[cid] || SA_CLASSES[cid]; if(!cls) return;
+    if (map[`class_${cid}_students`]) cls.students = map[`class_${cid}_students`];   // roster override 之後仲會覆蓋，呢度只 fallback
+    if (map[`class_${cid}_dayZh`])   cls.dayZh    = map[`class_${cid}_dayZh`];
+    if (map[`class_${cid}_day`])      cls.day      = map[`class_${cid}_day`];
+    if (map[`class_${cid}_time`])     cls.time     = map[`class_${cid}_time`];
+    if (map[`class_${cid}_dow`] !== undefined){ if(isSA(cid)) SA_CLASS_DOW[cid]=map[`class_${cid}_dow`]; else CLASS_DOW[cid]=map[`class_${cid}_dow`]; }
   });
-  Object.keys(CLASSES).forEach(cid => {
+  [...Object.keys(CLASSES), ...Object.keys(SA_CLASSES)].forEach(cid => {
     if (map[`extra_${cid}`])     CLASS_EXTRA_DATES[cid]     = new Set(map[`extra_${cid}`]);
     if (map[`cancelled_${cid}`]) CLASS_CANCELLED_DATES[cid] = new Set(map[`cancelled_${cid}`]);
   });
@@ -810,9 +865,17 @@ async function syncAttendance(key){
 }
 async function syncAbsences(){
   setSyncIndicator('saving');
-  try { const r = await apiPost({ action:'save_absences', data:ABSENCES });
-        if(!r||!r.ok){ setSyncIndicator('error'); return r||{ok:false}; } setSyncIndicator('ok'); return r; }
-  catch(e){ setSyncIndicator('error'); return {ok:false, err:'網絡錯誤'}; }
+  // 🔀 save_absences 會全量覆蓋該 backend 請假 → 兩個 backend 各寫自己嗰份（唔可以把合併嘅全量送落單一 backend，否則污染）。
+  const abs4 = ABSENCES.filter(x=>!isSA(x.classId)), absSA = ABSENCES.filter(x=>isSA(x.classId));
+  try {
+    const r4 = await apiPost({ action:'save_absences', data:abs4 });   // 無 cid → #4
+    let rSA = { ok:true };
+    try { rSA = await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'save_absences', data:absSA, coachPass:cpass()})}).then(x=>x.json()); }
+    catch(e){ rSA = { ok:false, err:'#SA 網絡錯誤' }; }
+    const ok = !!(r4&&r4.ok) && !!(rSA&&rSA.ok);
+    setSyncIndicator(ok?'ok':'error');
+    return ok ? {ok:true} : ((r4&&!r4.ok)?r4:rSA);
+  } catch(e){ setSyncIndicator('error'); return {ok:false, err:'網絡錯誤'}; }
 }
 async function syncSettings(){
   setSyncIndicator('saving');
@@ -885,7 +948,7 @@ function setSyncIndicator(status){
 function updateBadge(){ /* 精簡版不需要 */ }
 
 function getClassDatesInMonth(classId, year, month){
-  const dow = CLASS_DOW[classId];
+  const dow = anyDow(classId);   // 🔀 跳繩或運動班星期
   const cancelled = CLASS_CANCELLED_DATES[classId] || new Set();
   const extra     = CLASS_EXTRA_DATES[classId]     || new Set();
   const dates = [];
@@ -1080,8 +1143,8 @@ function classRowHTML(id, cls){
   <div class="cls-card" onclick="openRoll('${id}')">
     <span class="cls-day">${cls.dayZh}</span>
     <div class="cls-body">
-      <h3>${cls.time}</h3>
-      <p>${cls.students.length} 位學生</p>
+      <h3>${isSA(id)&&cls.sport?cls.sport+'・':''}${cls.time}</h3>
+      <p>${(cls.students||[]).length} 位學生</p>
     </div>
     ${badge}
     <span class="cls-arr">›</span>
@@ -1238,14 +1301,14 @@ function renderHome(){
   try{ renderTodo(); }catch(e){ console.error('renderTodo',e); }
 
   const todayDow = hkDow();
-  const todayCls = Object.entries(CLASSES).filter(([id]) => CLASS_DOW[id] === todayDow);
+  const todayCls = Object.entries(ALL_CLASSES).filter(([id]) => anyDow(id) === todayDow);   // 🔀 跳繩+運動班
   const todayWrap = document.getElementById('today-classes');
   todayWrap.innerHTML = todayCls.length
     ? todayCls.map(([id, cls]) => classRowHTML(id, cls)).join('')
     : `<div style="padding:12px 4px;color:var(--muted);font-size:14px">今天沒有班別</div>`;
 
   document.getElementById('all-classes').innerHTML =
-    Object.entries(CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');
+    Object.entries(ALL_CLASSES).map(([id, cls]) => classRowHTML(id, cls)).join('');   // 🔀 跳繩+運動班
 
   // 首頁精簡（2026-07）：移除「每週通知 / 即將到期補堂 / 每班摘要」（累贅少用），只保留上課地點+WhatsApp。
   // 即將到期補堂仍可喺「補堂」分頁「即將到期」filter 睇；通知功能移除。
@@ -1685,9 +1748,10 @@ function openRoll(classId){
   rollSelectedDate = pickDefaultDate(classId, rollViewMonth);
   showScreen('roll');
 
-  const cls = CLASSES[classId];
-  document.getElementById('header-title-text').textContent = cls.dayZh + ' ' + cls.time;
-  document.getElementById('header-subtitle-text').textContent = cls.students.length + ' 位學生';
+  const cls = anyClass(classId);   // 🔀 跳繩或運動班
+  if(!cls){ return; }
+  document.getElementById('header-title-text').textContent = (isSA(classId)&&cls.sport?cls.sport+' ':'') + cls.dayZh + ' ' + cls.time;
+  document.getElementById('header-subtitle-text').textContent = (cls.students||[]).length + ' 位學生';
 
   renderDatePills();
   loadRollSession();
@@ -1708,7 +1772,8 @@ function isSuspendedOn(name, dateStr){
   return arr.indexOf(name)>=0;
 }
 function getRollStudents(classId, dateStr){
-  let base = CLASSES[classId] ? CLASSES[classId].students.slice() : [];
+  const _c = anyClass(classId);   // 🔀 跳繩或運動班
+  let base = _c ? (_c.students||[]).slice() : [];
   base = base.filter(n => !/示範|測試/.test(n));   // 🧪 測試/示範學生唔喺點名清單
   if (dateStr) base = base.filter(n => !isSuspendedOn(n, dateStr));   // 本期暫停學生（如梁正軒因病）→ 唔喺點名清單
   // 離班日起唔顯示（如周莉晶 c7 7/12；之前歷史照顯示）
@@ -1859,7 +1924,7 @@ function renderRollTable(){
       <div class="student-btns">
         <button class="s-btn ${st==='present'?'sel-present':''}" onclick="setRoll('${name}','present')" title="出席">出</button>
         <button class="s-btn ${st==='absent' ?'sel-absent' :''}" onclick="setRoll('${name}','absent')"  title="請假（可補堂）">假</button>
-        <button class="s-btn ${st==='noshow' ?'sel-noshow' :''}" onclick="setRoll('${name}','noshow')"  title="缺席（無補堂）">缺</button>
+        ${isSA(currentClass)?'':`<button class="s-btn ${st==='noshow' ?'sel-noshow' :''}" onclick="setRoll('${name}','noshow')"  title="缺席（無補堂）">缺</button>`}
         <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" onclick="setRoll('${name}','makeup')"  title="補堂">補</button>
         <button class="s-btn ${st==='exempt' ?'sel-exempt' :''}" onclick="setRoll('${name}','exempt')"  title="豁免">免</button>
       </div>
@@ -2762,7 +2827,9 @@ saveRoll = async function(){
   const key = currentClass + '|' + date;
   // 合併保存：一個 save_roll POST 攞一把鎖寫晒出席+請假 → 快又穩（唔再兩個 POST 爭鎖／兩次 round-trip）。
   setSyncIndicator('saving');
-  let a=null; try{ a = await apiPost({ action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:ABSENCES }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
+  // 🔀 只送同一 backend 嘅請假（save_roll 會全量覆蓋該 backend 請假）→ 防把運動班請假寫落跳繩後端（或反之）污染出席
+  const _absSameBackend = ABSENCES.filter(x => isSA(x.classId) === isSA(currentClass));
+  let a=null; try{ a = await apiPost({ action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:_absSameBackend }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
   setSyncIndicator(a&&a.ok?'ok':'error');
   if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
   if(a&&a.ok){
