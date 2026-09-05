@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-04-merge-sa3';
+const FRONTEND_VERSION = 'coach-2026-09-05-saveroll-sa';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1985,7 +1985,12 @@ function saveRoll(){
   if (!date) { toast('請先選擇日期', '⚠'); return; }
   const key = currentClass + '|' + date;
   ATT_LOG[key] = { ...rollSession };
-  CLASSES[currentClass].students.forEach(name => {
+  /* 🔀 2026-09-05：2026-09-04 合併運動班(#SA)之後呢度仲用緊 rope-only 嘅 CLASSES → 運動班 cid
+     （gym-sat2 / cond-sat5 / bad-sat12 / found-tue5…）會 undefined.students 拋 TypeError，
+     令下面 async override 嘅 save_roll POST 永遠唔會發、掣卡死喺「儲存中…」、零錯誤提示，
+     教練點完成班嘢靜靜流失。改用 anyClass()（同 getRollStudents:1785 一致）。 */
+  const _rollCls = anyClass(currentClass);
+  ((_rollCls && _rollCls.students) || []).forEach(name => {
     const st = rollSession[name] || 'present';
     if (st === 'absent') {
       const dup = ABSENCES.find(a => a.name===name && a.classId===currentClass && a.absDate===date);
@@ -2833,7 +2838,14 @@ saveRoll = async function(){
   if(!date){ toast('請先選擇日期','⚠'); return; }
   const btn=document.querySelector('.btn-save');
   if(btn){ btn.disabled=true; btn.dataset._t=btn.textContent; btn.textContent='儲存中…'; }
-  _origSaveRoll();                                   // 本地更新 + renderDatePills（唔再自己報成功）
+  /* 🛡️ 2026-09-05：_origSaveRoll() 一 throw（例：cid 唔喺查表），成個 async function 就會 reject →
+     下面 save_roll POST 永遠唔會發、掣永遠解唔返鎖、教練連錯誤提示都冇，一堂點名靜靜消失。
+     包 try/catch：本地記帳失敗都照送後端（ATT_LOG 喺 throw 之前已寫好），並且大聲報畀教練知。 */
+  try{ _origSaveRoll(); }                            // 本地更新 + renderDatePills（唔再自己報成功）
+  catch(e){
+    console.error('saveRoll local update failed', e);
+    toast('⚠ 本地記錄更新失敗，仍會嘗試上傳點名：'+String(e&&e.message||e).slice(0,60),'⚠');
+  }
   const key = currentClass + '|' + date;
   // 合併保存：一個 save_roll POST 攞一把鎖寫晒出席+請假 → 快又穩（唔再兩個 POST 爭鎖／兩次 round-trip）。
   setSyncIndicator('saving');
