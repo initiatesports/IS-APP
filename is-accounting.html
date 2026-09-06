@@ -89,7 +89,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 
 <script>
 const CFG={ API:'https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec' };
-let CP='', DATA=null, SCOPE='month', PICK='';   // SCOPE: month | year | all ; PICK: 具體 YYYY-MM 或 YYYY
+let FP='', DATA=null, SCOPE='month', PICK='';   // FP=財務密碼; SCOPE: week|month|year|all ; PICK: 具體桶(YYYY-Www/YYYY-MM/YYYY)
 const $=id=>document.getElementById(id);
 const fmt0=n=>'$'+Math.round(n||0).toLocaleString('en-US');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -101,50 +101,53 @@ function periodMonths(period){
   if(!m) return [];
   const y=+m[1]; return [m[2],m[3]].map(x=>y+'-'+String(+x).padStart(2,'0'));
 }
-/* ── 由收入/支出逐筆按月曆月彙總（場租按期攤落該期兩個月）── */
-function aggregate(){
-  const M={};   // 'YYYY-MM' -> {inPaid,inDue,exp,catIn:{},catEx:{}}
-  const mk=k=>{ if(!M[k]) M[k]={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}}; return M[k]; };
-  (DATA.income||[]).forEach(r=>{ const k=(r.date||'').slice(0,7); if(!/^\d{4}-\d{2}$/.test(k)) return;
-    const o=mk(k); if(r.status==='已收') o.inPaid+=r.amt; else o.inDue+=r.amt; o.catIn[r.cat]=(o.catIn[r.cat]||0)+r.amt; });
-  (DATA.expense||[]).forEach(r=>{ const k=(r.date||'').slice(0,7); if(!/^\d{4}-\d{2}$/.test(k)) return;
-    const o=mk(k); o.exp+=r.amt; o.catEx[r.cat]=(o.catEx[r.cat]||0)+r.amt; });
-  // 場租：每期(雙月)場租 ÷2 攤落兩個月，類別「場租」
+/* ── 通用日期分桶：週(ISO YYYY-Www) / 月(YYYY-MM) / 年(YYYY) ── */
+function isoWeek(dateStr){ const d=new Date(dateStr+'T00:00:00'); const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day); const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  const wk=Math.ceil(((t-y0)/86400000+1)/7); return t.getUTCFullYear()+'-W'+String(wk).padStart(2,'0'); }
+function bucketOf(dateStr,gran){ const d=(dateStr||'').slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  return gran==='week'?isoWeek(d):(gran==='year'?d.slice(0,4):d.slice(0,7)); }
+function periodRange(period){ const m=String(period||'').match(/(\d{4})\s*(\d{1,2})\s*[-–]\s*(\d{1,2})/); if(!m) return null;
+  const y=+m[1], m1=+m[2], m2=+m[3]; const last=new Date(y,m2,0).getDate();
+  return [y+'-'+String(m1).padStart(2,'0')+'-01', y+'-'+String(m2).padStart(2,'0')+'-'+String(last).padStart(2,'0')]; }
+function bucketsInRange(a,b,gran){ const out=[], d=new Date(a+'T00:00:00'), end=new Date(b+'T00:00:00');
+  let guard=0; while(d<=end && guard++<400){ const k=bucketOf(d.toISOString().slice(0,10),gran); if(k&&out.indexOf(k)<0) out.push(k); d.setUTCDate(d.getUTCDate()+(gran==='week'?7:(gran==='year'?300:28))); }
+  // 保證覆蓋到 end 桶
+  const ek=bucketOf(b,gran); if(ek&&out.indexOf(ek)<0) out.push(ek); return out; }
+/* 按 gran 分桶彙總（收入/支出逐筆按日期；場租按期攤落該期嘅桶）*/
+function aggregateGran(gran){
+  const B={}; const mk=k=>{ if(!B[k]) B[k]={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}}; return B[k]; };
+  (DATA.income||[]).forEach(r=>{ const k=bucketOf(r.date,gran); if(!k) return; const o=mk(k);
+    if(r.status==='已收') o.inPaid+=r.amt; else o.inDue+=r.amt; o.catIn[r.cat]=(o.catIn[r.cat]||0)+r.amt; });
+  (DATA.expense||[]).forEach(r=>{ const k=bucketOf(r.date,gran); if(!k) return; const o=mk(k);
+    o.exp+=r.amt; o.catEx[r.cat]=(o.catEx[r.cat]||0)+r.amt; });
   Object.keys(DATA.venueByPeriod||{}).forEach(p=>{ const rent=DATA.venueByPeriod[p]||0; if(!rent) return;
-    const ms=periodMonths(p); if(!ms.length) return; const half=rent/ms.length;
-    ms.forEach(k=>{ const o=mk(k); o.exp+=half; o.catEx['場租']=(o.catEx['場租']||0)+half; }); });
-  return M;
+    const rng=periodRange(p); if(!rng) return; const bks=bucketsInRange(rng[0],rng[1],gran); if(!bks.length) return;
+    const each=rent/bks.length; bks.forEach(k=>{ const o=mk(k); o.exp+=each; o.catEx['場租']=(o.catEx['場租']||0)+each; }); });
+  return B;
 }
-/* 依 SCOPE/PICK 收窄要顯示嘅月份 keys */
-function scopedMonths(M){
-  const keys=Object.keys(M).sort();
-  if(SCOPE==='all') return keys;
-  if(SCOPE==='year'){ const y=PICK||(keys.length?keys[keys.length-1].slice(0,4):''); return keys.filter(k=>k.slice(0,4)===y); }
-  // month
-  const k=PICK||(keys.length?keys[keys.length-1]:''); return k?[k]:[];
-}
-function sumMonths(M,keys){ const s={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}};
-  keys.forEach(k=>{ const o=M[k]; if(!o) return; s.inPaid+=o.inPaid; s.inDue+=o.inDue; s.exp+=o.exp;
+function sumBuckets(B,keys){ const s={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}};
+  keys.forEach(k=>{ const o=B[k]; if(!o) return; s.inPaid+=o.inPaid; s.inDue+=o.inDue; s.exp+=o.exp;
     Object.keys(o.catIn).forEach(c=>s.catIn[c]=(s.catIn[c]||0)+o.catIn[c]);
     Object.keys(o.catEx).forEach(c=>s.catEx[c]=(s.catEx[c]||0)+o.catEx[c]); });
-  return s;
-}
+  return s; }
 
 /* ── SVG 月度趨勢圖（收入柱 vs 支出柱 + 淨利折線）── */
-function trendSVG(M){
-  const keys=Object.keys(M).sort(); if(!keys.length) return '<div class="empty">未有數據</div>';
+function trendSVG(B, labelFn, lastN){
+  let keys=Object.keys(B).sort(); if(lastN && keys.length>lastN) keys=keys.slice(-lastN);
+  if(!keys.length) return '<div class="empty">未有數據</div>';
   const W=Math.max(560, keys.length*74), H=210, padL=8, padR=8, padB=34, padT=14;
   const bw=(W-padL-padR)/keys.length;
-  let maxV=1; keys.forEach(k=>{ const o=M[k]; maxV=Math.max(maxV,o.inPaid+o.inDue,o.exp); });
+  let maxV=1; keys.forEach(k=>{ const o=B[k]; maxV=Math.max(maxV,o.inPaid+o.inDue,o.exp); });
   const y=v=>padT+(H-padT-padB)*(1-v/maxV);
   let bars='', line='', pts=[];
   keys.forEach((k,i)=>{
-    const o=M[k], cx=padL+bw*i, gap=bw*0.16, w=(bw-gap*3)/2;
+    const o=B[k], cx=padL+bw*i, gap=bw*0.16, w=(bw-gap*3)/2;
     const inc=o.inPaid+o.inDue, net=inc-o.exp;
     bars+=`<rect x="${cx+gap}" y="${y(inc)}" width="${w}" height="${H-padB-y(inc)}" rx="3" fill="#2fb9c9"></rect>`;
     bars+=`<rect x="${cx+gap*2+w}" y="${y(o.exp)}" width="${w}" height="${H-padB-y(o.exp)}" rx="3" fill="#ff6b6b" opacity=".85"></rect>`;
     const px=cx+bw/2, py=y(Math.max(0,net)); pts.push([px,py]);
-    bars+=`<text x="${px}" y="${H-padB+15}" text-anchor="middle" font-size="10" fill="#7d8ea0">${k.slice(2).replace('-','/')}</text>`;
+    bars+=`<text x="${px}" y="${H-padB+15}" text-anchor="middle" font-size="10" fill="#7d8ea0">${esc(labelFn(k))}</text>`;
   });
   line='<polyline fill="none" stroke="#3fcf8e" stroke-width="2.2" points="'+pts.map(p=>p[0]+','+p[1]).join(' ')+'"></polyline>'
      + pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#3fcf8e"></circle>`).join('');
@@ -164,56 +167,89 @@ function catBars(obj,color){
 /* ── render ── */
 function renderLogin(msg){
   $('app').innerHTML=`<div class="login"><div class="logo">📊</div><h2>會計儀表盤</h2><p>INITIATE SPORTS · 財務總覽</p>
-    <input id="pw" type="password" inputmode="numeric" placeholder="教練密碼" autocomplete="off">
-    <button onclick="doLogin()" id="lgbtn">登入</button><div class="err" id="lgerr">${msg||''}</div></div>`;
+    <input id="pw" type="password" inputmode="numeric" placeholder="財務密碼" autocomplete="off">
+    <button onclick="doLogin()" id="lgbtn">登入</button><div class="err" id="lgerr">${msg||''}</div>
+    <div style="margin-top:14px"><a href="#" onclick="renderSetup(0);return false" style="font-size:12.5px;color:var(--muted)">🔑 首次設定 / 修改財務密碼</a></div></div>`;
   const pw=$('pw'); pw.focus(); pw.onkeydown=e=>{ if(e.key==='Enter') doLogin(); };
 }
 async function doLogin(){
-  const pw=$('pw').value.trim(); if(!pw){ $('lgerr').textContent='請輸入密碼'; return; }
+  const pw=$('pw').value.trim(); if(!pw){ $('lgerr').textContent='請輸入財務密碼'; return; }
   const b=$('lgbtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> 載入中…'; $('lgerr').textContent='';
   const r=await fetchData(pw);
-  if(!r||r.ok===false){ b.disabled=false; b.textContent='登入'; $('lgerr').textContent=(r&&r.err)||'密碼錯誤或載入失敗'; return; }
-  CP=pw; try{ sessionStorage.setItem('acct_cp',pw); }catch(e){} DATA=r; SCOPE='month'; PICK=''; renderDash();
+  if(!r||r.ok===false){ b.disabled=false; b.textContent='登入';
+    if(r&&r.needSetup){ renderSetup(1); return; }
+    $('lgerr').textContent=(r&&r.err)||'密碼錯誤或載入失敗'; return; }
+  FP=pw; try{ sessionStorage.setItem('acct_fp',pw); }catch(e){} DATA=r; SCOPE='month'; PICK=''; renderDash();
 }
+function renderSetup(firstTime){
+  $('app').innerHTML=`<div class="login"><div class="logo">🔑</div><h2>${firstTime?'首次設定財務密碼':'設定 / 修改財務密碼'}</h2>
+    <p>用教練密碼授權，設定一個獨立嘅財務密碼</p>
+    <input id="cpw" type="password" inputmode="numeric" placeholder="教練密碼（授權用）" autocomplete="off" style="margin-bottom:10px">
+    <input id="npw" type="password" inputmode="numeric" placeholder="新財務密碼（至少 4 位）" autocomplete="off">
+    <button onclick="doSetup()" id="stbtn">設定</button><div class="err" id="sterr"></div>
+    <div style="margin-top:12px"><a href="#" onclick="renderLogin('');return false" style="font-size:12.5px;color:var(--muted)">← 返回登入</a></div></div>`;
+  $('cpw').focus();
+}
+async function doSetup(){
+  const cp=$('cpw').value.trim(), np=$('npw').value.trim();
+  if(!cp||!np){ $('sterr').textContent='請填教練密碼同新財務密碼'; return; }
+  if(np.length<4){ $('sterr').textContent='財務密碼至少 4 位'; return; }
+  const b=$('stbtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> 設定中…'; $('sterr').textContent='';
+  let r=null; for(let i=0;i<4;i++){ try{
+    const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'setAcctPass',coachPass:cp,newPass:np})});
+    const t=(await res.text()).trim(); if(t.startsWith('{')){ const j=JSON.parse(t); if(!/unknown action/i.test(String(j.err||''))){ r=j; break; } }
+  }catch(e){} await new Promise(x=>setTimeout(x,800*(i+1))); }
+  if(!r||r.ok===false){ b.disabled=false; b.textContent='設定'; $('sterr').textContent=(r&&r.err)||'設定失敗（教練密碼啱唔啱？）'; return; }
+  renderLogin('✅ 財務密碼已設定，請用新密碼登入');
+}
+function openPass(){ renderSetup(0); }
 async function fetchData(pw){
   for(let i=0;i<4;i++){ try{
-    const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'acctData',coachPass:pw})});
+    const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'acctData',acctPass:pw})});
     const t=(await res.text()).trim();
     if(t.startsWith('{')){ const j=JSON.parse(t); const em=String((j&&(j.err||j.error))||''); if(!/unknown action/i.test(em)) return j; }
   }catch(e){} await new Promise(r=>setTimeout(r,800*(i+1))); }
   return {ok:false,err:'伺服器繁忙，請再試'};
 }
-async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(CP); if(r&&r.ok){ DATA=r; renderDash(); } else if(btn){ btn.textContent='↻ 刷新'; } }
+async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(FP); if(r&&r.ok){ DATA=r; renderDash(); } else if(btn){ btn.textContent='↻ 刷新'; } }
 
+function weekMonday(w){ const m=String(w).match(/(\d{4})-W(\d{1,2})/); if(!m) return ''; const y=+m[1], wk=+m[2];
+  const jan4=new Date(Date.UTC(y,0,4)), day=jan4.getUTCDay()||7, mon1=new Date(jan4); mon1.setUTCDate(jan4.getUTCDate()-(day-1));
+  const mon=new Date(mon1); mon.setUTCDate(mon1.getUTCDate()+(wk-1)*7); return mon.toISOString().slice(0,10); }
+function weekLabel(w){ const d=weekMonday(w), n=(String(w).match(/W(\d+)/)||[])[1]; return d?('第'+n+'週 ('+d.slice(8,10)+'/'+d.slice(5,7)+'起)'):String(w); }
+function weekShort(w){ const d=weekMonday(w); return d?(d.slice(8,10)+'/'+d.slice(5,7)):String(w); }
+function granOf(){ return SCOPE==='week'?'week':(SCOPE==='year'?'year':'month'); }
 function renderDash(){
-  const M=aggregate();
-  const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4);   // 預設＝今個月曆月（唔用最新 key，嗰個可能係場租攤分出嚟嘅未來月）
-  const allKeys=[...new Set(Object.keys(M).concat([curMonth]))].sort();
-  if(SCOPE==='month' && !PICK) PICK=curMonth;
-  if(SCOPE==='year' && !PICK) PICK=curYear;
-  const keys=scopedMonths(M), S=sumMonths(M,keys);
-  const inc=S.inPaid+S.inDue, net=S.inPaid-S.exp, netFull=inc-S.exp;
-  // YTD
-  const ytdKeys=allKeys.filter(k=>k.slice(0,4)===curYear), Y=sumMonths(M,ytdKeys);
-  const ytdNet=Y.inPaid-Y.exp;
-  const scopeLabel = SCOPE==='all'?'全期':(SCOPE==='year'?(PICK+' 年'):(PICK.replace('-','年')+'月'));
-
-  const monthOpts=allKeys.slice().reverse().map(k=>`<option value="${k}" ${SCOPE==='month'&&PICK===k?'selected':''}>${k.replace('-','年')}月</option>`).join('');
-  const years=[...new Set(allKeys.map(k=>k.slice(0,4)))].sort().reverse();
-  const yearOpts=years.map(y=>`<option value="${y}" ${SCOPE==='year'&&PICK===y?'selected':''}>${y} 全年</option>`).join('');
+  const gran=granOf(), B=aggregateGran(gran), monthB=aggregateGran('month'), weekB=aggregateGran('week');
+  const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4), curWeek=isoWeek(todayISO());
+  const cur = SCOPE==='week'?curWeek:(SCOPE==='year'?curYear:curMonth);
+  if(SCOPE!=='all' && !PICK) PICK=cur;
+  const keys = SCOPE==='all'?Object.keys(B):[PICK];
+  const S=sumBuckets(B,keys), inc=S.inPaid+S.inDue, net=S.inPaid-S.exp, netFull=inc-S.exp;
+  const Y=sumBuckets(monthB, Object.keys(monthB).filter(k=>k.slice(0,4)===curYear)), ytdNet=Y.inPaid-Y.exp;
+  const scopeLabel = SCOPE==='all'?'全期':(SCOPE==='week'?weekLabel(PICK):(SCOPE==='year'?(PICK+' 年'):(PICK.replace('-','年')+'月')));
+  let picker='';
+  if(SCOPE==='month'){ const ks=[...new Set(Object.keys(monthB).concat([curMonth]))].sort().reverse();
+    picker=`<select onchange="PICK=this.value;renderDash()">${ks.map(k=>`<option value="${k}" ${PICK===k?'selected':''}>${k.replace('-','年')}月</option>`).join('')}</select>`; }
+  else if(SCOPE==='year'){ const ys=[...new Set(Object.keys(monthB).map(k=>k.slice(0,4)).concat([curYear]))].sort().reverse();
+    picker=`<select onchange="PICK=this.value;renderDash()">${ys.map(y=>`<option value="${y}" ${PICK===y?'selected':''}>${y} 全年</option>`).join('')}</select>`; }
+  else if(SCOPE==='week'){ const ks=[...new Set(Object.keys(weekB).concat([curWeek]))].sort().reverse().slice(0,26);
+    picker=`<select onchange="PICK=this.value;renderDash()">${ks.map(k=>`<option value="${k}" ${PICK===k?'selected':''}>${weekLabel(k)}</option>`).join('')}</select>`; }
+  const trend = SCOPE==='week' ? trendSVG(weekB, weekShort, 12) : trendSVG(monthB, k=>k.slice(2).replace('-','/'), 18);
 
   let html=`<div class="top"><div class="wrap">
     <h1>📊 INITIATE <span>會計儀表盤</span></h1>
     <button class="tbtn" id="rfbtn" onclick="refresh()">↻ 刷新</button>
     <a class="tbtn" href="${esc(DATA.sheetUrl||'#')}" target="_blank" rel="noopener">🗂 明細表</a>
+    <button class="tbtn" onclick="openPass()">🔒 密碼</button>
     <button class="tbtn" onclick="logout()">登出</button>
   </div></div><div class="wrap">
   <div class="scope">
+    <button class="chip ${SCOPE==='week'?'on':''}" onclick="setScope('week')">週度</button>
     <button class="chip ${SCOPE==='month'?'on':''}" onclick="setScope('month')">月度</button>
     <button class="chip ${SCOPE==='year'?'on':''}" onclick="setScope('year')">年度</button>
     <button class="chip ${SCOPE==='all'?'on':''}" onclick="setScope('all')">全期</button>
-    ${SCOPE==='month'?`<select onchange="PICK=this.value;renderDash()">${monthOpts}</select>`:''}
-    ${SCOPE==='year'?`<select onchange="PICK=this.value;renderDash()">${yearOpts}</select>`:''}
+    ${picker}
     <div class="sp"></div>
   </div>`;
 
@@ -226,7 +262,7 @@ function renderDash(){
   </div>`;
 
   // 趨勢
-  html+=`<div class="card"><h3>📈 月度趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trendSVG(M)}</div>`;
+  html+=`<div class="card"><h3>📈 ${SCOPE==='week'?'週度':'月度'}趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trend}</div>`;
 
   // 分類
   html+=`<div class="grid2">
@@ -272,11 +308,11 @@ function ltvTable(){
 }
 function dmy(s){ const m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:(s||'—'); }
 function setScope(s){ SCOPE=s; PICK=''; renderDash(); }
-function logout(){ CP=''; DATA=null; try{ sessionStorage.removeItem('acct_cp'); }catch(e){} renderLogin(''); }
+function logout(){ FP=''; DATA=null; try{ sessionStorage.removeItem('acct_fp'); }catch(e){} renderLogin(''); }
 
 /* boot */
-(function(){ let p=''; try{ p=sessionStorage.getItem('acct_cp')||''; }catch(e){}
-  if(p){ CP=p; renderLogin('載入中…'); fetchData(p).then(r=>{ if(r&&r.ok){ DATA=r; renderDash(); } else renderLogin(''); }); }
+(function(){ let p=''; try{ p=sessionStorage.getItem('acct_fp')||''; }catch(e){}
+  if(p){ FP=p; renderLogin('載入中…'); fetchData(p).then(r=>{ if(r&&r.ok){ DATA=r; renderDash(); } else renderLogin(''); }); }
   else renderLogin('');
 })();
 </script>
