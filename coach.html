@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-05-saveroll-sa';
+const FRONTEND_VERSION = 'coach-2026-09-06-venue-sa';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1463,7 +1463,7 @@ const VN_INS='width:100%;padding:10px;border-radius:9px;background:#1b1b1b;color
 let VN_COURTS_MAP={};   // cid → Set(揀咗嘅羽毛球場號)  ・逐班獨立
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
 function vnDayZh(dateStr){ const WZ=['日','一','二','三','四','五','六']; if(!dateStr) return ''; return '星期'+WZ[new Date(dateStr+'T00:00:00').getDay()]; }
-function vnCidLabel(cid){ return cid?((CLASSES[cid]&&CLASSES[cid].label)||cid):'全部'; }
+function vnCidLabel(cid){ return cid?((ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)||cid):'全部'; }
 /* 🛡️ 審計#29：classLabel() 喺加操列表（「💳 繳費」頁）用咗，但成個檔從來冇定義過
    → 第一筆加操一寫入就 ReferenceError，成版死。補返一個同 vnCidLabel 一致嘅實作。 */
 function classLabel(cid){
@@ -1471,10 +1471,10 @@ function classLabel(cid){
   if(!c) return cid||'';
   return c.label || ((c.dayZh||'')+(c.time?(' '+c.time):'')) || cid;
 }
-function vnDayClasses(dateStr){   // 當日所有課堂
+function vnDayClasses(dateStr){   // 當日所有課堂（跳繩 #4 ＋ 運動班 #SA，只列有學生嘅班；空時段唔列）
   const day=vnDayZh(dateStr);
-  return Object.keys(CLASSES).filter(cid=>{ const c=CLASSES[cid]; return !day || !c.dayZh || c.dayZh===day; })
-    .map(cid=>({cid, label:(CLASSES[cid]&&CLASSES[cid].label)||cid}));
+  return Object.keys(ALL_CLASSES).filter(cid=>{ const c=ALL_CLASSES[cid]; if(!c||realStuCount_(c)<1) return false; return !day || !c.dayZh || c.dayZh===day; })
+    .map(cid=>({cid, label:(ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)||cid}));
 }
 function vnOptSel(list, val){
   const inList=list.indexOf(val)>=0;
@@ -1563,7 +1563,8 @@ async function renderVenueAdmin(){
   if(!host){ const nt=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
   if(!host) return;
   let r; try{ r=await apiPost({action:'venuesAdmin', coachPass:cpass()}); }catch(e){ r=null; }
-  VENUES_CACHE=(r&&r.ok&&r.venues)?r.venues:[];
+  let rSA; try{ rSA=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'venuesAdmin', coachPass:cpass()})}).then(x=>x.json()); }catch(e){ rSA=null; }   // 🔀 運動班已設地點都拉埋
+  VENUES_CACHE=((r&&r.ok&&r.venues)?r.venues:[]).concat((rSA&&rSA.ok&&rSA.venues)?rSA.venues:[]);
   let html=`<div class="section-header">📍 上課地點（家長端會見到）</div>
     <div style="margin:0 4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
       <input type="date" id="vn-date" value="${VN_LAST_DATE||vnDefaultDate()}" onchange="vnRenderRows()" style="${VN_INS}">
