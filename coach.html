@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-06-venue-sa';
+const FRONTEND_VERSION = 'coach-2026-09-06-venue-sa2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1605,10 +1605,14 @@ async function postVenueAll(){
   renderVenueAdmin();
 }
 async function genWhatsApp(){
-  let r; try{ r=await apiPost({action:'weeklyText', coachPass:cpass(), days:10}); }catch(e){ r=null; }
-  if(!(r&&r.ok)){ toast('生成失敗','⚠'); return; }
+  let r, rSA;
+  try{ r=await apiPost({action:'weeklyText', coachPass:cpass(), days:10}); }catch(e){ r=null; }
+  try{ rSA=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'weeklyText', coachPass:cpass(), days:10})}).then(x=>x.json()); }catch(e){ rSA=null; }   // 🔀 運動班文案都拉埋
+  const t4=(r&&r.ok&&r.text)?r.text.trim():'', tSA=(rSA&&rSA.ok&&rSA.text)?rSA.text.trim():'';
+  if(!t4 && !tSA && !(r&&r.ok)){ toast('生成失敗','⚠'); return; }
+  const combined=[t4, tSA].filter(Boolean).join('\n\n');
   const ta=document.getElementById('vn-wa'); if(!ta) return;
-  ta.value=(r.text&&r.text.trim())?r.text:'本週暫無排定課堂';
+  ta.value=combined||'本週暫無排定課堂';
   ta.style.display='block';
   const cp=document.getElementById('vn-wa-copy'); if(cp) cp.style.display='block';
   toast('已生成','✓');
