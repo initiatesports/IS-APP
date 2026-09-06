@@ -186,9 +186,9 @@ async function fetchData(pw){
 async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(CP); if(r&&r.ok){ DATA=r; renderDash(); } else if(btn){ btn.textContent='↻ 刷新'; } }
 
 function renderDash(){
-  const M=aggregate(), allKeys=Object.keys(M).sort();
-  const curMonth=allKeys.length?allKeys[allKeys.length-1]:'';
-  const curYear=curMonth.slice(0,4);
+  const M=aggregate();
+  const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4);   // 預設＝今個月曆月（唔用最新 key，嗰個可能係場租攤分出嚟嘅未來月）
+  const allKeys=[...new Set(Object.keys(M).concat([curMonth]))].sort();
   if(SCOPE==='month' && !PICK) PICK=curMonth;
   if(SCOPE==='year' && !PICK) PICK=curYear;
   const keys=scopedMonths(M), S=sumMonths(M,keys);
