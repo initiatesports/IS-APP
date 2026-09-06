@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>INITIATE 會計儀表盤</title>
+<style>
+:root{
+  --bg:#0f1720; --surface:#18222e; --surface2:#1f2b39; --border:#2a3a4d; --border2:#35485e;
+  --ink:#eef3f8; --ink2:#aebccb; --muted:#7d8ea0;
+  --teal:#2fb9c9; --teal-d:#1b8d9b; --navy:#25384d;
+  --green:#3fcf8e; --green-dim:rgba(63,207,142,.14);
+  --red:#ff6b6b; --red-dim:rgba(255,107,107,.14);
+  --amber:#f5c451; --amber-dim:rgba(245,196,81,.14);
+  --purple:#a78bfa; --gold:#e6b84c;
+  --r:15px; --r-sm:11px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang HK","Noto Sans HK","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;padding-bottom:40px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+a{color:var(--teal)}
+.num{font-variant-numeric:tabular-nums}
+/* header */
+.top{position:sticky;top:0;z-index:20;background:rgba(15,23,32,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:13px 0}
+.top .wrap{display:flex;align-items:center;gap:12px}
+.top h1{font-size:17px;font-weight:800;letter-spacing:.2px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top h1 span{color:var(--teal)}
+.tbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--ink2);border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.tbtn:hover{border-color:var(--teal);color:var(--ink)}
+/* login */
+.login{max-width:360px;margin:16vh auto 0;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px 26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.login .logo{font-size:34px;margin-bottom:6px}
+.login h2{font-size:20px;font-weight:900;margin-bottom:4px}
+.login p{color:var(--muted);font-size:13px;margin-bottom:20px}
+.login input{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:11px;padding:13px 14px;font-size:16px;text-align:center;letter-spacing:.15em;font-family:inherit;outline:none}
+.login input:focus{border-color:var(--teal)}
+.login button{width:100%;margin-top:12px;background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.login .err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px}
+/* scope tabs */
+.scope{display:flex;gap:8px;margin:18px 0 14px;flex-wrap:wrap;align-items:center}
+.chip{background:var(--surface);border:1.5px solid var(--border2);color:var(--ink2);border-radius:20px;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#04252a}
+.scope select{background:var(--surface);border:1.5px solid var(--border2);color:var(--ink);border-radius:20px;padding:8px 14px;font-size:13.5px;font-weight:700;font-family:inherit;outline:none}
+.scope .sp{flex:1}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden}
+.kpi .lab{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.kpi .val{font-size:26px;font-weight:900;letter-spacing:-.5px;line-height:1}
+.kpi .val small{font-size:15px;font-weight:800;color:var(--muted)}
+.kpi .sub{font-size:11.5px;color:var(--ink2);margin-top:7px}
+.kpi.pos .val{color:var(--green)} .kpi.neg .val{color:var(--red)}
+.kpi .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+/* card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:17px 18px;margin-bottom:16px}
+.card h3{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h3 .tag{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+/* table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-size:11.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--border)}
+td{padding:9px 8px;border-bottom:1px solid var(--border);color:var(--ink2)}
+tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.pill.g{background:var(--green-dim);color:var(--green)} .pill.r{background:var(--red-dim);color:var(--red)} .pill.a{background:var(--amber-dim);color:var(--amber)}
+/* chart */
+.chart-wrap{overflow-x:auto}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink2);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.catrow{display:flex;align-items:center;gap:10px;padding:6px 0}
+.catrow .nm{width:96px;font-size:12.5px;color:var(--ink2);flex:none}
+.catrow .track{flex:1;height:9px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.catrow .fill{height:100%;border-radius:6px}
+.catrow .amt{width:74px;text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.empty{color:var(--muted);text-align:center;padding:26px;font-size:13px}
+.foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:18px;line-height:1.7}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid var(--border2);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const CFG={ API:'https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec' };
+let CP='', DATA=null, SCOPE='month', PICK='';   // SCOPE: month | year | all ; PICK: 具體 YYYY-MM 或 YYYY
+const $=id=>document.getElementById(id);
+const fmt0=n=>'$'+Math.round(n||0).toLocaleString('en-US');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function todayISO(){ return (DATA&&DATA.today)||new Date().toISOString().slice(0,10); }
+
+/* ── 期數(雙月)→ 兩個月曆月 YYYY-MM ── */
+function periodMonths(period){
+  const m=String(period||'').match(/(\d{4})\s*(\d{1,2})\s*[-–]\s*(\d{1,2})/);
+  if(!m) return [];
+  const y=+m[1]; return [m[2],m[3]].map(x=>y+'-'+String(+x).padStart(2,'0'));
+}
+/* ── 由收入/支出逐筆按月曆月彙總（場租按期攤落該期兩個月）── */
+function aggregate(){
+  const M={};   // 'YYYY-MM' -> {inPaid,inDue,exp,catIn:{},catEx:{}}
+  const mk=k=>{ if(!M[k]) M[k]={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}}; return M[k]; };
+  (DATA.income||[]).forEach(r=>{ const k=(r.date||'').slice(0,7); if(!/^\d{4}-\d{2}$/.test(k)) return;
+    const o=mk(k); if(r.status==='已收') o.inPaid+=r.amt; else o.inDue+=r.amt; o.catIn[r.cat]=(o.catIn[r.cat]||0)+r.amt; });
+  (DATA.expense||[]).forEach(r=>{ const k=(r.date||'').slice(0,7); if(!/^\d{4}-\d{2}$/.test(k)) return;
+    const o=mk(k); o.exp+=r.amt; o.catEx[r.cat]=(o.catEx[r.cat]||0)+r.amt; });
+  // 場租：每期(雙月)場租 ÷2 攤落兩個月，類別「場租」
+  Object.keys(DATA.venueByPeriod||{}).forEach(p=>{ const rent=DATA.venueByPeriod[p]||0; if(!rent) return;
+    const ms=periodMonths(p); if(!ms.length) return; const half=rent/ms.length;
+    ms.forEach(k=>{ const o=mk(k); o.exp+=half; o.catEx['場租']=(o.catEx['場租']||0)+half; }); });
+  return M;
+}
+/* 依 SCOPE/PICK 收窄要顯示嘅月份 keys */
+function scopedMonths(M){
+  const keys=Object.keys(M).sort();
+  if(SCOPE==='all') return keys;
+  if(SCOPE==='year'){ const y=PICK||(keys.length?keys[keys.length-1].slice(0,4):''); return keys.filter(k=>k.slice(0,4)===y); }
+  // month
+  const k=PICK||(keys.length?keys[keys.length-1]:''); return k?[k]:[];
+}
+function sumMonths(M,keys){ const s={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}};
+  keys.forEach(k=>{ const o=M[k]; if(!o) return; s.inPaid+=o.inPaid; s.inDue+=o.inDue; s.exp+=o.exp;
+    Object.keys(o.catIn).forEach(c=>s.catIn[c]=(s.catIn[c]||0)+o.catIn[c]);
+    Object.keys(o.catEx).forEach(c=>s.catEx[c]=(s.catEx[c]||0)+o.catEx[c]); });
+  return s;
+}
+
+/* ── SVG 月度趨勢圖（收入柱 vs 支出柱 + 淨利折線）── */
+function trendSVG(M){
+  const keys=Object.keys(M).sort(); if(!keys.length) return '<div class="empty">未有數據</div>';
+  const W=Math.max(560, keys.length*74), H=210, padL=8, padR=8, padB=34, padT=14;
+  const bw=(W-padL-padR)/keys.length;
+  let maxV=1; keys.forEach(k=>{ const o=M[k]; maxV=Math.max(maxV,o.inPaid+o.inDue,o.exp); });
+  const y=v=>padT+(H-padT-padB)*(1-v/maxV);
+  let bars='', line='', pts=[];
+  keys.forEach((k,i)=>{
+    const o=M[k], cx=padL+bw*i, gap=bw*0.16, w=(bw-gap*3)/2;
+    const inc=o.inPaid+o.inDue, net=inc-o.exp;
+    bars+=`<rect x="${cx+gap}" y="${y(inc)}" width="${w}" height="${H-padB-y(inc)}" rx="3" fill="#2fb9c9"></rect>`;
+    bars+=`<rect x="${cx+gap*2+w}" y="${y(o.exp)}" width="${w}" height="${H-padB-y(o.exp)}" rx="3" fill="#ff6b6b" opacity=".85"></rect>`;
+    const px=cx+bw/2, py=y(Math.max(0,net)); pts.push([px,py]);
+    bars+=`<text x="${px}" y="${H-padB+15}" text-anchor="middle" font-size="10" fill="#7d8ea0">${k.slice(2).replace('-','/')}</text>`;
+  });
+  line='<polyline fill="none" stroke="#3fcf8e" stroke-width="2.2" points="'+pts.map(p=>p[0]+','+p[1]).join(' ')+'"></polyline>'
+     + pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#3fcf8e"></circle>`).join('');
+  return `<div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet" style="min-width:${W}px">${bars}${line}</svg></div>
+    <div class="legend"><span><i style="background:#2fb9c9"></i>收入</span><span><i style="background:#ff6b6b"></i>支出</span><span><i style="background:#3fcf8e"></i>淨利</span></div>`;
+}
+/* 分類條 */
+function catBars(obj,color){
+  const ent=Object.entries(obj||{}).filter(([,v])=>Math.abs(v)>0).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  if(!ent.length) return '<div class="empty">未有</div>';
+  const max=Math.max(...ent.map(([,v])=>Math.abs(v)))||1;
+  return ent.map(([k,v])=>`<div class="catrow"><div class="nm">${esc(k)}</div>
+    <div class="track"><div class="fill" style="width:${Math.max(3,Math.abs(v)/max*100)}%;background:${color}"></div></div>
+    <div class="amt" style="${v<0?'color:var(--red)':''}">${fmt0(v)}</div></div>`).join('');
+}
+
+/* ── render ── */
+function renderLogin(msg){
+  $('app').innerHTML=`<div class="login"><div class="logo">📊</div><h2>會計儀表盤</h2><p>INITIATE SPORTS · 財務總覽</p>
+    <input id="pw" type="password" inputmode="numeric" placeholder="教練密碼" autocomplete="off">
+    <button onclick="doLogin()" id="lgbtn">登入</button><div class="err" id="lgerr">${msg||''}</div></div>`;
+  const pw=$('pw'); pw.focus(); pw.onkeydown=e=>{ if(e.key==='Enter') doLogin(); };
+}
+async function doLogin(){
+  const pw=$('pw').value.trim(); if(!pw){ $('lgerr').textContent='請輸入密碼'; return; }
+  const b=$('lgbtn'); b.disabled=true; b.innerHTML='<span class="spin"></span> 載入中…'; $('lgerr').textContent='';
+  const r=await fetchData(pw);
+  if(!r||r.ok===false){ b.disabled=false; b.textContent='登入'; $('lgerr').textContent=(r&&r.err)||'密碼錯誤或載入失敗'; return; }
+  CP=pw; try{ sessionStorage.setItem('acct_cp',pw); }catch(e){} DATA=r; SCOPE='month'; PICK=''; renderDash();
+}
+async function fetchData(pw){
+  for(let i=0;i<4;i++){ try{
+    const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'acctData',coachPass:pw})});
+    const t=(await res.text()).trim();
+    if(t.startsWith('{')){ const j=JSON.parse(t); const em=String((j&&(j.err||j.error))||''); if(!/unknown action/i.test(em)) return j; }
+  }catch(e){} await new Promise(r=>setTimeout(r,800*(i+1))); }
+  return {ok:false,err:'伺服器繁忙，請再試'};
+}
+async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(CP); if(r&&r.ok){ DATA=r; renderDash(); } else if(btn){ btn.textContent='↻ 刷新'; } }
+
+function renderDash(){
+  const M=aggregate(), allKeys=Object.keys(M).sort();
+  const curMonth=allKeys.length?allKeys[allKeys.length-1]:'';
+  const curYear=curMonth.slice(0,4);
+  if(SCOPE==='month' && !PICK) PICK=curMonth;
+  if(SCOPE==='year' && !PICK) PICK=curYear;
+  const keys=scopedMonths(M), S=sumMonths(M,keys);
+  const inc=S.inPaid+S.inDue, net=S.inPaid-S.exp, netFull=inc-S.exp;
+  // YTD
+  const ytdKeys=allKeys.filter(k=>k.slice(0,4)===curYear), Y=sumMonths(M,ytdKeys);
+  const ytdNet=Y.inPaid-Y.exp;
+  const scopeLabel = SCOPE==='all'?'全期':(SCOPE==='year'?(PICK+' 年'):(PICK.replace('-','年')+'月'));
+
+  const monthOpts=allKeys.slice().reverse().map(k=>`<option value="${k}" ${SCOPE==='month'&&PICK===k?'selected':''}>${k.replace('-','年')}月</option>`).join('');
+  const years=[...new Set(allKeys.map(k=>k.slice(0,4)))].sort().reverse();
+  const yearOpts=years.map(y=>`<option value="${y}" ${SCOPE==='year'&&PICK===y?'selected':''}>${y} 全年</option>`).join('');
+
+  let html=`<div class="top"><div class="wrap">
+    <h1>📊 INITIATE <span>會計儀表盤</span></h1>
+    <button class="tbtn" id="rfbtn" onclick="refresh()">↻ 刷新</button>
+    <a class="tbtn" href="${esc(DATA.sheetUrl||'#')}" target="_blank" rel="noopener">🗂 明細表</a>
+    <button class="tbtn" onclick="logout()">登出</button>
+  </div></div><div class="wrap">
+  <div class="scope">
+    <button class="chip ${SCOPE==='month'?'on':''}" onclick="setScope('month')">月度</button>
+    <button class="chip ${SCOPE==='year'?'on':''}" onclick="setScope('year')">年度</button>
+    <button class="chip ${SCOPE==='all'?'on':''}" onclick="setScope('all')">全期</button>
+    ${SCOPE==='month'?`<select onchange="PICK=this.value;renderDash()">${monthOpts}</select>`:''}
+    ${SCOPE==='year'?`<select onchange="PICK=this.value;renderDash()">${yearOpts}</select>`:''}
+    <div class="sp"></div>
+  </div>`;
+
+  // KPI
+  html+=`<div class="kpis">
+    <div class="kpi"><div class="bar" style="background:var(--teal)"></div><div class="lab">${esc(scopeLabel)} 收入（已收）</div><div class="val num">${fmt0(S.inPaid)}</div><div class="sub">連待收共 ${fmt0(inc)}</div></div>
+    <div class="kpi"><div class="bar" style="background:var(--red)"></div><div class="lab">${esc(scopeLabel)} 支出</div><div class="val num">${fmt0(S.exp)}</div><div class="sub">含自動場租</div></div>
+    <div class="kpi ${net>=0?'pos':'neg'}"><div class="bar" style="background:${net>=0?'var(--green)':'var(--red)'}"></div><div class="lab">${esc(scopeLabel)} 淨利（已收−支出）</div><div class="val num">${fmt0(net)}</div><div class="sub">全收後預計 ${fmt0(netFull)}</div></div>
+    <div class="kpi ${ytdNet>=0?'pos':'neg'}"><div class="bar" style="background:var(--gold)"></div><div class="lab">${esc(curYear)} 年累計淨利 (YTD)</div><div class="val num">${fmt0(ytdNet)}</div><div class="sub">收入 ${fmt0(Y.inPaid)} · 支出 ${fmt0(Y.exp)}</div></div>
+  </div>`;
+
+  // 趨勢
+  html+=`<div class="card"><h3>📈 月度趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trendSVG(M)}</div>`;
+
+  // 分類
+  html+=`<div class="grid2">
+    <div class="card"><h3>💰 收入分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catIn,'linear-gradient(90deg,#2fb9c9,#1b8d9b)')}</div>
+    <div class="card"><h3>🧾 支出分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catEx,'linear-gradient(90deg,#ff6b6b,#c0392b)')}</div>
+  </div>`;
+
+  // 逐班盈虧
+  html+=`<div class="card"><h3>🏫 逐班盈虧<span class="tag">本報名期</span></h3>${pnlTable()}</div>`;
+
+  // 私訓
+  html+=ptSection(S);
+
+  // 家庭 LTV
+  html+=`<div class="card"><h3>👨‍👩‍👧 家庭價值 LTV<span class="tag">累計已收</span></h3>${ltvTable()}</div>`;
+
+  html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細表帶入。<br>場地費＝康文署費率自動計；改「場租設定」分頁即重算。每晚 23:00 自動刷新。</div></div>`;
+  $('app').innerHTML=html;
+}
+function pnlTable(){
+  const p=DATA.classPnL||[]; if(p.length<2) return '<div class="empty">未有已核實報名</div>';
+  const rows=p.slice(1);
+  return `<table><thead><tr><th>班別</th><th class="n">人數</th><th class="n">學費收入</th><th class="n">場租</th><th class="n">淨利</th><th>狀態</th></tr></thead><tbody>${
+    rows.map(r=>{ const net=Number(r[6])||0; return `<tr><td>${esc(r[1])}<br><span style="color:var(--muted);font-size:11px">${esc(r[2])}</span></td><td class="n">${r[3]}</td><td class="n">${fmt0(r[4])}</td><td class="n neg">${fmt0(r[5])}</td><td class="n ${net>=0?'pos':'neg'}" style="font-weight:800">${fmt0(net)}</td><td>${net>=0?'<span class="pill g">賺</span>':'<span class="pill r">蝕</span>'}</td></tr>`; }).join('')
+  }</tbody></table>`;
+}
+function ptSection(S){
+  const inc=(DATA.income||[]).filter(r=>r.cat==='私訓'||r.cat==='私訓套票');
+  if(!inc.length) return '';
+  const pkg=inc.filter(r=>r.cat==='私訓套票'), sess=inc.filter(r=>r.cat==='私訓');
+  const pkgT=pkg.reduce((a,r)=>a+r.amt,0), sessPaid=sess.filter(r=>r.status==='已收').reduce((a,r)=>a+r.amt,0), sessDue=sess.filter(r=>r.status!=='已收').reduce((a,r)=>a+r.amt,0);
+  return `<div class="card"><h3>⭐ 私人訓練<span class="tag">套票 ${fmt0(pkgT)} · 逐節已收 ${fmt0(sessPaid)}${sessDue?(' · 待收 '+fmt0(sessDue)):''}</span></h3>
+    <table><thead><tr><th>日期</th><th>學員</th><th>項目</th><th class="n">金額</th><th>狀態</th></tr></thead><tbody>${
+      inc.slice().sort((a,b)=>(b.date||'')<(a.date||'')?-1:1).slice(0,30).map(r=>`<tr><td>${dmy(r.date)}</td><td>${esc(r.name)}</td><td>${esc(r.desc)}</td><td class="n" style="font-weight:700">${fmt0(r.amt)}</td><td>${r.status==='已收'?'<span class="pill g">已收</span>':'<span class="pill a">待收</span>'}</td></tr>`).join('')
+    }</tbody></table></div>`;
+}
+function ltvTable(){
+  const l=DATA.familyLTV||[]; if(l.length<2) return '<div class="empty">未有數據</div>';
+  const rows=l.slice(1).slice(0,15);
+  return `<table><thead><tr><th>家庭（學生）</th><th class="n">報名期數</th><th>本期</th><th class="n">累計 LTV</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td>${esc(r[1])}</td><td class="n">${r[2]}</td><td>${esc(r[3])}</td><td class="n" style="font-weight:800;color:var(--gold)">${fmt0(r[4])}</td></tr>`).join('')
+  }</tbody></table>`;
+}
+function dmy(s){ const m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:(s||'—'); }
+function setScope(s){ SCOPE=s; PICK=''; renderDash(); }
+function logout(){ CP=''; DATA=null; try{ sessionStorage.removeItem('acct_cp'); }catch(e){} renderLogin(''); }
+
+/* boot */
+(function(){ let p=''; try{ p=sessionStorage.getItem('acct_cp')||''; }catch(e){}
+  if(p){ CP=p; renderLogin('載入中…'); fetchData(p).then(r=>{ if(r&&r.ok){ DATA=r; renderDash(); } else renderLogin(''); }); }
+  else renderLogin('');
+})();
+</script>
+</body>
+</html>
