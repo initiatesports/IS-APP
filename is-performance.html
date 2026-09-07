@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-07-loginfix';
+const APP_VERSION='growth-2026-09-07-nologin-autologin';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -1237,7 +1237,7 @@ $('#loginForm').onsubmit=async e=>{
   e.preventDefault();const pw=$('#pw').value.trim();if(!pw)return;
   const btn=$('#loginBtn');btn.textContent='驗證中…';$('#loginErr').textContent='';
   const ok=await verifyPass(pw);
-  if(ok){CP=pw;try{localStorage.setItem('growth_cp',pw);}catch(e){}boot();}
+  if(ok){CP=pw;boot();}   // 老闆 2026-09-07：唔再記住密碼落 localStorage（每次都要輸入）
   else{$('#loginErr').textContent='密碼錯誤，請重試';btn.textContent='登入';}
 };
 $('#logoutBtn').onclick=()=>{if(PENDING.length&&!confirm('仲有 '+PENDING.length+' 項未同步，登出會保留喺本機下次補交。確定登出？'))return;CP='';try{localStorage.removeItem('growth_cp');}catch(e){}location.reload();};
@@ -1348,9 +1348,8 @@ function famLBRender(){
 (function(){
   if(new URLSearchParams(location.search).get('lb')==='1'){famLBBoot();return;}          // 家長排行榜模式
   if(new URLSearchParams(location.search).get('report')==='1'){famReportBoot();return;}   // 家長報告模式：唔行教練自動登入
-  // 自動登入前先驗證 cached 密碼（老闆 2026-09-07：之前無驗證 → 過時/錯密碼都照入但攞唔到資料=冇班別＋不安全）。驗唔過就清走、要求重新登入。
-  let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}
-  if(p){ verifyPass(p).then(function(ok){ if(ok){ CP=p; try{$('#pw').value='';}catch(e){} boot(); } else { try{localStorage.removeItem('growth_cp');sessionStorage.removeItem('growth_cp');}catch(e){} } }); }
+  // 老闆 2026-09-07：唔再自動登入 —— 每次開成長中心都要輸入教練密碼先入到（安全）。清走任何舊 cached 密碼，永遠顯示登入畫面。
+  try{localStorage.removeItem('growth_cp');sessionStorage.removeItem('growth_cp');}catch(e){}
 })();
 // PWA service worker（只 cache 本 app 自己 HTML 作離線開啟；對其他 IS-APP 頁完全透明，唔攔截）
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('is-performance-sw.js').catch(()=>{});});}
