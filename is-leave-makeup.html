@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-08-31-closed';
+const FRONTEND_VERSION = 'lm-2026-09-07-tt2627';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -1315,14 +1315,16 @@ function copyCancel(){
    逐個小朋友名試 login，首個喺暑期名冊配到嘅即登入全家；失敗退回手動登入。讀完即刪。 */
 /* ☀️ 暑期班已結束（2026-08-31 起）：家長／教練打開一律顯示關閉頁 + 恆常班報名 + 最新時間表。
    唔再接後端、唔再登入。原有請假／補堂邏輯保留喺下面但唔會行到（將來如需重開，恢復 bootSSO 原本內容即可）。 */
+// slot 格式：[時間, 課堂, 狀態]。狀態 '未夠人成班'/'已滿'/''。
+const TT_PT='私人訓練 / 痛症處理（可預約）';
 const TT_DAYS=[
-  {d:'星期一', slots:[['09:00–16:00','私人訓練（可預約）'],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–20:00','私人訓練（可預約）']]},
-  {d:'星期二', slots:[['09:00–14:00','私人訓練（可預約）'],['14:00–15:00','幼兒綜合運動 ※'],['15:00–16:00','私人訓練（可預約）'],['17:00–18:00','幼兒綜合運動 ※'],['18:00–19:00','羽毛球'],['19:00–20:00','私人訓練（可預約）']], note:'※ 幼兒班：幼稚園學生適用'},
-  {d:'星期三', slots:[['09:00–16:00','私人訓練（可預約）'],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–20:00','私人訓練（可預約）']]},
-  {d:'星期四', slots:[['09:00–16:00','私人訓練（可預約）'],['17:00–18:00','花式跳繩 ※'],['18:00–19:00','羽毛球'],['19:00–20:00','私人訓練（可預約）']], note:'※ 暑假跳繩班銜接恆常班／幼稚園同學，建議首選此班'},
-  {d:'星期五', slots:[['09:00–16:00','私人訓練（可預約）'],['16:50–17:50','田徑'],['18:00–19:00','花式跳繩'],['18:00–20:00','進階跳繩（10月開始）※'],['20:00–21:00','成人增肌減脂']], note:'※ 進階跳繩班需經技術遴選及教練批准才可進入'},
-  {d:'星期六', slots:[['08:00–10:00','羽毛球'],['11:00–12:00','花式跳繩'],['12:00–14:00','羽毛球（其中一小時）'],['14:00–15:00','體操'],['15:00–16:00','花式跳繩'],['17:00–18:00','綜合體能＋田徑'],['18:00–20:00','網球（9月試行）'],['20:00–21:00','成人增肌減脂']]},
-  {d:'星期日', slots:[['09:00–12:00','私人訓練（可預約）']]},
+  {d:'星期一', slots:[['09:00–16:00',TT_PT],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩','未夠人成班'],['18:00–19:00',TT_PT],['19:00–21:00',TT_PT]]},
+  {d:'星期二', slots:[['09:00–16:00',TT_PT],['17:00–18:00','幼兒綜合運動 ①'],['18:00–19:00','羽毛球','未夠人成班'],['18:00–19:00',TT_PT],['19:00–21:00',TT_PT]]},
+  {d:'星期三', slots:[['09:00–16:00',TT_PT],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–21:00',TT_PT]]},
+  {d:'星期四', slots:[['09:00–16:00',TT_PT],['17:00–18:00','花式跳繩 ②'],['18:00–19:00','羽毛球','未夠人成班'],['18:00–19:00',TT_PT],['19:00–21:00',TT_PT]]},
+  {d:'星期五', slots:[['09:00–16:00',TT_PT],['16:50–17:50','田徑','未夠人成班'],['16:50–17:50',TT_PT],['18:00–19:00','花式跳繩'],['18:00–20:00','進階跳繩（10月開始）③'],['20:00–21:00','成人增肌減脂']]},
+  {d:'星期六', slots:[['08:00–10:00','羽毛球','未夠人成班'],['08:00–10:00',TT_PT],['11:00–12:00','花式跳繩','已滿'],['12:00–14:00','羽毛球（其中一小時）','已滿'],['15:00–16:00','花式跳繩'],['16:00–17:00','體操'],['17:00–18:00','綜合體能＋田徑'],['18:00–21:00',TT_PT]]},
+  {d:'星期日', slots:[['09:00–12:00',TT_PT]]},
 ];
 function renderClosed(){
   const v=document.getElementById('view'); if(!v) return;
@@ -1330,7 +1332,7 @@ function renderClosed(){
     return '<div style="border:1px solid var(--line,#e6ebee);border-radius:12px;overflow:hidden;background:#fff">'
       +'<div style="background:linear-gradient(135deg,#28B8C8,#1b8d9b);color:#fff;font-weight:800;padding:8px 12px;font-size:14px">'+d.d+'</div>'
       +'<div style="padding:6px 12px">'
-      + d.slots.map(function(s){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed #eef1f2;font-size:13px"><span style="color:var(--muted,#7a8a8f);font-variant-numeric:tabular-nums;white-space:nowrap">'+s[0]+'</span><span style="text-align:right;font-weight:600">'+s[1]+'</span></div>'; }).join('')
+      + d.slots.map(function(s){ var tag=s[2]?('<br><span style="display:inline-block;margin-top:3px;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:9px;'+(s[2]==='已滿'?'background:#f3ded9;color:#a4472f':'background:#eef2f6;color:#5a6b78')+'">'+s[2]+'</span>'):''; return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed #eef1f2;font-size:13px"><span style="color:var(--muted,#7a8a8f);font-variant-numeric:tabular-nums;white-space:nowrap">'+s[0]+'</span><span style="text-align:right;font-weight:600">'+s[1]+tag+'</span></div>'; }).join('')
       + (d.note?'<div style="font-size:11.5px;color:var(--muted,#7a8a8f);padding:6px 0 2px;line-height:1.5">'+d.note+'</div>':'')
       +'</div></div>';
   }).join('');
@@ -1349,7 +1351,10 @@ function renderClosed(){
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">${days}</div>
       <div style="margin-top:12px;padding:11px 13px;border-radius:12px;background:rgba(27,141,155,.06);border:1px solid rgba(27,141,155,.2);font-size:12px;line-height:1.7;color:var(--teal-dark,#0a6b74)">
-        · 4 人成班（私人訓練除外）；可四人組團開辦其餘時段。<br>
+        · ① 幼兒班：幼稚園學生適用。<br>
+        · ② 暑假跳繩班銜接恆常班／幼稚園同學，建議首選此班。<br>
+        · ③ 進階跳繩班需經技術遴選及教練批准才可進入。<br>
+        · 4 人成班（私人訓練除外）；標「私人訓練 / 痛症處理」時段亦可自組任何班別。<br>
         · 學費以「期」計（每期約 8 堂），詳情及即時名額見報名系統。<br>
         · 主要上課地點：青衣體育館（後備場地見報名系統）。<br>
         · 查詢：WhatsApp <b>6331 7403</b> 張 Sir。
