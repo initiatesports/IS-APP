@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-07-todaysummary';
+const APP_VERSION='growth-2026-09-07-pbfix';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -494,6 +494,11 @@ function activeClasses(){return CLASS_IDS.filter(c=>classStudents(c).length>0);}
 
 /* ═══════════════════ 分析工具 ═══════════════════ */
 function series(name,metric){return (PERF[name]&&PERF[name][metric])?PERF[name][metric].filter(r=>r.val!=null):[];}
+/* 呢條記錄算唔算 PB（老闆 2026-09-07：第一次記錄唔當 PB，要贏過之前最佳先算）。rec 係 s 入面其中一條。 */
+function recIsPB(s, rec){ if(!s||!rec||rec.val==null) return false;
+  const others=s.filter(r=>r!==rec && r.date!==rec.date);   // 排除自己／同日；冇更早記錄＝第一次＝唔算 PB
+  if(!others.length) return false;
+  return rec.val > Math.max(...others.map(r=>r.val)); }
 function bodySeries(name){return (BODY[name]||[]).filter(r=>r.height!=null||r.weight!=null);}
 function pb(name,metric){const s=series(name,metric);return s.length?Math.max(...s.map(r=>r.val)):null;}
 function latest(name,metric){const s=series(name,metric);return s.length?s[s.length-1]:null;}
@@ -620,7 +625,7 @@ function renderDash(){
   <div class="grid" style="grid-template-columns:1.35fr 1fr;align-items:start">
     <div class="card card-pad">
       <div class="sec-h"><div class="ic">${ico('activity')}</div><h3>最近測試紀錄</h3><div class="sp"></div><span class="pill">共 ${acts.length}</span></div>
-      ${recent.length?`<table class="tbl"><tbody>${recent.map(a=>{const mt=METRICS[a.metric];const isPB=(()=>{const s=series(a.name,a.metric);return s.length&&a.val>=Math.max(...s.map(x=>x.val))&&a.date===s[s.length-1].date;})();return `<tr onclick="openStudent('${esc(a.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:10px">${avatarHTML(a.name)}<b>${esc(a.name)}</b></td><td class="mut">${mt?esc(mt.lab):esc(a.metric)}</td><td class="num">${a.val}<span class="mut" style="font-weight:400"> ${mt?mt.u:''}</span></td><td style="text-align:right">${isPB?'<span class="pill gold">'+ico('medal')+'PB</span>':''}</td><td class="mut num" style="font-weight:400">${md(a.date)}</td></tr>`;}).join('')}</tbody></table>`:emptyBox('未有成績紀錄','開始課堂測試即可記錄')}
+      ${recent.length?`<table class="tbl"><tbody>${recent.map(a=>{const mt=METRICS[a.metric];const isPB=recIsPB(series(a.name,a.metric), a);return `<tr onclick="openStudent('${esc(a.name)}')" style="cursor:pointer"><td style="display:flex;align-items:center;gap:10px">${avatarHTML(a.name)}<b>${esc(a.name)}</b></td><td class="mut">${mt?esc(mt.lab):esc(a.metric)}</td><td class="num">${a.val}<span class="mut" style="font-weight:400"> ${mt?mt.u:''}</span></td><td style="text-align:right">${isPB?'<span class="pill gold">'+ico('medal')+'PB</span>':''}</td><td class="mut num" style="font-weight:400">${md(a.date)}</td></tr>`;}).join('')}</tbody></table>`:emptyBox('未有成績紀錄','開始課堂測試即可記錄')}
     </div>
     <div class="card card-pad">
       <div class="sec-h"><div class="ic">${ico('trend')}</div><h3>成長之星</h3></div>
@@ -812,7 +817,7 @@ function renderTodaySummary(){
       const best=Math.max(...s.map(r=>r.val)), mt=METRICS[m];
       let disp=rec.val+(mt&&mt.u?mt.u:'');
       if(isRopeM(m)&&rec.v1!=null&&rec.v2!=null) disp+=` <span class="mut" style="font-weight:400;font-size:11px">(${rec.v1}/${rec.v2})</span>`;
-      items.push({lab:(mt?mt.short:m), disp, pb:rec.val>=best});
+      items.push({lab:(mt?mt.short:m), disp, pb:recIsPB(s,rec)});
     });
     const bs=(BODY[n]||[]).find(r=>r.date===d);
     if(bs){ if(bs.height!=null)items.push({lab:'身高',disp:bs.height+'cm',pb:false}); if(bs.weight!=null)items.push({lab:'體重',disp:bs.weight+'kg',pb:false}); }
@@ -1048,7 +1053,7 @@ function growthReportHTML(name){
   const fitIds=['sj','cmj'].filter(m=>series(name,m).length>0);
   // rope rows
   const ropeRows=ropeIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val,best=Math.max(...s.map(r=>r.val));const single=s.length<2;const d=single?null:round(l-f,1);
-    return `<tr><td class="mn">${esc(mt.lab)}${rankPill(m)}</td><td class="c">${single?'—':f}</td><td class="c v">${l}</td><td class="c"><span class="pb">${best} PB</span></td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c">${rpSpark(s.map(r=>r.val))}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
+    return `<tr><td class="mn">${esc(mt.lab)}${rankPill(m)}</td><td class="c">${single?'—':f}</td><td class="c v">${l}</td><td class="c"><span class="pb">${best}${single?'':' PB'}</span></td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c">${rpSpark(s.map(r=>r.val))}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
   const fitRows=fitIds.map(m=>{const s=series(name,m),mt=METRICS[m];const f=s[0].val,l=s[s.length-1].val;const d=s.length<2?null:round(l-f,1);return `<tr><td class="mn">${esc(mt.lab)}<small>${esc(mt.u)}</small>${rankPill(m)}</td><td class="c">${s.length<2?'—':f}</td><td class="c v">${l}</td><td class="c">${d==null?'—':d>0?`<span class="up">▲ +${d}</span>`:`<span class="fl">${d}</span>`}</td><td class="c gl">${rpGoal(l,mt.u)}</td></tr>`;}).join('');
   // grip combined
   const gr=series(name,'gripR'),gl=series(name,'gripL');let gripRow='';
@@ -1200,7 +1205,7 @@ async function makeCard(name,metric){
   const mt=METRICS[metric]||{lab:metric,u:''};const s=series(name,metric);
   const l=s.length?s[s.length-1].val:null,best=s.length?Math.max(...s.map(r=>r.val)):null;
   const prev=s.length>=2?s[s.length-2].val:null,delta=prev!=null&&l!=null?round(l-prev,1):null;
-  const isPB=l!=null&&best!=null&&l>=best;const co=cohortStat(name,metric);
+  const isPB=recIsPB(s, s[s.length-1]);const co=cohortStat(name,metric);
   x.fillStyle='#eef2f4';x.fillRect(0,0,W,H);
   // 頂 navy
   const g=x.createLinearGradient(0,0,W,360);g.addColorStop(0,'#132a3e');g.addColorStop(1,'#1c3d59');x.fillStyle=g;x.fillRect(0,0,W,360);
