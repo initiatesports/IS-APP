@@ -82,6 +82,45 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:18px;line-height:1.7}
 .spin{display:inline-block;width:15px;height:15px;border:2px solid var(--border2);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* FAB + 記賬 sheet */
+.fab{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;width:58px;height:58px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#04252a;font-size:30px;font-weight:800;box-shadow:0 8px 24px rgba(47,185,201,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.fab:active{transform:scale(.94)}
+#scrim{position:fixed;inset:0;background:rgba(4,8,13,.6);z-index:50;display:none;align-items:flex-end;justify-content:center}
+#scrim.on{display:flex}
+.sheet{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow-y:auto;animation:up .22s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet h3{font-size:17px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.seg{display:flex;gap:8px;margin-bottom:14px}
+.seg button{flex:1;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink2);border-radius:11px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--teal-dim,rgba(47,185,201,.16));border-color:var(--teal);color:var(--teal)}
+.amtbox{text-align:center;margin:6px 0 14px}
+.amtbox .amt{font-size:40px;font-weight:900;letter-spacing:-1px}
+.amtbox .amt small{font-size:20px;color:var(--muted);font-weight:800}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.keys button{background:var(--surface2);border:1px solid var(--border2);color:var(--ink);border-radius:11px;padding:15px 0;font-size:20px;font-weight:700;cursor:pointer;font-family:inherit}
+.keys button:active{background:var(--border2)}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.fld input,.fld select{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;outline:none}
+.catchips{display:flex;gap:7px;flex-wrap:wrap}
+.catchips button{background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink2);border-radius:20px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.catchips button.on{background:var(--teal);border-color:var(--teal);color:#04252a}
+.srow{display:flex;gap:9px;margin-top:6px}
+.srow button{flex:1;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.btn-primary{background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border2)!important;color:var(--ink2)}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);border:1px solid var(--border2);color:var(--ink);padding:11px 18px;border-radius:24px;font-size:14px;z-index:60;opacity:0;transition:.25s;pointer-events:none;display:flex;align-items:center;gap:10px}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+#toast button{background:none;border:none;color:var(--teal);font-weight:800;cursor:pointer;font-family:inherit;font-size:14px}
+.led-day{margin:16px 0 6px;font-size:12px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
+.led{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:7px}
+.led .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:15px;flex:none}
+.led .m{flex:1;min-width:0}
+.led .m .t{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.led .m .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+.led .a{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.led .vd{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px}
+.badge{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--surface2);color:var(--muted);margin-left:5px;vertical-align:1px}
 </style>
 </head>
 <body>
@@ -179,7 +218,7 @@ async function doLogin(){
   if(!r||r.ok===false){ b.disabled=false; b.textContent='登入';
     if(r&&r.needSetup){ renderSetup(1); return; }
     $('lgerr').textContent=(r&&r.err)||'密碼錯誤或載入失敗'; return; }
-  FP=pw; try{ sessionStorage.setItem('acct_fp',pw); }catch(e){} DATA=r; SCOPE='month'; PICK=''; renderDash();
+  FP=pw; try{ sessionStorage.setItem('acct_fp',pw); }catch(e){} DATA=r; SCOPE='month'; PICK=''; VIEW='dash'; renderApp();
 }
 function renderSetup(firstTime){
   $('app').innerHTML=`<div class="login"><div class="logo">🔑</div><h2>${firstTime?'首次設定財務密碼':'設定 / 修改財務密碼'}</h2>
@@ -211,7 +250,7 @@ async function fetchData(pw){
   }catch(e){} await new Promise(r=>setTimeout(r,800*(i+1))); }
   return {ok:false,err:'伺服器繁忙，請再試'};
 }
-async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(FP); if(r&&r.ok){ DATA=r; renderDash(); } else if(btn){ btn.textContent='↻ 刷新'; } }
+async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(FP); if(r&&r.ok){ DATA=r; renderApp(); } else if(btn){ btn.textContent='↻ 刷新'; } }
 
 function weekMonday(w){ const m=String(w).match(/(\d{4})-W(\d{1,2})/); if(!m) return ''; const y=+m[1], wk=+m[2];
   const jan4=new Date(Date.UTC(y,0,4)), day=jan4.getUTCDay()||7, mon1=new Date(jan4); mon1.setUTCDate(jan4.getUTCDate()-(day-1));
@@ -239,9 +278,10 @@ function renderDash(){
 
   let html=`<div class="top"><div class="wrap">
     <h1>📊 INITIATE <span>會計儀表盤</span></h1>
-    <button class="tbtn" id="rfbtn" onclick="refresh()">↻ 刷新</button>
-    <a class="tbtn" href="${esc(DATA.sheetUrl||'#')}" target="_blank" rel="noopener">🗂 明細表</a>
-    <button class="tbtn" onclick="openPass()">🔒 密碼</button>
+    <button class="tbtn" onclick="VIEW='ledger';renderApp()">🧾 賬目</button>
+    <button class="tbtn" id="rfbtn" onclick="refresh()">↻</button>
+    <a class="tbtn" href="${esc(DATA.sheetUrl||'#')}" target="_blank" rel="noopener">🗂</a>
+    <button class="tbtn" onclick="openPass()">🔒</button>
     <button class="tbtn" onclick="logout()">登出</button>
   </div></div><div class="wrap">
   <div class="scope">
@@ -270,6 +310,8 @@ function renderDash(){
     <div class="card"><h3>🧾 支出分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catEx,'linear-gradient(90deg,#ff6b6b,#c0392b)')}</div>
   </div>`;
 
+  // 應收
+  html+=receivablesCard();
   // 逐班盈虧
   html+=`<div class="card"><h3>🏫 逐班盈虧<span class="tag">本報名期</span></h3>${pnlTable()}</div>`;
 
@@ -279,8 +321,19 @@ function renderDash(){
   // 家庭 LTV
   html+=`<div class="card"><h3>👨‍👩‍👧 家庭價值 LTV<span class="tag">累計已收</span></h3>${ltvTable()}</div>`;
 
-  html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細表帶入。<br>場地費＝康文署費率自動計；改「場租設定」分頁即重算。每晚 23:00 自動刷新。</div></div>`;
-  $('app').innerHTML=html;
+  html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細表帶入。<br>場地費＝康文署費率自動計；改「場租設定」分頁即重算。每晚 23:00 自動刷新。撳右下角 ＋ 即可 in-app 記賬。</div></div>`;
+  $('app').innerHTML=html+fabHtml();
+}
+function receivablesCard(){
+  const due=(DATA.income||[]).filter(r=>r.status && r.status!=='已收' && r.amt>0);
+  if(!due.length) return '';
+  const byName={}; due.forEach(r=>{ const k=r.name||r.desc||'—'; byName[k]=(byName[k]||0)+r.amt; });
+  const rows=Object.entries(byName).sort((a,b)=>b[1]-a[1]);
+  const tot=rows.reduce((a,r)=>a+r[1],0);
+  return `<div class="card"><h3>📥 應收（未收）<span class="tag">共 ${fmt0(tot)}</span></h3>
+    <table><thead><tr><th>學生 / 項目</th><th class="n">金額</th></tr></thead><tbody>${
+      rows.slice(0,25).map(([n,v])=>`<tr><td>${esc(n)}</td><td class="n" style="font-weight:800;color:var(--amber)">${fmt0(v)}</td></tr>`).join('')
+    }</tbody></table></div>`;
 }
 function pnlTable(){
   const p=DATA.classPnL||[]; if(p.length<2) return '<div class="empty">未有已核實報名</div>';
@@ -308,11 +361,77 @@ function ltvTable(){
 }
 function dmy(s){ const m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:(s||'—'); }
 function setScope(s){ SCOPE=s; PICK=''; renderDash(); }
-function logout(){ FP=''; DATA=null; try{ sessionStorage.removeItem('acct_fp'); }catch(e){} renderLogin(''); }
+/* ── 記賬 + 賬目 + toast (MVP) ── */
+let VIEW='dash', EXP=null, TOASTt=null, TOAST_UNDO=null;
+function fabHtml(){ return `<button class="fab" onclick="openExpense()" title="記賬">＋</button>`; }
+function renderApp(){ if(VIEW==='ledger') renderLedger(); else renderDash(); }
+function toast(msg){ let el=$('toast'); if(!el){ el=document.createElement('div'); el.id='toast'; document.body.appendChild(el); }
+  el.textContent=msg; el.classList.add('on'); clearTimeout(TOASTt); TOASTt=setTimeout(()=>el.classList.remove('on'),2400); }
+function openExpense(){ EXP={kind:'expense',amt:'',cat:'',date:todayISO(),note:'',name:'',classId:''}; renderSheet(); }
+function closeSheet(){ const s=$('scrim'); if(s) s.classList.remove('on'); }
+function renderSheet(){
+  let s=$('scrim'); if(!s){ s=document.createElement('div'); s.id='scrim'; s.onclick=e=>{ if(e.target===s) closeSheet(); }; document.body.appendChild(s); }
+  const cats=(DATA.categories||[]).map(c=>c.name);
+  const catList = EXP.kind==='income' ? ['PT加收','現金收入','退款','其他收入'] : (cats.length?cats:['場地租金','器材／制服入貨','宣傳推廣','行政雜費','其他']);
+  s.innerHTML=`<div class="sheet">
+    <h3>${EXP.kind==='expense'?'🧾 記一筆支出':'💰 記一筆收入'}</h3>
+    <div class="seg"><button class="${EXP.kind==='expense'?'on':''}" onclick="EXP.kind='expense';EXP.cat='';renderSheet()">支出</button><button class="${EXP.kind==='income'?'on':''}" onclick="EXP.kind='income';EXP.cat='';renderSheet()">收入</button></div>
+    <div class="amtbox"><div class="amt"><small>$</small>${EXP.amt||'0'}</div></div>
+    <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button onclick="expKey('${n}')">${n}</button>`).join('')}<button onclick="expKey('c')" style="color:var(--red)">C</button><button onclick="expKey('0')">0</button><button onclick="expKey('b')">⌫</button></div>
+    <div class="fld"><label>類別</label><div class="catchips">${catList.map(c=>`<button class="${EXP.cat===c?'on':''}" onclick="EXP.cat=this.dataset.c;renderSheet()" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+    ${EXP.kind==='income'?`<div class="fld"><label>學生 / 對象（可選）</label><input value="${esc(EXP.name||'')}" oninput="EXP.name=this.value" placeholder="例：甘卓熹"></div>`:''}
+    <div class="fld"><label>日期</label><input type="date" value="${EXP.date}" onchange="EXP.date=this.value"></div>
+    <div class="fld"><label>備註（可選）</label><input value="${esc(EXP.note||'')}" oninput="EXP.note=this.value" placeholder="說明"></div>
+    <div class="srow"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" onclick="saveExpense(true)">儲存＋再記</button><button class="btn-primary" onclick="saveExpense(false)">儲存</button></div>
+  </div>`;
+  s.classList.add('on');
+}
+function expKey(k){ if(k==='c') EXP.amt=''; else if(k==='b') EXP.amt=EXP.amt.slice(0,-1); else if((EXP.amt||'').length<7) EXP.amt=(EXP.amt==='0'?'':EXP.amt)+k; renderSheet(); }
+async function saveExpense(again){
+  const amt=parseInt(EXP.amt||'0',10); if(!amt){ toast('請輸入金額'); return; } if(!EXP.cat){ toast('請揀類別'); return; }
+  const kind=EXP.kind, ctx='c'+Date.now()+Math.floor(Math.random()*1000), d=EXP.date, note=EXP.note, nm=EXP.name||'', cat=EXP.cat;
+  const body = kind==='expense'
+    ? {action:'acctExpenseAdd',acctPass:FP,amount:amt,category:cat,date:d,note:note,clientTxnId:ctx}
+    : {action:'acctIncomeAdd',acctPass:FP,amount:amt,category:cat,name:nm,date:d,note:note,status:'已收',clientTxnId:ctx};
+  const optim = kind==='expense' ? {date:d,cat:cat,desc:note,amt:amt,period:'',id:'(pending)',classId:'',_pending:1}
+    : {date:d,name:nm,cat:cat,desc:note,period:'',amt:amt,status:'已收',src:'MI',id:'(pending)',_pending:1};
+  if(kind==='expense')(DATA.expense=DATA.expense||[]).push(optim); else (DATA.income=DATA.income||[]).push(optim);
+  if(again){ EXP={kind:kind,amt:'',cat:'',date:d,note:'',name:''}; renderSheet(); } else closeSheet();
+  renderApp();
+  let r=null; for(let i=0;i<4;i++){ try{ const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); const t=(await res.text()).trim(); if(t.startsWith('{')){ r=JSON.parse(t); if(r.ok||r.dup) break; } }catch(e){} await new Promise(x=>setTimeout(x,700*(i+1))); }
+  if(r&&(r.ok||r.dup)){ optim.id=r.id||optim.id; optim._pending=0; toast('已記一筆'+(kind==='expense'?'支出':'收入')+' $'+amt); renderApp(); }
+  else { if(kind==='expense') DATA.expense=DATA.expense.filter(x=>x!==optim); else DATA.income=DATA.income.filter(x=>x!==optim); renderApp(); toast('記賬失敗，請再試'); }
+}
+function renderLedger(){
+  const items=[];
+  (DATA.income||[]).forEach(r=>items.push({t:'in',date:r.date,name:r.name,cat:r.cat,desc:r.desc,amt:r.amt,status:r.status,manual:(r.src==='MI'),id:r.id,pending:r._pending}));
+  (DATA.expense||[]).forEach(r=>items.push({t:'ex',date:r.date,cat:r.cat,desc:r.desc,amt:-r.amt,manual:true,id:r.id,pending:r._pending}));
+  items.sort((a,b)=>(b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:0));
+  let html=`<div class="top"><div class="wrap"><h1>🧾 <span>賬目流水</span></h1><button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button><button class="tbtn" onclick="refresh()" id="rfbtn">↻</button></div></div><div class="wrap" style="padding-bottom:100px">`;
+  if(!items.length) html+='<div class="empty">未有記錄。撳右下角 ＋ 記第一筆。</div>';
+  let lastD='';
+  items.forEach(x=>{ if(x.date!==lastD){ lastD=x.date; const day=items.filter(y=>y.date===x.date); const net=day.reduce((a,y)=>a+y.amt,0);
+    html+=`<div class="led-day"><span>${dmy(x.date)}</span><span style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}${fmt0(net)}</span></div>`; }
+    const inc=x.amt>=0;
+    html+=`<div class="led" style="${x.pending?'opacity:.5':''}"><div class="ic" style="background:${inc?'var(--green-dim)':'var(--red-dim)'};color:${inc?'var(--green)':'var(--red)'}">${inc?'＋':'－'}</div>
+      <div class="m"><div class="t">${esc(x.cat||x.desc||'—')}${x.manual?'':'<span class="badge">⚙自動</span>'}${x.pending?'<span class="badge">…</span>':''}</div>
+      <div class="s">${esc([x.name,x.desc,(x.status&&x.status!=='已收'?x.status:'')].filter(Boolean).join(' · '))||' '}</div></div>
+      <div class="a" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':''}${fmt0(x.amt)}</div>
+      ${(x.manual&&!x.pending&&x.id&&x.id!=='(pending)')?`<button class="vd" onclick="voidEntry('${x.t}','${esc(x.id)}')" title="作廢">✕</button>`:''}</div>`; });
+  $('app').innerHTML=html+'</div>'+fabHtml();
+}
+async function voidEntry(t,id){ if(!confirm('確定作廢呢筆？（會保留審計記錄）')) return;
+  const action=t==='ex'?'acctExpenseVoid':'acctIncomeVoid';
+  if(t==='ex') DATA.expense=(DATA.expense||[]).filter(x=>x.id!==id); else DATA.income=(DATA.income||[]).filter(x=>x.id!==id);
+  renderApp();
+  let r=null; for(let i=0;i<3;i++){ try{ const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,acctPass:FP,id})}); const tt=(await res.text()).trim(); if(tt.startsWith('{')){ r=JSON.parse(tt); if(r.ok) break; } }catch(e){} await new Promise(x=>setTimeout(x,700)); }
+  toast(r&&r.ok?'已作廢':'作廢失敗，刷新後再試'); if(!(r&&r.ok)) refresh();
+}
+function logout(){ FP=''; DATA=null; VIEW='dash'; try{ sessionStorage.removeItem('acct_fp'); }catch(e){} renderLogin(''); }
 
 /* boot */
 (function(){ let p=''; try{ p=sessionStorage.getItem('acct_fp')||''; }catch(e){}
-  if(p){ FP=p; renderLogin('載入中…'); fetchData(p).then(r=>{ if(r&&r.ok){ DATA=r; renderDash(); } else renderLogin(''); }); }
+  if(p){ FP=p; renderLogin('載入中…'); fetchData(p).then(r=>{ if(r&&r.ok){ DATA=r; renderApp(); } else renderLogin(''); }); }
   else renderLogin('');
 })();
 </script>
