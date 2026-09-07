@@ -80,6 +80,12 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .catrow .amt{width:74px;text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
 .empty{color:var(--muted);text-align:center;padding:26px;font-size:13px}
 .foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:18px;line-height:1.7}
+.fin{background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit;outline:none}
+.fin:focus{border-color:var(--teal)}
+.vd{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px}
+.vd:hover{color:var(--red)}
+.bar-mini{height:6px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:4px}
+.bar-mini>i{display:block;height:100%;border-radius:4px}
 .spin{display:inline-block;width:15px;height:15px;border:2px solid var(--border2);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* FAB + 記賬 sheet */
@@ -290,6 +296,7 @@ function renderDash(){
     <h1>📊 INITIATE <span>會計儀表盤</span></h1>
     <button class="tbtn" onclick="VIEW='ledger';renderApp()">🧾 賬目</button>
     <button class="tbtn" onclick="VIEW='report';renderApp()">📊 報表</button>
+    <button class="tbtn" onclick="VIEW='settings';renderApp()">⚙️ 設定</button>
     <button class="tbtn" id="rfbtn" onclick="refresh()">↻</button>
     <a class="tbtn" href="${esc(DATA.sheetUrl||'#')}" target="_blank" rel="noopener">🗂</a>
     <button class="tbtn" onclick="openPass()">🔒</button>
@@ -385,7 +392,52 @@ function setScope(s){ SCOPE=s; PICK=''; renderDash(); }
 /* ── 記賬 + 賬目 + toast (MVP) ── */
 let VIEW='dash', EXP=null, TOASTt=null, TOAST_UNDO=null, RSCOPE='month', RPICK='';
 function fabHtml(){ return `<button class="fab" onclick="openExpense()" title="記賬">＋</button>`; }
-function renderApp(){ if(VIEW==='ledger') renderLedger(); else if(VIEW==='report') renderReport(); else renderDash(); }
+function renderApp(){ if(VIEW==='ledger') renderLedger(); else if(VIEW==='report') renderReport(); else if(VIEW==='settings') renderSettings(); else renderDash(); }
+async function acctPost(body){ for(let i=0;i<4;i++){ try{ const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); const t=(await res.text()).trim(); if(t.startsWith('{')){ const j=JSON.parse(t); if(!/unknown action/i.test(String(j.err||''))) return j; } }catch(e){} await new Promise(x=>setTimeout(x,700*(i+1))); } return {ok:false,err:'網絡問題，請再試'}; }
+function renderSettings(){
+  const budgets=DATA.budgets||{}, closed=DATA.closedPeriods||{}, cats=(DATA.categories||[]).map(c=>c.name), curMonth=todayISO().slice(0,7);
+  const bmonths=Object.keys(budgets).sort().reverse();
+  const budgetRows=bmonths.map(mo=>Object.entries(budgets[mo]).map(e=>`<tr><td>${mo.replace('-','/')}</td><td>${esc(e[0])}</td><td class="n">${fmt0(e[1])}</td><td><button class="vd" onclick="setBudget('${mo}','${esc(e[0]).replace(/'/g,'')}',0)">✕</button></td></tr>`).join('')).join('')||'<tr><td colspan="4" class="mut">未設預算</td></tr>';
+  const periods=[...new Set((DATA.income||[]).map(r=>r.period).filter(Boolean))].sort().reverse();
+  const periodRows=periods.map(p=>`<tr><td>${esc(p)}</td><td>${closed[p]?'<span class="pill r">已封</span>':'<span class="pill g">開放</span>'}</td><td class="n">${closed[p]?`<button class="tbtn" onclick="reopenPeriod('${esc(p)}')">解封</button>`:`<button class="tbtn" onclick="closePeriod('${esc(p)}')">封帳</button>`}</td></tr>`).join('')||'<tr><td colspan="3" class="mut">冇資料</td></tr>';
+  let html=`<div class="top"><div class="wrap"><h1>⚙️ <span>設定</span></h1><button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button></div></div>
+    <div class="wrap" style="padding-bottom:80px">
+    <div class="card"><h3>📊 預算設定<span class="tag">按月・分類</span></h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input type="month" id="bg-mo" value="${curMonth}" class="fin" style="width:auto;flex:1;min-width:120px">
+        <select id="bg-cat" class="fin" style="width:auto;flex:1;min-width:110px">${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>
+        <input id="bg-amt" type="number" inputmode="numeric" placeholder="$" class="fin" style="width:82px">
+        <button class="tbtn" style="background:var(--teal);color:#04252a" onclick="saveBudget()">加</button></div>
+      <table><thead><tr><th>月份</th><th>分類</th><th class="n">預算</th><th></th></tr></thead><tbody>${budgetRows}</tbody></table></div>
+    ${(function(){ const rec=DATA.recurring||[], applied=DATA.recurringApplied||{};
+      const rows=rec.map(t=>`<tr><td>${esc(t.name)}<div class="mut" style="font-size:11px">${esc(t.category)} · 每月${t.day}號</div></td><td class="n">${fmt0(t.amount)}</td><td class="n">${applied[t.id]?'<span class="pill g">本月已入</span>':`<button class="tbtn" onclick="applyRecur('${t.id}')">本月套用</button>`}</td><td><button class="vd" onclick="delRecur('${t.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="mut">未設模板</td></tr>';
+      return `<div class="card"><h3>🔁 可重複支出<span class="tag">一鍵入固定開支</span></h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input id="rc-name" placeholder="例：保險／電話費" class="fin" style="flex:1;min-width:120px">
+        <select id="rc-cat" class="fin" style="width:auto;flex:1;min-width:100px">${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>
+        <input id="rc-amt" type="number" inputmode="numeric" placeholder="$" class="fin" style="width:78px">
+        <input id="rc-day" type="number" inputmode="numeric" placeholder="號" value="1" class="fin" style="width:56px" title="每月幾號">
+        <button class="tbtn" style="background:var(--teal);color:#04252a" onclick="saveRecur()">加</button></div>
+      <table><thead><tr><th>項目</th><th class="n">金額</th><th class="n">本月</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`; })()}
+    <div class="card"><h3>🔒 月結鎖帳<span class="tag">封咗嘅期唔可再記賬</span></h3>
+      <table><thead><tr><th>期別</th><th>狀態</th><th class="n"></th></tr></thead><tbody>${periodRows}</tbody></table></div>
+    <div class="card"><h3>🔑 財務密碼</h3><button class="tbtn" onclick="renderSetup(0)">修改財務密碼</button></div>
+    <div class="foot">預算會喺報表同概覽對比實際；封帳後嗰期唔可以再記/改賬（解封要填原因、留審計）。</div></div>`;
+  $('app').innerHTML=html+fabHtml();
+}
+async function saveBudget(){ const mo=$('bg-mo').value, cat=$('bg-cat').value, amt=$('bg-amt').value;
+  if(!mo||!cat||!amt){ toast('填月份／分類／金額'); return; }
+  const r=await acctPost({action:'acctBudgetUpsert',acctPass:FP,month:mo,category:cat,amount:+amt});
+  if(r&&r.ok){ toast('已設預算'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function setBudget(mo,cat,amt){ const r=await acctPost({action:'acctBudgetUpsert',acctPass:FP,month:mo,category:cat,amount:amt}); if(r&&r.ok){ const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } }
+async function closePeriod(p){ if(!confirm('封帳「'+p+'」？封咗就唔可以再記賬（之後可解封）')) return; const r=await acctPost({action:'acctPeriodClose',acctPass:FP,period:p}); if(r&&r.ok){ toast('已封帳'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function reopenPeriod(p){ const reason=prompt('解封「'+p+'」原因（會記入審計）：'); if(!reason) return; const r=await acctPost({action:'acctPeriodClose',acctPass:FP,period:p,reopen:1,reason:reason}); if(r&&r.ok){ toast('已解封'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function saveRecur(){ const name=$('rc-name').value.trim(), cat=$('rc-cat').value, amt=$('rc-amt').value, day=$('rc-day').value||1;
+  if(!name||!amt){ toast('填名稱同金額'); return; }
+  const r=await acctPost({action:'acctRecurringUpsert',acctPass:FP,name:name,category:cat,amount:+amt,day:+day});
+  if(r&&r.ok){ toast('已加模板'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function delRecur(id){ if(!confirm('刪除呢個模板？（已入嘅賬唔受影響）')) return; const r=await acctPost({action:'acctRecurringDelete',acctPass:FP,id:id}); if(r&&r.ok){ const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function applyRecur(id){ const r=await acctPost({action:'acctRecurringApply',acctPass:FP,id:id}); if(r&&(r.ok||r.dup)){ toast(r.dup?'本月已入過':'已記本月呢筆'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
 function renderReport(){
   const gran = RSCOPE==='year'?'year':'month', B=aggregateGran(gran), monthB=aggregateGran('month');
   const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4);
@@ -399,6 +451,18 @@ function renderReport(){
     ? `<select onchange="RPICK=this.value;renderApp()">${ykeys.map(y=>`<option ${RPICK===y?'selected':''}>${y}</option>`).join('')}</select>`
     : `<select onchange="RPICK=this.value;renderApp()">${mkeys.map(k=>`<option value="${k}" ${RPICK===k?'selected':''}>${k.replace('-','年')}月</option>`).join('')}</select>`;
   const revRows=Object.entries(S.catIn).filter(e=>Math.abs(e[1])>0).sort((a,b)=>b[1]-a[1]).map(e=>`<tr><td>${esc(e[0])}</td><td class="n ${e[1]<0?'neg':''}">${fmt0(e[1])}</td></tr>`).join('');
+  const budgets=DATA.budgets||{};
+  const budMonths = RSCOPE==='year' ? Object.keys(budgets).filter(m=>m.slice(0,4)===RPICK) : (budgets[RPICK]?[RPICK]:[]);
+  const budByCat={}; budMonths.forEach(m=>Object.entries(budgets[m]||{}).forEach(e=>{ budByCat[e[0]]=(budByCat[e[0]]||0)+(+e[1]||0); }));
+  const budCats=Object.keys(budByCat).sort((a,b)=>budByCat[b]-budByCat[a]);
+  let budCard='';
+  if(budCats.length){
+    const rows=budCats.map(c=>{ const bud=budByCat[c], act=Math.round(S.catEx[c]||0), pct=bud>0?act/bud*100:0, over=act-bud;
+      const col=pct>100?'var(--red)':(pct>=90?'var(--amber)':'var(--green)');
+      return `<tr><td>${esc(c)}<div class="bar-mini"><i style="width:${Math.min(100,pct).toFixed(0)}%;background:${col}"></i></div></td><td class="n">${fmt0(bud)}</td><td class="n">${fmt0(act)}</td><td class="n" style="color:${over>0?'var(--red)':'var(--green)'}">${over>0?'+':''}${fmt0(over)}</td></tr>`; }).join('');
+    const tBud=budCats.reduce((s,c)=>s+budByCat[c],0), tAct=budCats.reduce((s,c)=>s+Math.round(S.catEx[c]||0),0);
+    budCard=`<div class="card"><h3>🎯 預算 vs 實際<span class="tag">${RSCOPE==='year'?'全年':'本月'}</span></h3><table class="rpt"><thead><tr><th>分類</th><th class="n">預算</th><th class="n">實際</th><th class="n">差異</th></tr></thead><tbody>${rows}<tr class="tot"><td>合計</td><td class="n">${fmt0(tBud)}</td><td class="n">${fmt0(tAct)}</td><td class="n" style="color:${tAct-tBud>0?'var(--red)':'var(--green)'}">${tAct-tBud>0?'+':''}${fmt0(tAct-tBud)}</td></tr></tbody></table><div class="mut" style="font-size:11px;margin-top:8px">綠=90%內 · 黃=接近爆 · 紅=超支。喺設定頁改預算。</div></div>`;
+  }
   const expRows=Object.entries(S.catEx).filter(e=>Math.abs(e[1])>0).sort((a,b)=>b[1]-a[1]).map(e=>`<tr><td>${esc(e[0])}</td><td class="n">${fmt0(e[1])}</td></tr>`).join('');
   let html=`<div class="top noprint"><div class="wrap"><h1>📊 <span>財務報表</span></h1>
     <button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button>
@@ -415,18 +479,33 @@ function renderReport(){
       <tr class="tot"><td>總支出</td><td class="n">${fmt0(totalExp)}</td></tr>
       <tr class="net"><td>淨利 Net Profit</td><td class="n ${net>=0?'pos':'neg'}">${fmt0(net)}</td></tr>
       </tbody></table><div class="mut" style="font-size:11px;margin-top:8px">收入含待收；場租按康文署費率自動計、按期攤分。</div></div>
+    ${budCard}
     <div class="card"><h3>現金流量表 Cash Flow<span class="tag">現金收付制</span></h3><table class="rpt"><tbody>
       <tr><td>現金流入（已收）</td><td class="n pos">${fmt0(cashIn)}</td></tr>
       <tr><td>現金流出（支出＋場租）</td><td class="n neg">${fmt0(cashOut)}</td></tr>
       <tr class="net"><td>淨現金流</td><td class="n ${cashNet>=0?'pos':'neg'}">${fmt0(cashNet)}</td></tr>
       ${totalRev-cashIn>0?`<tr><td class="mut" style="font-size:11.5px">未收應收 $${Math.round(totalRev-cashIn)}（未計入現金）</td><td></td></tr>`:''}
       </tbody></table></div>
+    ${(function(){ const exs=(DATA.expense||[]).filter(r=>String(r.date||'').startsWith(RPICK)).sort((a,b)=>(a.date<b.date?-1:1));
+      if(!exs.length) return '';
+      const rows=exs.map(r=>`<tr><td>${dmy(r.date)}</td><td>${esc(r.cat||'')}</td><td>${esc(r.desc||'')}${r.file?' <span class="mut" style="font-size:10px">🧾單據</span>':''}</td><td class="n">${fmt0(r.amt)}</td><td class="noprint">${r.file?`<button class="vd" onclick="viewReceipt('${esc(r.file)}')">📎</button>`:''}</td></tr>`).join('');
+      const tot=exs.reduce((s,r)=>s+(+r.amt||0),0), withRcpt=exs.filter(r=>r.file).length;
+      return `<div class="card"><h3>🧾 支出明細（報稅用）<span class="tag">${exs.length} 筆 · ${withRcpt} 張單據</span></h3><table class="rpt"><thead><tr><th>日期</th><th>類別</th><th>說明</th><th class="n">金額</th><th class="noprint"></th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="3">合計</td><td class="n">${fmt0(tot)}</td><td class="noprint"></td></tr></tbody></table><div class="mut" style="font-size:11px;margin-top:8px">列印此頁即為報稅支出清單；單據相存喺私有 Drive，撳 📎 可逐張查閱。場租另按康文署費率入賬。</div></div>`; })()}
     <div class="foot noprint">報表即時由系統數據計算；列印/PDF 可畀會計或報稅用。</div></div>`;
   $('app').innerHTML=html+fabHtml();
 }
 function toast(msg){ let el=$('toast'); if(!el){ el=document.createElement('div'); el.id='toast'; document.body.appendChild(el); }
   el.textContent=msg; el.classList.add('on'); clearTimeout(TOASTt); TOASTt=setTimeout(()=>el.classList.remove('on'),2400); }
-function openExpense(){ EXP={kind:'expense',amt:'',cat:'',date:todayISO(),note:'',name:'',classId:''}; renderSheet(); }
+function openExpense(){ EXP={kind:'expense',amt:'',cat:'',date:todayISO(),note:'',name:'',classId:'',receiptFileId:'',receiptName:''}; renderSheet(); }
+function pickReceipt(inp){ const f=inp.files&&inp.files[0]; if(!f) return; const box=$('rcup'); if(f.size>8*1024*1024){ if(box)box.textContent='檔案太大（上限 8MB）'; return; }
+  if(box) box.textContent='上載中…'; const rd=new FileReader();
+  rd.onload=async()=>{ const b64=String(rd.result||'').replace(/^data:[^,]+,/,''); const r=await acctPost({action:'acctReceiptUpload',acctPass:FP,b64:b64,mime:f.type||'image/jpeg'});
+    if(r&&r.ok){ EXP.receiptFileId=r.fileId; EXP.receiptName=f.name||r.name; renderSheet(); } else if(box) box.textContent=(r&&r.err)||'上載失敗，請再試'; };
+  rd.readAsDataURL(f); }
+async function viewReceipt(fileId){ toast('開緊單據…'); const r=await acctPost({action:'acctReceiptGet',acctPass:FP,fileId:fileId});
+  if(r&&r.ok){ const w=window.open('','_blank'); if(!w){ toast('請允許彈出視窗'); return; } const src='data:'+r.mime+';base64,'+r.b64;
+    if((r.mime||'').indexOf('pdf')>=0) w.location=src; else w.document.write('<title>'+ (r.name||'單據') +'</title><body style="margin:0;background:#111"><img src="'+src+'" style="max-width:100%;display:block;margin:auto"></body>'); }
+  else toast((r&&r.err)||'開唔到'); }
 function closeSheet(){ const s=$('scrim'); if(s) s.classList.remove('on'); }
 function renderSheet(){
   let s=$('scrim'); if(!s){ s=document.createElement('div'); s.id='scrim'; s.onclick=e=>{ if(e.target===s) closeSheet(); }; document.body.appendChild(s); }
@@ -441,6 +520,9 @@ function renderSheet(){
     ${EXP.kind==='income'?`<div class="fld"><label>學生 / 對象（可選）</label><input value="${esc(EXP.name||'')}" oninput="EXP.name=this.value" placeholder="例：甘卓熹"></div>`:''}
     <div class="fld"><label>日期</label><input type="date" value="${EXP.date}" onchange="EXP.date=this.value"></div>
     <div class="fld"><label>備註（可選）</label><input value="${esc(EXP.note||'')}" oninput="EXP.note=this.value" placeholder="說明"></div>
+    ${EXP.kind==='expense'?`<div class="fld"><label>單據相 / PDF（可選，報稅用）</label>
+      ${EXP.receiptFileId?`<div class="mut" style="font-size:12.5px">📎 已附：${esc(EXP.receiptName||'單據')} <button class="vd" onclick="EXP.receiptFileId='';EXP.receiptName='';renderSheet()">移除</button></div>`
+        :`<input type="file" accept="image/*,application/pdf" onchange="pickReceipt(this)" style="font-size:12.5px"><div id="rcup" class="mut" style="font-size:11.5px;margin-top:4px"></div>`}</div>`:''}
     <div class="srow"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" onclick="saveExpense(true)">儲存＋再記</button><button class="btn-primary" onclick="saveExpense(false)">儲存</button></div>
   </div>`;
   s.classList.add('on');
@@ -449,13 +531,14 @@ function expKey(k){ if(k==='c') EXP.amt=''; else if(k==='b') EXP.amt=EXP.amt.sli
 async function saveExpense(again){
   const amt=parseInt(EXP.amt||'0',10); if(!amt){ toast('請輸入金額'); return; } if(!EXP.cat){ toast('請揀類別'); return; }
   const kind=EXP.kind, ctx='c'+Date.now()+Math.floor(Math.random()*1000), d=EXP.date, note=EXP.note, nm=EXP.name||'', cat=EXP.cat;
+  const rcpt=EXP.receiptFileId||'';
   const body = kind==='expense'
-    ? {action:'acctExpenseAdd',acctPass:FP,amount:amt,category:cat,date:d,note:note,clientTxnId:ctx}
+    ? {action:'acctExpenseAdd',acctPass:FP,amount:amt,category:cat,date:d,note:note,receiptFileId:rcpt,clientTxnId:ctx}
     : {action:'acctIncomeAdd',acctPass:FP,amount:amt,category:cat,name:nm,date:d,note:note,status:'已收',clientTxnId:ctx};
-  const optim = kind==='expense' ? {date:d,cat:cat,desc:note,amt:amt,period:'',id:'(pending)',classId:'',_pending:1}
+  const optim = kind==='expense' ? {date:d,cat:cat,desc:note,amt:amt,period:'',id:'(pending)',classId:'',file:rcpt,_pending:1}
     : {date:d,name:nm,cat:cat,desc:note,period:'',amt:amt,status:'已收',src:'MI',id:'(pending)',_pending:1};
   if(kind==='expense')(DATA.expense=DATA.expense||[]).push(optim); else (DATA.income=DATA.income||[]).push(optim);
-  if(again){ EXP={kind:kind,amt:'',cat:'',date:d,note:'',name:''}; renderSheet(); } else closeSheet();
+  if(again){ EXP={kind:kind,amt:'',cat:'',date:d,note:'',name:'',receiptFileId:'',receiptName:''}; renderSheet(); } else closeSheet();
   renderApp();
   let r=null; for(let i=0;i<4;i++){ try{ const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); const t=(await res.text()).trim(); if(t.startsWith('{')){ r=JSON.parse(t); if(r.ok||r.dup) break; } }catch(e){} await new Promise(x=>setTimeout(x,700*(i+1))); }
   if(r&&(r.ok||r.dup)){ optim.id=r.id||optim.id; optim._pending=0; toast('已記一筆'+(kind==='expense'?'支出':'收入')+' $'+amt); renderApp(); }
@@ -464,7 +547,7 @@ async function saveExpense(again){
 function renderLedger(){
   const items=[];
   (DATA.income||[]).forEach(r=>items.push({t:'in',date:r.date,name:r.name,cat:r.cat,desc:r.desc,amt:r.amt,status:r.status,manual:(r.src==='MI'),id:r.id,pending:r._pending}));
-  (DATA.expense||[]).forEach(r=>items.push({t:'ex',date:r.date,cat:r.cat,desc:r.desc,amt:-r.amt,manual:true,id:r.id,pending:r._pending}));
+  (DATA.expense||[]).forEach(r=>items.push({t:'ex',date:r.date,cat:r.cat,desc:r.desc,amt:-r.amt,manual:true,id:r.id,pending:r._pending,file:r.file}));
   items.sort((a,b)=>(b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:0));
   let html=`<div class="top"><div class="wrap"><h1>🧾 <span>賬目流水</span></h1><button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button><button class="tbtn" onclick="refresh()" id="rfbtn">↻</button></div></div><div class="wrap" style="padding-bottom:100px">`;
   if(!items.length) html+='<div class="empty">未有記錄。撳右下角 ＋ 記第一筆。</div>';
@@ -476,6 +559,7 @@ function renderLedger(){
       <div class="m"><div class="t">${esc(x.cat||x.desc||'—')}${x.manual?'':'<span class="badge">⚙自動</span>'}${x.pending?'<span class="badge">…</span>':''}</div>
       <div class="s">${esc([x.name,x.desc,(x.status&&x.status!=='已收'?x.status:'')].filter(Boolean).join(' · '))||' '}</div></div>
       <div class="a" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':''}${fmt0(x.amt)}</div>
+      ${x.file?`<button class="vd" onclick="viewReceipt('${esc(x.file)}')" title="睇單據">📎</button>`:''}
       ${(x.manual&&!x.pending&&x.id&&x.id!=='(pending)')?`<button class="vd" onclick="voidEntry('${x.t}','${esc(x.id)}')" title="作廢">✕</button>`:''}</div>`; });
   $('app').innerHTML=html+'</div>'+fabHtml();
 }
