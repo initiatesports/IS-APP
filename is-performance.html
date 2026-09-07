@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-07-ropedur';
+const APP_VERSION='growth-2026-09-07-loginfix';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -358,20 +358,26 @@ async function loadCloud(){
    只讀 #4 顯示層，唔寫 #11、唔碰家長報告 auth。攞唔到就靜靜降級（靠返 #11 perf/body）。老闆 2026-08-29。*/
 async function mergeEnrollRoster(){
   ENROLL_ROSTER={};
-  try{
-    const r=await fetch(API4,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rosterList',all:1,coachPass:CP})}).then(x=>x.json());
-    if(r&&r.ok&&Array.isArray(r.classes)){
-      r.classes.forEach(c=>{
-        const list=(c.students||[]).map(n=>String(n).trim()).filter(Boolean);
-        if(list.length) ENROLL_ROSTER[c.cid]=list;
-        list.forEach(nm=>{
-          if(!(CLASSMAP[nm]||[]).includes(c.cid)) (CLASSMAP[nm]=CLASSMAP[nm]||[]).push(c.cid);
-          if(ROSTER.indexOf(nm)<0) ROSTER.push(nm);
-        });
+  async function fetchRoster(withAll){
+    try{ const body={action:'rosterList',coachPass:CP}; if(withAll) body.all=1;
+      const r=await fetch(API4,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(x=>x.json());
+      return (r&&r.ok&&Array.isArray(r.classes))?r.classes:null;
+    }catch(e){ return null; }
+  }
+  const has=arr=>!!(arr&&arr.some(c=>(c.students||[]).length>0));
+  let classes=await fetchRoster(true);                          // all=1：完整在班名單（對齊 #4 出席）
+  if(!has(classes)){ const fb=await fetchRoster(false); if(has(fb)) classes=fb; }   // all=1 空/新route未deploy → fallback 非all（已核實生），保證有班別
+  if(classes){
+    classes.forEach(c=>{
+      const list=(c.students||[]).map(n=>String(n).trim()).filter(Boolean);
+      if(list.length) ENROLL_ROSTER[c.cid]=list;
+      list.forEach(nm=>{
+        if(!(CLASSMAP[nm]||[]).includes(c.cid)) (CLASSMAP[nm]=CLASSMAP[nm]||[]).push(c.cid);
+        if(ROSTER.indexOf(nm)<0) ROSTER.push(nm);
       });
-      ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));
-    }
-  }catch(e){/* #4 攞唔到唔阻成長中心 */}
+    });
+    ROSTER.sort((a,b)=>a.localeCompare(b,'zh-HK'));
+  }
 }
 /* 把 load 結果正規化成 PERF/BODY/SETTINGS */
 function ingest(r){
@@ -1342,7 +1348,10 @@ function famLBRender(){
 (function(){
   if(new URLSearchParams(location.search).get('lb')==='1'){famLBBoot();return;}          // 家長排行榜模式
   if(new URLSearchParams(location.search).get('report')==='1'){famReportBoot();return;}   // 家長報告模式：唔行教練自動登入
-  let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}if(p){CP=p;$('#pw').value='';boot();}})();
+  // 自動登入前先驗證 cached 密碼（老闆 2026-09-07：之前無驗證 → 過時/錯密碼都照入但攞唔到資料=冇班別＋不安全）。驗唔過就清走、要求重新登入。
+  let p=null;try{p=localStorage.getItem('growth_cp')||sessionStorage.getItem('growth_cp');}catch(e){}
+  if(p){ verifyPass(p).then(function(ok){ if(ok){ CP=p; try{$('#pw').value='';}catch(e){} boot(); } else { try{localStorage.removeItem('growth_cp');sessionStorage.removeItem('growth_cp');}catch(e){} } }); }
+})();
 // PWA service worker（只 cache 本 app 自己 HTML 作離線開啟；對其他 IS-APP 頁完全透明，唔攔截）
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('is-performance-sw.js').catch(()=>{});});}
 
