@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-05-rank';
+const FRONTEND_VERSION='parent-2026-09-07-mednote';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -401,7 +401,7 @@ const T={
   todayTag:{zh:'今日',en:'Today'},
   okBtn:{zh:'知道了',en:'OK'},
   noticeErr:{zh:'事假須最少提前一日。<b>當日不可請事假</b>；當日缺席照扣一節課、不設補堂。',en:'Personal leave needs at least 1 day notice. <b>Same-day personal leave is not allowed</b>; a same-day absence still deducts one session (no make-up).'},
-  noticeSick:{zh:'病假只適用於<b>當日</b>身體不適，須於 <b>48 小時內</b>上傳醫生證明，否則改計缺席、扣一節課、不設補堂。<br>如為將來日期，系統會自動<b>按事假處理</b>（可補堂、不需醫生紙）。',en:'Sick leave is for being unwell <b>today</b>; upload a doctor’s note <b>within 48 hours</b>, otherwise it counts as absent (deducts one session, no make-up).<br>For a future date it is automatically <b>treated as personal leave</b> (make-up allowed, no note needed).'},
+  noticeSick:{zh:'病假只適用於<b>當日</b>身體不適，須於<b>病假後兩日內（例：星期一病假 → 星期四前）</b>上傳醫生證明，<b>教練核實後</b>先正式當請假、可補堂；逾期未交或未獲核實，改計缺席、扣一節課、不設補堂。<br>如為將來日期，系統會自動<b>按事假處理</b>（可補堂、不需醫生紙）。',en:'Sick leave is for being unwell <b>today</b>; upload a doctor’s note <b>within 2 days (e.g. Mon sick → before Thu)</b>. It counts as valid leave (make-up allowed) <b>only after the coach verifies it</b>; otherwise it counts as absent (deducts one session, no make-up).<br>For a future date it is automatically <b>treated as personal leave</b> (make-up allowed, no note needed).'},
   advSickNote:{zh:d=>`註：${d} 為將來日期，病假已按事假處理（可補堂、不需醫生紙）。`,en:d=>`Note: ${d} is a future date; sick leave was processed as personal leave (make-up allowed, no note needed).`},
   sameDayErrT:{zh:'當天不可請事假',en:'Same-day personal leave not allowed'},
   sameDayErrM:{zh:'事假須最少提前一日。當日缺席將照常扣一節課、不設補堂。請改選其他日期；如當日身體不適，可改請<b>病假</b>（須 48 小時內交醫生證明）。',en:'Personal leave needs at least 1 day notice. A same-day absence still deducts one session (no make-up). Please pick another date; if your child is unwell today, choose <b>Sick leave</b> instead (doctor’s note within 48h).'},
@@ -409,7 +409,7 @@ const T={
   lateCancelBlock:{zh:'距離補堂開課少於 6 小時，無法取消。若屆時未能出席，將照常扣一節課。',en:'Less than 6 hours before the make-up class — it can no longer be cancelled. If your child cannot attend, one session will still be deducted.'},
   lateBookWarn:{zh:'你所揀嘅補堂距開課少於 6 小時，一經提交將不可取消；若屆時未能出席，會照扣一節課。確定提交？',en:'One of your make-up slots starts in under 6 hours; once booked it cannot be cancelled. If your child cannot attend, one session will still be deducted. Submit anyway?'},
   sickAckTitle:{zh:'🩺 當日病假已提交 · 重要提示',en:'🩺 Sick leave submitted · Important'},
-  sickAckWarn:{zh:d=>`請於 <b>48 小時內${d?`（${d} 前）`:''}</b>上傳醫生證明，否則此堂將自動<b>改計缺席</b>（扣一節課、不設補堂）。<br><span style="color:var(--muted)">你可隨時返呢個請假頁補交醫生紙，或 WhatsApp 教練。</span>`,en:d=>`Please upload a doctor’s note <b>within 48 hours${d?` (before ${d})`:''}</b>, otherwise this session will automatically count as <b>absent</b> (deducts one session, no make-up).<br><span style="color:var(--muted)">You can upload the note here anytime, or WhatsApp the coach.</span>`},
+  sickAckWarn:{zh:d=>`請於<b>病假後兩日內${d?`（${d} 前）`:'（例：星期一病假 → 星期四前）'}</b>上傳醫生證明；<b>教練核實後</b>先正式當請假、可補堂。逾期未交或未獲核實，此堂將<b>改計缺席</b>（扣一節課、不設補堂）。<br><span style="color:var(--muted)">你可隨時返呢個請假頁補交醫生紙；上傳後狀態為「待核實」，教練核實後即可預約補堂。</span>`,en:d=>`Please upload a doctor’s note <b>within 2 days${d?` (before ${d})`:' (e.g. Mon sick → before Thu)'}</b>; it counts as valid leave (make-up allowed) <b>only after the coach verifies it</b>. If not submitted or not verified in time, this session counts as <b>absent</b> (deducts one session, no make-up).<br><span style="color:var(--muted)">You can upload the note here anytime; after uploading it shows “Pending verification”, and make-up can be booked once the coach verifies.</span>`},
   sickAckNoteOk:{zh:'✅ 已收到醫生證明，多謝！',en:'✅ Doctor’s note received, thank you!'},
   sickAckBtn:{zh:'✅ 我知悉並完成',en:'✅ I understand & done'},
   blockedNote:{zh:d=>`註：${d} 為當日事假，未獲提交（當日不可請事假）。`,en:d=>`Note: ${d} is same-day personal leave and was not submitted (not allowed).`},
@@ -468,7 +468,7 @@ const T={
   cancelMkSd:{zh:'揀返你唔需要嘅補堂，取消後待補數回復',en:'Select make-ups to cancel — your owed count will be restored'},
   rcCancelMk:{zh:'✅ 已取消補堂',en:'✅ Make-up cancelled'},cancelled:{zh:x=>`已取消：${x}`,en:x=>`Cancelled: ${x}`},
   failN:{zh:(n,e)=>`有 ${n} 堂失敗${e?'：'+e:''}`,en:(n,e)=>`${n} failed${e?': '+e:''}`},
-  attachedMed:{zh:'　·　已附醫生紙 ✓',en:'　·　Doctor’s note attached ✓'},medFail:{zh:'　·　醫生紙上載失敗，請稍後再試',en:'　·　Note upload failed, try again'},
+  attachedMed:{zh:'　·　已上傳醫生紙，待教練核實 ✓',en:'　·　Note uploaded, pending coach verification ✓'},medFail:{zh:'　·　醫生紙上載失敗，請稍後再試',en:'　·　Note upload failed, try again'},
   medTooBig:{zh:'檔案太大（上限 6MB）',en:'File too large (max 6MB)'},medChosen:{zh:n=>'已選擇：'+n+'　·　提交後自動上載',en:n=>'Selected: '+n+'　·　uploads on submit'},
 };
 function t(k,...a){ const e=T[k]; if(!e) return k; const v=e[LANG]!==undefined?e[LANG]:e.zh; return typeof v==='function'?v(...a):v; }

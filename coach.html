@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-06-venue-sa2';
+const FRONTEND_VERSION = 'coach-2026-09-07-mednote';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1326,6 +1326,7 @@ function renderHome(){
   try{ renderTimeAdjAdmin(); }catch(e){ console.error('renderTimeAdjAdmin',e); }   // ⏰ 某日某班特別時間安排（同暑期一致）
   try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }   // regression 修復:發佈/刪除通知面板入口(「首頁精簡」移除咗、重要通知彈窗又啟用但冇補返入口)
   try{ renderReturnsPanel(); }catch(e){ console.error('renderReturnsPanel',e); }   // 回歸學生:教練核實面板(家長已交回歸付款,教練端核實)
+  try{ renderMedNoteVerify(); }catch(e){ console.error('renderMedNoteVerify',e); }   // 🩺 病假紙核實(家長上傳醫生紙→教練核實後先正式當請假可補)
   try{ renderManualLeaveMakeup(); }catch(e){ console.error('renderManualLeaveMakeup',e); }   // ✍️ 手動請假／補堂(WhatsApp fallback,打名+日期+當日班別)
   try{ renderGenFeePanel(); }catch(e){ console.error('renderGenFeePanel',e); }   // 🧮 生成本期學費(試算/正式生成)
 }
@@ -1359,6 +1360,37 @@ async function verifyReturn(name){
   toast(name+' 已核實回歸 ✓','✓');
   try{ await loadFromSheets(); }catch(e){}   // 重載令新學生入名冊/點名表
   renderReturnsPanel();
+}
+/* 🩺 病假紙核實（老闆 2026-09-07）：家長上傳醫生紙 → 狀態「待核實」→ 教練喺呢度睇張相、核實或拒絕。
+   核實後先正式當請假、可補堂；拒絕作缺席。後端：pendingMedNotes(清單) / verifyMedNote(核實/拒絕)。*/
+let MNV_LIST=[];
+async function renderMedNoteVerify(){
+  let host=document.getElementById('home-mednote');
+  if(!host){ const anchor=document.getElementById('home-returns')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-mednote'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
+  if(!host) return;
+  let r; try{ r=await apiPost({action:'pendingMedNotes'}); }catch(e){ r=null; }
+  MNV_LIST=(r&&r.ok&&r.list)?r.list:[];
+  if(!MNV_LIST.length){ host.innerHTML=''; return; }   // 冇待核實就唔顯示
+  host.innerHTML=`<div class="section-header">🩺 病假紙核實（${MNV_LIST.length}）</div>
+  <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">家長上傳咗醫生紙。撳「睇醫生紙」核對真偽 → <b>核實</b>後正式當請假、可補堂；<b>拒絕</b>則作缺席、不設補堂。</div>`
+  + MNV_LIST.map((x,i)=>`<div style="border-top:1px solid var(--border);padding:11px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+      <div style="font-size:13.5px"><b>${x.name}</b> · ${x.label} · ${fmtDate(x.date)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="viewSecureFile(MNV_LIST[${i}]&&MNV_LIST[${i}].link)" style="padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text);font-family:inherit;font-size:12.5px;cursor:pointer">👁 睇醫生紙</button>
+        <button onclick="verifyMedNote(${i},true)" style="padding:8px 11px;border:0;border-radius:9px;background:#2e9e6b;color:#fff;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer">✅ 核實</button>
+        <button onclick="verifyMedNote(${i},false)" style="padding:8px 11px;border:0;border-radius:9px;background:#d9534f;color:#fff;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer">❌ 拒絕</button>
+      </div></div>`).join('')
+  + `</div>`;
+}
+async function verifyMedNote(i, approve){
+  const x=MNV_LIST[i]; if(!x) return;
+  const msg=approve ? ('核實「'+x.name+'」'+fmtDate(x.date)+' 嘅醫生紙？\n核實後正式當請假、可以預約補堂。')
+                    : ('拒絕「'+x.name+'」'+fmtDate(x.date)+' 嘅醫生紙？\n該堂會改作缺席、照扣、不設補堂。');
+  if(!confirm(msg)) return;
+  let r; try{ r=await apiPost({action:'verifyMedNote', name:x.name, key:x.cid, date:x.date, approve:approve?1:0}); }catch(e){ r=null; }
+  if(r&&r.ok){ toast(approve?'已核實 ✓':'已拒絕','✓'); renderMedNoteVerify(); }
+  else toast((r&&r.err)||'失敗，請再試','⚠');
 }
 /* ✍️ 手動請假／補堂（WhatsApp fallback，老闆 2026-08-13）：有啲家長仲用 WhatsApp 請假補堂，
    教練喺呢度打名字→揀日期→揀當日班別→補堂/請假。後端：coachAddMakeup(補堂,教練代加免資格閘)、markLeave(請假,教練代標)。*/
