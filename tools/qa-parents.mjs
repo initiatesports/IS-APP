@@ -49,6 +49,9 @@ if (!R4.length && !R9.length && !RSA.length) {
   process.exit(2);
 }
 
+// 「未續報 → 帳戶已結束」係後端刻意嘅正常回應（舊生冇報今期），唔係故障。當 ⚪ERR 報會日日有
+// 假警報，令真 ERR（後端／網絡）被淹沒 → 分開當「預期結束」計，唔入異常，只喺總結講返幾多個。
+const RETIRED_RE = /帳戶因未有|報名而已結束/;
 // 未來堂只有呢啲狀態先當「誤標」（出席類）；請假/停課/豁免/轉堂屬合法預先安排。
 const FUTURE_BAD = { "出席": 1, "補堂": 1, "加操": 1 };
 // 歷史補完截止日（同後端 INFER_PRESENT_BEFORE 一致）：此日期前嘅過往堂唔應再有空白。
@@ -287,7 +290,7 @@ function analyze(label, name, r) {
 async function sweep(label, exec, rows, withPin) {
   const students = uniqByName(rows);
   let okCount = 0, idx = 0, cursor = 0, attempted = 0;
-  const failed = [];
+  const failed = [], retired = [];
   // 🛡️ 2026-08-29：逐個順序登入，112 個學生 × 每個約 25s ＝ 47 分鐘，撞爆 50 分鐘總時限
   //   → 每日淨測到約 95%，尾段學生日日冇覆蓋（#9 有 5 個未測），而且「未測」會扮成 ERR 睇落似後端壞咗。
   //   實測當時後端其實健康（#9 login 5.3s、#4 load 16s / 200 OK）＝ 樽頸係 harness 自己順序行。
@@ -306,6 +309,7 @@ async function sweep(label, exec, rows, withPin) {
       // 冇進度就睇唔出係「行緊」定「卡死」——2026-08-12 卡死事件就係全程零輸出。
       process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
       const r = await callLogin(exec, name, cred);
+      if (r && !r.ok && RETIRED_RE.test(String(r.err || ""))) { retired.push(name); continue; }   // 未續報＝後端刻意拒絕，唔係故障
       if (!r || !r.ok) { failed.push([name, cred, (r && r.err) || "?"]); continue; }
       okCount++;
       analyze(label, name, r);
@@ -333,7 +337,7 @@ async function sweep(label, exec, rows, withPin) {
       analyze(label, name, r);
     }
   }
-  return { tested: students.length, ok: okCount };
+  return { tested: students.length - retired.length, ok: okCount, retired: retired.length };
 }
 
 (async () => {
@@ -346,9 +350,10 @@ async function sweep(label, exec, rows, withPin) {
   // 暑期#9：只喺有暑期名冊(R9)先掃；2026暑期完＝R9空＝自動 skip（2027 讀返 R9 即恢復）。
   const s9 = R9.length ? await sweep("暑期#9", EXEC9, R9, true) : { ok:0, tested:0 };
 
-  console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}`);
-  if (RSA.length) console.log(`運動班#SA：登入 ${sSA.ok}/${sSA.tested}`);
-  if (R9.length)  console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}`);
+  const retTxt = s => (s.retired ? `（另有 ${s.retired} 個未續報，帳戶已結束＝預期）` : "");
+  console.log(`恆常#4：登入 ${s4.ok}/${s4.tested}${retTxt(s4)}`);
+  if (RSA.length) console.log(`運動班#SA：登入 ${sSA.ok}/${sSA.tested}${retTxt(sSA)}`);
+  if (R9.length)  console.log(`暑期#9：登入 ${s9.ok}/${s9.tested}${retTxt(s9)}`);
   console.log("");
 
   // 🆕 成長報告後端探針（#4 childToken → #11 homeReport）：捉 token 密鑰不同步／route 爆。

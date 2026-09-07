@@ -32,14 +32,24 @@ const pad4 = x => ("0000" + String(x).replace(/\D/g, "")).slice(-4);
 
 async function exportCsv(exec, type) {
   const u = `${exec}?action=export&type=${encodeURIComponent(type)}&coachPass=${encodeURIComponent(PASS)}`;
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), 120000);
-  try {
-    const r = await fetch(u, { redirect: "follow", signal: ac.signal });
-    const j = await r.json();
-    if (!j || !j.ok) throw new Error((j && j.err) || "後端拒絕");
-    return String(j.csv || "");
-  } finally { clearTimeout(t); }
+  // Apps Script 偶然會斷 socket（node fetch 拋 "fetch failed"）。單次失敗就回退／放棄名冊
+  // ＝ QA 靜靜漏測，成本遠高於等多兩下 → 重試 3 次。
+  let last;
+  for (let i = 0; i < 3; i++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 120000);
+    try {
+      const r = await fetch(u, { redirect: "follow", signal: ac.signal });
+      const j = await r.json();
+      if (!j || !j.ok) throw new Error((j && j.err) || "後端拒絕");
+      return String(j.csv || "");
+    } catch (e) {
+      last = e;
+      if (String(e.message || "").indexOf("密碼") >= 0) break;   // 密碼錯，重試冇用
+      await new Promise(s => setTimeout(s, 3000 * (i + 1)));
+    } finally { clearTimeout(t); }
+  }
+  throw last;
 }
 
 // 後端 toCsv_ 會加 BOM，欄位有需要先會加引號。名／班別冇逗號，簡單解析已夠。
@@ -57,7 +67,10 @@ function parseRoster(csv) {
 }
 
 const prev = (() => {
-  for (const p of [OUT, KEEP]) { try { if (existsSync(p)) return JSON.parse(readFileSync(p, "utf8")); } catch {} }
+  // 順序：今次輸出路徑 → home 長存本 → 預設 /tmp（MCP 正常嗰陣寫落嘅那份，自訂密碼多數喺呢度）
+  for (const p of [OUT, KEEP, "/tmp/qa-roster.json"]) {
+    try { if (existsSync(p)) { const j = JSON.parse(readFileSync(p, "utf8")); if (j && j.PIN4 && Object.keys(j.PIN4).length) return j; } } catch {}
+  }
   return {};
 })();
 
