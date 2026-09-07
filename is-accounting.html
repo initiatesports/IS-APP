@@ -302,6 +302,7 @@ function renderDash(){
   </div>`;
 
   // 趨勢
+  html+=insightsCard();
   html+=`<div class="card"><h3>📈 ${SCOPE==='week'?'週度':'月度'}趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trend}</div>`;
 
   // 分類
@@ -323,6 +324,15 @@ function renderDash(){
 
   html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細表帶入。<br>場地費＝康文署費率自動計；改「場租設定」分頁即重算。每晚 23:00 自動刷新。撳右下角 ＋ 即可 in-app 記賬。</div></div>`;
   $('app').innerHTML=html+fabHtml();
+}
+function insightsCard(){
+  const ins=(DATA.insights||[]); if(!ins.length) return '';
+  const col={red:'var(--red)',amber:'var(--amber)',info:'var(--teal)'};
+  const rows=ins.map((x,i)=>`<div style="display:flex;gap:11px;align-items:flex-start;padding:9px 0;${i<ins.length-1?'border-bottom:1px solid var(--border)':''}">
+    <div style="font-size:19px;flex:none">${x.icon||'•'}</div>
+    <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14px;color:${col[x.level]||'var(--ink)'}">${esc(x.title)}</div>
+    <div style="font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.5">${esc(x.detail||'')}</div></div></div>`).join('');
+  return `<div class="card" style="border-color:var(--border2)"><h3>🔔 財務洞察 <span class="tag">要跟進</span></h3>${rows}</div>`;
 }
 function receivablesCard(){
   const due=(DATA.income||[]).filter(r=>r.status && r.status!=='已收' && r.amt>0);
