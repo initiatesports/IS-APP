@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-04-swapcourse';
+const FRONTEND_VERSION='admin-2026-09-07-setbasefee';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -673,7 +673,7 @@ function drawFee(){
       <td>${money(base)}</td>
       <td><b>${money(net)}</b>${addon?`<div class="mut">+${money(addon)} 制服/器材</div>`:''}</td>
       <td><span class="st ${esc(stt)}">${esc(stt)}</span></td>
-      <td><button class="btn sm gray" onclick="adjustFee('${esc(id)}','${esc(r['學生姓名'])}',${net})">調整</button></td>
+      <td><button class="btn sm gray" onclick="adjustFee('${esc(id)}','${esc(r['學生姓名'])}',${net})">調整實收</button> <button class="btn sm ${base===0?'':'gray'}" onclick="setBaseFee('${esc(id)}','${esc(r['學生姓名'])}',${base})">設原價${base===0?' ⚠️':''}</button></td>
     </tr>`;
   }).join('') || '<tr><td colspan="6" class="mut">此期未有報名記錄</td></tr>';
   tc().innerHTML=`
@@ -704,6 +704,23 @@ async function adjustFee(id,nm,curNet){
     const r=await apiPost(API4,{action:'enrollAdjustFee',id,delta,note});
     if(r&&r.ok){ if(msg){ msg.className='msg ok'; msg.textContent=`✅ ${r.name}：$${r.oldNet} → $${r.newNet}`; } ST.feeRecs=null; ST.sum=null; setTimeout(renderFee,700); }
     else if(msg){ msg.className='msg err'; msg.textContent=(r&&r.err)||'調整失敗'; }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗，請再試'; } }
+}
+/* 設原價：治「候補破例轉正取原價/實收=$0」（李純曦式）。原價寫返正價、自動對齊實收＝原價−折扣。
+   會計學費＝原價−折扣，所以一定要改原價（淨改實收會計仍計 $0）。 */
+async function setBaseFee(id,nm,curBase){
+  const msg=document.getElementById('fmsg');
+  const bs=prompt(`設定「${nm}」原價（${id}）。\n目前原價 $${curBase}。\n輸入正確原價（正數，例：1360）。\n實收會自動＝原價 − 已有折扣。`,curBase||'');
+  if(bs===null) return;
+  const base=Math.round(Number(String(bs).replace(/[^0-9.]/g,'')));
+  if(!base||base<=0){ if(msg){ msg.className='msg err'; msg.textContent='原價無效（需正數）'; } return; }
+  try{
+    const dry=await apiPost(API4,{action:'enrollSetFee',id,base,dryRun:1});
+    if(!dry||dry.ok===false){ if(msg){ msg.className='msg err'; msg.textContent=(dry&&dry.err)||'預覽失敗'; } return; }
+    if(!confirm(`確認設原價？\n\n學生：${dry.name}（${dry.status}）\n原價：$${dry.oldBase} → $${dry.newBase}\n實收：$${dry.oldNet} → $${dry.newNet}\n\n${dry.note}`)) return;
+    const r=await apiPost(API4,{action:'enrollSetFee',id,base});
+    if(r&&r.ok){ if(msg){ msg.className='msg ok'; msg.textContent=`✅ ${r.name}：原價 $${r.oldBase}→$${r.newBase}、實收 $${r.oldNet}→$${r.newNet}`; } ST.feeRecs=null; ST.sum=null; setTimeout(renderFee,700); }
+    else if(msg){ msg.className='msg err'; msg.textContent=(r&&r.err)||'設定失敗'; }
   }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗，請再試'; } }
 }
 
