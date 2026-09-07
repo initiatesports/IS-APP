@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-07-nologin-autologin';
+const APP_VERSION='growth-2026-09-07-todaysummary';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -540,6 +540,7 @@ function cohortBadge(name,metric){const c=cohortStat(name,metric);if(!c)return '
 const ROUTES=[
   {id:'dash',name:'概覽',icon:'dash',render:renderDash},
   {id:'classtest',name:'課堂測試',icon:'activity',render:renderClassTest},
+  {id:'today',name:'今日總匯',icon:'report',render:renderTodaySummary},
   {id:'insights',name:'教練提示',icon:'flame',render:renderInsights},
   {id:'leaders',name:'排行榜',icon:'medal',render:renderLeaders},
   {id:'perf',name:'成績',icon:'chart',render:renderPerf},
@@ -800,6 +801,44 @@ async function saveCT(){
   btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
 }
 
+/* ═══════════════════ 今日總匯（老闆 2026-09-07：記完成績即睇當日總匯，可截圖畀家長）═══════════════════ */
+let TS_DATE='';
+function renderTodaySummary(){
+  const d = TS_DATE || todayISO();
+  const byClass={};
+  ROSTER.forEach(n=>{
+    const items=[];
+    METRIC_ORDER.forEach(m=>{ const s=series(n,m); if(!s.length)return; const rec=s.find(r=>r.date===d); if(!rec)return;
+      const best=Math.max(...s.map(r=>r.val)), mt=METRICS[m];
+      let disp=rec.val+(mt&&mt.u?mt.u:'');
+      if(isRopeM(m)&&rec.v1!=null&&rec.v2!=null) disp+=` <span class="mut" style="font-weight:400;font-size:11px">(${rec.v1}/${rec.v2})</span>`;
+      items.push({lab:(mt?mt.short:m), disp, pb:rec.val>=best});
+    });
+    const bs=(BODY[n]||[]).find(r=>r.date===d);
+    if(bs){ if(bs.height!=null)items.push({lab:'身高',disp:bs.height+'cm',pb:false}); if(bs.weight!=null)items.push({lab:'體重',disp:bs.weight+'kg',pb:false}); }
+    if(items.length){ const cid=(CLASSMAP[n]||[])[0]||'其他'; (byClass[cid]=byClass[cid]||[]).push({name:n,items}); }
+  });
+  const cids=Object.keys(byClass).sort(), total=cids.reduce((a,c)=>a+byClass[c].length,0);
+  let html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <input type="date" class="inp" id="tsDate" value="${d}" style="width:auto">
+    <span class="mut" style="font-size:12.5px">揀日期睇當日成績總匯 · 可截圖畀家長（🏆 = 個人最佳）</span></div>`;
+  if(!total){ $('#view').innerHTML=html+emptyBox('呢日未有成績紀錄','喺「課堂測試」記錄成績後就會喺度出現'); const de=$('#tsDate'); if(de)de.onchange=e=>{TS_DATE=e.target.value;renderTodaySummary();}; return; }
+  html+=`<div class="card card-pad" style="max-width:640px">
+    <div style="text-align:center;border-bottom:2px solid var(--teal-d,#0f8996);padding-bottom:10px;margin-bottom:14px">
+      <div style="font-weight:900;font-size:18px;color:var(--navy,#132a3e)">INITIATE SPORTS · 今日成績</div>
+      <div class="mut" style="font-size:13px;margin-top:2px">${dmy(d)} · 共 ${total} 位學生</div></div>`
+    + cids.map(cid=>{ const clbl=(cid==='其他')?'其他（未分班）':classLabel(cid);
+        return `<div style="margin-bottom:15px">
+        <div style="font-weight:800;font-size:14px;color:var(--teal-d,#0f8996);margin-bottom:6px">${esc(clbl)}</div>`
+        + byClass[cid].map(s=>`<div style="padding:8px 0;border-bottom:1px solid var(--line2,#eef1f2)">
+            <b style="font-size:14px">${esc(s.name)}</b>
+            <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:5px 16px">${s.items.map(it=>`<span style="font-size:13px;color:var(--ink,#333)">${esc(it.lab)}：<b>${it.disp}</b>${it.pb?' <span class="pill gold" style="font-size:10px">🏆PB</span>':''}</span>`).join('')}</div>
+          </div>`).join('')
+        + `</div>`; }).join('')
+    + `</div>`;
+  $('#view').innerHTML=html;
+  $('#tsDate').onchange=e=>{TS_DATE=e.target.value;renderTodaySummary();};
+}
 /* ═══════════════════ 排行榜 ═══════════════════ */
 let LB_METRIC='rope30',LB_CLASS='all';
 function renderLeaders(){

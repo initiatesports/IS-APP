@@ -1,7 +1,7 @@
 /* INITIATE 成長中心 · Service Worker
    ⚠️ 只快取本 app 自己嘅 HTML（離線開得到）。對其他所有請求（其他 IS-APP 頁、
    API、資源）完全唔攔截 → 對全站其他 web app 完全透明、零影響。 */
-const CACHE = 'growth-center-v1';
+const CACHE = 'growth-center-v2';   // 2026-09-07 bump：令所有部機下次開即 purge 舊 cache（activate 會刪走 !==CACHE 嘅舊快取），確保食到移除自動登入嘅新版
 const APP = 'is-performance.html';
 
 self.addEventListener('install', e => {
