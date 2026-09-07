@@ -398,7 +398,7 @@ function renderSettings(){
   const budgets=DATA.budgets||{}, closed=DATA.closedPeriods||{}, cats=(DATA.categories||[]).map(c=>c.name), curMonth=todayISO().slice(0,7);
   const bmonths=Object.keys(budgets).sort().reverse();
   const budgetRows=bmonths.map(mo=>Object.entries(budgets[mo]).map(e=>`<tr><td>${mo.replace('-','/')}</td><td>${esc(e[0])}</td><td class="n">${fmt0(e[1])}</td><td><button class="vd" onclick="setBudget('${mo}','${esc(e[0]).replace(/'/g,'')}',0)">✕</button></td></tr>`).join('')).join('')||'<tr><td colspan="4" class="mut">未設預算</td></tr>';
-  const periods=[...new Set((DATA.income||[]).map(r=>r.period).filter(Boolean))].sort().reverse();
+  const periods=[...new Set((DATA.income||[]).map(r=>r.period).filter(Boolean).concat(Object.keys(closed)))].sort().reverse();
   const periodRows=periods.map(p=>`<tr><td>${esc(p)}</td><td>${closed[p]?'<span class="pill r">已封</span>':'<span class="pill g">開放</span>'}</td><td class="n">${closed[p]?`<button class="tbtn" onclick="reopenPeriod('${esc(p)}')">解封</button>`:`<button class="tbtn" onclick="closePeriod('${esc(p)}')">封帳</button>`}</td></tr>`).join('')||'<tr><td colspan="3" class="mut">冇資料</td></tr>';
   let html=`<div class="top"><div class="wrap"><h1>⚙️ <span>設定</span></h1><button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button></div></div>
     <div class="wrap" style="padding-bottom:80px">
