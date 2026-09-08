@@ -1,0 +1,348 @@
+<!doctype html><html lang="zh-HK"><head>
+<meta charset="utf-8">
+<title>新生試堂報名 · INITIATE SPORTS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="robots" content="noindex">
+<style>
+:root{
+  --bg:#eef2f4; --card:#ffffff; --navy:#223a4d; --navy2:#2c4a60;
+  --teal:#1bafbd; --teal-d:#0f8996; --teal-w:rgba(27,175,189,.10);
+  --gold:#c79a3e; --ink:#16242f; --ink2:#3f4d55; --mut:#6b7b86;
+  --line:#e2e8ec; --line2:#eef2f4; --err:#d9534f; --ok:#2e9e6b;
+  --r:16px; --sh:0 10px 30px rgba(20,36,47,.08);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0f1720; --card:#18222e; --navy:#7fd3dd; --navy2:#9fdfe7;
+  --teal:#2fb9c9; --teal-d:#48c7d6; --teal-w:rgba(47,185,201,.14);
+  --gold:#e6b84c; --ink:#eef3f8; --ink2:#c3d0da; --mut:#8ca0b0;
+  --line:#2a3a4d; --line2:#233140; --sh:0 10px 30px rgba(0,0,0,.4);
+}}
+:root[data-theme=dark]{
+  --bg:#0f1720; --card:#18222e; --navy:#7fd3dd; --navy2:#9fdfe7;
+  --teal:#2fb9c9; --teal-d:#48c7d6; --teal-w:rgba(47,185,201,.14);
+  --gold:#e6b84c; --ink:#eef3f8; --ink2:#c3d0da; --mut:#8ca0b0;
+  --line:#2a3a4d; --line2:#233140; --sh:0 10px 30px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang HK","Noto Sans HK","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.55}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 60px}
+.pvbanner{background:#fff7ed;border:1px solid #fb923c;color:#9a3412;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:11px;margin-bottom:14px;line-height:1.6}
+.pvskip{display:block;width:100%;margin-top:10px;background:none;border:1.5px dashed var(--gold);color:var(--gold);border-radius:11px;padding:11px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r);padding:26px 22px;color:#fff;text-align:center;box-shadow:var(--sh)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .hero{background:linear-gradient(135deg,#14303c,#1b3f4e);color:#eaf6f8}}
+:root[data-theme=dark] .hero{background:linear-gradient(135deg,#14303c,#1b3f4e);color:#eaf6f8}
+.hero .yr{letter-spacing:.3em;font-size:11px;font-weight:700;opacity:.8}
+.hero h1{margin:8px 0 6px;font-size:24px;font-weight:900;letter-spacing:.02em}
+.hero p{margin:0;font-size:13.5px;opacity:.92;line-height:1.7}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-top:14px;box-shadow:var(--sh)}
+.card h2{margin:0 0 4px;font-size:16px;font-weight:900;color:var(--navy);display:flex;align-items:center;gap:8px}
+.card .sub{color:var(--mut);font-size:12.5px;margin:0 0 14px}
+.sec{font-size:12px;font-weight:800;color:var(--teal-d);letter-spacing:.05em;margin:18px 0 8px}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.req{color:var(--err);margin-left:2px}
+input,select{width:100%;background:var(--bg);border:1.5px solid var(--line);color:var(--ink);border-radius:11px;padding:12px 13px;font-size:16px;font-family:inherit;outline:none;transition:.12s}
+input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-w)}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.seg{display:flex;gap:8px}.seg label{flex:1;margin:0}.seg input{display:none}
+.seg span{display:block;text-align:center;padding:11px;border:1.5px solid var(--line);border-radius:11px;font-size:14px;font-weight:700;color:var(--mut);cursor:pointer;background:var(--bg)}
+.seg input:checked+span{border-color:var(--teal);background:var(--teal-w);color:var(--teal-d)}
+.chk{display:flex;align-items:flex-start;gap:9px;border:1.5px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;background:var(--bg);margin-bottom:7px}
+.chk input{width:18px;height:18px;flex:none;accent-color:var(--teal-d);margin-top:1px}
+.chk.on{border-color:var(--teal);background:var(--teal-w);color:var(--teal-d)}
+.chk span{flex:1}
+.terms{max-height:160px;overflow:auto;border:1px solid var(--line);border-radius:11px;padding:10px 13px;background:var(--bg);font-size:12.5px;color:var(--ink2);margin-bottom:8px}
+.terms p{margin:0 0 7px}
+.btn{width:100%;border:none;border-radius:13px;padding:15px;font-size:16px;font-weight:900;font-family:inherit;cursor:pointer;background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a;box-shadow:0 6px 18px rgba(27,175,189,.35)}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.ghost{background:none;border:1.5px solid var(--line);color:var(--ink2);box-shadow:none;font-weight:700}
+.hint{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.6}
+.err{color:var(--err);font-size:12.5px;margin-top:6px;min-height:14px;font-weight:600}
+.feebox{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:14px;padding:18px 20px;text-align:center}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .feebox{background:linear-gradient(135deg,#14303c,#1b3f4e)}}
+:root[data-theme=dark] .feebox{background:linear-gradient(135deg,#14303c,#1b3f4e)}
+.feebox .amt{font-size:40px;font-weight:900;letter-spacing:-1px;line-height:1.1}
+.feebox .lbl{font-size:12.5px;opacity:.85;margin-top:4px}
+.pay-opt{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--bg)}
+.pay-opt b{color:var(--navy);font-size:14px}
+.copy{padding:3px 9px;font-size:12px;font-weight:800;border:1px solid var(--teal);color:var(--teal-d);background:none;border-radius:8px;cursor:pointer;font-family:inherit}
+.up{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--mut);font-size:13px;background:var(--bg);cursor:pointer;margin-top:6px}
+.done{text-align:center;padding:8px 4px}
+.done .tick{width:70px;height:70px;border-radius:50%;background:var(--teal-w);color:var(--teal-d);font-size:38px;display:grid;place-items:center;margin:6px auto 14px}
+.sumrow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+.sumrow .k{color:var(--mut);flex:none}.sumrow .v{font-weight:700;text-align:right}
+.foot{text-align:center;color:var(--mut);font-size:11.5px;margin-top:20px;line-height:1.7}
+.steps{display:flex;gap:6px;justify-content:center;margin:2px 0 4px}
+.steps i{width:22px;height:4px;border-radius:3px;background:var(--line)}
+.steps i.on{background:var(--teal)}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style></head><body>
+<div class="wrap">
+  <div id="app"></div>
+  <div class="foot">INITIATE SPORTS · 新生試堂報名　·　青衣體育館<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
+</div>
+<script>
+const FRONTEND_VERSION='trial-2026-09-08-v1';
+const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
+const $=s=>document.querySelector(s);
+try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
+const PREVIEW=(function(){ try{ return new URLSearchParams(location.search).get('preview')==='1'; }catch(e){ return false; } })();
+
+async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
+async function apiGet(p){ return fetchT(API+'?'+new URLSearchParams(p)); }
+async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)},ms); }
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const TZY=2026;
+const WD_DATES={
+ 1:['07/09','14/09','21/09','28/09','05/10','12/10','19/10','26/10'],
+ 2:['08/09','15/09','22/09','29/09','06/10','13/10','20/10','27/10'],
+ 3:['09/09','16/09','23/09','30/09','07/10','14/10','21/10','28/10'],
+ 4:['10/09','17/09','24/09','01/10','08/10','15/10','22/10','29/10'],
+ 6:['12/09','19/09','26/09','03/10','10/10','17/10','24/10','31/10'],
+};
+const WDN={1:'星期一',2:'星期二',3:'星期三',4:'星期四',6:'星期六'};
+// 本地 wd/t（顯示用）；fee/fps 開頁時由後端 trialConfig 覆蓋做單一真相（防價錢漂移）。
+const CLS_META={ c1:{wd:1,t:'5–6pm'}, c3:{wd:3,t:'5–6pm'}, c4:{wd:3,t:'6–7pm'}, c8:{wd:4,t:'5–6pm'}, c7:{wd:6,t:'3–4pm'}, fnd:{wd:2,t:'5–6pm'}, gym:{wd:6,t:'4–5pm'}, cnd:{wd:6,t:'5–6pm'} };
+let CLASSES=[
+ {v:'c1',  sport:'花式跳繩',        wd:1, t:'5–6pm', fee:150},
+ {v:'c3',  sport:'花式跳繩',        wd:3, t:'5–6pm', fee:150},
+ {v:'c4',  sport:'花式跳繩',        wd:3, t:'6–7pm', fee:150},
+ {v:'c8',  sport:'花式跳繩',        wd:4, t:'5–6pm', fee:150},
+ {v:'c7',  sport:'花式跳繩',        wd:6, t:'3–4pm', fee:150},
+ {v:'fnd', sport:'幼兒全方位運動啟蒙', wd:2, t:'5–6pm', fee:150},
+ {v:'gym', sport:'體操',           wd:6, t:'4–5pm', fee:160},
+ {v:'cnd', sport:'綜合運動體能＋田徑', wd:6, t:'5–6pm', fee:130},
+];
+let FPS='';
+const HEALTH=['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'];
+const PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
+const SOURCE=['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他'];
+const DECL='本人謹此聲明本人／小兒／小女的健康及體能良好，適合參加上述活動。如因隱瞞疾病或身體不適合參與課堂而於活動時傷亡，主辦機構概不需負責。（例如患有哮喘等醫生不建議的疾病，或身體有扭傷、骨折等情況，不適合參與課堂。）若健康狀況有任何改變，祈請盡快通知本單位，以便作出適當安排。如「不同意」便不能參加。';
+let S={name:'',gender:'',by:'',bm:'',school:'',grade:'',pname:'',phone:'',email:'',emgName:'',emgPhone:'',emgRel:'',cls:'',date:'',health:[],parqok:false,parqnote:'',special:'',declAgree:false,enName:'',source:'',payImg:'',rid:''};
+
+function cls(){return CLASSES.find(x=>x.v===S.cls);}
+function clsLabel(v){const c=CLASSES.find(x=>x.v===v);return c?`${c.sport}｜${WDN[c.wd]} ${c.t}`:'—';}
+function feeOf(){const c=cls();return c?c.fee:0;}
+function steps(n){return `<div class="steps">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;}
+
+// 開頁：由後端攞班別費用 + FPS（單一真相）。失敗就用本地 fallback，唔阻報名。
+async function boot(){
+  renderIntro();
+  try{ const cfg=await apiGet({action:'trialConfig'});
+    if(cfg&&cfg.ok){ if(cfg.fps) FPS=cfg.fps;
+      if(Array.isArray(cfg.classes)&&cfg.classes.length){
+        CLASSES=cfg.classes.map(c=>{ const m=CLS_META[c.v]||{}; return {v:c.v, sport:c.sport, wd:m.wd, t:m.t, fee:c.fee}; }).filter(c=>c.wd);
+      }
+      renderIntro();
+    }
+  }catch(e){}
+}
+
+function renderIntro(){
+  $('#app').innerHTML=`
+  ${PREVIEW?'<div class="pvbanner">👁 預覽模式：唔使填資料，每頁底有「⏭ 免填直接睇下一頁」；<b>唔會真提交</b>。</div>':''}
+  <div class="hero">
+    <div class="yr">2026 – 2027 學年</div>
+    <h1>🎟️ 新生試堂報名</h1>
+    <p>想試下啱唔啱先報名？揀一堂嚟試玩一次。<br>填資料 → 付試堂費 → 我哋 WhatsApp 同你確認。</p>
+  </div>
+  <div class="card">
+    <h2>可試堂班別 · 試堂費</h2>
+    <p class="sub">試堂費＝該班每堂價錢。試堂後正式報名，輸入電話 + 中文全名即自動帶回今次填嘅資料。</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${CLASSES.map(c=>`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:11px;font-size:13.5px">
+        <span><b>${esc(c.sport)}</b> <span style="color:var(--mut)">${WDN[c.wd]} ${c.t}</span></span>
+        <b style="color:var(--teal-d)">$${c.fee}</b></div>`).join('')}
+    </div>
+    <button class="btn" style="margin-top:16px" onclick="renderForm()">開始試堂報名　›</button>
+    <button class="btn ghost" style="margin-top:9px" onclick="location.href='is-enroll.html'">← 返回報名系統</button>
+  </div>`;
+}
+
+function renderForm(){
+  $('#app').innerHTML=`
+  <div class="card">
+    ${steps(1)}
+    <h2>📝 試堂報名表</h2>
+    <p class="sub">＊為必填。資料只用於安排試堂同聯絡。</p>
+
+    <div class="sec">學生資料</div>
+    <div class="fld"><label>學生姓名（中文）<span class="req">＊</span></label><input id="f_name" value="${esc(S.name)}" placeholder="例：陳大文"></div>
+    <div class="fld"><label>性別<span class="req">＊</span></label>
+      <div class="seg">
+        <label><input type="radio" name="g" value="男" ${S.gender==='男'?'checked':''}><span>男</span></label>
+        <label><input type="radio" name="g" value="女" ${S.gender==='女'?'checked':''}><span>女</span></label>
+      </div></div>
+    <div class="row">
+      <div class="fld"><label>出生年份<span class="req">＊</span></label><input id="f_by" inputmode="numeric" value="${esc(S.by)}" placeholder="2016"></div>
+      <div class="fld"><label>出生月份<span class="req">＊</span></label>
+        <select id="f_bm"><option value="">—</option>${Array.from({length:12},(_,i)=>`<option ${S.bm==(i+1)?'selected':''}>${i+1}</option>`).join('')}</select></div>
+    </div>
+    <div class="fld"><label>就讀學校<span class="req">＊</span></label><input id="f_school" value="${esc(S.school)}" placeholder="例：青衣XX小學"></div>
+    <div class="fld"><label>2026 年 9 月起就讀年級<span class="req">＊</span></label><input id="f_grade" value="${esc(S.grade)}" placeholder="例：一年級"></div>
+
+    <div class="sec">家長 / 聯絡</div>
+    <div class="fld"><label>家長／監護人姓名<span class="req">＊</span></label><input id="f_pname" value="${esc(S.pname)}" placeholder="例：陳小姐"></div>
+    <div class="fld"><label>家長聯絡電話（WhatsApp・8 位）<span class="req">＊</span></label><input id="f_phone" inputmode="numeric" value="${esc(S.phone)}" placeholder="例：91234567"></div>
+    <div class="fld"><label>家長電郵（收確認）</label><input id="f_email" inputmode="email" value="${esc(S.email)}" placeholder="example@email.com"></div>
+    <div class="fld"><label>緊急聯絡人名稱<span class="req">＊</span></label><input id="f_emgName" value="${esc(S.emgName)}" placeholder="例：陳先生"></div>
+    <div class="row">
+      <div class="fld"><label>緊急聯絡人電話<span class="req">＊</span></label><input id="f_emgPhone" inputmode="numeric" value="${esc(S.emgPhone)}" placeholder="8 位"></div>
+      <div class="fld"><label>與參加者關係<span class="req">＊</span></label><input id="f_emgRel" value="${esc(S.emgRel)}" placeholder="例：父／母"></div>
+    </div>
+
+    <div class="sec">試堂安排</div>
+    <div class="fld"><label>試堂班別<span class="req">＊</span></label>
+      <select id="f_cls" onchange="onCls()">
+        <option value="">— 請揀班別 —</option>
+        ${CLASSES.map(c=>`<option value="${c.v}" ${S.cls===c.v?'selected':''}>${c.sport}｜${WDN[c.wd]} ${c.t}（試堂費 $${c.fee}）</option>`).join('')}
+      </select></div>
+    <div class="fld"><label>試堂日期<span class="req">＊</span></label>
+      <select id="f_date">${dateOpts()}</select>
+      <div class="hint">揀班別後會列出嗰個班嘅上課日期。</div></div>
+
+    <div class="sec">健康狀況（可多選）<span class="req">＊</span></div>
+    <div id="f_health">
+      ${HEALTH.map(h=>`<label class="chk ${S.health.includes(h)?'on':''}"><input type="checkbox" value="${esc(h)}" ${S.health.includes(h)?'checked':''} onchange="hToggle(this)"><span>${h}</span></label>`).join('')}
+    </div>
+
+    <div class="sec">健康篩查 PAR-Q（未滿 18 歲由家長填）<span class="req">＊</span></div>
+    <div class="terms">${PARQ.map((q,i)=>`<p>${i+1}. ${q}</p>`).join('')}</div>
+    <label class="chk ${S.parqok?'on':''}"><input type="checkbox" id="f_parqok" ${S.parqok?'checked':''} onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>以上 7 項我全部答「否」，健康良好、適合參加運動。</span></label>
+    <div class="fld"><input id="f_parqnote" value="${esc(S.parqnote)}" placeholder="如有任何一項為「是」，請喺此註明（並先徵詢醫生）"></div>
+
+    <div class="sec">特殊需要 / 身體狀況聲明</div>
+    <div class="fld"><label>參加者有任何特殊的需要或要求嗎？<span class="req">＊</span></label><input id="f_special" value="${esc(S.special)}" placeholder="如無請填「沒有」"></div>
+    <div class="terms">${DECL}</div>
+    <label class="chk ${S.declAgree?'on':''}"><input type="checkbox" id="f_decl" ${S.declAgree?'checked':''} onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>本人已閱讀並<b>同意以上身體狀況聲明</b>（不同意不能參加）。</span></label>
+    <div class="fld"><label>確認以上聲明的人的英文全名<span class="req">＊</span><br><span style="font-weight:400;color:var(--mut);font-size:11.5px">未滿 18 歲由家長／監護人填</span></label><input id="f_enName" value="${esc(S.enName)}" placeholder="e.g. CHAN TAI MAN"></div>
+
+    <div class="sec">其他</div>
+    <div class="fld"><label>怎樣認識我哋？<span class="req">＊</span></label>
+      <select id="f_source"><option value="">— 請揀 —</option>${SOURCE.map(s=>`<option ${S.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
+
+    <div class="err" id="ferr"></div>
+    <button class="btn" onclick="submitForm()">下一步：付試堂費　›</button>
+    ${PREVIEW?'<button class="pvskip" onclick="collect();renderPay()">⏭ 免填直接睇下一頁（預覽）</button>':''}
+    <button class="btn ghost" style="margin-top:9px" onclick="collect();renderIntro()">← 返回</button>
+  </div>`;
+}
+function dateOpts(){
+  const c=cls(); if(!c) return '<option value="">— 先揀班別 —</option>';
+  return '<option value="">— 請揀日期 —</option>'+(WD_DATES[c.wd]||[]).map(d=>{const full=d+'/'+TZY;return `<option value="${full}" ${S.date===full?'selected':''}>${full}（${WDN[c.wd]}）</option>`;}).join('');
+}
+function onCls(){ S.cls=$('#f_cls').value; S.date=''; $('#f_date').innerHTML=dateOpts(); }
+function hToggle(el){ el.closest('.chk').classList.toggle('on',el.checked);
+  if(el.checked && el.value==='以上不適用'){ document.querySelectorAll('#f_health input').forEach(x=>{ if(x!==el){x.checked=false;x.closest('.chk').classList.remove('on');} }); }
+  else if(el.checked){ const none=[...document.querySelectorAll('#f_health input')].find(x=>x.value==='以上不適用'); if(none){none.checked=false;none.closest('.chk').classList.remove('on');} } }
+function collect(){
+  S.name=($('#f_name')||{}).value||S.name; const g=document.querySelector('input[name=g]:checked'); if(g)S.gender=g.value;
+  S.by=($('#f_by')||{}).value||S.by; S.bm=($('#f_bm')||{}).value||S.bm;
+  S.school=($('#f_school')||{}).value||S.school; S.grade=($('#f_grade')||{}).value||S.grade;
+  S.pname=($('#f_pname')||{}).value||S.pname; S.phone=($('#f_phone')||{}).value||S.phone; S.email=($('#f_email')||{}).value||S.email;
+  S.emgName=($('#f_emgName')||{}).value||S.emgName; S.emgPhone=($('#f_emgPhone')||{}).value||S.emgPhone; S.emgRel=($('#f_emgRel')||{}).value||S.emgRel;
+  S.cls=($('#f_cls')||{}).value||S.cls; S.date=($('#f_date')||{}).value||S.date; S.source=($('#f_source')||{}).value||S.source;
+  const hs=document.querySelectorAll('#f_health input:checked'); if(hs.length||document.querySelector('#f_health')) S.health=[...hs].map(x=>x.value);
+  const pq=$('#f_parqok'); if(pq)S.parqok=pq.checked; S.parqnote=($('#f_parqnote')||{}).value||S.parqnote;
+  S.special=($('#f_special')||{}).value||S.special; const dc=$('#f_decl'); if(dc)S.declAgree=dc.checked; S.enName=($('#f_enName')||{}).value||S.enName;
+}
+function submitForm(){
+  collect();
+  const need=[['name','學生姓名'],['gender','性別'],['by','出生年份'],['bm','出生月份'],['school','就讀學校'],['grade','就讀年級'],['pname','家長姓名'],['phone','家長電話'],['emgName','緊急聯絡人名稱'],['emgPhone','緊急聯絡人電話'],['emgRel','緊急聯絡人關係'],['cls','試堂班別'],['date','試堂日期'],['special','特殊需要（如無填「沒有」）'],['enName','聲明人英文全名'],['source','認識途徑']];
+  for(const [k,lbl] of need){ if(!S[k]){ $('#ferr').textContent='請填寫：'+lbl; window.scrollTo(0,0); return; } }
+  if(!/^\d{8}$/.test(S.phone)){ $('#ferr').textContent='家長電話要 8 位數字'; return; }
+  if(!S.health.length){ $('#ferr').textContent='請剔選健康狀況（如全部沒有，請剔「以上不適用」）'; return; }
+  if(!S.parqok && !S.parqnote){ $('#ferr').textContent='請剔選 PAR-Q 聲明，或註明「是」嘅項目'; return; }
+  if(!S.declAgree){ $('#ferr').textContent='請剔選同意身體狀況聲明（不同意不能參加）'; return; }
+  renderPay();
+}
+function renderPay(){
+  const c=cls(); const fee=feeOf();
+  const fpsShow=FPS?esc(FPS):'（開頁中…請重新整理）';
+  $('#app').innerHTML=`
+  <div class="card">
+    ${steps(2)}
+    <h2>💳 繳付試堂費</h2>
+    <p class="sub">試堂費＝該班每堂價錢。付款後上載截圖，我哋核實即確認試堂。</p>
+    <div class="feebox"><div class="amt">$${fee||'—'}</div><div class="lbl">${c?clsLabel(S.cls):'（未揀班別）'}${S.date?'　·　'+S.date:''}</div></div>
+
+    <div class="sec">付款方法（FPS 轉數快 / PayMe）</div>
+    <div class="pay-opt"><b>FPS 轉數快 / PayMe</b>
+      <div class="hint">號碼：<b id="fpsno">${fpsShow}</b> ${FPS?`<button class="copy" onclick="copyFps(this)">複製</button>`:''}<br>金額：<b>$${fee||'—'}</b>　·　備註／訊息請填：<b>${esc(S.name||'學生姓名')}・試堂</b></div></div>
+
+    <div class="sec">上載付款截圖<span class="req">＊</span></div>
+    <div class="up" onclick="document.getElementById('f_pay').click()">📷 撳呢度上載付款截圖<div class="hint" id="paylbl" style="margin-top:4px">支援相片；上載後我哋會核實</div></div>
+    <input type="file" id="f_pay" accept="image/*" style="display:none" onchange="pickPay(this)">
+
+    <div class="err" id="perr"></div>
+    <button class="btn" id="pbtn" style="margin-top:14px" onclick="doSubmit()">提交試堂報名　›</button>
+    ${PREVIEW?'<button class="pvskip" onclick="renderDone()">⏭ 免填直接睇下一頁（預覽）</button>':''}
+    <button class="btn ghost" style="margin-top:9px" onclick="renderForm()">← 返回改資料</button>
+  </div>`;
+}
+function copyFps(btn){ try{ navigator.clipboard.writeText(String(FPS).replace(/\s/g,'')); btn.textContent='已複製'; setTimeout(()=>btn.textContent='複製',1500); }catch(e){} }
+function pickPay(inp){
+  const f=inp.files[0]; if(!f){ return; }
+  $('#paylbl').textContent='處理中…';
+  shrinkImage(f,(data,e)=>{ if(e){ S.payImg=''; $('#paylbl').textContent=e; return; } S.payImg=data||''; $('#paylbl').textContent='已揀：'+f.name; });
+}
+// 上載前縮相（最闊 1600px、JPEG 0.82），避免大相 base64 爆。cb(dataURL) 或 cb(null,錯誤訊息)。
+function shrinkImage(file, cb){
+  if(!file){ cb(''); return; }
+  var MAXBYTES=8*1024*1024;
+  if(!/^image\//.test(file.type)){
+    if(file.size>MAXBYTES){ cb(null,'檔案太大（'+Math.round(file.size/1048576)+'MB），請壓到 8MB 以內'); return; }
+    var rd0=new FileReader(); rd0.onload=function(){ cb(rd0.result); }; rd0.onerror=function(){ cb(null,'讀取檔案失敗'); }; rd0.readAsDataURL(file); return;
+  }
+  var rd=new FileReader();
+  rd.onload=function(){ var img=new Image();
+    img.onload=function(){ var MAX=1600, w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>=h){ h=Math.round(h*MAX/w); w=MAX; } else { w=Math.round(w*MAX/h); h=MAX; } }
+      try{ var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); cb(cv.toDataURL('image/jpeg',0.82)); }
+      catch(err){ cb(rd.result); }
+    };
+    img.onerror=function(){ cb(rd.result); }; img.src=rd.result;
+  };
+  rd.onerror=function(){ cb(null,'讀取圖片失敗'); }; rd.readAsDataURL(file);
+}
+async function doSubmit(){
+  if(PREVIEW){ renderDone(); return; }   // 預覽模式：唔真提交
+  if(!S.payImg){ $('#perr').textContent='請先上載付款截圖'; return; }
+  const btn=$('#pbtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>提交中…'; $('#perr').textContent='';
+  const body={action:'trialSubmit', name:S.name, gender:S.gender, by:S.by, bm:S.bm, school:S.school, grade:S.grade,
+    pname:S.pname, phone:S.phone, email:S.email, emgName:S.emgName, emgPhone:S.emgPhone, emgRel:S.emgRel,
+    cls:S.cls, date:S.date, health:S.health, parqok:S.parqok, parqnote:S.parqnote, special:S.special,
+    declAgree:S.declAgree, enName:S.enName, source:S.source, payImg:S.payImg};
+  try{
+    const r=await apiPost(body,90000);
+    if(r&&r.ok){ S.rid=r.id||''; renderDone(); }
+    else { $('#perr').textContent=(r&&r.err)||'提交失敗，請重試，或 WhatsApp 6331 7403'; btn.disabled=false; btn.innerHTML='提交試堂報名　›'; }
+  }catch(e){ $('#perr').textContent='網絡問題，未能提交，請重試（資料未清除）'; btn.disabled=false; btn.innerHTML='提交試堂報名　›'; }
+}
+function renderDone(){
+  const fee=feeOf();
+  $('#app').innerHTML=`
+  <div class="card done">
+    ${steps(3)}
+    <div class="tick">✓</div>
+    <h2 style="justify-content:center">試堂報名已提交！</h2>
+    <p class="sub" style="text-align:center">多謝報名，我哋核實付款後會 WhatsApp 你確認試堂安排。</p>
+    <div style="text-align:left;margin-top:8px">
+      ${S.rid?`<div class="sumrow"><span class="k">記錄編號</span><span class="v">${esc(S.rid)}</span></div>`:''}
+      <div class="sumrow"><span class="k">學生</span><span class="v">${esc(S.name||'—')}（${esc(S.gender||'—')}・${esc(S.by||'—')}/${esc(S.bm||'—')}）</span></div>
+      <div class="sumrow"><span class="k">學校／年級</span><span class="v">${esc(S.school||'—')}・${esc(S.grade||'—')}</span></div>
+      <div class="sumrow"><span class="k">試堂班別</span><span class="v">${clsLabel(S.cls)}</span></div>
+      <div class="sumrow"><span class="k">試堂日期</span><span class="v">${esc(S.date||'—')}</span></div>
+      <div class="sumrow"><span class="k">試堂費</span><span class="v">$${fee||'—'}（待核實）</span></div>
+      <div class="sumrow"><span class="k">家長</span><span class="v">${esc(S.pname||'—')}・${esc(S.phone||'—')}</span></div>
+    </div>
+    <div class="hint" style="margin-top:14px;background:var(--teal-w);padding:11px 13px;border-radius:11px">📱 我哋會用 WhatsApp（${esc(S.phone||'你嘅電話')}）同你確認。試堂當日請提早 5 分鐘到青衣體育館。<br><br>💡 試堂後想正式報名？喺報名系統輸入<b>同一個電話 + 中文全名</b>，就會自動帶回你今次填嘅資料，唔使再填一次。</div>
+    <button class="btn" style="margin-top:16px" onclick="location.href='is-enroll.html'">前往正式報名系統　›</button>
+  </div>`;
+  window.scrollTo(0,0);
+}
+boot();
+</script></body></html>
