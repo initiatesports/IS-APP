@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-07-pbfix';
+const APP_VERSION='growth-2026-09-09-rope-clean';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -259,13 +259,16 @@ let ENROLL_ROSTER={};            // {cid:[名]} 由 #4 rosterList（現有已核
 
 /* ---------- Metric 設定（14 項，對齊教練 app 操作命名；全部↑=越大越好）----------
    dual=多次嘗試(v1/v2/v3,val取最佳)。rope2m 依老闆定名「1分鐘跳繩」。 */
-/* 跳繩：4 種項目 × 7 個時長（老闆 2026-09-07）。程式化生成 28 個組合；保留 6 個現有 metricId 做 anchor
-   （rope30=前繩30秒、bike=單車30秒、cross=交叉30秒、double=二重30秒、rope2m=前繩1分鐘、bike2m=單車2分鐘）
-   → 舊資料零遷移、排行榜/報告/每月報告零破壞。新組合用 rp_<type>_<sec>。每次記錄兩欄（第一次/第二次），val 取最佳。 */
-const ROPE_TYPES=[['front','前繩','前繩'],['bike','單車步','單車'],['cross','交叉','交叉'],['double','二重跳','二重']];
+/* 跳繩項目（老闆 2026-09-09「保留時長但整乾淨」）：
+   - 前繩 / 單車步 = 計時項目，7 個時長（10/15/20/30秒・1/2/3分鐘）。anchor：front|30=rope30, front|60=rope2m, bike|30=bike, bike|120=bike2m；其餘 rp_<type>_<sec>。
+   - 交叉開 / 二重跳 = 單一項目（技術／最多下），唔加時長，metricId 固定 cross / double。
+   顯示只出「有資料」嘅時長；記錄頁 record 先出齊 7 個。cross/double 唔展開時長 → 舊 rp_cross_* 等孤兒自動唔顯示。 */
+const ROPE_DUR_TYPES=[['front','前繩','前繩'],['bike','單車步','單車']];
+const ROPE_SINGLE=[['cross','交叉開','交叉'],['double','二重跳','二重']];
+const ROPE_TYPES=[...ROPE_DUR_TYPES,...ROPE_SINGLE];
 const ROPE_DURS=[[10,'10秒'],[15,'15秒'],[20,'20秒'],[30,'30秒'],[60,'1分鐘'],[120,'2分鐘'],[180,'3分鐘']];
-const ROPE_ANCHOR={'front|30':'rope30','bike|30':'bike','cross|30':'cross','double|30':'double','front|60':'rope2m','bike|120':'bike2m'};
-function ropeId(t,s){return ROPE_ANCHOR[t+'|'+s]||('rp_'+t+'_'+s);}
+const ROPE_ANCHOR={'front|30':'rope30','bike|30':'bike','front|60':'rope2m','bike|120':'bike2m'};
+function ropeId(t,s){if(t==='cross')return 'cross';if(t==='double')return 'double';return ROPE_ANCHOR[t+'|'+s]||('rp_'+t+'_'+s);}
 function durLab(s){const d=ROPE_DURS.find(x=>x[0]===s);return d?d[1]:(s+'秒');}
 const METRICS={
   sj:    {lab:'立定跳遠', short:'跳遠', u:'cm', grp:'fit', leg:'原地雙腳跳遠 — 下肢爆發力'},
@@ -278,23 +281,30 @@ const METRICS={
   rsi:   {lab:'RSI', short:'RSI', u:'', grp:'fit', leg:'反應力量指數 — 彈性力量'},
 };
 const ROPE_METRICS=[];
-ROPE_TYPES.forEach(([t,full,sh])=>ROPE_DURS.forEach(([s,dl])=>{
+ROPE_DUR_TYPES.forEach(([t,full,sh])=>ROPE_DURS.forEach(([s,dl])=>{
   const id=ropeId(t,s); ROPE_METRICS.push(id);
   METRICS[id]={lab:full+' '+dl, short:sh+dl, u:'次', grp:'rope', type:t, sec:s, dual:true, leg:dl+'內'+full+'跳次數 — 速度／耐力'};
 }));
+ROPE_SINGLE.forEach(([t,full,sh])=>{ METRICS[t]={lab:full, short:sh, u:'次', grp:'rope', type:t, sec:null, single:true, dual:true, leg:full+' — 協調技術'}; ROPE_METRICS.push(t); });
 const FIT_METRICS=['sj','cmj','gripR','gripL','sitreach','balanceR','balanceL','rsi'];
 const METRIC_ORDER=[...ROPE_METRICS,...FIT_METRICS];
 /* 兩層揀 metric（跳繩＝項目→時長；體適能／身高體重＝直接揀）。共用 helper，各頁自行 wire onclick。 */
 function isRopeM(m){return !!(METRICS[m]&&METRICS[m].grp==='rope');}
 function mType(m){return isRopeM(m)?METRICS[m].type:null;}
 function mSec(m){return isRopeM(m)?METRICS[m].sec:null;}
-function pickMetric(cur,k,v){if(k==='type')return ropeId(v,mSec(cur)||30);if(k==='dur')return ropeId(mType(cur)||'front',Number(v));return v;}
+function isSingleRope(t){return t==='cross'||t==='double';}
+function pickMetric(cur,k,v){if(k==='type'){if(isSingleRope(v))return v;return ropeId(v,mSec(cur)||30);}if(k==='dur')return ropeId(mType(cur)||'front',Number(v));return v;}
 function metricPickerHTML(cur,opt){opt=opt||{};
-  const types=ROPE_TYPES.map(function(a){return '<button class="chipbtn '+(mType(cur)===a[0]?'on':'')+'" data-k="type" data-v="'+a[0]+'">'+a[2]+'</button>';}).join('');
+  const curType=mType(cur);
+  const types=ROPE_TYPES.map(function(a){return '<button class="chipbtn '+(curType===a[0]?'on':'')+'" data-k="type" data-v="'+a[0]+'">'+a[2]+'</button>';}).join('');
   const fits=FIT_METRICS.map(function(m){return '<button class="chipbtn '+(cur===m?'on':'')+'" data-k="metric" data-v="'+m+'">'+esc(METRICS[m].short)+'</button>';}).join('');
   const body=opt.body?['height','weight'].map(function(m){return '<button class="chipbtn '+(cur===m?'on':'')+'" data-k="metric" data-v="'+m+'">'+(m==='height'?'身高':'體重')+'</button>';}).join(''):'';
   let h='<div style="display:flex;flex-wrap:wrap;gap:6px">'+types+fits+body+'</div>';
-  if(isRopeM(cur)) h+='<div class="lbl" style="margin-top:9px">時長</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+ROPE_DURS.map(function(d){return '<button class="chipbtn '+(mSec(cur)===d[0]?'on':'')+'" data-k="dur" data-v="'+d[0]+'">'+d[1]+'</button>';}).join('')+'</div>';
+  // 時長列：只出「有資料」嘅時長（記錄頁 opt.record 先出齊 7 個畀教練揀）；交叉開／二重跳＝單一項唔出時長
+  if(isRopeM(cur)&&curType&&!isSingleRope(curType)){
+    const durs=opt.record?ROPE_DURS:ROPE_DURS.filter(function(d){var id=ropeId(curType,d[0]);return mSec(cur)===d[0]||(typeof ROSTER!=='undefined'&&ROSTER.some(function(n){return series(n,id).length>0;}));});
+    if(durs.length)h+='<div class="lbl" style="margin-top:9px">時長</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+durs.map(function(d){return '<button class="chipbtn '+(mSec(cur)===d[0]?'on':'')+'" data-k="dur" data-v="'+d[0]+'">'+d[1]+'</button>';}).join('')+'</div>';
+  }
   return h;
 }
 const CLASS_IDS=['c1','c2','c3','c4','c5','c6','c7'];
@@ -612,7 +622,7 @@ function renderDash(){
   const movers=[];ROSTER.forEach(n=>{const g=gradeFor(n);if(g.avg>0)movers.push({name:n,avg:g.avg,grade:g.grade});});
   movers.sort((a,b)=>b.avg-a.avg);
   // recent activity
-  const acts=[];Object.keys(PERF).forEach(n=>Object.keys(PERF[n]).forEach(mt=>PERF[n][mt].forEach(r=>acts.push({name:n,metric:mt,date:r.date,val:r.val}))));
+  const acts=[];Object.keys(PERF).forEach(n=>Object.keys(PERF[n]).forEach(mt=>{if(!METRICS[mt])return;PERF[n][mt].forEach(r=>acts.push({name:n,metric:mt,date:r.date,val:r.val}));}));
   acts.sort((a,b)=>b.date.localeCompare(a.date));
   const recent=acts.slice(0,8);
   $('#view').innerHTML=`
@@ -680,7 +690,7 @@ function renderClassTest(){
   <div class="card card-pad" style="margin-bottom:14px">
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
       <div><div class="lbl">班別</div><div class="seg" id="ctClass">${activeClasses().map(c=>`<button data-c="${c}" class="${c===CT_CLASS?'on':''}">${esc(classLabel(c))}</button>`).join('')||'<span class="mut">未有班別</span>'}</div></div>
-      <div style="flex:1;min-width:200px"><div class="lbl">測試項目</div><div id="ctMetric">${metricPickerHTML(CT_METRIC,{body:true})}</div></div>
+      <div style="flex:1;min-width:200px"><div class="lbl">測試項目</div><div id="ctMetric">${metricPickerHTML(CT_METRIC,{body:true,record:true})}</div></div>
       <div><div class="lbl">測試日期</div><input type="date" class="inp" id="ctDate" value="${CT_DATE}" style="width:auto"></div>
     </div>
   </div>
