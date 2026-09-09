@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-09-rope-clean';
+const APP_VERSION='growth-2026-09-09-cross20';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -260,15 +260,16 @@ let ENROLL_ROSTER={};            // {cid:[名]} 由 #4 rosterList（現有已核
 /* ---------- Metric 設定（14 項，對齊教練 app 操作命名；全部↑=越大越好）----------
    dual=多次嘗試(v1/v2/v3,val取最佳)。rope2m 依老闆定名「1分鐘跳繩」。 */
 /* 跳繩項目（老闆 2026-09-09「保留時長但整乾淨」）：
-   - 前繩 / 單車步 = 計時項目，7 個時長（10/15/20/30秒・1/2/3分鐘）。anchor：front|30=rope30, front|60=rope2m, bike|30=bike, bike|120=bike2m；其餘 rp_<type>_<sec>。
-   - 交叉開 / 二重跳 = 單一項目（技術／最多下），唔加時長，metricId 固定 cross / double。
-   顯示只出「有資料」嘅時長；記錄頁 record 先出齊 7 個。cross/double 唔展開時長 → 舊 rp_cross_* 等孤兒自動唔顯示。 */
-const ROPE_DUR_TYPES=[['front','前繩','前繩'],['bike','單車步','單車']];
-const ROPE_SINGLE=[['cross','交叉開','交叉'],['double','二重跳','二重']];
+   - 前繩 / 單車步 / 交叉 = 計時項目，可揀時長（10/15/20/30秒・1/2/3分鐘）。anchor：front|30=rope30, front|60=rope2m, bike|30=bike, bike|120=bike2m, cross|30=cross；其餘 rp_<type>_<sec>。
+   - 二重跳 = 單一項目（最多下），唔加時長，metricId 固定 double。
+   顯示只出「有資料」嘅時長；記錄頁 record 先出齊 7 個。
+   註：交叉本為單一，但 9/7 教練實測過「交叉20秒」(老闆 2026-09-09 確認真係 20 秒)→ 交叉改回計時項，20秒(rp_cross_20)同30秒(cross)各自成項、唔撈亂。 */
+const ROPE_DUR_TYPES=[['front','前繩','前繩'],['bike','單車步','單車'],['cross','交叉','交叉']];
+const ROPE_SINGLE=[['double','二重跳','二重']];
 const ROPE_TYPES=[...ROPE_DUR_TYPES,...ROPE_SINGLE];
 const ROPE_DURS=[[10,'10秒'],[15,'15秒'],[20,'20秒'],[30,'30秒'],[60,'1分鐘'],[120,'2分鐘'],[180,'3分鐘']];
-const ROPE_ANCHOR={'front|30':'rope30','bike|30':'bike','front|60':'rope2m','bike|120':'bike2m'};
-function ropeId(t,s){if(t==='cross')return 'cross';if(t==='double')return 'double';return ROPE_ANCHOR[t+'|'+s]||('rp_'+t+'_'+s);}
+const ROPE_ANCHOR={'front|30':'rope30','bike|30':'bike','front|60':'rope2m','bike|120':'bike2m','cross|30':'cross'};
+function ropeId(t,s){if(t==='double')return 'double';return ROPE_ANCHOR[t+'|'+s]||('rp_'+t+'_'+s);}
 function durLab(s){const d=ROPE_DURS.find(x=>x[0]===s);return d?d[1]:(s+'秒');}
 const METRICS={
   sj:    {lab:'立定跳遠', short:'跳遠', u:'cm', grp:'fit', leg:'原地雙腳跳遠 — 下肢爆發力'},
@@ -292,7 +293,7 @@ const METRIC_ORDER=[...ROPE_METRICS,...FIT_METRICS];
 function isRopeM(m){return !!(METRICS[m]&&METRICS[m].grp==='rope');}
 function mType(m){return isRopeM(m)?METRICS[m].type:null;}
 function mSec(m){return isRopeM(m)?METRICS[m].sec:null;}
-function isSingleRope(t){return t==='cross'||t==='double';}
+function isSingleRope(t){return t==='double';}
 function pickMetric(cur,k,v){if(k==='type'){if(isSingleRope(v))return v;return ropeId(v,mSec(cur)||30);}if(k==='dur')return ropeId(mType(cur)||'front',Number(v));return v;}
 function metricPickerHTML(cur,opt){opt=opt||{};
   const curType=mType(cur);
