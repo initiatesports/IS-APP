@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-09-ptwallet2';
+const FRONTEND_VERSION = 'coach-2026-09-09-ptwallet3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1162,22 +1162,23 @@ async function ptSetSessionFee(name, date, i, idx){
   if(!r||!r.ok){ toast((r&&r.err)||'儲存失敗','⚠'); return; }
   toast(`已設 ${date} $${Number(fee)}`,'✓'); renderPt();
 }
+function ptwNonce(){ return Date.now()+'-'+Math.random().toString(36).slice(2,9); }   // 冪等 nonce：防 apiPost 重試令錢重複
 async function ptWalletTopup(name, i){
   const inp=document.getElementById('ptw-amt-'+i); const amt=inp?inp.value:'';
   if(amt==='' || Number(amt)<=0){ toast('請輸入預繳金額','⚠'); return; }
-  let r; try{ r=await apiPost({action:'ptWalletTopup', name, amount:Number(amt)}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'ptWalletTopup', name, amount:Number(amt), nonce:ptwNonce()}); }catch(e){ r=null; }
   if(!r||!r.ok){ toast((r&&r.err)||'記錄失敗','⚠'); return; }
   toast('已記錄預繳 $'+Number(amt)+'，餘額 $'+r.state.balance,'✓'); renderPt();
 }
 async function ptWalletNewCycle(name){
-  if(!confirm('繳清・開新週期？\n\n上期用剩嘅餘額會自動結轉做新週期起始餘額。')) return;
-  let r; try{ r=await apiPost({action:'ptWalletNewCycle', name}); }catch(e){ r=null; }
+  if(!confirm('繳清・開新週期？\n\n上期用剩嘅餘額會自動結轉做新週期起始餘額，之前嘅堂會收埋。')) return;
+  let r; try{ r=await apiPost({action:'ptWalletNewCycle', name, nonce:ptwNonce()}); }catch(e){ r=null; }
   if(!r||!r.ok){ toast((r&&r.err)||'失敗','⚠'); return; }
   toast('已開新週期，上期結轉 $'+r.carried,'✓'); renderPt();
 }
 async function ptWalletUndo(name){
   if(!confirm('撤銷最後一筆錢包記錄（預繳或開新週期）？')) return;
-  let r; try{ r=await apiPost({action:'ptWalletUndo', name}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({action:'ptWalletUndo', name, nonce:ptwNonce()}); }catch(e){ r=null; }
   if(!r||!r.ok){ toast((r&&r.err)||'失敗','⚠'); return; }
   toast('已撤銷 '+(r.undone&&r.undone.action||''),'✓'); renderPt();
 }
