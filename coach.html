@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-09-ptwallet';
+const FRONTEND_VERSION = 'coach-2026-09-09-ptwallet2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1069,16 +1069,27 @@ async function renderPt(){
         </div>` : `<div style="font-size:13px;color:var(--muted)">✓ 冇未入帳嘅堂</div>`}
       ${(s.billed&&s.billed.length)?`<div style="margin-top:10px">${s.billed.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 2px;font-size:12px;color:var(--muted)"><span>✅ 已入帳 ${b.period}：${b.count} 堂 $${b.fee}</span><button onclick="ptUnbill('${nm}','${b.period}')" style="background:none;border:none;color:#c66;cursor:pointer;font-size:12px;font-family:inherit">取消</button></div>`).join('')}</div>`:''}
     </div>`;
-    // 💰 私訓預繳錢包（wallet 學員，如鄧可澄）：預繳→逐堂扣→繳清開新週期（上期結轉）
-    const w = s.walletState || {balance:0,totalTopup:0,totalDeduct:0,sessionCount:0,sessions:[],topups:[],cycles:[],anyUnset:false,lastCarry:null,lastCycleDate:null};
+    // 💰 私訓預繳錢包（wallet 學員，如鄧可澄）：繳清後上期堂收埋，只顯示本期
+    const w = s.walletState || {balance:0,sessionCount:0,sessions:[],curTopups:[],curTopupSum:0,curDeduct:0,cycles:[],anyUnset:false,lastCarry:null,lastCycleDate:null,cycleCount:0};
     const balCol = w.balance < 0 ? '#c66' : (w.balance>0?'#3aa17e':'var(--text)');
+    const wSess = (w.sessions||[]).slice().sort((a,b)=>a.date<b.date?1:-1);   // 只本期堂（繳清後上期收埋）
+    const wSessList = wSess.map((x,idx)=>{ const d=new Date(x.date+'T00:00:00');
+      return `<div style="display:flex;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--border)">
+        <span style="flex:1;font-size:13px;color:var(--text)">${fmtPtDate(d)}</span>
+        <span style="font-size:12px;color:var(--muted)">$</span>
+        <input type="number" id="ptsf-${i}-${idx}" value="${x.fee||''}" placeholder="費用" min="0" style="width:80px;padding:9px;border-radius:9px;border:1px solid ${x.effFee>0?'var(--border)':'#c66'};background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px">
+        <button onclick="ptSetSessionFee('${nm}','${x.date}',${i},${idx})" style="padding:9px 11px;border-radius:9px;border:none;font-weight:800;background:#2b2b2b;color:#eee;cursor:pointer;font-family:inherit;font-size:12px">存</button>
+      </div>`; }).join('');
+    const hasCarry = (w.cycleCount||0) > 0 && w.lastCarry!=null;
+    const breakdown = hasCarry
+      ? `上期結轉 $${w.lastCarry} ＋ 本期預繳 $${w.curTopupSum} − 本期扣費 $${w.curDeduct}（${w.sessionCount} 堂）`
+      : `預繳 $${w.curTopupSum} − 已上堂 $${w.curDeduct}（${w.sessionCount} 堂）`;
     const walletHtml = `<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)">
       <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">💰 私訓預繳錢包（預繳一筆 → 逐堂自動扣）</div>
       <div style="background:var(--surface2);border-radius:12px;padding:14px;text-align:center;margin-bottom:10px">
         <div style="font-size:12px;color:var(--muted)">目前餘額</div>
         <div style="font-size:30px;font-weight:900;color:${balCol}">$${w.balance}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">預繳 $${w.totalTopup} − 已上堂 $${w.totalDeduct}（${w.sessionCount} 堂）</div>
-        ${w.lastCarry!=null?`<div style="font-size:11px;color:var(--muted)">↩ 上期剩餘結轉：$${w.lastCarry}${w.lastCycleDate?'（'+w.lastCycleDate+'）':''}</div>`:''}
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${breakdown}</div>
         ${w.balance<0?`<div style="font-size:11px;color:#c66;margin-top:3px">餘額不足，請記錄預繳</div>`:''}
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
@@ -1086,10 +1097,10 @@ async function renderPt(){
         <input type="number" id="ptw-amt-${i}" placeholder="今次收到嘅金額" min="0" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px">
         <button onclick="ptWalletTopup('${nm}', ${i})" style="padding:10px 13px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#3aa17e,#1c6f52);color:#fff;cursor:pointer;font-family:inherit;font-size:12px">＋ 入數</button>
       </div>
-      <button onclick="ptWalletNewCycle('${nm}')" style="width:100%;padding:11px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:6px">🔄 繳清・開新週期（上期餘額結轉）</button>
+      <button onclick="ptWalletNewCycle('${nm}')" style="width:100%;padding:11px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:6px">🔄 繳清・開新週期（上期餘額結轉，收埋上期堂）</button>
       <button onclick="ptWalletUndo('${nm}')" style="width:100%;padding:8px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px">↩ 撤銷最後一筆錢包記錄</button>
-      ${unb>0 ? `<div style="font-size:12px;color:var(--muted);margin:8px 0 2px">逐堂扣費（每堂可唔同價，改完即扣餘額）：</div>${unbList}${anyUnset?'<div style="font-size:12px;color:#c66;margin-top:6px">⚠ 有堂未設費用，設咗先會扣</div>':''}` : '<div style="font-size:13px;color:var(--muted)">未有上堂記錄</div>'}
-      ${w.topups && w.topups.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)"><b>預繳記錄：</b>${w.topups.slice().reverse().map(t=>`<div style="padding:2px 0">＋$${t.amt}　${t.date}${t.note?'　'+t.note:''}</div>`).join('')}</div>`:''}
+      ${wSess.length ? `<div style="font-size:12px;color:var(--muted);margin:8px 0 2px">本期逐堂扣費（每堂可唔同價，改完即扣餘額）：</div>${wSessList}${w.anyUnset?'<div style="font-size:12px;color:#c66;margin-top:6px">⚠ 有堂未設費用，設咗先會扣</div>':''}` : '<div style="font-size:13px;color:var(--muted)">本期未有上堂記錄</div>'}
+      ${w.curTopups && w.curTopups.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)"><b>本期預繳記錄：</b>${w.curTopups.slice().reverse().map(t=>`<div style="padding:2px 0">＋$${t.amt}　${t.date}${t.note?'　'+t.note:''}</div>`).join('')}</div>`:''}
     </div>`;
     h += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin:0 0 14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
