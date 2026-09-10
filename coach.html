@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-07-mednote';
+const FRONTEND_VERSION = 'coach-2026-09-09-ptwallet';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1069,6 +1069,28 @@ async function renderPt(){
         </div>` : `<div style="font-size:13px;color:var(--muted)">✓ 冇未入帳嘅堂</div>`}
       ${(s.billed&&s.billed.length)?`<div style="margin-top:10px">${s.billed.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 2px;font-size:12px;color:var(--muted)"><span>✅ 已入帳 ${b.period}：${b.count} 堂 $${b.fee}</span><button onclick="ptUnbill('${nm}','${b.period}')" style="background:none;border:none;color:#c66;cursor:pointer;font-size:12px;font-family:inherit">取消</button></div>`).join('')}</div>`:''}
     </div>`;
+    // 💰 私訓預繳錢包（wallet 學員，如鄧可澄）：預繳→逐堂扣→繳清開新週期（上期結轉）
+    const w = s.walletState || {balance:0,totalTopup:0,totalDeduct:0,sessionCount:0,sessions:[],topups:[],cycles:[],anyUnset:false,lastCarry:null,lastCycleDate:null};
+    const balCol = w.balance < 0 ? '#c66' : (w.balance>0?'#3aa17e':'var(--text)');
+    const walletHtml = `<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)">
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">💰 私訓預繳錢包（預繳一筆 → 逐堂自動扣）</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;text-align:center;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--muted)">目前餘額</div>
+        <div style="font-size:30px;font-weight:900;color:${balCol}">$${w.balance}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">預繳 $${w.totalTopup} − 已上堂 $${w.totalDeduct}（${w.sessionCount} 堂）</div>
+        ${w.lastCarry!=null?`<div style="font-size:11px;color:var(--muted)">↩ 上期剩餘結轉：$${w.lastCarry}${w.lastCycleDate?'（'+w.lastCycleDate+'）':''}</div>`:''}
+        ${w.balance<0?`<div style="font-size:11px;color:#c66;margin-top:3px">餘額不足，請記錄預繳</div>`:''}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">記錄預繳 $</span>
+        <input type="number" id="ptw-amt-${i}" placeholder="今次收到嘅金額" min="0" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px">
+        <button onclick="ptWalletTopup('${nm}', ${i})" style="padding:10px 13px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#3aa17e,#1c6f52);color:#fff;cursor:pointer;font-family:inherit;font-size:12px">＋ 入數</button>
+      </div>
+      <button onclick="ptWalletNewCycle('${nm}')" style="width:100%;padding:11px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:6px">🔄 繳清・開新週期（上期餘額結轉）</button>
+      <button onclick="ptWalletUndo('${nm}')" style="width:100%;padding:8px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px">↩ 撤銷最後一筆錢包記錄</button>
+      ${unb>0 ? `<div style="font-size:12px;color:var(--muted);margin:8px 0 2px">逐堂扣費（每堂可唔同價，改完即扣餘額）：</div>${unbList}${anyUnset?'<div style="font-size:12px;color:#c66;margin-top:6px">⚠ 有堂未設費用，設咗先會扣</div>':''}` : '<div style="font-size:13px;color:var(--muted)">未有上堂記錄</div>'}
+      ${w.topups && w.topups.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)"><b>預繳記錄：</b>${w.topups.slice().reverse().map(t=>`<div style="padding:2px 0">＋$${t.amt}　${t.date}${t.note?'　'+t.note:''}</div>`).join('')}</div>`:''}
+    </div>`;
     h += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin:0 0 14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:18px;font-weight:900;color:var(--text)">${s.name}</div>
@@ -1085,7 +1107,7 @@ async function renderPt(){
       ${markedToday ? `<div style="margin-top:6px;font-size:12px;color:var(--muted);text-align:center">今日已記錄；如補其他日子，揀返日期再撳</div>` : ''}
       ${hasRec ? `<button onclick="ptUndo('${nm}')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit">↩ 撤銷最近一堂</button>` : ''}
       <div style="margin-top:12px">${rows}</div>
-      ${s.bill ? billHtml : ''}
+      ${s.wallet ? walletHtml : (s.bill ? billHtml : '')}
     </div>`;
   });
   box.innerHTML = h;
@@ -1128,6 +1150,25 @@ async function ptSetSessionFee(name, date, i, idx){
   let r; try{ r=await apiPost({action:'pt_setSessionFee', name, date, fee:Number(fee)}); }catch(e){ r=null; }
   if(!r||!r.ok){ toast((r&&r.err)||'儲存失敗','⚠'); return; }
   toast(`已設 ${date} $${Number(fee)}`,'✓'); renderPt();
+}
+async function ptWalletTopup(name, i){
+  const inp=document.getElementById('ptw-amt-'+i); const amt=inp?inp.value:'';
+  if(amt==='' || Number(amt)<=0){ toast('請輸入預繳金額','⚠'); return; }
+  let r; try{ r=await apiPost({action:'ptWalletTopup', name, amount:Number(amt)}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'記錄失敗','⚠'); return; }
+  toast('已記錄預繳 $'+Number(amt)+'，餘額 $'+r.state.balance,'✓'); renderPt();
+}
+async function ptWalletNewCycle(name){
+  if(!confirm('繳清・開新週期？\n\n上期用剩嘅餘額會自動結轉做新週期起始餘額。')) return;
+  let r; try{ r=await apiPost({action:'ptWalletNewCycle', name}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'失敗','⚠'); return; }
+  toast('已開新週期，上期結轉 $'+r.carried,'✓'); renderPt();
+}
+async function ptWalletUndo(name){
+  if(!confirm('撤銷最後一筆錢包記錄（預繳或開新週期）？')) return;
+  let r; try{ r=await apiPost({action:'ptWalletUndo', name}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'失敗','⚠'); return; }
+  toast('已撤銷 '+(r.undone&&r.undone.action||''),'✓'); renderPt();
 }
 async function ptBill(name, i){
   const sel=document.getElementById('ptbp-'+i); const period=sel?sel.value:'';
