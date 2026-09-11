@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-08-trial-btn';
+const FRONTEND_VERSION='enroll-2026-09-11-referrer';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -272,7 +272,7 @@ const PFIELDS=[
     multi:['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'], none:'以上不適用'},
   {k:'special',  h:'特殊需要', label:'特殊需要 / 要求（如無請填「無」）', req:1},
   {k:'source',   h:'認識途徑', label:'怎樣認識我哋？', sel:['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他'], req:1},
-  {k:'referrer', h:'推薦人',   label:'推薦人中文全名（選填，推薦人享推薦獎賞）'}
+  {k:'referrer', h:'推薦人',   label:'推薦人中文全名或電話（選填，推薦人可享 $100 學費優惠；唔知全名可填電話）'}
 ];
 
 /* ════ 課程介紹（同官網一致：COURSE_ITEMS + COURSE_DETAIL）════ */
