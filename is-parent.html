@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-11-refwho';
+const FRONTEND_VERSION='parent-2026-09-11-autolatest';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1851,7 +1851,8 @@ function showUpdateBanner(latest){
 document.addEventListener('DOMContentLoaded', async function(){
   installManifest();
   try{ var _vb=document.getElementById('ver-badge'); if(_vb) _vb.textContent='v'+FRONTEND_VERSION; }catch(e){}   // 顯示版本畀老闆一眼核對
-  checkForUpdate();
+  // 老闆 2026-09-11：一打開就要係最新版。先【await】比對版本（有新版即 cache-bust 重載）；最多等 2 秒，離線唔卡死。
+  await Promise.race([checkForUpdate(), new Promise(function(res){ setTimeout(res, 2000); })]);
   renderLogin();
   syncHolidays();
 });
