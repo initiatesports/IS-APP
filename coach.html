@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-09-ptwallet3';
+const FRONTEND_VERSION = 'coach-2026-09-11-pttypes';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1035,14 +1035,34 @@ async function renderPt(){
   const cap = r.cap || 10, today = r.today || '';
   let h = `<div style="font-size:13px;color:var(--muted);margin:12px 4px 16px;line-height:1.65">⭐ 私人訓練自成一格，與恆常班分開。每位學員各自 ${cap} 堂一個週期，夠數自動開新一期。上完堂即撳「今日上咗堂」。</div>`;
   (r.students || []).forEach((s, i) => {
-    const done = s.done || 0, pct = Math.min(100, Math.round(done / cap * 100));
+    // 私訓卡按學員類型顯示：wallet(預繳錢包,如鄧可澄)跟繳清週期 / package(套票,如甘卓熹20節)用套票節數 / default(10堂一期)照舊
+    const wlt = s.wallet ? (s.walletState||{sessions:[],sessionCount:0,cycleCount:0}) : null;
+    const pkg = (!s.wallet && s.packages && s.packages.length) ? s.packages.find(p=>p&&p.remaining!=null) : null;
+    let done, capN, periodLabel, progLabel, curSrc;
+    if (wlt) {
+      curSrc = (wlt.sessions||[]).map(x=>({date:x.date, no:x.no}));
+      done = wlt.sessionCount||0; capN = 0;
+      periodLabel = `錢包・第 ${(wlt.cycleCount||0)+1} 週期`;
+      progLabel = `本期 ${done} 堂`;
+    } else if (pkg) {
+      curSrc = (s.sessions||[]);
+      done = pkg.used||0; capN = pkg.sessions||cap;
+      periodLabel = `套票 ${pkg.sessions} 節`;
+      progLabel = `${done} / ${capN} 堂（剩 ${pkg.remaining}）`;
+    } else {
+      curSrc = (s.curSessions||[]);
+      done = s.done||0; capN = cap;
+      periodLabel = `第 ${s.cycle||1} 期`;
+      progLabel = `${done} / ${capN} 堂`;
+    }
+    const pct = capN>0 ? Math.min(100, Math.round(done / capN * 100)) : (done>0?100:8);
     const markedToday = (s.sessions || []).some(x => x.date === today);
-    const cur = (s.curSessions || []).slice().sort((a,b) => a.date < b.date ? 1 : -1);  // 最新喺上
+    const cur = curSrc.slice().sort((a,b) => a.date < b.date ? 1 : -1);  // 最新喺上
     const rows = cur.map(x => { const d = new Date(x.date + 'T00:00:00');
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-top:1px solid var(--border)"><span>${fmtPtDate(d)}</span><span style="font-weight:800;color:#e0a93a">第 ${x.no} 堂</span></div>`;
     }).join('') || `<div style="padding:10px 2px;color:var(--muted);font-size:13px">本期暫未有記錄</div>`;
     const nm = s.name.replace(/'/g, "\\'");
-    const hasRec = (s.curSessions && s.curSessions.length);
+    const hasRec = cur.length;
     // 私訓收費：逐堂設費用（每堂可唔同）+ 加總入帳到某期 + 已入帳歷史
     const rate = s.rate || 0, unb = s.unbilledCount || 0, unbFee = s.unbilledFee || 0, anyUnset = !!s.unbilledAnyUnset;
     const curP = r.curPeriod || '', nextP = ptNextPeriod(curP);
@@ -1105,11 +1125,11 @@ async function renderPt(){
     h += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin:0 0 14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="font-size:18px;font-weight:900;color:var(--text)">${s.name}</div>
-        <div style="font-size:12px;color:var(--muted)">第 ${s.cycle || 1} 期</div>
+        <div style="font-size:12px;color:var(--muted)">${periodLabel}</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px">
         <div style="flex:1;height:10px;border-radius:6px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
-        <div style="font-weight:800;color:#e0a93a;white-space:nowrap">${done} / ${cap} 堂</div>
+        <div style="font-weight:800;color:#e0a93a;white-space:nowrap">${progLabel}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="date" id="ptd-${i}" value="${today}" max="${today}" style="flex:0 0 auto;padding:13px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">
