@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-11-pttypes';
+const FRONTEND_VERSION = 'coach-2026-09-11-autolatest';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -3182,7 +3182,9 @@ function showUpdateBanner(latest){
 }
 document.addEventListener('DOMContentLoaded', async function(){
   installManifest();
-  checkForUpdate();   // 非阻塞：背景比對版本,有新版彈橫額
+  // 老闆 2026-09-11：一打開就要係最新版。先【await】比對版本（有新版即 cache-bust 重載，喺用之前就更新好）；
+  //   最多等 2 秒，離線／慢網唔會卡死開頁（timeout 後照用現有版本，背景 banner 仍會兜底）。
+  await Promise.race([checkForUpdate(), new Promise(function(res){ setTimeout(res, 2000); })]);
   if(COACH_PASS_RT){
     document.getElementById('coach-gate').style.display='none';
     showScreen('home', false); await loadFromSheets(); checkHealth();
