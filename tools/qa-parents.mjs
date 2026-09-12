@@ -396,7 +396,10 @@ async function sweep(label, exec, rows, withPin) {
       for (const x of (au.anomalies || [])) {
         const who = x.name + " " + (x.cid || x.cls || "");
         for (const f of (x.flags || [])) {
-          if (f.indexOf("owed=") >= 0 && f.indexOf("應") >= 0) add("OWED", sys, who, f);   // owed 錯計＝真 bug
+          // 「owed=0 但補堂閘仲開住」＝反方向漂移（家長端唔顯示待補、閘卻仍然畀約＝白送一堂），
+          // 2026-09-12 後端 audit 新增，同 owed 錯計一樣屬真 bug。唔喺度分類就會跌落 else→ERR，
+          // 被當成後端／網絡故障誤報（[[frontend-backend-pair-verify]]）。
+          if (f.indexOf("owed=") >= 0 && (f.indexOf("應") >= 0 || f.indexOf("閘仲開住") >= 0)) add("OWED", sys, who, f);   // owed 錯計＝真 bug
           else if (f.indexOf("已補堂") >= 0) add("MKMADEUP", sys, who, f);                  // 提前補堂＝核對
           // 「owed=N 但乾跑所有時段都約唔到補堂」＝數冇計錯，但學生**真係約唔到位**（補堂限期已過／
           // 冇剩餘時段）→ 家長實質蝕咗一堂，屬營運決定（放寬 MK_DEADLINE_EXT9 或補償），唔係登入問題。
