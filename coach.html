@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-13-audit';
+const FRONTEND_VERSION = 'coach-2026-09-13-audit2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1134,6 +1134,12 @@ async function renderPt(){
       </div>
       <button onclick="ptWalletNewCycle('${nm}')" style="width:100%;padding:11px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:6px">🔄 繳清・開新週期（上期餘額結轉，收埋上期堂）</button>
       <button onclick="ptWalletUndo('${nm}')" style="width:100%;padding:8px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px">↩ 撤銷最後一筆錢包記錄</button>
+      <div style="display:flex;gap:8px;align-items:center;margin:8px 0">
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">預設每堂 $</span>
+        <input type="number" id="ptwr-${i}" value="${w.rate||''}" placeholder="每堂費用" min="0" style="flex:1;padding:9px;border-radius:9px;border:1px solid ${(!w.rate)?'#c66':'var(--border)'};background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px">
+        <button onclick="ptSetWalletRate('${nm}', ${i})" style="padding:9px 12px;border-radius:9px;border:none;font-weight:800;background:var(--surface2);color:var(--text);border:1px solid var(--border);cursor:pointer;font-family:inherit;font-size:12px">設定</button>
+      </div>
+      ${!w.rate?'<div style="font-size:11.5px;color:#c66;margin:-2px 0 6px">⚠ 未設預設每堂費用，未逐堂設費嘅堂會扣 $0</div>':''}
       ${wSess.length ? `<div style="font-size:12px;color:var(--muted);margin:8px 0 2px">本期逐堂扣費（每堂可唔同價，改完即扣餘額）：</div>${wSessList}${w.anyUnset?'<div style="font-size:12px;color:#c66;margin-top:6px">⚠ 有堂未設費用，設咗先會扣</div>':''}` : '<div style="font-size:13px;color:var(--muted)">本期未有上堂記錄</div>'}
       ${w.curTopups && w.curTopups.length?`<div style="margin-top:12px;font-size:12px;color:var(--muted)"><b>本期預繳記錄：</b>${w.curTopups.slice().reverse().map(t=>`<div style="padding:2px 0">＋$${t.amt}　${t.date}${t.note?'　'+t.note:''}</div>`).join('')}</div>`:''}
     </div>`;
@@ -1198,12 +1204,27 @@ async function ptSetSessionFee(name, date, i, idx){
   toast(`已設 ${date} $${Number(fee)}`,'✓'); renderPt();
 }
 function ptwNonce(){ return Date.now()+'-'+Math.random().toString(36).slice(2,9); }   // 冪等 nonce：防 apiPost 重試令錢重複
+let _ptwBusy=false;   // 🔒 2026-09-13 審計#11(a)：in-flight 閘，防 45s abort 後人手再按造第二筆 $X
 async function ptWalletTopup(name, i){
+  if(_ptwBusy){ toast('處理緊，請等一等…','⏳'); return; }
   const inp=document.getElementById('ptw-amt-'+i); const amt=inp?inp.value:'';
   if(amt==='' || Number(amt)<=0){ toast('請輸入預繳金額','⚠'); return; }
-  let r; try{ r=await apiPost({action:'ptWalletTopup', name, amount:Number(amt), nonce:ptwNonce()}); }catch(e){ r=null; }
-  if(!r||!r.ok){ toast((r&&r.err)||'記錄失敗','⚠'); return; }
-  toast('已記錄預繳 $'+Number(amt)+'，餘額 $'+r.state.balance,'✓'); renderPt();
+  // 🔒 審計#11(a)：topup 係三個寫入裡面唯一冇 confirm 嘅（多打個 0 即刻入帳）。加確認。
+  if(!confirm(`確定記錄「${name}」預繳 $${Number(amt)}？\n\n只可以喺真係收到錢先撳。如唔肯定，撳取消。`)) return;
+  _ptwBusy=true;
+  const nonce=ptwNonce();   // 一次 click 一個 nonce；abort 唔自動重試（防雙寫）
+  let r; try{ r=await apiPost({action:'ptWalletTopup', name, amount:Number(amt), nonce}); }catch(e){ r=null; }
+  finally{ _ptwBusy=false; }
+  if(!r){ toast('連線唔穩，未肯定記錄咗未——請睇返餘額先，唔好即刻重按（後端可能已寫入）','⚠'); renderPt(); return; }
+  if(!r.ok){ toast((r&&r.err)||'記錄失敗','⚠'); return; }
+  toast((r.dedupe?'呢筆已記錄過（冇重複）':'已記錄預繳 $'+Number(amt))+'，餘額 $'+r.state.balance,'✓'); renderPt();
+}
+async function ptSetWalletRate(name, i){   // 🔒 審計#11(c)：設錢包學員預設每堂費率（後端已放寬允許 wallet 學員）
+  const inp=document.getElementById('ptwr-'+i); const rate=inp?inp.value:'';
+  if(rate==='' || Number(rate)<0){ toast('請輸入每堂費用','⚠'); return; }
+  let r; try{ r=await apiPost({action:'pt_setRate', name, rate:Number(rate)}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'設定失敗','⚠'); return; }
+  toast('已設預設每堂 $'+Number(rate),'✓'); renderPt();
 }
 async function ptWalletNewCycle(name){
   if(!confirm('繳清・開新週期？\n\n上期用剩嘅餘額會自動結轉做新週期起始餘額，之前嘅堂會收埋。')) return;
