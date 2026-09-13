@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-13-audit2';
+const FRONTEND_VERSION='parent-2026-09-13-audit3';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1142,7 +1142,9 @@ function sessRow(s,cid,madeUp){
   else if(d<today)pill=`<span class="pill p-up">${L('已過','Past')}</span>`;
   const v=venueAt(s.date,cid);
   const vLine=v?`<div class="vn">📍 ${v.centre||''}${v.room?'・'+v.room:''}</div>`:'';
-  const tLine=s.time?`<div class="vn" style="color:#0E8A96;font-weight:800">⏰ ${LANG==='en'?'Special time':'特別時間'}：${s.time}</div>`:'';
+  // 🔒 2026-09-13 審計P5：常規 session 卡都 fallback taTime(client map)，唔淨靠後端 embed s.time，同補堂卡一致(避免後端某情況冇 embed→常規堂靜靜漏顯示特別時間)。taTime 只回 override，冇就空。
+  const _sTime=s.time||taTime(cid,s.date);
+  const tLine=_sTime?`<div class="vn" style="color:#0E8A96;font-weight:800">⏰ ${LANG==='en'?'Special time':'特別時間'}：${_sTime}</div>`:'';
   return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span>${tLine}${vLine}</span>${pill}</div>`;
 }
 function socialCard(){
@@ -1423,9 +1425,14 @@ async function submitPin(){
   const btn=$('pin-go'); btn.disabled=true; btn.textContent=t('submitting');
   // 🔒 2026-09-13 審計#19：PIN 一定要兩個後端一齊改。以前只打 #4 → 純運動班家庭改完 PIN，refresh 用新 PIN
   //   去 #SA 登入(冇 PIN row)即失敗 → 仔女運動班永久消失。兩邊各 set：邊個有呢個家庭邊個成功，任一成功即算改到。
-  let r, rSA; try{ [r,rSA]=await Promise.all([ api('setPin',{name,code:cur,newPin:n1}), api('setPin',{name,code:cur,newPin:n1,_sa:true}) ]); }catch(e){ r=null; rSA=null; }
-  const _pinOk=(r&&r.ok)||(rSA&&rSA.ok);
+  // 🔒 2026-09-13 審計：用 allSettled，一邊 throw(網絡/timeout/非JSON)唔會冚住另一邊嘅成功→防 PIN desync(#4新#SA舊→失運動班)。
+  const _st=await Promise.allSettled([ api('setPin',{name,code:cur,newPin:n1}), api('setPin',{name,code:cur,newPin:n1,_sa:true}) ]);
+  const r=_st[0].status==='fulfilled'?_st[0].value:null, rSA=_st[1].status==='fulfilled'?_st[1].value:null;
+  const _ok4=!!(r&&r.ok), _okSA=!!(rSA&&rSA.ok);
+  const _pinOk=_ok4||_okSA;
   if(!_pinOk){ btn.disabled=false; btn.textContent=t('pinSubmit'); return toast((r&&r.err)||(rSA&&rSA.err)||t('pinCurBad')); }
+  // 一成一未確認(另一邊 throw/未 ok)→提示，免以為全成功而 desync
+  if((_ok4&&_st[1].status==='rejected')||(_okSA&&_st[0].status==='rejected')) toast('已更新（其中一個系統未確認，如登入有問題請再試一次）','⚠');
   S.family.last4=n1; if(S.session) S.session.last4=n1;
   closeSheet();
   showReceipt(t('pinOk'),[t('pinSd')],'');
@@ -1655,9 +1662,11 @@ function openMakeup(ki,ci){
   const _mkInfoKey=c.key||c.sport; if(MK_INFO[_mkInfoKey]){ openMakeupInfo(c, owed, MK_INFO[_mkInfoKey]); return; }
   // 補堂限期 = 最舊「未補」缺席日之限期。⚠️ 必須用 c.mkExt 逐筆限期覆寫（教練延期），
   // 否則延咗期嘅學生會照用「缺席日+2個月」原限期 → 已過期 → 篩走所有 slot → 錯報「冇可補時段」。
-  const leaves=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
-  const madeUp=Math.max(0, leaves.length-owed);
-  const oldestUnmade=leaves[madeUp]||leaves[leaves.length-1];
+  // 🔒 2026-09-13 審計：用 makeups[].from 判已補(同 childHistory/classCard)，唔靠 slice(len-owed) 猜最舊。
+  //   後端 6d279a9 之後可補「非最舊」嘅假 → slice 會揀錯堂、顯示錯限期兼放寬 candidate 上限。
+  const _bookedFromMk=new Set((c.makeups||[]).filter(m=>m.from && m.status!=='缺席' && m.status!=='停課').map(m=>m.from));
+  const _uncovered=(c.sessions||[]).filter(s=>s.status==='請假' && !s.madeUp && !_bookedFromMk.has(s.date)).map(s=>s.date).sort();
+  const oldestUnmade=_uncovered[0]||null;
   const mkExt=c.mkExt||{};
   const deadline=oldestUnmade?(mkExt[oldestUnmade]||addMonths(oldestUnmade,CONFIG.MAKEUP_MONTHS||2)):(c.deadline||CONFIG.TERM_END);
   const cands=[];

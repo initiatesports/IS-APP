@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-13-audit5';
+const FRONTEND_VERSION = 'coach-2026-09-13-audit6';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -765,6 +765,7 @@ function applyCoachLoadData(data){
     });
   }
   XFER_JOIN_MAP = data.xferJoin || {};   // 姓名|cid → 生效日：此日之前唔喺該班點名清單
+  TIMEADJ_MAP = data.timeAdj || {};      // 🔒 審計P3：特別時間 override {cid|date:time}
   PERIOD_VOID_MAP = data.periodVoid || {};
   CLASS_END_MAP = data.classEnd || {};   // 停辦班 cid→最後日 → 班列表隱藏
   TRANSFERS_MAP = {};
@@ -807,6 +808,7 @@ function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
     absences:   [].concat(a.absences||[],   b.absences||[]),
     medNotes:   [].concat(a.medNotes||[],   b.medNotes||[]),
     xferJoin:      Object.assign({}, a.xferJoin||{},      b.xferJoin||{}),      // key=name|cid，唔撞
+    timeAdj:       Object.assign({}, a.timeAdj||{},       b.timeAdj||{}),       // 🔒 審計P3：特別時間 map {cid|date:time}，兩後端合併(cid 唔撞)
     periodVoid:    pv,
     transfers:  [].concat(a.transfers||[],  b.transfers||[]),
     studentLeave:  Object.assign({}, a.studentLeave||{},  b.studentLeave||{}),  // key=name|cid，唔撞
@@ -1338,7 +1340,7 @@ function genStuReminder(name){
   const pend=getPendingActive(name), exp=getPending(name).filter(x=>isExpired(x.deadline));
   const lbl=(cid)=>{ const c=CLASSES[cid]; return c?c.dayZh+'班':cid; };
   let msg=`INITIATE SPORTS 補堂提醒 🔔\n家長你好，${name} `;
-  if(pend.length){ msg+=`仲有 ${pend.length} 堂待補：\n`+pend.map(x=>`• ${lbl(x.classId)}（原 ${x.absDate?x.absDate.slice(5):''} 請假）— 請喺 ${x.deadline?x.deadline.slice(5):''} 前補返`).join('\n'); }
+  if(pend.length){ msg+=`仲有 ${pend.length} 堂待補：\n`+pend.map(x=>`• ${lbl(x.classId)}（原 ${x.absDate?fmtDate(x.absDate):''} 請假）— 請喺 ${x.deadline?fmtDate(x.deadline):''} 前補返`).join('\n'); }   // 🔒 審計P2：DD/MM/YYYY
   else { msg+=`暫時冇待補堂 ✓`; }
   if(exp.length){ msg+=`\n⚠️ 另有 ${exp.length} 堂已過期未能補。`; }
   msg+=`\n\n補堂好簡單：喺家長網頁㩒「申請補堂」揀返一堂即可 🙏`;
@@ -1347,10 +1349,13 @@ function genStuReminder(name){
 // genMakeupBroadcast（補堂到期廣播提醒）已移除（老闆 2026-08-26）：補堂到期係家長責任，唔需要教練端提醒／廣播。
 function genTodayClassMsg(){
   const dow=hkDow(), today=todayStr();
-  const cls=Object.entries(CLASSES).filter(([id])=>CLASS_DOW[id]===dow);
+  // 🔒 2026-09-13 審計P1：合併運動班(#SA)+套當日特別時間(taTime_)+地點(venueAt_)+格式。以前只 #4、用基準時間、漏地點。
+  const cls=Object.entries(ALL_CLASSES).filter(([id,c])=>anyDow(id)===dow && realStuCount_(c)>=4 && !isDiscontinued_(id))
+                  .sort((a,b)=>classStartMin_(a[1])-classStartMin_(b[1]));
   if(!cls.length){ toast('今日冇堂','ℹ'); return; }
-  let msg=`INITIATE SPORTS 今日課堂提醒 ☀️\n${(()=>{const n=new Date(),p=x=>String(x).padStart(2,'0');return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+'（星期'+'日一二三四五六'[n.getDay()]+'）';})()}\n`;   // DD/MM/YYYY
-  msg+=cls.map(([id,c])=>`• ${c.time}`).join('\n');
+  const dstr=(()=>{const n=new Date(),p=x=>String(x).padStart(2,'0');return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+'（星期'+'日一二三四五六'[n.getDay()]+'）';})();
+  let msg=`INITIATE SPORTS 今日課堂提醒 ☀️\n${dstr}\n`;
+  msg+=cls.map(([id,c])=>{ const sp=(isSA(id)&&c.sport)?c.sport+' ':''; const tm=taTime_(id,today); const ven=venueAt_(id,today); return `\n• ${sp}${tm}${ven?('　📍'+ven):''}`; }).join('');
   msg+=`\n\n記得準時返嚟，遲到請早通知 🙏`;
   copyMsg_(msg,'今日課堂文案已複製');
 }
@@ -1513,11 +1518,16 @@ function renderManualLeaveMakeup(){
   let host=document.getElementById('home-manualmk');
   if(!host){ const anchor=document.getElementById('home-timeadj')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-manualmk'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
+  // 🔒 2026-09-13 老闆要求：打姓即可揀學生，唔使每次打全名。用原生 datalist typeahead，
+  //   由跳繩+運動班全部名冊(ALL_CLASSES)收集去重(剔測試生)。打「陳」即彈晒陳X揀。
+  const _mlNames=[...new Set(Object.keys(ALL_CLASSES||{}).flatMap(k=>((ALL_CLASSES[k]&&ALL_CLASSES[k].students)||[])))].filter(n=>n&&!/示範|測試/.test(n)).sort();
+  const _mlDatalist='<datalist id="ml-students">'+_mlNames.map(n=>`<option value="${String(n).replace(/"/g,'&quot;')}"></option>`).join('')+'</datalist>';
   host.innerHTML=`
   <div class="section-header">✍️ 手動請假／補堂（WhatsApp 用）</div>
   <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">家長用 WhatsApp 請假／補堂時，喺呢度打學生名 → 揀日期 → 揀當日班別 → 撳「補堂」或「請假」。</div>
-    <input id="ml-name" placeholder="學生姓名（例：陳大文）" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">家長用 WhatsApp 請假／補堂時，喺呢度打學生【姓】即彈名單揀 → 揀日期 → 揀當日班別 → 撳「補堂」或「請假」。</div>
+    ${_mlDatalist}
+    <input id="ml-name" list="ml-students" placeholder="打個姓即彈名單（例：陳 → 陳大文…）" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
     <input type="date" id="ml-date" value="${todayStr()}" onchange="mlLoadClasses()" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
     <select id="ml-cls" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:10px;font-family:inherit;font-size:14px"><option value="">— 先揀日期 —</option></select>
     <div style="display:flex;gap:8px">
@@ -1606,6 +1616,9 @@ async function gfRun(dry){
   if(!dry){ toast(period+' 學費已生成 ✓','✓'); try{ await loadFromSheets(); }catch(e){} }
 }
 let VENUES_CACHE=[];
+let TIMEADJ_MAP={};   // 🔒 審計P3：特別時間 override {cid|date:time}（由 load 帶入，教練端顯示要套）
+function taTime_(cid,date){ try{ return TIMEADJ_MAP[cid+'|'+date] || ((anyClass(cid)||{}).time) || ''; }catch(e){ return (anyClass(cid)||{}).time||''; } }
+function venueAt_(cid,date){ try{ var v=VENUES_CACHE.find(function(x){ return x.date===date && ((x.cid||'')===cid||(x.cid||'')===''); }); return v?((v.centre||'')+(v.room?(' '+v.room):'')):''; }catch(e){ return ''; } }
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
 const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室','主場館'];
 const VN_INS='width:100%;padding:10px;border-radius:9px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px;margin-bottom:8px';
@@ -1914,7 +1927,8 @@ function openRoll(classId){
 
   const cls = anyClass(classId);   // 🔀 跳繩或運動班
   if(!cls){ return; }
-  document.getElementById('header-title-text').textContent = (isSA(classId)&&cls.sport?cls.sport+' ':'') + cls.dayZh + ' ' + cls.time;
+  // 🔒 2026-09-13 審計P3：header 用當日特別時間(taTime_)，唔再淨用基準 cls.time（教練揀咗特別日期入嚟仍見舊時間→以為冇改到）。
+  document.getElementById('header-title-text').textContent = (isSA(classId)&&cls.sport?cls.sport+' ':'') + cls.dayZh + ' ' + taTime_(classId, rollSelectedDate);
   document.getElementById('header-subtitle-text').textContent = (cls.students||[]).length + ' 位學生';
 
   renderDatePills();
@@ -1955,7 +1969,8 @@ function getRollStudents(classId, dateStr){
   return base;
 }
 function isMakeupVisitor(classId, name){
-  return !!(CLASSES[classId] && CLASSES[classId].students.indexOf(name) < 0);
+  var _c=anyClass(classId);   // 🔒 審計(低)：用 anyClass 令運動班(#SA) cid 都認得，否則 SA 班永遠回 false、唔出「↩補堂」badge
+  return !!(_c && (_c.students||[]).indexOf(name) < 0);
 }
 function changeMonth(delta){
   let { year, month } = rollViewMonth;
@@ -1972,6 +1987,8 @@ function changeMonth(delta){
 function selectDate(dateStr){
   if(rollDirty && dateStr!==rollSelectedDate && !confirm('呢一堂有未儲存嘅點名，切去第二日會流失。要放棄未存嘅改動？')) return;
   rollSelectedDate = dateStr;
+  // 🔒 審計P3：切日更新 header 時間，反映該日特別時間 override。
+  try{ const _c=anyClass(currentClass); if(_c){ document.getElementById('header-title-text').textContent=(isSA(currentClass)&&_c.sport?_c.sport+' ':'')+_c.dayZh+' '+taTime_(currentClass, dateStr); } }catch(e){}
   renderDatePills();
   loadRollSession();
 }
@@ -2075,7 +2092,7 @@ function renderRollTable(){
       // 只認未過限期嘅請假（同後端 classesFor_ 配對一致）。之前用 pendingAll（含過期）→ 會顯示
       // 早已過期嘅缺席日（例：梁正宇補堂被標「補 1/5（5月1日）的堂」，但 5/1 限期 7/20 早過）。2026-08-24 修
       const active = getPendingActive(name, currentClass).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 審計#10：本班
-      if (active.length > 0) makeupHint = `<div style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(active[0].absDate)} 的堂</div>`;
+      if (active.length > 0) makeupHint = `<div class="roll-mk-hint" style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(active[0].absDate)} 的堂</div>`;   // 🔒 審計(低)：加專屬 class，令 setRoll 清提示唔會殘留
     }
     const cardCls = st==='absent'?'is-absent':st==='noshow'?'is-noshow':st==='makeup'?'is-makeup':st==='exempt'?'is-exempt':st==='present'?'is-present':'';
     return `
@@ -2357,10 +2374,11 @@ async function renderFees(){
   let r=_readCache['fees'];
   if(!r){
     wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
-    let rSA;
-    try{ [r,rSA]=await Promise.all([ apiPost({action:'feesAll', coachPass:cpass()}), apiPostUrl_(SA_API_URL,{action:'feesAll'}) ]); }catch(e){ r=null; }   // 🔀 審計#5：合併運動班學費
+    // 🔒 2026-09-13 審計：唔再合併 #SA feesAll。運動班學費行報名系統收(冇 genPeriod fee row，SA feesAll 空)，
+    //   而繳費頁嘅核實/調整寫入(verifyPay/setFeeAdj/verifyAddon)冇 cid 一律路由 #4 → 若顯示 SA 行、撳核實會核錯
+    //   #4 同名家庭學費(黃玥晴/劉家頤式撞名)。SA 收費由報名系統管，唔喺呢頁 → 只讀 #4，除誤核風險。
+    try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
     if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
-    if(rSA&&rSA.ok&&Array.isArray(rSA.fees)&&rSA.fees.length) r=Object.assign({},r,{fees:(r.fees||[]).concat(rSA.fees)});
     _readCache['fees']=r;   // 快取；任何寫入動作會自動清（見 apiPost）
   }
   FEES_DATA=r.fees||[];
