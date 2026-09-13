@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-13-audit4';
+const FRONTEND_VERSION = 'coach-2026-09-13-audit5';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1482,8 +1482,9 @@ async function renderMedNoteVerify(){
   let host=document.getElementById('home-mednote');
   if(!host){ const anchor=document.getElementById('home-returns')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-mednote'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
-  let r; try{ r=await apiPost({action:'pendingMedNotes'}); }catch(e){ r=null; }
-  MNV_LIST=(r&&r.ok&&r.list)?r.list:[];
+  // 🔀 2026-09-13：合併運動班(#SA)待核實醫生紙(老闆決定運動班都要教練核實)。verifyMedNote 已按 x.cid 路由。
+  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'pendingMedNotes'}), apiPostUrl_(SA_API_URL,{action:'pendingMedNotes'}) ]); }catch(e){ r=null; rSA=null; }
+  MNV_LIST=[].concat((r&&r.ok&&r.list)?r.list:[], (rSA&&rSA.ok&&rSA.list)?rSA.list:[]);
   if(!MNV_LIST.length){ host.innerHTML=''; return; }   // 冇待核實就唔顯示
   host.innerHTML=`<div class="section-header">🩺 病假紙核實（${MNV_LIST.length}）</div>
   <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
