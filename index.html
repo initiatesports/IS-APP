@@ -515,9 +515,13 @@ function tVerify(){
     +'<div style="display:flex;gap:10px;margin-top:24px"><input id="certIn" value="'+esc(S.certQ)+'" oninput="S.certQ=this.value" onkeydown="if(event.key===\'Enter\')doVerify()" placeholder="例：IS-XXXXX" style="flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid rgba(62,207,207,0.3);color:#fff;padding:14px 16px;font-size:15px;font-family:inherit;outline:none"><button onclick="doVerify()" style="background:#3ECFCF;color:#0F1A28;border:none;cursor:pointer;padding:0 26px;font-weight:900;font-size:14px;font-family:inherit;'+chipSkew+';flex-shrink:0">'+skewIn('驗證')+'</button></div>'
     +result+'</div>';
 }
+// 🔒 2026-09-13 審計：本地比對鏡射後端 certNorm_（大寫＋剝非英數＋容許省略 IS 前綴），
+//   令家長打變體（is-mslc3 / IS MSLC3 / mslc3）離線都對得上硬編證書，唔止靠後端 fallback 正規化。
+function certKey_(s){ var k=String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); return k.indexOf('IS')===0?k:('IS'+k); }
 function doVerify(){
   var q=(S.certQ||'').trim().toUpperCase(); if(!q) return;
-  var local=CERTS.find(function(c){return c.no===q;});
+  var qk=certKey_(q);
+  var local=CERTS.find(function(c){return c.no===q || certKey_(c.no)===qk;});
   if(local){ S.certResult=local; render(); return; }
   // 🔒 2026-09-13 審計#30/#31：本地(含 CMS cert_registry)冇 → 問後端 certGrade，令日後發出／註冊嘅證書
   //   都查到，唔會永遠凍結喺硬編 17 張。certGrade 唯讀、gated by 證書編號本身、只回該生。
