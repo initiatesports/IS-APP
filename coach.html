@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-11-autolatest';
+const FRONTEND_VERSION = 'coach-2026-09-13-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -717,6 +717,15 @@ async function apiPost(body){
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
   return j;
 }
+// 🔀 2026-09-13 審計#3/#4/#5：強制指定 backend post（畀「跨全班」操作 —— 今日全部班停課／生成全部學費／
+//   今日總點名 —— 冇單一 cid，要兩個 backend 各打一次，唔可以淨落 #4，否則運動班盲）。失敗回 null。
+async function apiPostUrl_(url, body){
+  const payload = Object.assign({}, body);
+  if (payload.coachPass === undefined) payload.coachPass = cpass();
+  const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
+  try{ const res = await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal }); return await res.json(); }
+  catch(e){ return null; } finally{ clearTimeout(tm); }
+}
 
 // C2：敏感檔案（付款截圖/醫生紙）已改私有,唔可以直接 <a href=drive>。用教練密碼經 getSecureFile 攞 base64 再開。
 async function viewSecureFile(ref){
@@ -780,7 +789,11 @@ function applyCoachLoadData(data){
 function saveCoachLoad(data){ try{ localStorage.setItem('is_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
 function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('is_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
 // 🔀 #SA load（獨立 fetch；失敗當空，唔阻跳繩載入）
-async function _saLoad_(){ try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000); try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); } }catch(e){ return {}; } }
+async function _saLoad_(){ try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000); try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal}); const j=await r.json();
+  // 🔒 2026-09-13 審計#20：一定要睇 ok。以前失敗/超時/密碼唔同步只 return {}，令合併結果「完全成功但運動班全部空」
+  //   兼亮綠燈兼寫入快取（下次秒開一樣冇運動班），教練喺綠燈之下用殘缺名冊點名。而家明確標 __saFail。
+  if(!j || j.err || j.error || j.ok===false){ return {__saFail:true, __saErr:String((j&&(j.err||j.error))||'load 回應非 ok')}; }
+  return j; } finally{ clearTimeout(tm); } }catch(e){ return {__saFail:true, __saErr:String((e&&e.message)||e)}; } }
 // 合併兩個 backend 嘅 load（cid 唔撞）。periodVoid 係「期數→名單」，唔可以覆蓋要 union 名單。
 function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
   const pv={}; [a.periodVoid||{}, b.periodVoid||{}].forEach(m=>Object.keys(m).forEach(p=>{ pv[p]=(pv[p]||[]).concat(m[p]||[]); }));
@@ -805,11 +818,13 @@ async function loadFromSheets(){
   try{
     const [d4, dSA] = await Promise.all([ apiPost({ action:'load' }), _saLoad_() ]);   // 🔀 兩個 backend 各拉一次，合併
     if (d4.error || d4.err) throw new Error(d4.error || d4.err);
-    const data = _mergeLoad_(d4, dSA);               // cid 唔撞→合併唔會互相清走出席
+    const saOk = !(dSA && dSA.__saFail);              // 🔒 審計#20：SA 失敗唔當有效
+    const data = _mergeLoad_(d4, saOk ? dSA : {});   // cid 唔撞→合併唔會互相清走出席
     applyCoachLoadData(data);
-    saveCoachLoad(data);                              // 存快取，下次入密碼秒開
+    if (saOk) saveCoachLoad(data);                    // 🔒 審計#20：SA 載入失敗就唔好把「冇運動班」殘缺狀態寫入快取
     CLOUD_LOADED = true;
-    setSyncIndicator('ok');
+    setSyncIndicator(saOk ? 'ok' : 'error');          // 🔒 審計#20：運動班載入失敗 → 唔亮全綠
+    if (!saOk) toast('運動班資料載入失敗，運動班班別可能顯示唔齊，請重新整理再點名', '⚠');
     renderHome();
     setTimeout(silentValidate, 2000);
   }catch(e){
@@ -1493,15 +1508,17 @@ async function mlLoadClasses(){
   const date=(document.getElementById('ml-date')||{}).value;
   if(!date){ sel.innerHTML='<option value="">— 先揀日期 —</option>'; return; }
   sel.innerHTML='<option value="">載入緊…</option>';
-  let r; try{ r=await apiPost({action:'dailyList', date, coachPass:cpass()}); }catch(e){ r=null; }
+  // 🔀 2026-09-13 審計#3：手動工具班別選單要合併運動班(#SA)，否則教練代加運動班補堂/請假揀唔到班。
+  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'dailyList', date, coachPass:cpass()}), apiPostUrl_(SA_API_URL,{action:'dailyList', date}) ]); }catch(e){ r=null; rSA=null; }
   if(r&&r.err==='密碼錯誤'){ sel.innerHTML='<option value="">請先登入</option>'; return; }
-  const list=(r&&r.ok&&r.list)?r.list:[];
-  // 當日有堂嘅班先列（標「當日有堂」）；跟住列晒其餘全部 c1–c7，等補堂補去非正課日／其他班都揀得到（補堂本來就可以補去唔同日/班）。
+  let list=(r&&r.ok&&r.list)?r.list.slice():[];
+  if(rSA&&rSA.ok&&Array.isArray(rSA.list)) list=list.concat(rSA.list);
+  // 當日有堂嘅班先列（標「當日有堂」）；跟住列晒其餘全部班(跳繩+運動)，等補堂補去非正課日／其他班都揀得到。
   const dayCids={}, opts=[];
   list.forEach(g=>{ const cid=g.c.key||g.c.sport; dayCids[cid]=1;
     opts.push({cid, lbl:vnCidLabel(cid)+(g.c.time?(' '+g.c.time):'')+'（當日有堂）'}); });
-  Object.keys(CLASSES||{}).forEach(cid=>{ if(dayCids[cid]) return;
-    const c=CLASSES[cid]||{}; opts.push({cid, lbl:vnCidLabel(cid)+(c.time?(' '+c.time):'')}); });
+  Object.keys(ALL_CLASSES||{}).forEach(cid=>{ if(dayCids[cid]) return;
+    const c=ALL_CLASSES[cid]||{}; opts.push({cid, lbl:(isSA(cid)&&c.sport?c.sport+'・':'')+vnCidLabel(cid)+(c.time?(' '+c.time):'')}); });
   if(!opts.length){ sel.innerHTML='<option value="">冇班別可揀（請先載入雲端資料）</option>'; return; }
   sel.innerHTML='<option value="">— 揀班別 —</option>'+opts.map(o=>`<option value="${o.cid}">${o.lbl.replace(/</g,'&lt;')}</option>`).join('');
 }
@@ -2312,8 +2329,10 @@ async function renderFees(){
   let r=_readCache['fees'];
   if(!r){
     wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
-    try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
+    let rSA;
+    try{ [r,rSA]=await Promise.all([ apiPost({action:'feesAll', coachPass:cpass()}), apiPostUrl_(SA_API_URL,{action:'feesAll'}) ]); }catch(e){ r=null; }   // 🔀 審計#5：合併運動班學費
     if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
+    if(rSA&&rSA.ok&&Array.isArray(rSA.fees)&&rSA.fees.length) r=Object.assign({},r,{fees:(r.fees||[]).concat(rSA.fees)});
     _readCache['fees']=r;   // 快取；任何寫入動作會自動清（見 apiPost）
   }
   FEES_DATA=r.fees||[];
@@ -2762,10 +2781,12 @@ async function loadDaily(){
   const cached = readCoachDaily(coachDate);
   if(cached){ coachDailyData=cached; renderDailyList(cached, box); }   // ⚡ 秒開：先渲染上次資料
   else box.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>載入中…</p></div>`;
-  let r;
-  try { r = await apiPost({ action:'dailyList', date:coachDate, coachPass:cpass() }); }
+  // 🔀 2026-09-13 審計#3：今日點名要合併運動班(#SA)，否則 7 個運動班喺今日點名表完全睇唔到(點名盲點)。
+  let r, rSA;
+  try { [r, rSA] = await Promise.all([ apiPost({ action:'dailyList', date:coachDate, coachPass:cpass() }), apiPostUrl_(SA_API_URL, { action:'dailyList', date:coachDate }) ]); }
   catch(e){ if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>連線錯誤，請再試<br><span style="font-size:12px">（確認已部署統一後端並填好 API_URL）</span></p></div>`; return; }
   if (!r || !r.ok) { if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>${(r&&r.err)||'載入失敗'}</p></div>`; return; }
+  if (rSA && rSA.ok && Array.isArray(rSA.list) && rSA.list.length) r = Object.assign({}, r, { list:(r.list||[]).concat(rSA.list) });   // cid 唔撞→concat 合併
   coachDailyData = r; saveCoachDaily(coachDate, r);          // 背景 fetch 成功 → 更新快取 + 重新渲染最新
   renderDailyList(r, box);
 }
@@ -2889,13 +2910,15 @@ function weatherCancel(){
 }
 async function doWeatherCancel(date){
   toast('處理中…', '🌧');
-  let r;
-  try { r = await apiPost({ action:'cancelDay', date, coachPass:cpass() }); }
+  let r, rSA;
+  try { [r, rSA] = await Promise.all([ apiPost({ action:'cancelDay', date, coachPass:cpass() }), apiPostUrl_(SA_API_URL, { action:'cancelDay', date }) ]); }   // 🔀 審計#4：跳繩(#4)+運動班(#SA)一齊停課
   catch(e){ toast('連線錯誤，請再試', '⚠'); return; }
   if (!r || !r.ok) { toast('失敗' + (r&&r.err?'：'+r.err:''), '⚠'); return; }
+  const n4=(r.classes?r.classes.length:0), nSA=(rSA&&rSA.ok&&rSA.classes?rSA.classes.length:0);
   await loadDaily();
   showCancelPanel(date);
-  toast(`已停課 ${r.classes?r.classes.length:0} 班`, '✓');
+  if (rSA && !rSA.ok && rSA.err) toast(`跳繩已停 ${n4} 班；運動班停課失敗：${rSA.err}`, '⚠');
+  else toast(`已停課 ${n4+nSA} 班（跳繩 ${n4}・運動班 ${nSA}）`, '✓');
 }
 /* ── 停課（不收費）：學費自動少計一堂，已繳家長自動順延下期折扣 ── */
 async function freeCancel(){
@@ -2904,12 +2927,15 @@ async function freeCancel(){
   const wd = '日一二三四五六'[d.getDay()];
   if (!confirm(`確定將 ${d.getMonth()+1}/${d.getDate()}（星期${wd}）所有課堂標記為「停課・不收費」？\n\n• 該堂會從學費中扣減（少計一堂）\n• 已繳費家長自動順延做下一期折扣\n• 此堂不設補堂`)) return;
   toast('處理中…', '🚫');
-  let r;
-  try { r = await apiPost({ action:'cancelDayFree', date, coachPass:cpass() }); }
+  let r, rSA;
+  try { [r, rSA] = await Promise.all([ apiPost({ action:'cancelDayFree', date, coachPass:cpass() }), apiPostUrl_(SA_API_URL, { action:'cancelDayFree', date }) ]); }   // 🔀 審計#4：跳繩+運動班一齊停課(不收費)
   catch(e){ toast('連線錯誤，請再試', '⚠'); return; }
   if (!r || !r.ok) { toast('失敗' + (r&&r.err?'：'+r.err:''), '⚠'); return; }
+  const n4=(r.classes?r.classes.length:0), c4=(r.credited||0);
+  const nSA=(rSA&&rSA.ok&&rSA.classes?rSA.classes.length:0), cSA=(rSA&&rSA.ok?rSA.credited||0:0);
   await loadDaily();
-  toast(`已停課(不收費) ${r.classes?r.classes.length:0} 班・順延折扣 ${r.credited||0} 位`, '✓');
+  if (rSA && !rSA.ok && rSA.err) toast(`跳繩已停(不收費) ${n4} 班；運動班失敗：${rSA.err}`, '⚠');
+  else toast(`已停課(不收費) ${n4+nSA} 班・順延折扣 ${c4+cSA} 位`, '✓');
 }
 function showCancelPanel(date){
   const box = document.getElementById('daily-list'); if (!box) return;

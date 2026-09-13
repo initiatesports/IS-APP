@@ -39,6 +39,22 @@ jobs:
           alive "#4 unified"      "$E4"  || fail=1
           alive "#SA sports"      "$ESA" || fail=1
 
+          # 🔒 審計#8：critical 健康問題出口（雲端、唔靠部機）。唯讀 healthCritical route（無 PII、免密碼，
+          #   只回 count + 去識別化類別）。count>0 → job 失敗 → GitHub 自動 email。只有 critical 先出聲，唔日日嘈。
+          crit() {
+            local name="$1" url="$2" r c
+            r=$(curl -sL --max-time 60 "${url}?action=healthCritical" 2>/dev/null || true)
+            c=$(echo "$r" | grep -o '"count":[0-9]*' | grep -o '[0-9]*' | head -1)
+            if [ -n "$c" ] && [ "$c" -gt 0 ] 2>/dev/null; then
+              echo "🔴 ${name} 健康檢查有 ${c} 項 critical：$(echo "$r" | grep -o '"categories":\[[^]]*\]')"
+              return 1
+            fi
+            echo "✅ ${name} 健康檢查無 critical"
+            return 0
+          }
+          crit "#4 unified" "$E4"  || fail=1
+          crit "#SA sports" "$ESA" || fail=1
+
           # 部機心跳（唯讀）：部機每日 cron ping #4；stale = 部機瞓/爆。目前只報告唔當失敗
           # （待部機心跳 cron 確認長期運作，再改成 fatal 就唔會假警報）。
           s=$(curl -sL --max-time 60 "${E4}?action=sentinelStatus" 2>/dev/null || true)
