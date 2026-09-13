@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-11-autolatest';
+const FRONTEND_VERSION='parent-2026-09-13-audit';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1023,7 +1023,7 @@ function classCard(child,ki,c,ci){
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">${t('applyLeave')}</button>
       ${mkBtn}
     </div>
-    <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>
+    ${isSA(c.key)?''/* 🔒 2026-09-13 審計#18：加操只限跳繩(openAddon 只 iterate 跳繩 CLASS_IDS + 跳繩價階梯 + toKey 打去 #4)。運動班卡顯示呢個掣＝家長想加體操卻付$130加咗一堂跳繩。運動班暫唔提供自助加操。*/:`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>`}
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}`;
       }
       // 未激活・付款未開放（更遠嘅未來期）→ 排定通知
@@ -1419,8 +1419,11 @@ async function submitPin(){
   if(n1!==n2) return toast(t('pinMismatch'));
   const name=S.family.authName||(S.family.children[0]&&S.family.children[0].name);
   const btn=$('pin-go'); btn.disabled=true; btn.textContent=t('submitting');
-  let r; try{ r=await api('setPin',{name,code:cur,newPin:n1}); }catch(e){ r=null; }
-  if(!r||!r.ok){ btn.disabled=false; btn.textContent=t('pinSubmit'); return toast((r&&r.err)||t('pinCurBad')); }
+  // 🔒 2026-09-13 審計#19：PIN 一定要兩個後端一齊改。以前只打 #4 → 純運動班家庭改完 PIN，refresh 用新 PIN
+  //   去 #SA 登入(冇 PIN row)即失敗 → 仔女運動班永久消失。兩邊各 set：邊個有呢個家庭邊個成功，任一成功即算改到。
+  let r, rSA; try{ [r,rSA]=await Promise.all([ api('setPin',{name,code:cur,newPin:n1}), api('setPin',{name,code:cur,newPin:n1,_sa:true}) ]); }catch(e){ r=null; rSA=null; }
+  const _pinOk=(r&&r.ok)||(rSA&&rSA.ok);
+  if(!_pinOk){ btn.disabled=false; btn.textContent=t('pinSubmit'); return toast((r&&r.err)||(rSA&&rSA.err)||t('pinCurBad')); }
   S.family.last4=n1; if(S.session) S.session.last4=n1;
   closeSheet();
   showReceipt(t('pinOk'),[t('pinSd')],'');
