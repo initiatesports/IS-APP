@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-13-audit';
+const FRONTEND_VERSION='parent-2026-09-13-audit2';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -562,9 +562,11 @@ function childHistory(child){
     const lbl=classLabel(c.key||c.sport);
     (c.sessions||[]).forEach(s=>{ if(s.status==='出席') out.attended.push({date:s.date,label:lbl}); });
     (c.makeups||[]).forEach(m=>{ if(m.status==='出席') out.attended.push({date:m.date,label:classLabel(m.to)+'（補堂）'}); });
-    // 請假（合資格缺席）排序；最舊嘅當已被補堂配對，剩低 owed 節未補
-    const leaves=(c.sessions||[]).filter(s=>s.status==='請假').map(s=>s.date).sort();
-    const owed=c.owed||0; const uncovered=leaves.slice(Math.max(0,leaves.length-owed));
+    // 🔒 2026-09-13 審計#4：用 makeups[].from（原缺席日）判「已補」，唔好再靠「最舊 k 條已補」猜（slice(len-owed)）。
+    //   後端 6d279a9 之後補堂實際 from＝訂堂時寫落嘅缺席日，可補非最舊嘅假 → slice 猜法會標錯邊條未補、顯示錯限期。
+    //   同 classCard 一致（_bookedFrom + !madeUp）。
+    const _bookedFrom=new Set((c.makeups||[]).filter(m=>m.from && m.status!=='缺席' && m.status!=='停課').map(m=>m.from));
+    const uncovered=(c.sessions||[]).filter(s=>s.status==='請假' && !s.madeUp && !_bookedFrom.has(s.date)).map(s=>s.date).sort();
     const ext=c.mkExt||{};   // 逐筆限期覆寫（缺席日→新限期），有就優先
     uncovered.forEach(d=>{ const dl=ext[d]||addMonths(d,CONFIG.MAKEUP_MONTHS||2);
       if(dl<t) out.expired.push({date:d,deadline:dl,label:lbl}); else out.makeupable.push({date:d,deadline:dl,label:lbl}); });

@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-13-audit3';
+const FRONTEND_VERSION = 'coach-2026-09-13-audit4';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -798,7 +798,10 @@ async function _saLoad_(){ try{ const c=new AbortController(),tm=setTimeout(()=>
 function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
   const pv={}; [a.periodVoid||{}, b.periodVoid||{}].forEach(m=>Object.keys(m).forEach(p=>{ pv[p]=(pv[p]||[]).concat(m[p]||[]); }));
   return {
-    settings:   [].concat(a.settings||[],   b.settings||[]),
+    // 🔒 2026-09-13 審計#1：public_holidays 由 #4 authoritative（addHoliday 只寫 #4）。#SA settings 喺後、
+    //   restoreSettings 後者贏 → 教練加嘅假期會被 #SA 嘅 stale 預設值蓋走、下次 load 靜靜消失。過濾走 #SA
+    //   個 public_holidays，令 #4 嘅永遠生效。（其餘 SA-namespace key 唔撞，照合併。）
+    settings:   [].concat(a.settings||[],   (b.settings||[]).filter(function(r){ return !r||r.key!=='public_holidays'; })),
     roster:     Object.assign({}, a.roster||{},       b.roster||{}),
     attendance: [].concat(a.attendance||[], b.attendance||[]),
     absences:   [].concat(a.absences||[],   b.absences||[]),
