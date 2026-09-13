@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-13-audit2';
+const FRONTEND_VERSION = 'coach-2026-09-13-audit3';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1037,7 +1037,7 @@ function goBack(){
 }
 
 /* ═══════════ 私人訓練（與恆常班分開；只記上課日，無請假補堂）═══════════ */
-function fmtPtDate(d){ return `${d.getFullYear()}年${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} 星期${'日一二三四五六'[d.getDay()]}`; }
+function fmtPtDate(d){ return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} 星期${'日一二三四五六'[d.getDay()]}`; }
 async function renderPt(){
   const box = document.getElementById('pt-content');
   let r = _readCache['pt'];
@@ -1052,7 +1052,9 @@ async function renderPt(){
   (r.students || []).forEach((s, i) => {
     // 私訓卡按學員類型顯示：wallet(預繳錢包,如鄧可澄)跟繳清週期 / package(套票,如甘卓熹20節)用套票節數 / default(10堂一期)照舊
     const wlt = s.wallet ? (s.walletState||{sessions:[],sessionCount:0,cycleCount:0}) : null;
-    const pkg = (!s.wallet && s.packages && s.packages.length) ? s.packages.find(p=>p&&p.remaining!=null) : null;
+    // 🔒 2026-09-13 審計(低)：remaining 永遠係 number(0都唔係null)→ find(remaining!=null) 恆中第一張，
+    //   買第二張套票後卡永遠顯示第一張「剩0」。改揀仲有堂嗰張(remaining>0)，全用晒就顯示最新一張。
+    const pkg = (!s.wallet && s.packages && s.packages.length) ? (s.packages.find(p=>p&&p.remaining>0) || s.packages[s.packages.length-1]) : null;
     let done, capN, periodLabel, progLabel, curSrc;
     if (wlt) {
       curSrc = (wlt.sessions||[]).map(x=>({date:x.date, no:x.no}));
@@ -2080,11 +2082,11 @@ function renderRollTable(){
         ${makeupHint}
       </div>
       <div class="student-btns">
-        <button class="s-btn ${st==='present'?'sel-present':''}" onclick="setRoll('${name}','present')" title="出席">出</button>
-        <button class="s-btn ${st==='absent' ?'sel-absent' :''}" onclick="setRoll('${name}','absent')"  title="請假（可補堂）">假</button>
-        ${isSA(currentClass)?'':`<button class="s-btn ${st==='noshow' ?'sel-noshow' :''}" onclick="setRoll('${name}','noshow')"  title="缺席（無補堂）">缺</button>`}
-        <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" onclick="setRoll('${name}','makeup')"  title="補堂">補</button>
-        <button class="s-btn ${st==='exempt' ?'sel-exempt' :''}" onclick="setRoll('${name}','exempt')"  title="豁免">免</button>
+        <button class="s-btn ${st==='present'?'sel-present':''}" data-status="present" onclick="setRoll('${name}','present')" title="出席">出</button>
+        <button class="s-btn ${st==='absent' ?'sel-absent' :''}" data-status="absent" onclick="setRoll('${name}','absent')"  title="請假（可補堂）">假</button>
+        ${isSA(currentClass)?'':`<button class="s-btn ${st==='noshow' ?'sel-noshow' :''}" data-status="noshow" onclick="setRoll('${name}','noshow')"  title="缺席（無補堂）">缺</button>`}
+        <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" data-status="makeup" onclick="setRoll('${name}','makeup')"  title="補堂">補</button>
+        <button class="s-btn ${st==='exempt' ?'sel-exempt' :''}" data-status="exempt" onclick="setRoll('${name}','exempt')"  title="豁免">免</button>
       </div>
     </div>`;
   }).join('');
@@ -2094,19 +2096,20 @@ function setRoll(name, status){
   rollSession[name] = status;
   const card = document.getElementById('sc-' + name);
   card.className = 'student-card ' + (status==='absent'?'is-absent':status==='noshow'?'is-noshow':status==='makeup'?'is-makeup':status==='exempt'?'is-exempt':'is-present');
-  const btns = card.querySelectorAll('.s-btn');
-  btns[0].className = 's-btn' + (status==='present'?' sel-present':'');
-  btns[1].className = 's-btn' + (status==='absent' ?' sel-absent':'');
-  btns[2].className = 's-btn' + (status==='noshow' ?' sel-noshow':'');
-  if (btns[3]) btns[3].className = 's-btn' + (status==='makeup' ?' sel-makeup':'');
-  if (btns[4]) btns[4].className = 's-btn' + (status==='exempt' ?' sel-exempt':'');
+  // 🔒 2026-09-13 審計(低)：按 data-status 對應，唔靠位置 index。SA 班唔 render「缺」掣 → 固定 btns[2]=noshow
+  //   等 index 全部錯位（撳補亮免、撳免冇反應）。data-status 對 SA(4掣)同跳繩(5掣)都啱。
+  const SEL={present:'sel-present',absent:'sel-absent',noshow:'sel-noshow',makeup:'sel-makeup',exempt:'sel-exempt'};
+  card.querySelectorAll('.s-btn').forEach(b=>{ const ds=b.dataset.status; b.className='s-btn'+((ds&&ds===status)?(' '+SEL[ds]):''); });
   const nameWrap = card.querySelector('.student-name-wrap');
-  const existing = nameWrap.querySelector('[style*="purple"]');
+  // 🔒 2026-09-13 審計(低)：只刪自己嗰個 makeupHint(專屬 class)，唔好用 [style*="purple"] 誤刪咗
+  //   roster render 個「↩ 補堂」badge（佢都係 purple，document order 撞先）。
+  const existing = nameWrap.querySelector('.roll-mk-hint');
   if (existing) existing.remove();
   if (status === 'makeup') {
     const active = getPendingActive(name, currentClass).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 未過限期先算（同後端一致）2026-08-24 修；審計#10 加本班限定
     if (active.length > 0) {
       const hint = document.createElement('div');
+      hint.className = 'roll-mk-hint';
       hint.style.cssText = 'font-size:11px;color:var(--purple);margin-top:4px';
       hint.textContent = '補 ' + fmtShort(active[0].absDate) + ' 的堂';
       nameWrap.appendChild(hint);
