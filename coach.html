@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-13-audit6';
+const FRONTEND_VERSION = 'coach-2026-09-14-sablind';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1283,10 +1283,12 @@ function renderTodo(){
   const host=document.getElementById('home-todo'); if(!host) return;
   if(typeof CLASSES==='undefined'||!Object.keys(CLASSES).length){ host.innerHTML=''; return; }
   const today=todayStr(), dow=hkDow(), items=[];
-  const todayCls=Object.entries(CLASSES).filter(([id])=>CLASS_DOW[id]===dow);
+  // 🔒 2026-09-14 審計#6：合併運動班(#SA)後，今日待辦要涵蓋 ALL_CLASSES（原本只 CLASSES=跳繩→漏晒運動班未點名/補堂提醒）。
+  //   ATT_LOG 已含 #SA 出席（_mergeLoad_ concat 兩後端 attendance），SA cid 唔撞 → 用 anyDow/anyClass 唔會誤報。
+  const todayCls=Object.entries(ALL_CLASSES).filter(([id])=>anyDow(id)===dow);
   // 1. 今日未點名班別（有 roster 學生被標先當已點；淨補堂 visitor 唔算）
   const unrolled=todayCls.filter(([id])=>{ const log=ATT_LOG[id+'|'+today]; if(!log||!Object.keys(log).length) return true;
-    const roster=new Set(CLASSES[id].students||[]); return !Object.keys(log).some(n=>roster.has(n)); });
+    const roster=new Set((anyClass(id)||{}).students||[]); return !Object.keys(log).some(n=>roster.has(n)); });
   if(unrolled.length) items.push({ic:'📝',t:`${unrolled.length} 班今日未點名`,sub:unrolled.map(([id,c])=>c.dayZh+' '+c.time).join('、'),cls:'urgent',onclick:`openRoll('${unrolled[0][0]}')`});
   // 2. 今日補堂學生（今日班別 ATT_LOG 內非正規名冊嘅人）
   const mk=[]; todayCls.forEach(([id,c])=>{ const log=ATT_LOG[id+'|'+today]||{}; Object.keys(log).forEach(n=>{ if(n&&isMakeupVisitor(id,n)&&!/示範|測試/.test(n)) mk.push({name:n,cid:id,time:c.time}); }); });
@@ -1300,8 +1302,8 @@ function renderTodo(){
     items.map(it=>`<div class="todo-row ${it.cls}" onclick="${it.onclick.replace(/"/g,'&quot;')}"><span class="todo-ic">${it.ic}</span><div class="todo-body"><div class="todo-t">${it.t}</div><div class="todo-sub">${it.sub}</div></div><span class="todo-arr">›</span></div>`).join('')+`</div>`;
 }
 /* 🔍 全校學生搜尋 + 檔案：打名即見跨班班別、出席概況、待補／過期補堂，一撳跳去該班點名。純讀已載入資料。*/
-function studentIndex_(){ const s=new Set(); Object.values(CLASSES).forEach(c=>(c.students||[]).forEach(n=>{ if(n&&!/示範|測試/.test(n)) s.add(n); })); return [...s]; }
-function classesOf_(name){ return Object.entries(CLASSES).filter(([id,c])=>(c.students||[]).indexOf(name)>=0).map(([id,c])=>({id,day:c.dayZh,time:c.time})); }
+function studentIndex_(){ const s=new Set(); Object.values(ALL_CLASSES).forEach(c=>(c.students||[]).forEach(n=>{ if(n&&!/示範|測試/.test(n)) s.add(n); })); return [...s]; }   // 🔒 審計#6：搜尋涵蓋運動班學生
+function classesOf_(name){ return Object.entries(ALL_CLASSES).filter(([id,c])=>(c.students||[]).indexOf(name)>=0).map(([id,c])=>({id,day:c.dayZh,time:c.time})); }
 function attSummary_(name){ let present=0,leave=0,noshow=0,makeup=0,exempt=0; for(const k in ATT_LOG){ const st=ATT_LOG[k][name]; if(!st)continue; if(st==='present')present++;else if(st==='absent')leave++;else if(st==='noshow')noshow++;else if(st==='makeup')makeup++;else if(st==='exempt')exempt++; } return {present,leave,noshow,makeup,exempt}; }
 function onStuSearch(){ const inp=document.getElementById('stu-search-input'); const q=(inp?inp.value:'').trim(); const clr=document.getElementById('ss-clear'); if(clr)clr.style.display=q?'block':'none'; const box=document.getElementById('stu-search-results'); if(!box)return; if(!q){ box.innerHTML=''; return; }
   const hits=studentIndex_().filter(n=>n.indexOf(q)>=0).sort().slice(0,14);
@@ -1362,7 +1364,7 @@ function genTodayClassMsg(){
 /* 📊 經營數據洞察：由 ATT_LOG/ABSENCES 即時統計整體 + 各班出席率、補堂概況。純讀，零寫入。*/
 function computeInsights_(){
   const perClass={}; let P=0,L=0,N=0,M=0,E=0;
-  for(const k in ATT_LOG){ const cid=k.split('|')[0]; if(!CLASSES[cid])continue; const p=perClass[cid]||(perClass[cid]={present:0,leave:0,noshow:0,makeup:0});
+  for(const k in ATT_LOG){ const cid=k.split('|')[0]; if(!ALL_CLASSES[cid])continue; const p=perClass[cid]||(perClass[cid]={present:0,leave:0,noshow:0,makeup:0});   // 🔒 審計#6：洞察涵蓋運動班(ATT_LOG 已含 #SA)
     const sess=ATT_LOG[k]; for(const n in sess){ if(/示範|測試/.test(n))continue; const st=sess[n];
       if(st==='present'){p.present++;P++;} else if(st==='absent'){p.leave++;L++;} else if(st==='noshow'){p.noshow++;N++;} else if(st==='makeup'){p.makeup++;M++;} else if(st==='exempt'){E++;} } }
   const rate=o=>{ const att=o.present+o.makeup, base=att+o.leave+o.noshow; return base?Math.round(att/base*100):null; };
@@ -1371,7 +1373,7 @@ function computeInsights_(){
 function openInsights(){
   const ins=computeInsights_(), T=ins.T;
   const overall=ins.rate({present:T.present,makeup:T.makeup,leave:T.leave,noshow:T.noshow});
-  const rows=Object.entries(CLASSES).map(([cid,c])=>{ const p=ins.perClass[cid]; const r=p?ins.rate(p):null;
+  const rows=Object.entries(ALL_CLASSES).map(([cid,c])=>{ const p=ins.perClass[cid]; const r=p?ins.rate(p):null;   // 🔒 審計#6：各班出席率涵蓋運動班
     return {label:c.dayZh+' '+c.time, rate:r, marked:p?(p.present+p.makeup+p.leave+p.noshow):0}; })
     .filter(x=>x.marked>0).sort((a,b)=>(b.rate||0)-(a.rate||0));
   const pend=(typeof totalPendingAll==='function')?totalPendingAll():0;
@@ -1411,7 +1413,7 @@ function renderHome(){
   // 總學生數＝unique 活躍學生：去重（一週上兩堂只計一次）＋排除示範 demo ＋排除本期暫停（PERIOD_VOID）。
   // 原本 reduce 逐班加會重複計跨班學生、又計埋 demo/暫停 → 數字偏高（如 57 實際 52）。
   const _tS=todayStr(), _seenS=new Set();
-  Object.values(CLASSES).forEach(c=>(c.students||[]).forEach(n=>{
+  Object.values(ALL_CLASSES).forEach(c=>(c.students||[]).forEach(n=>{   // 🔒 審計#6：合併運動班後總學生數要數 ALL_CLASSES（原漏運動班學生）
     if(!n || /示範/.test(n)) return;
     if(typeof isSuspendedOn==='function' && isSuspendedOn(n,_tS)) return;
     _seenS.add(n);
