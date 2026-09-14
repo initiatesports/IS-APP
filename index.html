@@ -521,7 +521,9 @@ function certKey_(s){ var k=String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'')
 function doVerify(){
   var q=(S.certQ||'').trim().toUpperCase(); if(!q) return;
   var qk=certKey_(q);
-  var local=CERTS.find(function(c){return c.no===q || certKey_(c.no)===qk;});
+  // 🔒 2026-09-14 審計：qk 至少要有 IS 之外嘅字元(length>2)先比對，兼跳過 no 為空嘅 entry →
+  //   防日後 CMS cert_registry 出現空 no 時，certKey_('')='IS' 同短查詢誤配到空 entry 顯示錯學生。
+  var local=(qk.length>2) ? CERTS.find(function(c){var cn=String(c.no||'').trim(); return cn && (cn===q || certKey_(cn)===qk);}) : null;
   if(local){ S.certResult=local; render(); return; }
   // 🔒 2026-09-13 審計#30/#31：本地(含 CMS cert_registry)冇 → 問後端 certGrade，令日後發出／註冊嘅證書
   //   都查到，唔會永遠凍結喺硬編 17 張。certGrade 唯讀、gated by 證書編號本身、只回該生。
