@@ -17,25 +17,26 @@ body{margin:0;font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft 
 .hero h1{margin:0 0 4px;font-size:21px;font-weight:900;letter-spacing:.01em;}
 .hero p{margin:0;font-size:13px;opacity:.94;line-height:1.6;}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-bottom:14px;}
-.sec{font-size:12.5px;font-weight:800;color:var(--teal);letter-spacing:.04em;margin:0 0 12px;text-transform:none;}
+.sec{font-size:12.5px;font-weight:800;color:var(--teal);letter-spacing:.04em;margin:0 0 12px;}
 label.fld{display:block;font-size:13px;font-weight:700;margin:12px 0 5px;color:var(--ink);}
 label.fld:first-of-type{margin-top:0;}
 .req{color:var(--red);}
-input[type=text],input[type=tel],input[type=email],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;font-family:inherit;font-size:16px;padding:12px;outline:none;background:#fff;}
-input:focus,select:focus,textarea:focus{border-color:var(--teal);}
-.opt{display:block;border:1.5px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px;cursor:pointer;transition:.12s;}
+input[type=text],input[type=tel],input[type=email],textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;font-family:inherit;font-size:16px;padding:12px;outline:none;background:#fff;}
+input:focus,textarea:focus{border-color:var(--teal);}
+.opt{display:block;border:1.5px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:.12s;}
 .opt.sel{border-color:var(--teal);background:#f2fbfc;box-shadow:0 0 0 2px rgba(43,179,198,.15);}
-.opt .on{font-weight:800;font-size:14.5px;}
-.opt .op{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.opt .on{font-weight:800;font-size:15px;}
+.opt .op{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
 .opt .pr{font-weight:900;color:var(--teal);font-size:15px;margin-top:5px;}
 .notes{background:var(--bg);border-radius:11px;padding:12px 14px;margin:6px 0;}
 .notes li{font-size:12.5px;color:var(--ink);line-height:1.7;margin-bottom:3px;}
-.terms{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:11.5px;color:var(--muted);line-height:1.65;background:#fafcfc;}
+.termsnote{background:#eef8f9;border:1px solid #bfe3e8;border-radius:11px;padding:11px 13px;font-size:12.5px;color:#155e68;line-height:1.6;margin-bottom:10px;}
+.terms{max-height:180px;overflow:auto;border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:11.5px;color:var(--muted);line-height:1.65;background:#fafcfc;}
 .terms p{margin:0 0 6px;}
 .chk{display:flex;align-items:flex-start;gap:9px;margin-top:12px;font-size:13.5px;font-weight:600;cursor:pointer;}
 .chk input{width:20px;height:20px;margin-top:1px;flex-shrink:0;accent-color:var(--teal);}
 #sigpad{width:100%;height:150px;border:1.5px dashed var(--teal);border-radius:11px;background:#fff;touch-action:none;}
-.pricebox{background:linear-gradient(135deg,#fff8e8,#fdf0d0);border:1.5px solid #eccf86;border-radius:12px;padding:14px;text-align:center;margin:4px 0 12px;}
+.pricebox{background:linear-gradient(135deg,#fff8e8,#fdf0d0);border:1.5px solid #eccf86;border-radius:12px;padding:14px;text-align:center;margin:10px 0 2px;}
 .pricebox .amt{font-size:26px;font-weight:900;color:var(--gold);}
 .pricebox .lbl{font-size:12px;color:var(--muted);margin-top:2px;}
 .fps{background:var(--bg);border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.7;margin-bottom:12px;}
@@ -58,7 +59,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--teal);}
 <div class="wrap">
   <div class="hero">
     <h1>🏆 花式跳繩進階班報名</h1>
-    <p>現有花式跳繩學員升級課程 · 2026 年 10 月開班<br>每堂 2 小時 · 進階技術訓練</p>
+    <p>現有花式跳繩學員升級課程 · 2026 年 10 月開班<br>每堂 2 小時 · 進階技術訓練 · 恆常持續訓練</p>
   </div>
 
   <div id="form">
@@ -70,32 +71,28 @@ input:focus,select:focus,textarea:focus{border-color:var(--teal);}
       <input type="text" id="f-pname" placeholder="家長／監護人姓名" autocomplete="off">
       <label class="fld">家長聯絡電話（8 位）<span class="req">*</span></label>
       <input type="tel" id="f-phone" inputmode="numeric" maxlength="8" placeholder="例如 61234567">
-      <label class="fld">電郵（收合約 PDF，選填）</label>
+      <label class="fld">電郵 <span class="req">*</span>（收報名合約 PDF）</label>
       <input type="email" id="f-email" placeholder="用嚟收報名合約 PDF">
     </div>
 
     <div class="card">
-      <div class="sec">② 選擇報讀選項</div>
-      <div id="opts"></div>
+      <div class="sec">② 選擇上課時間</div>
+      <div id="slots"></div>
+      <div class="hint">上課時間決定每週節數及恆常收費。進階班為<b>恆常持續訓練</b>（同恆常跳繩班一樣，以每兩個月為一期收費）。</div>
+      <div class="pricebox" id="pricebox" style="display:none"><div class="amt" id="price-amt">—</div><div class="lbl">恆常每期（兩個月）收費</div></div>
     </div>
 
     <div class="card">
-      <div class="sec">③ 選擇報名期數</div>
-      <select id="f-period"></select>
-      <div class="hint" id="period-hint">每兩個月為一期。10 月為單月，費用及安排將另行以 WhatsApp 通知。</div>
-      <div class="pricebox" id="pricebox" style="display:none"><div class="amt" id="price-amt">—</div><div class="lbl" id="price-lbl">本期應繳學費</div></div>
-    </div>
-
-    <div class="card">
-      <div class="sec">④ 進階班注意事項</div>
+      <div class="sec">③ 進階班注意事項</div>
       <ul class="notes" id="notes"></ul>
       <div class="sec" style="margin-top:14px">課程條款</div>
+      <div class="termsnote" id="termsnote"></div>
       <div class="terms" id="terms"></div>
-      <label class="chk"><input type="checkbox" id="f-agree"><span>本人已閱讀、明白並同意上述所有進階班注意事項及課程條款，並確認學生為本會現有／曾就讀花式跳繩學員。</span></label>
+      <label class="chk"><input type="checkbox" id="f-agree"><span>本人已閱讀、明白並同意上述所有進階班注意事項及課程條款（與早前報名恆常班相同），並確認學生為本會現有／曾就讀花式跳繩學員。</span></label>
     </div>
 
     <div class="card">
-      <div class="sec">⑤ 家長簽署</div>
+      <div class="sec">④ 家長簽署</div>
       <canvas id="sigpad"></canvas>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <span class="hint">請喺上面用手指或滑鼠簽名。</span>
@@ -107,15 +104,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--teal);}
       <input type="text" id="f-signId" maxlength="8" placeholder="例如 A123">
     </div>
 
-    <div class="card" id="paycard">
-      <div class="sec">⑥ 繳費</div>
-      <div id="pay-need">
-        <div class="fps">請以 FPS／轉數快 過數至：<br><b id="fps-num">—</b>（INITIATE SPORTS）<br>金額：<b id="fps-amt">—</b>，轉帳後請上載截圖。</div>
-        <label class="upl" id="paylbl"><input type="file" id="f-pay" accept="image/*"><span id="paytxt">📷 按此上載付款截圖</span></label>
-      </div>
-      <div id="pay-tbd" style="display:none">
-        <div class="fps">10 月為單月課程，費用及繳費安排將於稍後以 WhatsApp（你填嘅電話）另行通知，<b>此刻毋須繳費</b>。你可先提交報名，我哋會盡快聯絡你。</div>
-      </div>
+    <div class="card">
+      <div class="sec">⑤ 繳費</div>
+      <div class="fps">進階班為恆常持續訓練，以每兩個月一期收費。<b>2026 年 10 月為單月</b>，首月費用及首期繳費安排將另行以 WhatsApp（你填嘅電話）通知確認。<br><br>如你<b>已知繳費金額</b>，可以 FPS／轉數快 過數至 <b id="fps-num">—</b>（INITIATE SPORTS）並於下方上載截圖；如未確認金額，可先提交報名，我哋會盡快 WhatsApp 你。</div>
+      <label class="upl" id="paylbl"><input type="file" id="f-pay" accept="image/*"><span id="paytxt">📷 按此上載付款截圖（選填）</span></label>
     </div>
 
     <div class="card">
@@ -129,20 +121,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--teal);}
 </div>
 
 <script>
-const FRONTEND_VERSION='adv-enroll-2026-09-14-v1';
+const FRONTEND_VERSION='adv-enroll-2026-09-15-v2';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
 const $=s=>document.querySelector(s);
-let CFG=null, S={opt:'', payImg:'', signImg:''};
+let CFG=null, S={slot:'', payImg:''};
 
-/* ── API（text/plain 免 preflight，同其他報名頁一致）── */
 async function api(action, body){
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action},body||{}))});
   return r.json();
 }
 async function apiGet(action){ const r=await fetch(API+'?action='+action+'&_='+Date.now(),{cache:'no-store'}); return r.json(); }
 
-/* ── 縮圖（付款截圖，同 is-enroll 一致）── */
 function shrinkImage(file, cb){
   if(!file){ cb(''); return; }
   var MAXBYTES=8*1024*1024;
@@ -158,7 +148,6 @@ function shrinkImage(file, cb){
   rd.onerror=()=>cb(null,'讀取圖片失敗'); rd.readAsDataURL(file);
 }
 
-/* ── 手寫簽名板（同 is-enroll 一致）── */
 let _sig={draw:false,has:false,ctx:null,cv:null,w:0,h:0};
 function setupSigPad(_retry){
   const cv=$('#sigpad'); if(!cv) return;
@@ -177,39 +166,23 @@ function setupSigPad(_retry){
 function clearSig(){ if(_sig.ctx&&_sig.cv) _sig.ctx.clearRect(0,0,_sig.cv.width,_sig.cv.height); _sig.has=false; }
 function sigDataUrl(){ return (_sig.has&&_sig.cv)?_sig.cv.toDataURL('image/png'):''; }
 
-/* ── 載入 config ── */
 async function load(){
   try{ CFG=await apiGet('advConfig'); }catch(e){ CFG=null; }
   if(!CFG||!CFG.ok){ $('#err').textContent='載入失敗，請重新整理頁面。'; return; }
   if(!CFG.open){ $('#form').innerHTML='<div class="card" style="text-align:center;color:var(--muted)">進階班報名暫未開放，敬請留意通知。</div>'; return; }
-  // 選項
-  $('#opts').innerHTML=CFG.options.map(o=>`<label class="opt" data-v="${o.v}" onclick="pickOpt('${o.v}')">
-    <div class="on">${o.label.split('：')[0]}</div><div class="op">${(o.label.split('：')[1]||o.label)}</div>
-    <div class="pr">每期（兩個月）$${o.per2mo}　·　每月 $${o.perMonth}</div></label>`).join('');
-  // 期數
-  $('#f-period').innerHTML=CFG.periods.map(p=>`<option value="${p.v}">${p.label}</option>`).join('');
-  $('#f-period').addEventListener('change', refreshPrice);
-  // 注意事項 + 條款
+  $('#slots').innerHTML=CFG.slots.map(s=>`<label class="opt" data-v="${s.v}" onclick="pickSlot('${s.v}')">
+    <div class="on">${s.label.split('（')[0]}</div><div class="op">（${(s.label.split('（')[1]||'').replace(/）$/,'')}）</div>
+    <div class="pr">恆常每期（兩個月）$${s.per2mo}</div></label>`).join('');
   $('#notes').innerHTML=(CFG.notes||[]).map(s=>`<li>✓ ${s}</li>`).join('');
+  $('#termsnote').textContent=CFG.termsNote||'';
   $('#terms').innerHTML=((CFG.terms&&CFG.terms.statements)||[]).map((s,i)=>`<p>${i+1}、${s}</p>`).join('');
   $('#fps-num').textContent=CFG.fps||'—';
-  refreshPrice();
   setupSigPad();
 }
-function pickOpt(v){ S.opt=v; document.querySelectorAll('.opt').forEach(el=>el.classList.toggle('sel', el.getAttribute('data-v')===v)); refreshPrice(); }
-function curPeriod(){ const id=$('#f-period').value; return (CFG.periods||[]).find(p=>p.v===id)||null; }
-function curPrice(){ const o=(CFG.options||[]).find(x=>x.v===S.opt), pr=curPeriod(); if(!o||!pr||pr.tbd) return null; return pr.months===2?o.per2mo:(o.perMonth*pr.months); }
-function refreshPrice(){
-  const pr=curPeriod(), price=curPrice();
-  if(!S.opt){ $('#pricebox').style.display='none'; $('#pay-need').style.display='none'; $('#pay-tbd').style.display='none'; return; }
-  if(pr&&pr.tbd){ // 10月：待定，免即繳
-    $('#pricebox').style.display='none'; $('#pay-need').style.display='none'; $('#pay-tbd').style.display='block';
-  } else if(price!=null){
-    $('#pricebox').style.display=''; $('#price-amt').textContent='$'+price;
-    $('#pay-need').style.display='block'; $('#pay-tbd').style.display='none';
-    $('#fps-amt').textContent='$'+price;
-  }
-}
+function pickSlot(v){ S.slot=v; document.querySelectorAll('.opt').forEach(el=>el.classList.toggle('sel', el.getAttribute('data-v')===v));
+  const s=(CFG.slots||[]).find(x=>x.v===v);
+  if(s){ $('#pricebox').style.display=''; $('#price-amt').textContent='$'+s.per2mo; } }
+
 document.addEventListener('change', function(e){
   if(e.target && e.target.id==='f-pay'){ const f=e.target.files[0]; if(!f) return;
     shrinkImage(f,(data,err)=>{ if(err){ S.payImg=''; $('#paytxt').textContent=err; $('#paylbl').classList.remove('has'); return; }
@@ -220,26 +193,25 @@ async function submitForm(){
   const err=$('#err'); err.textContent='';
   const name=$('#f-name').value.trim(), pname=$('#f-pname').value.trim(), phone=$('#f-phone').value.replace(/\D/g,'');
   const email=$('#f-email').value.trim(), signEn=$('#f-signEn').value.trim(), signId=$('#f-signId').value.trim();
-  const pr=curPeriod(), price=curPrice();
   if(!name){ err.textContent='請填學生姓名'; return; }
   if(!pname){ err.textContent='請填家長姓名'; return; }
   if(!/^\d{8}$/.test(phone)){ err.textContent='家長電話要 8 位數字'; return; }
-  if(!S.opt){ err.textContent='請揀報讀選項'; return; }
-  if(!pr){ err.textContent='請揀報名期數'; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='請填有效電郵（用嚟收報名合約）'; return; }
+  if(!S.slot){ err.textContent='請揀上課時間'; return; }
   if(!$('#f-agree').checked){ err.textContent='請閱讀並同意條款'; return; }
   const sig=sigDataUrl(); if(!sig){ err.textContent='請家長簽名'; return; }
   if(!signEn){ err.textContent='請填家長英文全名'; return; }
-  if(price!=null && !S.payImg){ err.textContent='請上載付款截圖（或如未能即時付款請 WhatsApp 6331 7403）'; return; }
   const btn=$('#submit'); btn.disabled=true; btn.textContent='提交中…';
-  let r; try{ r=await api('advEnroll',{ name,pname,phone,email,opt:S.opt,period:pr.v,agree:'1',signEn,signId, signImg:sig, payImg:(price!=null?S.payImg:'') }); }
+  let r; try{ r=await api('advEnroll',{ name,pname,phone,email,slot:S.slot,agree:'1',signEn,signId, signImg:sig, payImg:S.payImg }); }
   catch(e){ r=null; }
   if(!r||!r.ok){ btn.disabled=false; btn.textContent='提交報名'; err.textContent=(r&&r.err)||'提交失敗，請再試或 WhatsApp 6331 7403'; return; }
+  const slotLabel=((CFG.slots||[]).find(s=>s.v===S.slot)||{}).label||'';
   $('#form').style.display='none';
   $('#done').style.display='block';
   $('#done').innerHTML=`<div class="card ok"><div class="ic">✅</div><h2>報名已收到！</h2>
-    <p>學生：<b>${name}</b><br>${(CFG.options.find(o=>o.v===S.opt)||{}).label||''}<br>期數：${pr.label}</p>
-    <p>${price==null?'10 月費用及安排將另行以 WhatsApp（'+phone+'）通知。':'我哋核實付款後會 WhatsApp（'+phone+'）同你確認。'}</p>
-    ${email?'<p style="color:var(--muted);font-size:12.5px">報名合約 PDF 已電郵至 '+email+'。</p>':''}
+    <p>學生：<b>${name}</b><br>上課時間：${slotLabel}<br>恆常每期收費：$${r.price}</p>
+    <p>進階班為恆常持續訓練。10 月首月費用及首期繳費安排將以 WhatsApp（${phone}）通知確認。</p>
+    <p style="color:var(--muted);font-size:12.5px">報名合約 PDF 已電郵至 ${email}。</p>
     <p style="color:var(--muted);font-size:12px">記錄編號：${r.id}</p>
     <p style="color:var(--muted);font-size:12px">查詢：WhatsApp 6331 7403</p></div>`;
   window.scrollTo(0,0);
