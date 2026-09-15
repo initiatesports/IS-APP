@@ -71,7 +71,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
       <input type="text" id="f-pname" placeholder="家長／監護人姓名" autocomplete="off">
       <label class="fld">家長聯絡電話（8 位）<span class="req">*</span></label>
       <input type="tel" id="f-phone" inputmode="numeric" maxlength="8" placeholder="例如 61234567">
-      <label class="fld">電郵 <span class="req">*</span>（收報名合約 PDF）</label>
+      <label class="fld">電郵 <span class="req">*</span></label>
       <input type="email" id="f-email" placeholder="用嚟收報名合約 PDF">
     </div>
 
@@ -121,7 +121,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
 </div>
 
 <script>
-const FRONTEND_VERSION='adv-enroll-2026-09-15-v2';
+const FRONTEND_VERSION='adv-enroll-2026-09-15-v3';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
 const $=s=>document.querySelector(s);
