@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-09-cross20';
+const APP_VERSION='growth-2026-09-15-dual2';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -737,8 +737,7 @@ function renderCTBody(){
   const mt=METRICS[CT_METRIC];
   let html=`<table class="tbl"><thead><tr><th>學生</th>`;
   if(isBody){html+=`<th class="num">上次</th><th style="width:120px">今日 (${CT_METRIC==='height'?'cm':'kg'})</th>`;}
-  else if(isRope){html+=`<th class="num">個人最佳</th><th class="num">上次</th><th style="width:96px">第一次</th><th style="width:96px">第二次</th><th></th>`;}
-  else{html+=`<th class="num">個人最佳</th><th class="num">上次</th><th class="num">破紀錄目標</th><th style="width:120px">今日成績</th><th></th>`;}
+  else{html+=`<th class="num">個人最佳</th><th class="num">上次</th><th style="width:96px">第一次</th><th style="width:96px">第二次</th><th></th>`;}   // 🔒 2026-09-15 老闆：身高體重一次性一格；其餘所有項目一律留兩格(有時連續測兩次)，val 取最佳
   html+=`</tr></thead><tbody>`;
   students.forEach(n=>{
     const fbid='ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,'');
@@ -757,33 +756,23 @@ function renderCTBody(){
       const nameCell=`<td style="display:flex;align-items:center;gap:10px">${avatarHTML(n)}<b>${esc(n)}</b>${mk}</td>
         <td class="num">${best!=null?`<span class="pill gold" style="font-size:13px">${best} ${mt.u}</span>`:'<span class="mut">—</span>'}</td>
         <td class="num mut">${last?last.val+` <span style="font-weight:400">(${md(last.date)})</span>`:'—'}</td>`;
-      if(isRope){
-        const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};
-        html+=`<tr>${nameCell}
-          <td><input class="ct-in ${(st.v1!=null&&st.v1!=='')?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="1" value="${st.v1!=null?st.v1:''}" placeholder="—"></td>
-          <td><input class="ct-in ${(st.v2!=null&&st.v2!=='')?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="2" value="${st.v2!=null?st.v2:''}" placeholder="—"></td>
-          <td id="${fbid}">${beatsPB?`<span class="chip up">▲破PB ${cb}</span>`:(cb!=null?`<span class="chip flat">最佳 ${cb}</span>`:'')}</td></tr>`;
-      }else{
-        const staged=CT_STAGED[n];
-        html+=`<tr>${nameCell}
-          <td class="num" style="color:var(--teal-d);font-weight:700">${best!=null?'＞'+best:'首測'}</td>
-          <td><input class="ct-in ${beatsPB?'pb':(staged!=null?'staged':'')}" inputmode="decimal" data-n="${esc(n)}" data-v="1" value="${staged!=null?staged:''}" placeholder="—"></td>
-          <td id="${fbid}">${beatsPB?'<span class="chip up">▲破PB</span>':''}</td></tr>`;
-      }
+      const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};
+      html+=`<tr>${nameCell}
+        <td><input class="ct-in ${(st.v1!=null&&st.v1!=='')?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="1" value="${st.v1!=null?st.v1:''}" placeholder="—"></td>
+        <td><input class="ct-in ${(st.v2!=null&&st.v2!=='')?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="2" value="${st.v2!=null?st.v2:''}" placeholder="—"></td>
+        <td id="${fbid}">${beatsPB?`<span class="chip up">▲破PB ${cb}</span>`:(cb!=null?`<span class="chip flat">最佳 ${cb}</span>`:'')}</td></tr>`;
     }
   });
   html+=`</tbody></table>`;
   $('#ctBody').innerHTML=html;
   $$('#ctBody .ct-in').forEach(inp=>{
     inp.oninput=()=>{const n=inp.dataset.n,field=inp.dataset.v,v=inp.value.trim();
-      if(isRope){ let st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{}; if(v===''){delete st['v'+field];}else{st['v'+field]=v;}
+      if(!isBody){ let st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{}; if(v===''){delete st['v'+field];}else{st['v'+field]=v;}
         if(st.v1==null&&st.v2==null){delete CT_STAGED[n];}else{CT_STAGED[n]=st;} }
       else { if(v===''){delete CT_STAGED[n];}else{CT_STAGED[n]=v;} }
-      // live PB feedback
+      // live PB feedback（非身高體重一律兩格 val 取最佳）
       if(!isBody){const s=series(n,CT_METRIC);const best=s.length?Math.max(...s.map(r=>r.val)):null;const cb=ctBest(n);const beats=cb!=null&&best!=null&&cb>best;
-        if(isRope){ inp.className='ct-in '+(v!==''?'staged':''); const fb=$('#ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,''));if(fb)fb.innerHTML=beats?`<span class="chip up">▲破PB ${cb}</span>`:(cb!=null?`<span class="chip flat">最佳 ${cb}</span>`:''); }
-        else { inp.className='ct-in '+(beats?'pb':(v!==''?'staged':''));
-          const fb=$('#ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,''));if(fb)fb.innerHTML=beats?'<span class="chip up">▲破PB</span>':(v!==''&&best!=null&&cb===best?'<span class="chip flat">平PB</span>':''); }
+        inp.className='ct-in '+(v!==''?'staged':''); const fb=$('#ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,''));if(fb)fb.innerHTML=beats?`<span class="chip up">▲破PB ${cb}</span>`:(cb!=null?`<span class="chip flat">最佳 ${cb}</span>`:'');
       }else{inp.className='ct-in '+(v!==''?'staged':'');}
       updateCTBar();};
     inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const all=$$('#ctBody .ct-in');const i=all.indexOf(inp);if(all[i+1])all[i+1].focus();}};
@@ -803,11 +792,8 @@ async function saveCT(){
     if(isBody){
       const deltas=names.map(n=>{const v=ctBest(n);const ex=(BODY[n]||[]).find(r=>r.date===CT_DATE)||{};return {name:n,date:CT_DATE,height:CT_METRIC==='height'?v:(ex.height!=null?ex.height:''),weight:CT_METRIC==='weight'?v:(ex.weight!=null?ex.weight:'')};});
       res=await upsertBody(deltas);
-    }else if(isRope){
-      const deltas=names.map(n=>{const st=CT_STAGED[n]||{};const v1=(st.v1!=null&&String(st.v1).trim()!=='')?parseFloat(st.v1):null;const v2=(st.v2!=null&&String(st.v2).trim()!=='')?parseFloat(st.v2):null;return {name:n,metricId:CT_METRIC,date:CT_DATE,val:ctBest(n),v1:v1,v2:v2};});
-      res=await upsertPerf(deltas);
     }else{
-      const deltas=names.map(n=>({name:n,metricId:CT_METRIC,date:CT_DATE,val:ctBest(n)}));
+      const deltas=names.map(n=>{const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};const v1=(st.v1!=null&&String(st.v1).trim()!=='')?parseFloat(st.v1):null;const v2=(st.v2!=null&&String(st.v2).trim()!=='')?parseFloat(st.v2):null;return {name:n,metricId:CT_METRIC,date:CT_DATE,val:ctBest(n),v1:v1,v2:v2};});
       res=await upsertPerf(deltas);
     }
     if(res&&res.queued)toast('已記錄 '+names.length+' 項（離線，回網自動同步）','ok');
@@ -827,7 +813,7 @@ function renderTodaySummary(){
     METRIC_ORDER.forEach(m=>{ const s=series(n,m); if(!s.length)return; const rec=s.find(r=>r.date===d); if(!rec)return;
       const best=Math.max(...s.map(r=>r.val)), mt=METRICS[m];
       let disp=rec.val+(mt&&mt.u?mt.u:'');
-      if(isRopeM(m)&&rec.v1!=null&&rec.v2!=null) disp+=` <span class="mut" style="font-weight:400;font-size:11px">(${rec.v1}/${rec.v2})</span>`;
+      if(rec.v1!=null&&rec.v2!=null) disp+=` <span class="mut" style="font-weight:400;font-size:11px">(${rec.v1}/${rec.v2})</span>`;
       items.push({lab:(mt?mt.short:m), disp, pb:recIsPB(s,rec)});
     });
     const bs=(BODY[n]||[]).find(r=>r.date===d);
