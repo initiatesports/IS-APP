@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-15-hasstu';
+const FRONTEND_VERSION = 'coach-2026-09-15-cleanup';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1288,8 +1288,8 @@ function renderTodo(){
   const today=todayStr(), dow=hkDow(), items=[];
   // 🔒 2026-09-14 審計#6：合併運動班(#SA)後，今日待辦要涵蓋 ALL_CLASSES（原本只 CLASSES=跳繩→漏晒運動班未點名/補堂提醒）。
   //   ATT_LOG 已含 #SA 出席（_mergeLoad_ concat 兩後端 attendance），SA cid 唔撞 → 用 anyDow/anyClass 唔會誤報。
-  // 🔒 2026-09-14 驗證修：只計「真正成班」嘅班（realStuCount_>=4 且未停辦），同首頁「今日班別」列表 sortedShownClasses_ 一致。
-  //   否則合併運動班後，空/未成班/停辦嘅 SA 班（多數 seed students:[]）會被當「未點名」灌水假警報（星期六尤甚）。
+  // 🔒 只計「有學生」嘅班（classShown_＝realStuCount_>=1 且未停辦，老闆 2026-09-15），同首頁「今日班別」列表一致。
+  //   否則合併運動班後，0 人／seed-only／停辦嘅班會被當「未點名」灌水假警報（星期六尤甚）。
   const todayCls=Object.entries(ALL_CLASSES).filter(([id,cls])=>anyDow(id)===dow && classShown_(id,cls));
   // 1. 今日未點名班別（有 roster 學生被標先當已點；淨補堂 visitor 唔算）
   const unrolled=todayCls.filter(([id])=>{ const log=ATT_LOG[id+'|'+today]; if(!log||!Object.keys(log).length) return true;
