@@ -79,7 +79,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
       <div class="sec">② 選擇上課時間</div>
       <div id="slots"></div>
       <div class="hint">上課時間決定每週節數及恆常收費。進階班為<b>恆常持續訓練</b>（同恆常跳繩班一樣，以每兩個月為一期收費）。</div>
-      <div class="pricebox" id="pricebox" style="display:none"><div class="amt" id="price-amt">—</div><div class="lbl">恆常每期（兩個月）收費</div></div>
+      <div class="pricebox" id="pricebox" style="display:none"><div class="amt" id="price-amt">—</div><div class="lbl" id="price-lbl">2026 年 10 月首月學費（首期繳費）</div><div class="lbl" id="price-ongoing" style="margin-top:6px;font-weight:700"></div></div>
     </div>
 
     <div class="card">
@@ -106,7 +106,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
 
     <div class="card">
       <div class="sec">⑤ 繳費</div>
-      <div class="fps">進階班為恆常持續訓練，以每兩個月一期收費。<b>2026 年 10 月為單月</b>，首月費用及首期繳費安排將另行以 WhatsApp（你填嘅電話）通知確認。<br><br>如你<b>已知繳費金額</b>，可以 FPS／轉數快 過數至 <b id="fps-num">—</b>（INITIATE SPORTS）並於下方上載截圖；如未確認金額，可先提交報名，我哋會盡快 WhatsApp 你。</div>
+      <div class="fps"><b>首期繳費：2026 年 10 月首月學費 <span id="fps-amt">—</span></b>（一律 $400）。<br>請以 FPS／轉數快 過數至 <b id="fps-num">—</b>（INITIATE SPORTS），並於下方上載截圖。<br><br>由 11 月起每兩個月為一期，按上方恆常收費，屆時另行通知繳費。如未能即時付款，可先提交報名，我哋會 WhatsApp（你填嘅電話）跟進。</div>
       <label class="upl" id="paylbl"><input type="file" id="f-pay" accept="image/*"><span id="paytxt">📷 按此上載付款截圖（選填）</span></label>
     </div>
 
@@ -121,7 +121,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
 </div>
 
 <script>
-const FRONTEND_VERSION='adv-enroll-2026-09-15-v3';
+const FRONTEND_VERSION='adv-enroll-2026-09-15-v4';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
 const $=s=>document.querySelector(s);
@@ -177,11 +177,14 @@ async function load(){
   $('#termsnote').textContent=CFG.termsNote||'';
   $('#terms').innerHTML=((CFG.terms&&CFG.terms.statements)||[]).map((s,i)=>`<p>${i+1}、${s}</p>`).join('');
   $('#fps-num').textContent=CFG.fps||'—';
+  try{ $('#fps-amt').textContent='$'+(CFG.octPrice!=null?CFG.octPrice:'—'); }catch(e){}
   setupSigPad();
 }
 function pickSlot(v){ S.slot=v; document.querySelectorAll('.opt').forEach(el=>el.classList.toggle('sel', el.getAttribute('data-v')===v));
   const s=(CFG.slots||[]).find(x=>x.v===v);
-  if(s){ $('#pricebox').style.display=''; $('#price-amt').textContent='$'+s.per2mo; } }
+  if(s){ $('#pricebox').style.display=''; $('#price-amt').textContent='$'+(CFG.octPrice!=null?CFG.octPrice:'—');
+    $('#price-ongoing').textContent='由 11 月起每兩個月一期：$'+s.per2mo;
+    $('#fps-amt').textContent='$'+(CFG.octPrice!=null?CFG.octPrice:''); } }
 
 document.addEventListener('change', function(e){
   if(e.target && e.target.id==='f-pay'){ const f=e.target.files[0]; if(!f) return;
@@ -209,8 +212,8 @@ async function submitForm(){
   $('#form').style.display='none';
   $('#done').style.display='block';
   $('#done').innerHTML=`<div class="card ok"><div class="ic">✅</div><h2>報名已收到！</h2>
-    <p>學生：<b>${name}</b><br>上課時間：${slotLabel}<br>恆常每期收費：$${r.price}</p>
-    <p>進階班為恆常持續訓練。10 月首月費用及首期繳費安排將以 WhatsApp（${phone}）通知確認。</p>
+    <p>學生：<b>${name}</b><br>上課時間：${slotLabel}<br>10 月首月學費：$${r.octPrice!=null?r.octPrice:400}<br>由 11 月起每期：$${r.price}</p>
+    <p>進階班為恆常持續訓練，2026 年 10 月開班。我哋核實繳費後會以 WhatsApp（${phone}）同你確認上課安排。</p>
     <p style="color:var(--muted);font-size:12.5px">報名合約 PDF 已電郵至 ${email}。</p>
     <p style="color:var(--muted);font-size:12px">記錄編號：${r.id}</p>
     <p style="color:var(--muted);font-size:12px">查詢：WhatsApp 6331 7403</p></div>`;
