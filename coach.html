@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-14-todofix';
+const FRONTEND_VERSION = 'coach-2026-09-15-smallcls';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -669,8 +669,11 @@ function dayOrder_(dow){ return dow===0?7:dow; }   // Mon(1)…Sat(6)…Sun(7)
 function classStartMin_(cls){ var t=String(cls&&cls.time||'').toLowerCase(); var m=t.match(/(\d{1,2})(?::(\d{2}))?/); if(!m) return 9999; var h=+m[1], mm=m[2]?+m[2]:0, isAm=t.indexOf('am')>=0, isPm=(t.indexOf('pm')>=0&&!isAm); if(isAm){ if(h===12)h=0; } else if(isPm){ if(h<12)h+=12; } else if(h<=7){ h+=12; } return h*60+mm; }
 let CLASS_END_MAP = {};   // 停辦班 cid→最後日（由 load 帶入）
 function isDiscontinued_(cid){ try{ return !!(CLASS_END_MAP[cid] && todayStr() > CLASS_END_MAP[cid]); }catch(e){ return false; } }
-// 只出現「夠人開班」（≥4 成班，老闆 2026-09-04）＋非停辦班；時間順序排
-function sortedShownClasses_(){ return Object.entries(ALL_CLASSES).filter(([id,cls])=>realStuCount_(cls)>=4 && !isDiscontinued_(id)).sort((a,b)=>(dayOrder_(anyDow(a[0]))-dayOrder_(anyDow(b[0])))||(classStartMin_(a[1])-classStartMin_(b[1]))); }
+// 🔒 2026-09-15 老闆：幼兒班唔受「4 人成班」門檻限（小班可細人數開），有人(≥1)即顯示畀教練點名。其餘班維持 ≥4。
+const SMALL_CLASS_={'found-tue2':1,'found-tue5':1};   // 幼兒全方位運動啟蒙（星期二 2-3pm / 5-6pm）
+function classShown_(id,cls){ const n=realStuCount_(cls); return (n>=4 || (SMALL_CLASS_[id] && n>=1)) && !isDiscontinued_(id); }
+// 只出現「夠人開班」（≥4 成班，老闆 2026-09-04；幼兒小班例外見上）＋非停辦班；時間順序排
+function sortedShownClasses_(){ return Object.entries(ALL_CLASSES).filter(([id,cls])=>classShown_(id,cls)).sort((a,b)=>(dayOrder_(anyDow(a[0]))-dayOrder_(anyDow(b[0])))||(classStartMin_(a[1])-classStartMin_(b[1]))); }
 
 const PUBLIC_HOLIDAYS = new Set(['2026-04-05','2026-04-06','2026-05-01','2026-05-19','2026-06-19']);
 const CLASS_CANCELLED_DATES = { c1:new Set(),c2:new Set(),c3:new Set(),c4:new Set(),c5:new Set(),c6:new Set(),c7:new Set() };
@@ -1287,7 +1290,7 @@ function renderTodo(){
   //   ATT_LOG 已含 #SA 出席（_mergeLoad_ concat 兩後端 attendance），SA cid 唔撞 → 用 anyDow/anyClass 唔會誤報。
   // 🔒 2026-09-14 驗證修：只計「真正成班」嘅班（realStuCount_>=4 且未停辦），同首頁「今日班別」列表 sortedShownClasses_ 一致。
   //   否則合併運動班後，空/未成班/停辦嘅 SA 班（多數 seed students:[]）會被當「未點名」灌水假警報（星期六尤甚）。
-  const todayCls=Object.entries(ALL_CLASSES).filter(([id,cls])=>anyDow(id)===dow && realStuCount_(cls)>=4 && !isDiscontinued_(id));
+  const todayCls=Object.entries(ALL_CLASSES).filter(([id,cls])=>anyDow(id)===dow && classShown_(id,cls));
   // 1. 今日未點名班別（有 roster 學生被標先當已點；淨補堂 visitor 唔算）
   const unrolled=todayCls.filter(([id])=>{ const log=ATT_LOG[id+'|'+today]; if(!log||!Object.keys(log).length) return true;
     const roster=new Set((anyClass(id)||{}).students||[]); return !Object.keys(log).some(n=>roster.has(n)); });
@@ -1354,7 +1357,7 @@ function genStuReminder(name){
 function genTodayClassMsg(){
   const dow=hkDow(), today=todayStr();
   // 🔒 2026-09-13 審計P1：合併運動班(#SA)+套當日特別時間(taTime_)+地點(venueAt_)+格式。以前只 #4、用基準時間、漏地點。
-  const cls=Object.entries(ALL_CLASSES).filter(([id,c])=>anyDow(id)===dow && realStuCount_(c)>=4 && !isDiscontinued_(id))
+  const cls=Object.entries(ALL_CLASSES).filter(([id,c])=>anyDow(id)===dow && classShown_(id,c))
                   .sort((a,b)=>classStartMin_(a[1])-classStartMin_(b[1]));
   if(!cls.length){ toast('今日冇堂','ℹ'); return; }
   const dstr=(()=>{const n=new Date(),p=x=>String(x).padStart(2,'0');return p(n.getDate())+'/'+p(n.getMonth()+1)+'/'+n.getFullYear()+'（星期'+'日一二三四五六'[n.getDay()]+'）';})();
