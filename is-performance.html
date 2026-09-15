@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-15-dual2';
+const APP_VERSION='growth-2026-09-15-cleanup';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -731,7 +731,6 @@ function ctBest(n){const st=CT_STAGED[n];if(st==null)return null;
   const v=parseFloat(st);return isNaN(v)?null:v;}
 function renderCTBody(){
   const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
-  const isRope=isRopeM(CT_METRIC);
   const students=CT_CLASS?ctStudents(CT_CLASS):[];
   if(!students.length){$('#ctBody').innerHTML=emptyBox('呢班未有學生','上面「補堂／臨時加人」可即時加，或喺教練 app 名冊加學生');return;}
   const mt=METRICS[CT_METRIC];
@@ -782,7 +781,6 @@ function renderCTBody(){
 function updateCTBar(){const c=Object.keys(CT_STAGED).filter(n=>ctBest(n)!=null).length;$('#ctBar').style.display=c?'flex':'none';$('#ctCount').textContent=c+' 項待儲存';}
 async function saveCT(){
   const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
-  const isRope=isRopeM(CT_METRIC);
   const names=Object.keys(CT_STAGED).filter(n=>ctBest(n)!=null);
   if(!names.length)return;
   const btn=$('#ctSave');btn.disabled=true;btn.innerHTML='儲存中…';
@@ -811,7 +809,7 @@ function renderTodaySummary(){
   ROSTER.forEach(n=>{
     const items=[];
     METRIC_ORDER.forEach(m=>{ const s=series(n,m); if(!s.length)return; const rec=s.find(r=>r.date===d); if(!rec)return;
-      const best=Math.max(...s.map(r=>r.val)), mt=METRICS[m];
+      const mt=METRICS[m];
       let disp=rec.val+(mt&&mt.u?mt.u:'');
       if(rec.v1!=null&&rec.v2!=null) disp+=` <span class="mut" style="font-weight:400;font-size:11px">(${rec.v1}/${rec.v2})</span>`;
       items.push({lab:(mt?mt.short:m), disp, pb:recIsPB(s,rec)});
