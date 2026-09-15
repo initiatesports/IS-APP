@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4 報名/器材/收費/跳繩恆常班
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-08-trial-verify';
+const FRONTEND_VERSION='admin-2026-09-15-adv';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -196,6 +196,7 @@ function renderLogin(err){
 const TABS=[
   ['enroll','📋 報名審核'],
   ['trial','🎟️ 試堂核實'],
+  ['adv','🏆 進階班'],
   ['transfer','🔁 調班／轉班'],
   ['gear','🎒 器材派發'],
   ['profile','👤 學生檔案'],
@@ -216,6 +217,7 @@ function errBox(e){ return `<div class="card"><div class="msg err">${esc(e||'載
 function switchTab(name){ CUR=name; setActive();
   if(name==='enroll') renderEnroll();
   else if(name==='trial') renderTrial();
+  else if(name==='adv') renderAdv();
   else if(name==='transfer') renderTransfer();
   else if(name==='gear') renderGear();
   else if(name==='profile') renderProfile();
@@ -227,6 +229,7 @@ function switchTab(name){ CUR=name; setActive();
 function refreshCur(){
   if(CUR==='enroll'){ ST.sum=null; ST.recs=null; renderEnroll(); }
   else if(CUR==='trial'){ ST.trial=null; renderTrial(); }
+  else if(CUR==='adv'){ ST.adv=null; renderAdv(); }
   else if(CUR==='transfer'){ ST.roster={}; ST.xfers={}; renderTransfer(); }
   else if(CUR==='gear'){ ST.gear=null; renderGear(); }
   else if(CUR==='profile'){ renderProfile(); }
@@ -500,6 +503,75 @@ async function setTrialStatus(id,status){
     if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' → '+status+(status==='已核實'?'（已 email 家長確認）':''); } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
   }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
   ST.trial=null; renderTrial();
+}
+
+/* ════════════════════ TAB 進階班 ════════════════════
+   route: advList(列全部進階班報名) + advSetStatus(核實→email家長／取消) + advDelete + getSecureFile(睇截圖/PDF) */
+async function renderAdv(){
+  loading('載入進階班報名…');
+  try{ if(!ST.adv) ST.adv=await apiPost(API4,{action:'advList'});
+    if(!ST.adv||ST.adv.ok===false) throw new Error((ST.adv&&ST.adv.err)||'讀取失敗');
+  }catch(e){ tc().innerHTML=errBox(e.message); return; }
+  drawAdv();
+}
+function drawAdv(){
+  const recs=(ST.adv.records||[]).filter(r=>String(r['學生姓名']||'').trim()!=='示範學員');
+  let pend=0,ver=0,can=0;
+  recs.forEach(r=>{ const s=String(r['狀態']||''); if(s==='已核實')ver++; else if(s==='取消')can++; else pend++; });
+  const cards=recs.map(r=>{
+    const id=r['記錄編號'], stt=String(r['狀態']||'待付款');
+    const stCls=stt==='已核實'?'ok':(stt==='取消'?'err':'warn');
+    const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" onclick="viewSecureFile('${esc(r['付款截圖'])}')">📷 付款截圖</a>`:'<span class="mut">無截圖</span>';
+    const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" onclick="viewSecureFile('${esc(r['確認PDF'])}')">📄 合約PDF</a>`:'';
+    let act='';
+    if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setAdvStatus('${esc(id)}','已核實')">核實</button>`;
+    if(stt!=='取消') act+=`<button class="btn err sm" onclick="setAdvStatus('${esc(id)}','取消')">取消</button>`;
+    act+=`<button class="btn sm" style="background:#eef3f4;color:var(--mut)" onclick="delAdv('${esc(id)}')">刪除</button>`;
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+            <b style="font-size:15px">${esc(r['學生姓名'])}</b><span class="st ${stCls}">${esc(stt)}</span>
+          </div>
+          <div style="font-size:13.5px;margin-top:3px"><b>${esc(r['上課時間說明']||r['上課時間']||'')}</b></div>
+          <div style="font-size:13px;margin-top:2px">10 月首月 ${money(r['10月首月收費'])} · 恆常每期 ${money(r['恆常每期收費'])}</div>
+          <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(r['家長姓名']||'')}・${esc(r['家長電話']||'')}${r['電郵']?'・'+esc(r['電郵']):''}</div>
+          <div style="margin-top:5px">${pay}${pdf}　<span class="mut" style="font-size:11.5px">${esc(id)} · ${esc(r['時間戳']||'')}</span></div>
+        </div>
+        <div class="rowact" style="flex-shrink:0">${act}</div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="mut">未有進階班報名記錄</div>';
+  tc().innerHTML=`
+  <div class="card">
+    <h2>🏆 花式跳繩進階班報名</h2>
+    <div class="stats">
+      <div class="stat"><div class="n">${recs.length}</div><div class="l">總報名</div></div>
+      <div class="stat"><div class="n">${pend}</div><div class="l">待付款</div></div>
+      <div class="stat"><div class="n">${ver}</div><div class="l">已核實</div></div>
+      <div class="stat"><div class="n">${can}</div><div class="l">取消</div></div>
+    </div>
+    <div class="mut" style="margin-top:8px;font-size:12.5px">核實 = 已收到並核對付款截圖 → 系統會 email 家長確認。10 月首月一律 $400，之後每兩個月一期按恆常收費。</div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="card"><h2>逐筆進階班報名</h2>${cards}</div>`;
+}
+async function setAdvStatus(id,status){
+  if(status==='取消' && !confirm('確認取消呢筆進階班報名（'+id+'）？')) return;
+  const msg=document.getElementById('msg');
+  try{
+    const r=await apiPost(API4,{action:'advSetStatus',id,status});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' → '+status+(status==='已核實'?'（已 email 家長確認）':''); } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+  ST.adv=null; renderAdv();
+}
+async function delAdv(id){
+  if(!confirm('確認【刪除】呢筆進階班報名（'+id+'）？此動作不可還原。')) return;
+  const msg=document.getElementById('msg');
+  try{ const r=await apiPost(API4,{action:'advDelete',id});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent='已刪除 '+id; } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+  ST.adv=null; renderAdv();
 }
 
 /* ════════════════════ TAB 2 調班／轉班 ════════════════════
