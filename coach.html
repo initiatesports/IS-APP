@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-16-mkblock-sa';
+const FRONTEND_VERSION = 'coach-2026-09-16-mkblock-fix';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -3106,7 +3106,8 @@ function renderMkBlockPanel(){
   const opts=`<optgroup label="跳繩">${ropeOpts}</optgroup><optgroup label="運動班">${saOpts}</optgroup>`;
   host.innerHTML=`
     <div style="font-size:14px;font-weight:800;margin:2px 4px 8px">🔒 逐節封鎖補堂</div>
-    <div style="font-size:12px;color:var(--muted);margin:0 4px 9px">封鎖某一節課（跳繩或運動班），唔畀學生揀嚟補堂（例：該節暫停／已滿／特別安排）。<b>只封補堂</b>，正規學生照常上堂、學費不受影響。</div>
+    <div style="font-size:12px;color:var(--muted);margin:0 4px 9px">封鎖某一節課（跳繩或運動班），唔畀學生揀嚟補堂／加操（例：該節暫停／已滿／特別安排）。<b>只封預約入口</b>，正規學生照常上堂、學費不受影響。</div>
+    <div style="font-size:11.5px;color:#e0a050;margin:0 4px 9px">⚠️ 體操／綜合／羽毛球／幼兒(二5–6pm) 呢幾班嘅補堂本身係「私訊教練安排」，封鎖只擋到<b>其他同運動班學生嘅自助約堂</b>；呢類班停課仍需你自己把關唔安排。</div>
     <input type="date" id="mkb-date" style="${VN_INS}">
     <select id="mkb-cid" style="${VN_INS}">${opts}</select>
     <button class="weather-btn" style="background:rgba(224,80,80,.14);border-color:rgba(224,80,80,.5);color:#e05050" onclick="mkBlockAdd()">🔒 封鎖此節補堂</button>
@@ -3118,11 +3119,22 @@ async function mkBlockRefresh(){
   box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">載入緊…</div>';
   // 🔀 2026-09-16：兩個後端各查一次（#4 跳繩＋#SA 運動班），合併去重（封鎖存喺各自 Settings）
   const [r4,rsa]=await Promise.all([ apiPostUrl_(API_URL,{action:'mkBlocks'}), apiPostUrl_(SA_API_URL,{action:'mkBlocks'}) ]);
-  const l4=(r4&&r4.ok&&Array.isArray(r4.mkBlock))?r4.mkBlock:[];
-  const lsa=(rsa&&rsa.ok&&Array.isArray(rsa.mkBlock))?rsa.mkBlock:[];
+  const ok4=!!(r4&&r4.ok), okSa=!!(rsa&&rsa.ok);
+  const l4=(ok4&&Array.isArray(r4.mkBlock))?r4.mkBlock:[];
+  const lsa=(okSa&&Array.isArray(rsa.mkBlock))?rsa.mkBlock:[];
   const list=[...new Set([...l4,...lsa])].sort((a,b)=>String(a.split('|')[1]||'').localeCompare(String(b.split('|')[1]||'')));
+  // 分辨「載入失敗」同「真係冇封鎖」：任一後端 !ok（超時/密碼錯）唔可以當冇封鎖，否則封鎖會靜靜消失於清單
+  if(!ok4 || !okSa){
+    const which=(!ok4&&!okSa)?'跳繩＋運動班':(!ok4?'跳繩':'運動班');
+    box.innerHTML='<div style="font-size:12px;color:#e0a050;padding:6px 4px">⚠️ '+which+'封鎖清單載入失敗（後端超時或未登入），未必齊全，請撳「補堂」tab 重入再睇。</div>'
+      + (list.length?('<div style="font-size:11px;color:var(--muted);margin:6px 4px 6px">已載入到嘅封鎖：</div>'+mkBlockRows_(list)):'');
+    return;
+  }
   if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">未有任何封鎖。</div>'; return; }
-  box.innerHTML='<div style="font-size:11px;color:var(--muted);margin:2px 4px 6px">現有封鎖（撳解封移除）：</div>'+list.map(k=>{
+  box.innerHTML='<div style="font-size:11px;color:var(--muted);margin:2px 4px 6px">現有封鎖（撳解封移除）：</div>'+mkBlockRows_(list);
+}
+function mkBlockRows_(list){
+  return list.map(k=>{
     const p=String(k).split('|'), cid=p[0], date=p[1]||'';
     const c=anyClass(cid)||{}, lbl=(isSA(cid)&&c.sport?'':(CLASSES[cid]?'跳繩 · ':''))+(c.label||cid), tm=(isSA(cid)?'':(c.time||''));
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:13.5px">

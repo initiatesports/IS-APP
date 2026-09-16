@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-16-retry404';
+const FRONTEND_VERSION='parent-2026-09-16-mkblock-addon';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1290,7 +1290,8 @@ function openAddon(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   // 候選：所有班別未來上課日（同一課程）
   const cands=[]; const seen={};
-  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr()){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });
+  const _mkBlk=new Set(S.mkBlock||[]);   // 逐節封鎖：封咗嘅節唔畀加操（同補堂 1685 一致，封晒所有入口）
+  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr() && !_mkBlk.has(k+'|'+d)){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });
   cands.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   const byDate={}; cands.forEach(x=>{ (byDate[x.date]=byDate[x.date]||[]).push(x); });
   AD={ki,ci,name:child.name,pick:null,byDate};
