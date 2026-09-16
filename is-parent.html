@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-13-audit3';
+const FRONTEND_VERSION='parent-2026-09-16-retry404';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -613,17 +613,25 @@ async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort
 /* 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向丟失 body → 請求變咗落 doGet，後端見 action=undefined，
    回 {ok:false,err:"unknown action"}（#11 係 "Unknown action: undefined"）。呢個唔係真錯誤，但家長會見到
    英文 "unknown action" toast，以為登入壞咗（實測 12 次抽樣中 ~2 次中招）。→ 對唯讀 action 自動重試。
-   ⚠️ 只可用喺「唯讀」action（login 等）；write action 重試會雙寫，唔可以用呢個。 */
+   ⚠️ 只可用喺「唯讀」action（login 等）；write action 重試會雙寫，唔可以用呢個。
+
+   🛡️ 2026-09-16 補完（原防護有洞）：Apps Script /exec 亦會偶發回 **Google「Page Not Found」HTML**（冷啟動
+   期間，實測 8 次抽樣 2 次中招 = 25%），或者冷啟動超過 45s 觸發 AbortController。呢兩種情況 `r.json()` 係
+   **直接 throw**，會跳出下面個 for 迴圈 → 上面 3 次重試由頭到尾冇行過，家長第一次登入即刻見「網絡連線失敗」。
+   （QA harness 自己有重試，所以日日報 100% 登入成功，一直遮住咗呢個真家長先中嘅問題。）
+   → 改成連 throw 都當「可重試」。全部試完仍失敗先 throw，維持原契約：callers 照顯示 netFail。 */
 function isLostPost_(r){ const m=String((r&&(r.err||r.error))||'').trim();
   return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m); }
 async function apiRO(action,payload={},tries=3){
   let r=null;
   for(let i=0;i<tries;i++){
-    r=await api(action,payload);
-    if(!isLostPost_(r)) return r;
-    await new Promise(s=>setTimeout(s,600*(i+1)));
+    try{ r=await api(action,payload); }
+    catch(e){ r=null; }                       // 非 JSON(404 頁)／逾時／網絡 → 當可重試，唔好即刻放棄
+    if(r && !isLostPost_(r)) return r;
+    if(i<tries-1) await new Promise(s=>setTimeout(s,600*(i+1)));
   }
-  return r;
+  if(r) return r;                             // 最後一次有回應（lost-post）→ 照返，行為同以前一樣
+  throw new Error('network');                 // 全部試完都 throw → 維持原契約，由 caller 顯示 netFail
 }
 async function syncHolidays(){
   // 只攞公眾假期（輕量、非敏感）；唔再拉成個 load，避免匿名攞到全校資料。

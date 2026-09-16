@@ -131,9 +131,16 @@ async function fetchText(url, opts, ms, tag) {
   }
 }
 
+/* 🩺 2026-09-16：第一 call 健康度統計。
+   歷史盲點：harness 自己重試 3 次，所以 /exec 偶發回 Google「Page Not Found」HTML／冷啟動逾時
+   全部被靜靜吞咗，日日報「登入 100%」——但**真家長冇呢個重試**，第一 call 中招就直接見「網絡連線失敗」。
+   （2026-09-16 實測 8 次抽樣 2 次 404 = 25%，前端 apiRO 同日先修好。）
+   → 由而家起記錄「第一次嘗試」嘅失敗率，令呢類問題再出現時擺上枱面，唔會再被重試遮住。 */
+const FIRSTCALL = { total: 0, fail: 0, nonJson: 0, timeout: 0, lostPost: 0 };
 async function callLogin(exec, name, cred) {
   let lastErr = "";
   for (let attempt = 0; attempt < 3; attempt++) {   // 重試 3 次，防短暫網絡
+    if (attempt === 0) FIRSTCALL.total++;
     try {
       const txt = await fetchText(exec, {
         method: "POST",
@@ -145,8 +152,15 @@ async function callLogin(exec, name, cred) {
         const j = JSON.parse(txt);
         if (!isLostPost(j)) return j;
         lastErr = "LOST_POST(302 丟 body)";   // 假錯誤 → 重試
-      } catch { lastErr = "NON_JSON:" + txt.slice(0, 80); }
-    } catch (e) { lastErr = e.message || String(e); }
+        if (attempt === 0) { FIRSTCALL.fail++; FIRSTCALL.lostPost++; }
+      } catch {
+        lastErr = "NON_JSON:" + txt.slice(0, 80);
+        if (attempt === 0) { FIRSTCALL.fail++; FIRSTCALL.nonJson++; }
+      }
+    } catch (e) {
+      lastErr = e.message || String(e);
+      if (attempt === 0) { FIRSTCALL.fail++; FIRSTCALL.timeout++; }
+    }
     await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
   }
   return { ok: false, err: lastErr || "fetch failed" };
@@ -416,6 +430,13 @@ async function sweep(label, exec, rows, withPin) {
   const order = ["LEAK", "OWED", "REPORT", "MKSTUCK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
   const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", REPORT: "🟠 成長報告後端異常（token 密鑰/route）", MKSTUCK: "🟠 有待補堂但約唔到位（限期已過／冇時段，需老闆決定）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
+  // 🩺 第一 call 健康度：真家長冇 harness 嘅重試，第一 call 中招就直接見「網絡連線失敗」。
+  if (FIRSTCALL.total) {
+    const pct = Math.round(FIRSTCALL.fail / FIRSTCALL.total * 1000) / 10;
+    const detail = `非JSON(404頁) ${FIRSTCALL.nonJson}・逾時/網絡 ${FIRSTCALL.timeout}・302丟body ${FIRSTCALL.lostPost}`;
+    if (pct >= 5) console.log(`\n⚠️ 第一 call 失敗率 ${pct}%（${FIRSTCALL.fail}/${FIRSTCALL.total}）：${detail}\n   → 家長端靠 apiRO 重試兜住；持續偏高＝Apps Script /exec 不穩，值得跟進 keep-warm。`);
+    else console.log(`\n🩺 第一 call 失敗率 ${pct}%（${FIRSTCALL.fail}/${FIRSTCALL.total}）：${detail}`);
+  }
   for (const sev of order) {
     if (!bySev[sev]) continue;
     console.log(`\n## ${names[sev]}（${bySev[sev].length}）`);
@@ -425,6 +446,7 @@ async function sweep(label, exec, rows, withPin) {
   console.log(JSON.stringify({
     date: TODAY,
     tested: { c4: s4, c9: s9 },
+    firstCall: { ...FIRSTCALL, pct: FIRSTCALL.total ? Math.round(FIRSTCALL.fail / FIRSTCALL.total * 1000) / 10 : 0 },
     counts: { LEAK: (bySev.LEAK || []).length, OWED: (bySev.OWED || []).length, REPORT: (bySev.REPORT || []).length, MKSTUCK: (bySev.MKSTUCK || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
   }));
