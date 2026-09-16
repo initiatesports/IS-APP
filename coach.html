@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-15-cleanup';
+const FRONTEND_VERSION = 'coach-2026-09-16-mkblock-sa';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -3100,10 +3100,13 @@ function cpass(){ return COACH_PASS_RT; }
 /* ── 逐節封鎖補堂：封鎖某「班|日期」唔畀學生揀嚟補堂（只封補堂，正規班照上）── */
 function renderMkBlockPanel(){
   const host=document.getElementById('mkblock-panel'); if(!host) return;
-  const opts=Object.entries(CLASSES).map(([cid,c])=>`<option value="${cid}">${vnEsc((c.label||cid)+(c.time?(' '+c.time):''))}</option>`).join('');
+  // 🔀 2026-09-16：下拉涵蓋跳繩(#4)＋運動班(#SA)，令體操／綜合等都封鎖得到（apiPost 按 cid 自動路由對應後端）
+  const ropeOpts=Object.entries(CLASSES).map(([cid,c])=>`<option value="${cid}">${vnEsc('跳繩 · '+(c.label||cid))}</option>`).join('');
+  const saOpts=Object.entries(SA_CLASSES).map(([cid,c])=>`<option value="${cid}">${vnEsc(c.label||cid)}</option>`).join('');
+  const opts=`<optgroup label="跳繩">${ropeOpts}</optgroup><optgroup label="運動班">${saOpts}</optgroup>`;
   host.innerHTML=`
     <div style="font-size:14px;font-weight:800;margin:2px 4px 8px">🔒 逐節封鎖補堂</div>
-    <div style="font-size:12px;color:var(--muted);margin:0 4px 9px">封鎖某一節課，唔畀學生揀嚟補堂（例：該節已滿／特別安排）。<b>只封補堂</b>，正規學生照常上堂、學費不受影響。</div>
+    <div style="font-size:12px;color:var(--muted);margin:0 4px 9px">封鎖某一節課（跳繩或運動班），唔畀學生揀嚟補堂（例：該節暫停／已滿／特別安排）。<b>只封補堂</b>，正規學生照常上堂、學費不受影響。</div>
     <input type="date" id="mkb-date" style="${VN_INS}">
     <select id="mkb-cid" style="${VN_INS}">${opts}</select>
     <button class="weather-btn" style="background:rgba(224,80,80,.14);border-color:rgba(224,80,80,.5);color:#e05050" onclick="mkBlockAdd()">🔒 封鎖此節補堂</button>
@@ -3113,12 +3116,15 @@ function renderMkBlockPanel(){
 async function mkBlockRefresh(){
   const box=document.getElementById('mkb-list'); if(!box) return;
   box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">載入緊…</div>';
-  let r; try{ r=await apiPost({action:'mkBlocks'}); }catch(e){ r=null; }
-  const list=(r&&r.ok&&Array.isArray(r.mkBlock))?r.mkBlock:[];
+  // 🔀 2026-09-16：兩個後端各查一次（#4 跳繩＋#SA 運動班），合併去重（封鎖存喺各自 Settings）
+  const [r4,rsa]=await Promise.all([ apiPostUrl_(API_URL,{action:'mkBlocks'}), apiPostUrl_(SA_API_URL,{action:'mkBlocks'}) ]);
+  const l4=(r4&&r4.ok&&Array.isArray(r4.mkBlock))?r4.mkBlock:[];
+  const lsa=(rsa&&rsa.ok&&Array.isArray(rsa.mkBlock))?rsa.mkBlock:[];
+  const list=[...new Set([...l4,...lsa])].sort((a,b)=>String(a.split('|')[1]||'').localeCompare(String(b.split('|')[1]||'')));
   if(!list.length){ box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">未有任何封鎖。</div>'; return; }
   box.innerHTML='<div style="font-size:11px;color:var(--muted);margin:2px 4px 6px">現有封鎖（撳解封移除）：</div>'+list.map(k=>{
     const p=String(k).split('|'), cid=p[0], date=p[1]||'';
-    const lbl=(CLASSES[cid]&&CLASSES[cid].label)||cid, tm=(CLASSES[cid]&&CLASSES[cid].time)||'';
+    const c=anyClass(cid)||{}, lbl=(isSA(cid)&&c.sport?'':(CLASSES[cid]?'跳繩 · ':''))+(c.label||cid), tm=(isSA(cid)?'':(c.time||''));
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:13.5px">
       <span>🔒 <b>${vnEsc(lbl)}</b> ${vnEsc(tm)}　<span style="color:var(--muted)">${vnEsc(date)}</span></span>
       <button class="today-mini" onclick="mkBlockRemove('${vnEsc(cid)}','${vnEsc(date)}')">解封</button></div>`;
