@@ -222,7 +222,7 @@ const CONFIG = {
   EXPECTED_VERSION: "v2-grid-mk10",  // 期望後端版本（健康檢查用，部署新後端時一齊改）
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION = 'lm-2026-09-07-tt2627';
+const FRONTEND_VERSION = 'lm-2026-09-16-retry404';
 
 /* ============================================================
    共用：暑期班日期（7 月第二週起、7 週）
@@ -370,14 +370,18 @@ async function api(action, payload={}){
    ⚠️ 只可用喺「唯讀」action（login 等）；write action（請假/補堂/取消）重試會雙寫，唔可以用呢個。 */
 function isLostPost_(r){ const m=String((r&&(r.err||r.error))||'').trim();
   return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m); }
+/* 🛡️ 2026-09-16：同 is-parent 一齊修（兩個家長端要對齊）。/exec 偶發回 Google「Page Not Found」HTML 或
+   冷啟動逾時 → r.json() throw → 跳出重試迴圈，家長第一 call 即死。改成連 throw 都重試。 */
 async function apiRO(action, payload={}, tries=3){
   let r=null;
   for(let i=0;i<tries;i++){
-    r=await api(action,payload);
-    if(!isLostPost_(r)) return r;
-    await new Promise(s=>setTimeout(s,600*(i+1)));
+    try{ r=await api(action,payload); }
+    catch(e){ r=null; }                       // 非 JSON(404 頁)／逾時／網絡 → 當可重試
+    if(r && !isLostPost_(r)) return r;
+    if(i<tries-1) await new Promise(s=>setTimeout(s,600*(i+1)));
   }
-  return r;
+  if(r) return r;
+  throw new Error('network');                 // 維持原契約：caller 照顯示網絡失敗
 }
 function demoApi(action,p){
   return new Promise(r=>setTimeout(()=>r(demoHandle(action,p)),180));
