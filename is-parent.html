@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-17-cancelmk-btn';
+const FRONTEND_VERSION='parent-2026-09-17-cancelmk-card';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -941,7 +941,7 @@ function renderParent(){
     html+=`<div class="cards-grid">`;
     (child.classes||[]).forEach((c,ci)=>{
       const sessP=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).length;
-      if(sessP===0 && (Number(c.owed)||0)===0) return;   // 該期冇堂又冇待補堂（如已 drop／未報嗰班）→ 唔顯示空卡（老闆 2026-08-31，梁正宇 c2 已 drop）
+      if(sessP===0 && (Number(c.owed)||0)===0 && cancellableMakeups(c).length===0) return;   // 該期冇堂又冇待補堂（如已 drop／未報嗰班）→ 唔顯示空卡（老闆 2026-08-31）；⚠️2026-09-17 但有「可取消已約補堂」就要顯示，否則家長取消唔到（取消補堂掣喺卡內）
       html+=classCard(child,ki,c,ci);
     });
     html+=ptCard(child);
