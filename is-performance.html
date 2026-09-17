@@ -248,7 +248,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-17-bodycombine2';
+const APP_VERSION='growth-2026-09-17-autoupd';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -1404,6 +1404,34 @@ function famLBRender(){
 })();
 // PWA service worker（只 cache 本 app 自己 HTML 作離線開啟；對其他 IS-APP 頁完全透明，唔攔截）
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('is-performance-sw.js').catch(()=>{});});}
+/* 🔄 2026-09-17 自動版本檢查（同 coach/parent/is-coach 一致）：開頁防快取 fetch 自己 HTML→抽 APP_VERSION 比對；
+   唔同=本頁係舊快取→自動 cache-bust 重載(每個新版只自動試一次,防死循環)；iOS 主畫面頑固快取刷唔到→彈 blocking modal 要撳「立即更新」。
+   ⚠️ 解決成長中心有 SW 但無版本檢查，老闆要手動刷新先食到新版嘅問題（2026-09-17 身高體重合併事件）。 */
+async function checkForUpdate(){
+  try{
+    const r=await fetch(location.pathname+'?_ck='+Date.now(),{cache:'no-store'});
+    if(!r.ok) return;
+    const html=await r.text();
+    const m=html.match(/APP_VERSION\s*=\s*'([^']+)'/);
+    const latest=m&&m[1];
+    if(latest&&latest!==APP_VERSION) showUpdateBanner(latest);
+  }catch(e){}
+}
+function showUpdateBanner(latest){
+  if(document.getElementById('update-banner')) return;
+  try{ if(sessionStorage.getItem('gc_upd_tried')!==latest){ sessionStorage.setItem('gc_upd_tried',latest); location.replace(location.pathname+'?v='+encodeURIComponent(latest)+'&_r='+Date.now()); return; } }catch(e){}
+  const ov=document.createElement('div'); ov.id='update-banner';
+  ov.style.cssText='position:fixed;inset:0;z-index:1000001;background:rgba(20,40,45,.6);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:400px;width:100%;padding:26px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.3);text-align:center">
+    <div style="font-size:34px">🔄</div>
+    <div style="font-size:17px;font-weight:800;color:#14303a;margin:6px 0 8px">成長中心有新版本</div>
+    <div style="font-size:14px;line-height:1.6;color:#5a6b72">為確保用到最新功能，請即更新。</div>
+    <button class="upd-now" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">立即更新</button>
+  </div>`;
+  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('gc_upd_tried');}catch(e){} location.replace(location.pathname+'?v='+encodeURIComponent(latest)+'&_r='+Date.now()); };
+  document.body.appendChild(ov);
+}
+try{ checkForUpdate(); }catch(e){}
 
 /* modal helpers */
 function openModal(html){$('#mask').innerHTML='<div class="modal">'+html+'</div>';$('#mask').classList.add('show');}
