@@ -511,10 +511,12 @@ function tVerify(){
   var result='';
   if(cr==='loading'){result='<div style="margin-top:20px;border:1px solid rgba(62,207,207,0.3);background:rgba(62,207,207,0.06);padding:18px 20px;font-size:13.5px;color:rgba(255,255,255,0.7)">查詢中…</div>';}
   else if(cr){
+    var _cl=Number(cr.certified)||0, _al=Number(cr.attempted)||0;
     var _lvl=(cr.certified!=null||cr.attempted!=null)
-      ? ('<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">'
-         +'<span style="background:rgba(62,207,207,0.14);border:1px solid rgba(62,207,207,0.5);color:#3ECFCF;font-weight:900;font-size:14.5px;padding:8px 14px">🎖 證書等級：'+(badgeLbl(cr.certified)||'尚未頒發')+'</span>'
-         +(Number(cr.attempted)>Number(cr.certified)?('<span style="background:rgba(245,165,36,0.12);border:1px solid rgba(245,165,36,0.4);color:#F5A524;font-weight:800;font-size:13.5px;padding:8px 14px">考試等級：'+badgeLbl(cr.attempted)+'</span>'):'')
+      ? ('<div style="margin-top:16px;border-top:1px solid rgba(62,207,207,0.22);padding-top:16px">'
+         +'<div style="font-family:Archivo,\'Noto Sans HK\',sans-serif;font-size:11px;font-weight:900;font-style:italic;letter-spacing:0.16em;color:rgba(255,255,255,0.42)">CERTIFIED LEVEL · 花式跳繩認證等級</div>'
+         +'<div style="font-family:Archivo,\'Noto Sans HK\',sans-serif;font-size:34px;font-weight:900;color:#3ECFCF;line-height:1.05;margin-top:5px;letter-spacing:0.01em">'+(_cl>0?('Level '+_cl):'<span style="font-size:19px;color:rgba(255,255,255,0.6)">尚未頒發證書</span>')+'</div>'
+         +(_al>_cl?('<div style="font-size:13px;color:rgba(255,255,255,0.55);margin-top:10px">考試進度 Assessment · 已考核至 <b style="color:#F5A524">Level '+_al+'</b></div>'):'')
          +'</div>')
       : ('<div style="font-size:15px;font-weight:900;color:#3ECFCF;margin-top:6px">'+esc(cr.title||'證書已驗證')+' · '+esc(cr.titleEn||'VERIFIED')+'</div>');
     result='<div style="margin-top:20px;background:rgba(62,207,207,0.07);border:1px solid rgba(62,207,207,0.3);padding:22px 22px;animation:is-menuIn 0.35s both"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:12px;color:#3ECFCF;letter-spacing:0.08em">VERIFIED ✓ '+esc(cr.no)+'</div><div style="font-size:21px;font-weight:900;margin-top:8px">'+esc(cr.name)+' <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5)">'+esc(cr.nameEn)+'</span></div>'+_lvl+'<div style="font-size:12.5px;color:rgba(255,255,255,0.6);margin-top:8px">'+esc(cr.program)+' · '+esc(cr.year)+'</div></div>';}
@@ -527,8 +529,8 @@ function tVerify(){
 // 🔒 2026-09-13 審計：本地比對鏡射後端 certNorm_（大寫＋剝非英數＋容許省略 IS 前綴），
 //   令家長打變體（is-mslc3 / IS MSLC3 / mslc3）離線都對得上硬編證書，唔止靠後端 fallback 正規化。
 function certKey_(s){ var k=String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); return k.indexOf('IS')===0?k:('IS'+k); }
-// 章別等級號(1-14)→名（L1-7 彩虹章、L8-14 行星章）。0/空=未有。
-function badgeLbl(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'L'+n+' · '+(n<=7?RAINBOW_NAMES[n-1]:PLANET_ZH[n-8]); }
+// 章別等級號(1-14)→「Level N」。0/空=未有。（老闆 2026-09-17：直接顯示 Level 幾，唔要色章名）
+function badgeLbl(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'Level '+n; }
 function doVerify(){
   var q=(S.certQ||'').trim().toUpperCase(); if(!q) return;
   var qk=certKey_(q);

@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-17-badge';
+const FRONTEND_VERSION='parent-2026-09-17-levelfmt';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -276,8 +276,7 @@ const CLASS_IDS = Object.keys(CLASSES);
 const SA_API_URL='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';
 /* 🏅 花式跳繩章別等級（#11 student_grades）：家長頁顯示仔女證書/考試等級。14 級 L1-7 彩虹章 + L8-14 行星章。 */
 const API_11='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
-const BADGE_NAMES=['—','紅色章','橙色章','黃色章','綠色章','藍色章','靛色章','紫色章','水星章','金星章','火星章','木星章','土星章','天王星章','海王星章'];
-function badgeLbl11(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'L'+n+' · '+BADGE_NAMES[n]; }
+function badgeLbl11(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'Level '+n; }   // 老闆 2026-09-17：直接顯示 Level 幾
 const SA_CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm'},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm'},
@@ -874,10 +873,10 @@ async function loadBadgeGrades(){
     const cert=Number(g.certified)||0, att=Number(g.attempted)||0;
     if(cert<1 && att<1) return;   // 未有等級唔顯示
     const certTxt=cert>0?badgeLbl11(cert):'尚未頒發';
-    const attPill=(att>cert)?`<span style="background:var(--amber-dim,rgba(217,138,31,.12));border:1px solid rgba(217,138,31,.4);color:var(--amber,#c47f00);font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px">考試 ${badgeLbl11(att)}</span>`:'';
+    const attPill=(att>cert)?`<span style="background:var(--amber-dim,rgba(217,138,31,.12));border:1px solid rgba(217,138,31,.4);color:var(--amber,#c47f00);font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px">考試至 ${badgeLbl11(att)}</span>`:'';
     box.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:2px 2px 10px">
-      <span style="font-size:12.5px;color:var(--muted,#66757c);font-weight:700">🏅 花式跳繩章別</span>
-      <span style="background:var(--teal-dim,#e6f6f8);border:1px solid #bfe3e7;color:#0a6b74;font-weight:800;font-size:12.5px;padding:5px 11px;border-radius:20px">證書 ${certTxt}</span>${attPill}</div>`;
+      <span style="font-size:12.5px;color:var(--muted,#66757c);font-weight:700">🏅 花式跳繩認證</span>
+      <span style="background:var(--teal-dim,#e6f6f8);border:1px solid #bfe3e7;color:#0a6b74;font-weight:800;font-size:13px;padding:5px 12px;border-radius:20px">${certTxt}</span>${attPill}</div>`;
   });
 }
 /* 📊 家長版成績排行榜：用任一有 token 嘅仔女授權 → is-performance.html?lb=1（#11 homeRank，後端計名次）。 */
