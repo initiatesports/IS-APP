@@ -184,7 +184,7 @@ textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10
 </div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
-const PT_VERSION='pt-enroll-2026-08-29-v12';
+const PT_VERSION='pt-enroll-2026-09-17-parq-en';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA=n=>'https://wa.me/85263317403?text='+encodeURIComponent(n||'我想查詢私人訓練');
 const app=document.getElementById('app');
@@ -198,7 +198,7 @@ document.getElementById('ver').textContent=PT_VERSION+(PREVIEW?' · 預覽模式
 function steps(n){ let h='<div class="steps">'; for(let i=1;i<=4;i++) h+='<div class="s '+(i<=n?'on':'')+'"></div>'; return h+'</div>'; }
 
 /* ══ PAR-Q ══ */
-const PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
+const PARQ=['醫生曾否告訴你，你有心臟問題，只可進行醫生建議的體能活動？','你進行體能活動時，是否感到胸口痛？','過去一個月內，你在沒有進行體能活動時，是否也曾感到胸口痛？','你是否曾因暈眩而失去平衡，或曾否失去知覺？','你的骨骼或關節（例如脊骨、膝部或髖部）是否有毛病，並會因改變體能活動而惡化？','醫生現時是否有處方藥物（例如血壓或心臟藥物）給你？','你是否知道有任何其他原因，令你不應進行體能活動？'];
 const HEALTH_OPTS=['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'];
 const HEALTH_NONE='以上不適用';
 
@@ -255,8 +255,8 @@ function renderHome(){
 
 /* ════ ① 為誰報名 + 學員資料 + PAR-Q ════ */
 function capStu(){   // 捕捉現有輸入，切換「為誰報名」重畫時唔會清走已填內容
-  const g=id=>{ const e=document.getElementById(id); return e?(e.value||'').trim():(S.stu[({st_name:'name',st_age:'age',st_parent:'parent',st_phone:'phone',st_email:'email',st_parqnote:'parqnote',st_healthnote:'healthnote'})[id]]||''); };
-  S.stu.name=g('st_name'); S.stu.age=g('st_age'); S.stu.parent=g('st_parent'); S.stu.phone=g('st_phone'); S.stu.email=g('st_email');
+  const g=id=>{ const e=document.getElementById(id); return e?(e.value||'').trim():(S.stu[({st_name:'name',st_nick:'nick',st_age:'age',st_parent:'parent',st_phone:'phone',st_email:'email',st_parqnote:'parqnote',st_healthnote:'healthnote'})[id]]||''); };
+  S.stu.name=g('st_name'); S.stu.nick=g('st_nick'); S.stu.age=g('st_age'); S.stu.parent=g('st_parent'); S.stu.phone=g('st_phone'); S.stu.email=g('st_email');
   const pq=document.getElementById('st_parqok'); if(pq) S.stu.parqok=pq.checked;
   S.stu.parqnote=g('st_parqnote');
   const hs=document.querySelectorAll('.st_health'); if(hs.length) S.stu.health=[...document.querySelectorAll('.st_health:checked')].map(x=>x.value);
@@ -273,7 +273,8 @@ function renderStudent(){
       <div class="chips" id="fw_pick">
         <span class="chip ${!adult?'on':''}" data-fw="child">為小朋友／青少年報名</span>
         <span class="chip ${adult?'on':''}" data-fw="adult">我自己（成人）報名</span></div></div>
-    <div class="fld"><label>${adult?'你的中文姓名':'學員中文姓名'} <span style="color:var(--err)">*</span></label><input id="st_name" value="${esc(s.name||'')}" placeholder="例：陳大文"></div>
+    <div class="fld"><label>${adult?'你的英文全名':'學員中文姓名'} <span style="color:var(--err)">*</span></label><input id="st_name" value="${esc(s.name||'')}" placeholder="${adult?'e.g. Chan Tai Man':'例：陳大文'}"></div>
+    ${adult?`<div class="fld"><label>想教練上堂點樣稱呼你？<span style="color:var(--err)">*</span></label><input id="st_nick" value="${esc(s.nick||'')}" placeholder="例：Iris"></div>`:''}
     <div class="fld"><label>${adult?'你的出生年份':'學員出生年份'}<span style="color:var(--err)">*</span></label><input id="st_age" inputmode="numeric" maxlength="4" value="${esc(s.age||'')}" placeholder="例：${adult?'1990':'2016'}"></div>
     ${adult?'':`<div class="fld"><label>家長／聯絡人姓名 <span style="color:var(--err)">*</span></label><input id="st_parent" value="${esc(s.parent||'')}" placeholder="家長姓名"></div>`}
     <div class="fld"><label>${adult?'你的聯絡電話':'聯絡電話'} <span style="color:var(--err)">*</span></label><input id="st_phone" inputmode="numeric" value="${esc(s.phone||'')}" placeholder="8 位香港電話"></div>
@@ -293,7 +294,7 @@ function renderStudent(){
     capStu(); const st=S.stu; const isA=(st.forWho==='adult');
     const msg=document.getElementById('st_msg');
     if(!PREVIEW){
-      if(!st.name||!st.age||!st.phone||(!isA && !st.parent)){ msg.className='msg err'; msg.textContent=isA?'請填齊你的姓名、出生年份及電話。':'請填齊學員姓名、出生年份、家長姓名及電話。'; return; }
+      if(!st.name||!st.age||!st.phone||(!isA && !st.parent)||(isA && !st.nick)){ msg.className='msg err'; msg.textContent=isA?'請填齊你的英文全名、稱呼、出生年份及電話。':'請填齊學員姓名、出生年份、家長姓名及電話。'; return; }
       if(!/^(19|20)\d{2}$/.test(st.age)){ msg.className='msg err'; msg.textContent='請填'+(isA?'你的':'學員')+'出生年份（4 位數，例：'+(isA?'1990':'2016')+'）。'; return; }
       if(!/^\d{8}$/.test(String(st.phone).replace(/\s/g,''))){ msg.className='msg err'; msg.textContent='請輸入正確 8 位香港電話。'; return; }
       if(!st.parqok && !st.parqnote){ msg.className='msg err'; msg.textContent='請剔選健康聲明，或喺註明欄填寫需要注意嘅健康狀況。'; return; }
@@ -389,7 +390,7 @@ function renderPackage(){
     ${priceBlock}
     <div class="fld"><label>對象</label>
       <div class="chips" id="pk_who">${WHO.map(x=>`<span class="chip ${(pk.who===x||WHO.length===1)?'on':''}" data-v="${esc(x)}">${esc(x)}</span>`).join('')}</div>${adult?'':'<div class="hint" style="margin-top:4px">為小朋友報名，對象自動為「兒童 / 青少年」。</div>'}</div>
-    <div class="fld"><label>推薦人中文全名（如有）</label><input id="pk_ref" value="${esc(S.referrer||'')}" placeholder="推薦你嘅朋友中文全名（享推薦獎賞用）">
+    <div class="fld"><label>推薦人中文全名或電話（如有）</label><input id="pk_ref" value="${esc(S.referrer||'')}" placeholder="推薦你嘅朋友中文全名或電話（唔知全名可填電話）">
       <div class="hint" style="margin-top:4px">🎁 推薦新朋友首次買套票，每 10 節送 1 節畀推薦人。</div></div>
     <div class="navbtns"><button class="btn ghost sm" onclick="renderGoals()">‹ 返回</button><button class="btn" id="pk_next">下一步 →</button></div>
   </div>`;
@@ -420,7 +421,7 @@ function renderTerms(){
       <div class="terms">${PT_TERMS.map((s,i)=>`<p><b>${i+1}.</b> ${s}</p>`).join('')}</div>
       <label class="chk"><input type="checkbox" id="pt_ops"><span>本人已閱讀並<b>同意</b>以上私人訓練條款。</span></label></div>
     <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ 請填${_sg}本人<b>真實英文全名</b>及<b>證件號碼首 4 位</b>作報名確認之用。</div>
-    <div class="fld"><label>${_sg}英文全名 <span style="color:var(--err)">*</span></label><input id="tm_en" value="${esc(S.signEn||'')}" placeholder="e.g. Chan Tai Man"></div>
+    <div class="fld"><label>${_sg}英文全名 <span style="color:var(--err)">*</span></label><input id="tm_en" value="${esc(S.signEn||((S.stu.forWho==='adult')?(S.stu.name||''):''))}" placeholder="e.g. Chan Tai Man"></div>
     <div class="fld"><label>${_sg}證件號碼首 4 位（e.g. A123）<span style="color:var(--err)">*</span></label><input id="tm_id" value="${esc(S.signId||'')}" maxlength="8"></div>
     <div class="fld"><label>${_sg}手寫簽名 <span style="color:var(--err)">*</span></label>
       <canvas id="sigpad" style="width:100%;height:170px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
@@ -469,7 +470,7 @@ async function submitPt(){
   let res;
   try{
     res=await apiPost({ action:'ptEnroll',
-      name:S.stu.name, age:S.stu.age, parent:S.stu.parent, phone:S.stu.phone, email:S.stu.email,
+      name:S.stu.name, nick:S.stu.nick||'', age:S.stu.age, parent:S.stu.parent, phone:S.stu.phone, email:S.stu.email,
       forWho:(S.stu.forWho==='adult'?'成人自行報名':'為小朋友／青少年報名'),
       parq:(S.stu.parqok?'全部否（適合運動）':('有需要注意：'+(S.stu.parqnote||''))),
       health:((S.stu.health||[]).join('、')+((S.stu.healthnote)?('；其他：'+S.stu.healthnote):''))||'—',
