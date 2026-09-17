@@ -84,7 +84,7 @@ input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--tea
   <div class="foot">INITIATE SPORTS · 新生試堂報名　·　青衣體育館<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='trial-2026-09-08-v1';
+const FRONTEND_VERSION='trial-2026-09-17-parq';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 const $=s=>document.querySelector(s);
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
@@ -118,7 +118,7 @@ let CLASSES=[
 ];
 let FPS='';
 const HEALTH=['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'];
-const PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
+const PARQ=['醫生曾否告訴你，你有心臟問題，只可進行醫生建議的體能活動？','你進行體能活動時，是否感到胸口痛？','過去一個月內，你在沒有進行體能活動時，是否也曾感到胸口痛？','你是否曾因暈眩而失去平衡，或曾否失去知覺？','你的骨骼或關節（例如脊骨、膝部或髖部）是否有毛病，並會因改變體能活動而惡化？','醫生現時是否有處方藥物（例如血壓或心臟藥物）給你？','你是否知道有任何其他原因，令你不應進行體能活動？'];
 const SOURCE=['朋友／家長介紹','Facebook','Instagram','Google 搜尋','就讀學校','傳單／街站','其他'];
 const DECL='本人謹此聲明本人／小兒／小女的健康及體能良好，適合參加上述活動。如因隱瞞疾病或身體不適合參與課堂而於活動時傷亡，主辦機構概不需負責。（例如患有哮喘等醫生不建議的疾病，或身體有扭傷、骨折等情況，不適合參與課堂。）若健康狀況有任何改變，祈請盡快通知本單位，以便作出適當安排。如「不同意」便不能參加。';
 let S={name:'',gender:'',by:'',bm:'',school:'',grade:'',pname:'',phone:'',email:'',emgName:'',emgPhone:'',emgRel:'',cls:'',date:'',health:[],parqok:false,parqnote:'',special:'',declAgree:false,enName:'',source:'',payImg:'',rid:''};
