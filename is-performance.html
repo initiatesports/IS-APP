@@ -248,7 +248,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-17-autoupd';
+const APP_VERSION='growth-2026-09-17-grades';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -311,6 +311,9 @@ function metricPickerHTML(cur,opt){opt=opt||{};
   return h;
 }
 const CLASS_IDS=['c1','c2','c3','c4','c5','c6','c7'];
+/* 花式跳繩章別 14 級（L1-7 彩虹章、L8-14 行星章）。值域 0-14，0=未有。同官網/教練主頁 BADGE_DATA 一致。 */
+const BADGE_NAMES=['—','紅色章','橙色章','黃色章','綠色章','藍色章','靛色章','紫色章','水星章','金星章','火星章','木星章','土星章','天王星章','海王星章'];
+function badgeOpt(cur){return Array.from({length:15},(_,i)=>`<option value="${i}" ${(+cur||0)===i?'selected':''}>${i===0?'—':'L'+i+'·'+BADGE_NAMES[i]}</option>`).join('');}
 
 /* ---------- 小工具 ---------- */
 const $=(s,r=document)=>r.querySelector(s);
@@ -479,6 +482,20 @@ async function upsertBody(deltas){
   else updateSyncBadge();
   return res;
 }
+/* 花式跳繩章別等級增量寫入（後端 grades_upsert：鎖內只改 student_grades 一格，per-student merge）。
+   deltas=[{name,attempted?,certified?}]（值域 0-14）。同步更新本地 SETTINGS.student_grades。 */
+async function upsertGrades(deltas){
+  if(!deltas.length)return;
+  setSync('load','儲存中…');
+  const sg=SETTINGS['student_grades']||(SETTINGS['student_grades']={});
+  deltas.forEach(d=>{ const g=sg[d.name]||(sg[d.name]={attempted:0,certified:0});
+    if(d.attempted!=null)g.attempted=Math.max(0,Math.min(14,+d.attempted||0));
+    if(d.certified!=null)g.certified=Math.max(0,Math.min(14,+d.certified||0)); });
+  const res=await syncOrQueue('grades_upsert',deltas);
+  if(res.ok)setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+  else updateSyncBadge();
+  return res;
+}
 async function deletePerf(name,metric,date){
   const r=await apiPost({action:'perf_delete',coachPass:CP,data:[{name,metricId:metric,date}]});
   if(!r||r.ok===false)throw new Error((r&&r.error)||'刪除失敗');
@@ -558,6 +575,7 @@ function cohortBadge(name,metric){const c=cohortStat(name,metric);if(!c)return '
 const ROUTES=[
   {id:'dash',name:'概覽',icon:'dash',render:renderDash},
   {id:'classtest',name:'課堂測試',icon:'activity',render:renderClassTest},
+  {id:'grades',name:'證書等級',icon:'medal',render:renderGrades},
   {id:'today',name:'今日總匯',icon:'report',render:renderTodaySummary},
   {id:'insights',name:'教練提示',icon:'flame',render:renderInsights},
   {id:'leaders',name:'排行榜',icon:'medal',render:renderLeaders},
@@ -810,6 +828,74 @@ async function saveCT(){
     else toast('已儲存 '+names.length+' 項'+(pbCount?('，'+pbCount+' 人破紀錄 🎉'):''),'ok');
     CT_STAGED={};renderCTBody();
   }catch(e){toast('儲存失敗：'+e.message,'err');}
+  btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
+}
+
+/* ═══════════════════ 證書等級（花式跳繩章別考核：考試等級/證書等級，寫入 #11 student_grades）═══════════════════ */
+let GR_CLASS=null, GR_STAGED={};
+const GR_SEL='width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:14.5px;font-weight:700;font-family:inherit;background:#fff;color:var(--ink);cursor:pointer';
+function renderGrades(){
+  if(!GR_CLASS){const ac=activeClasses();GR_CLASS=ac[0]||CLASS_IDS[0];}
+  GR_STAGED={};
+  $('#view').innerHTML=`
+  <div class="card card-pad" style="margin-bottom:14px">
+    <div class="lbl">班別</div>
+    <div class="seg" id="grClass">${activeClasses().map(c=>`<button data-c="${c}" class="${c===GR_CLASS?'on':''}">${esc(classLabel(c))}</button>`).join('')||'<span class="mut">未有班別</span>'}</div>
+    <div class="hint" style="margin-top:11px;line-height:1.65"><b>考試等級</b>＝學員已考到嘅章別；<b>證書等級</b>＝已頒發實體證書嘅章別。共 14 級（L1–7 彩虹章、L8–14 行星章）。掃證書 QR 時官網會顯示證書等級。</div>
+  </div>
+  <div class="card">
+    <div class="card-pad" style="padding-bottom:0;display:flex;align-items:center;gap:10px">
+      <div class="sec-h" style="margin:0"><div class="ic">${ico('medal')}</div><h3>證書等級 記錄</h3></div>
+      <div class="sp"></div><span class="mut" style="font-size:12.5px">改完撳「儲存全部」</span>
+    </div>
+    <div id="grBody"></div>
+    <div id="grBar" style="position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:14px 22px;display:none;align-items:center;gap:14px;border-radius:0 0 var(--r) var(--r)">
+      <b id="grCount" style="color:var(--navy)">0 位待儲存</b><div class="sp"></div>
+      <button class="btn btn-ghost btn-sm" onclick="GR_STAGED={};renderGradesBody()">清除</button>
+      <button class="btn btn-teal btn-sm" id="grSave">${ico('check')}儲存全部</button>
+    </div>
+  </div>`;
+  $$('#grClass button').forEach(b=>b.onclick=()=>{GR_CLASS=b.dataset.c;renderGrades();});
+  $('#grSave').onclick=saveGrades;
+  renderGradesBody();
+}
+function renderGradesBody(){
+  const students=GR_CLASS?classStudents(GR_CLASS):[];
+  const sg=SETTINGS['student_grades']||{};
+  if(!students.length){$('#grBody').innerHTML=emptyBox('呢班未有學生','喺教練 app 名冊加學生，或報名核實後即自動出現');return;}
+  let html=`<table class="tbl"><thead><tr><th>學生</th><th style="width:180px">考試等級（已考）</th><th style="width:180px">證書等級（已頒）</th></tr></thead><tbody>`;
+  students.forEach(n=>{
+    const base=sg[n]||{attempted:0,certified:0};
+    const st=GR_STAGED[n]||{};
+    const att=st.attempted!=null?st.attempted:(+base.attempted||0);
+    const cert=st.certified!=null?st.certified:(+base.certified||0);
+    html+=`<tr><td style="display:flex;align-items:center;gap:10px">${avatarHTML(n)}<b>${esc(n)}</b></td>
+      <td><select class="gr-in" data-n="${esc(n)}" data-f="attempted" style="${GR_SEL};${st.attempted!=null?'border-color:var(--teal-d);background:var(--wash)':''}">${badgeOpt(att)}</select></td>
+      <td><select class="gr-in" data-n="${esc(n)}" data-f="certified" style="${GR_SEL};${st.certified!=null?'border-color:var(--teal-d);background:var(--wash)':''}">${badgeOpt(cert)}</select></td></tr>`;
+  });
+  html+=`</tbody></table>`;
+  $('#grBody').innerHTML=html;
+  $$('#grBody .gr-in').forEach(sel=>{ sel.onchange=()=>{
+    const n=sel.dataset.n,f=sel.dataset.f,v=+sel.value;
+    const base=(SETTINGS['student_grades']||{})[n]||{attempted:0,certified:0};
+    let st=GR_STAGED[n]||{};
+    if(v===(+base[f]||0))delete st[f];else st[f]=v;
+    if(Object.keys(st).length)GR_STAGED[n]=st;else delete GR_STAGED[n];
+    sel.style.borderColor=(st[f]!=null)?'var(--teal-d)':'var(--line)';
+    sel.style.background=(st[f]!=null)?'var(--wash)':'#fff';
+    updateGrBar();
+  };});
+  updateGrBar();
+}
+function updateGrBar(){const c=Object.keys(GR_STAGED).length;const bar=$('#grBar');if(bar){bar.style.display=c?'flex':'none';$('#grCount').textContent=c+' 位待儲存';}}
+async function saveGrades(){
+  const names=Object.keys(GR_STAGED);if(!names.length)return;
+  const btn=$('#grSave');btn.disabled=true;btn.innerHTML='儲存中…';
+  const deltas=names.map(n=>Object.assign({name:n},GR_STAGED[n]));
+  const res=await upsertGrades(deltas);
+  if(res&&res.queued)toast('已記錄 '+names.length+' 位（離線，回網自動同步）','ok');
+  else toast('已儲存 '+names.length+' 位章別等級','ok');
+  GR_STAGED={};renderGradesBody();
   btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
 }
 
