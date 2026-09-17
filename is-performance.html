@@ -248,7 +248,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-17-cert';
+const APP_VERSION='growth-2026-09-17-levelfmt';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -313,7 +313,8 @@ function metricPickerHTML(cur,opt){opt=opt||{};
 const CLASS_IDS=['c1','c2','c3','c4','c5','c6','c7'];
 /* 花式跳繩章別 14 級（L1-7 彩虹章、L8-14 行星章）。值域 0-14，0=未有。同官網/教練主頁 BADGE_DATA 一致。 */
 const BADGE_NAMES=['—','紅色章','橙色章','黃色章','綠色章','藍色章','靛色章','紫色章','水星章','金星章','火星章','木星章','土星章','天王星章','海王星章'];
-function badgeOpt(cur){return Array.from({length:15},(_,i)=>`<option value="${i}" ${(+cur||0)===i?'selected':''}>${i===0?'—':'L'+i+'·'+BADGE_NAMES[i]}</option>`).join('');}
+// 教練下拉:領先「Level N」+章別名做參考(老闆 2026-09-17:直接顯示 level 幾)
+function badgeOpt(cur){return Array.from({length:15},(_,i)=>`<option value="${i}" ${(+cur||0)===i?'selected':''}>${i===0?'—':'Level '+i+'（'+BADGE_NAMES[i]+'）'}</option>`).join('');}
 
 /* ---------- 小工具 ---------- */
 const $=(s,r=document)=>r.querySelector(s);
