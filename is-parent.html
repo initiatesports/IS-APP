@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-16-mkblock-addon';
+const FRONTEND_VERSION='parent-2026-09-17-cancelmk-btn';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1050,6 +1050,7 @@ function classCard(child,ki,c,ci){
         </div>` : '';
       return payMsg + mkLeftover;
     })()}
+    ${cancellableMakeups(c).length?`<button class="btn ghost sm" style="width:100%;margin-top:8px" onclick="openCancelMakeup(${ki},${ci})">${t('cancelMk',cancellableMakeups(c).length)}</button>`:''}
     ${(function(){
       const list=(c.sessions||[]).filter(s=>biMonthOf(s.date)===S.period).sort((a,b)=>a.date<b.date?-1:1);
       if(!list.length) return `<div class="period-empty">${t('noRec',periodLabel(S.period))}</div>`;
