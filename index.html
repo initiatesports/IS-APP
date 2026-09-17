@@ -510,7 +510,14 @@ function tVerify(){
   var cr=S.certResult;
   var result='';
   if(cr==='loading'){result='<div style="margin-top:20px;border:1px solid rgba(62,207,207,0.3);background:rgba(62,207,207,0.06);padding:18px 20px;font-size:13.5px;color:rgba(255,255,255,0.7)">查詢中…</div>';}
-  else if(cr){result='<div style="margin-top:20px;background:rgba(62,207,207,0.07);border:1px solid rgba(62,207,207,0.3);padding:22px 22px;animation:is-menuIn 0.35s both"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:12px;color:#3ECFCF;letter-spacing:0.08em">VERIFIED ✓ '+esc(cr.no)+'</div><div style="font-size:21px;font-weight:900;margin-top:8px">'+esc(cr.name)+' <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5)">'+esc(cr.nameEn)+'</span></div><div style="font-size:15px;font-weight:900;color:#3ECFCF;margin-top:6px">'+esc(cr.title)+' · '+esc(cr.titleEn)+'</div><div style="font-size:12.5px;color:rgba(255,255,255,0.6);margin-top:5px">'+esc(cr.program)+' · '+esc(cr.year)+'</div></div>';}
+  else if(cr){
+    var _lvl=(cr.certified!=null||cr.attempted!=null)
+      ? ('<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">'
+         +'<span style="background:rgba(62,207,207,0.14);border:1px solid rgba(62,207,207,0.5);color:#3ECFCF;font-weight:900;font-size:14.5px;padding:8px 14px">🎖 證書等級：'+(badgeLbl(cr.certified)||'尚未頒發')+'</span>'
+         +(Number(cr.attempted)>Number(cr.certified)?('<span style="background:rgba(245,165,36,0.12);border:1px solid rgba(245,165,36,0.4);color:#F5A524;font-weight:800;font-size:13.5px;padding:8px 14px">考試等級：'+badgeLbl(cr.attempted)+'</span>'):'')
+         +'</div>')
+      : ('<div style="font-size:15px;font-weight:900;color:#3ECFCF;margin-top:6px">'+esc(cr.title||'證書已驗證')+' · '+esc(cr.titleEn||'VERIFIED')+'</div>');
+    result='<div style="margin-top:20px;background:rgba(62,207,207,0.07);border:1px solid rgba(62,207,207,0.3);padding:22px 22px;animation:is-menuIn 0.35s both"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:12px;color:#3ECFCF;letter-spacing:0.08em">VERIFIED ✓ '+esc(cr.no)+'</div><div style="font-size:21px;font-weight:900;margin-top:8px">'+esc(cr.name)+' <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5)">'+esc(cr.nameEn)+'</span></div>'+_lvl+'<div style="font-size:12.5px;color:rgba(255,255,255,0.6);margin-top:8px">'+esc(cr.program)+' · '+esc(cr.year)+'</div></div>';}
   else if(cr===false){result='<div style="margin-top:20px;border:1px solid rgba(229,72,77,0.4);background:rgba(229,72,77,0.08);padding:18px 20px;font-size:13.5px;color:rgba(255,255,255,0.7)">查無此證書編號，請核對後再試。如有疑問請 WhatsApp 6331 7403 查詢。</div>';}
   return '<div style="padding:40px 24px 8px">'+eyebrow('CERTIFICATE VERIFICATION')+h1('證書驗證')
     +'<p style="font-size:15px;color:rgba(255,255,255,0.6);margin:14px 0 0;line-height:2;max-width:720px">輸入證書上的編號，查看該學員在 INITIATE SPORTS 獲頒的所有證書。編號印於證書右下角二維碼下方，可掃描二維碼直接查詢。</p>'
@@ -520,6 +527,8 @@ function tVerify(){
 // 🔒 2026-09-13 審計：本地比對鏡射後端 certNorm_（大寫＋剝非英數＋容許省略 IS 前綴），
 //   令家長打變體（is-mslc3 / IS MSLC3 / mslc3）離線都對得上硬編證書，唔止靠後端 fallback 正規化。
 function certKey_(s){ var k=String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); return k.indexOf('IS')===0?k:('IS'+k); }
+// 章別等級號(1-14)→名（L1-7 彩虹章、L8-14 行星章）。0/空=未有。
+function badgeLbl(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'L'+n+' · '+(n<=7?RAINBOW_NAMES[n-1]:PLANET_ZH[n-8]); }
 function doVerify(){
   var q=(S.certQ||'').trim().toUpperCase(); if(!q) return;
   var qk=certKey_(q);
@@ -533,7 +542,7 @@ function doVerify(){
   fetch(CMS_API+'?action=certGrade&no='+encodeURIComponent(q)+'&_='+Date.now(),{cache:'no-store'})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d&&d.ok&&d.name){ S.certResult={no:q, name:d.name, nameEn:'', title:(Number(d.certified)>0?('已考獲 '+d.certified+' 個章別'):'證書已驗證'), titleEn:'VERIFIED', program:'INITIATE SPORTS', year:''}; }
+      if(d&&d.ok&&d.name){ S.certResult={no:q, name:d.name, nameEn:'', certified:Number(d.certified)||0, attempted:Number(d.attempted)||0, program:'INITIATE SPORTS', year:''}; }
       else { S.certResult=false; }
       render();
     })

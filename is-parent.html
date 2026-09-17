@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-17-cancelmk-card';
+const FRONTEND_VERSION='parent-2026-09-17-badge';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -274,6 +274,10 @@ const CLASS_IDS = Object.keys(CLASSES);
    純附加：跳繩(#4)路徑完全零改動；#SA 班以 _sa:true 標記，操作路由去 SA_API，補堂/session 用 SA 版 helper。
    ⚠️ SA_CLASSES / SA_CLASS_START_HH 同 parent-sports.html 一致，改班設定要兩處一齊改。 */
 const SA_API_URL='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';
+/* 🏅 花式跳繩章別等級（#11 student_grades）：家長頁顯示仔女證書/考試等級。14 級 L1-7 彩虹章 + L8-14 行星章。 */
+const API_11='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
+const BADGE_NAMES=['—','紅色章','橙色章','黃色章','綠色章','藍色章','靛色章','紫色章','水星章','金星章','火星章','木星章','土星章','天王星章','海王星章'];
+function badgeLbl11(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'L'+n+' · '+BADGE_NAMES[n]; }
 const SA_CLASSES={
   "found-tue2":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'2–3pm'},
   "found-tue5":{sport:'幼兒全方位運動啟蒙',dayZh:'星期二',wd:2,time:'5–6pm'},
@@ -850,6 +854,32 @@ function openGrowthReport(name){
   toast(t('reportOpening'));
   window.open('is-performance.html?report=1','_blank');
 }
+/* 🏅 背景載入花式跳繩章別等級（#11 homeGrades，verifyParent_ gated）→ 填入每個仔女嘅 #badge-ki。
+   非阻塞：開頁照顯示，攞到即注入；攞唔到靜靜唔顯示（唔阻家長頁）。 */
+async function loadBadgeGrades(){
+  const kids=(S.family&&S.family.children)||[]; if(!kids.length) return;
+  let auth=null;
+  for(const ch of kids){ const tk=(S.family.childTokens||{})[ch.name]; if(tk){ auth={name:ch.name,token:tk,last4:(S.family.last4||'')}; break; } }
+  if(!auth) return;
+  let sg=null;
+  try{
+    const res=await fetch(API_11,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeGrades',name:auth.name,last4:auth.last4,token:auth.token})});
+    const d=await res.json();
+    if(d&&d.ok&&d.student_grades) sg=d.student_grades;
+  }catch(e){ return; }
+  if(!sg) return;
+  kids.forEach((ch,ki)=>{
+    const box=document.getElementById('badge-'+ki); if(!box) return;
+    const g=sg[ch.name]||sg[String(ch.name).trim()]; if(!g) return;
+    const cert=Number(g.certified)||0, att=Number(g.attempted)||0;
+    if(cert<1 && att<1) return;   // 未有等級唔顯示
+    const certTxt=cert>0?badgeLbl11(cert):'尚未頒發';
+    const attPill=(att>cert)?`<span style="background:var(--amber-dim,rgba(217,138,31,.12));border:1px solid rgba(217,138,31,.4);color:var(--amber,#c47f00);font-weight:700;font-size:12px;padding:5px 10px;border-radius:20px">考試 ${badgeLbl11(att)}</span>`:'';
+    box.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:2px 2px 10px">
+      <span style="font-size:12.5px;color:var(--muted,#66757c);font-weight:700">🏅 花式跳繩章別</span>
+      <span style="background:var(--teal-dim,#e6f6f8);border:1px solid #bfe3e7;color:#0a6b74;font-weight:800;font-size:12.5px;padding:5px 11px;border-radius:20px">證書 ${certTxt}</span>${attPill}</div>`;
+  });
+}
 /* 📊 家長版成績排行榜：用任一有 token 嘅仔女授權 → is-performance.html?lb=1（#11 homeRank，後端計名次）。 */
 function openLeaderboard(){
   const kids=(S.family&&S.family.children)||[];
@@ -916,6 +946,7 @@ function renderParent(){
       return;
     }
     html+=`<div class="child-row"><div class="child-head">${child.name}${t('ofClasses')}</div></div>`;
+    html+=`<div id="badge-${ki}" data-cn="${String(child.name).replace(/"/g,'&quot;')}"></div>`;   // 🏅 花式跳繩章別等級（背景 fetch #11 student_grades 後填入）
     // 📈 成長報告 banner 已改放喺 featureLinks（排行榜上方），唔再喺名字下方（老闆 2026-08-26）
     // #1 補堂限期將到期提醒（14 日內）
     const hsoon=childHistory(child).makeupable.filter(x=>{const dl=daysLeft(x.deadline);return dl>=0&&dl<=14;});
@@ -953,6 +984,7 @@ function renderParent(){
   if(promoActive) html+=`<div style="height:6px"></div>`+featureLinks();
   html+=`</div>`; view().innerHTML=html;
   try{ showModalNotices(); }catch(e){}
+  try{ loadBadgeGrades(); }catch(e){}   // 🏅 背景載入章別等級，填入每個仔女嘅 #badge-ki
 }
 // 📣 重要通知彈窗：有標記「彈窗」而又未讀嘅通知 → 開頁跳 blocking modal，撳「知道了」先入頁（每個通知每部機認一次）。
 function ackedNotices(){ try{ return new Set(JSON.parse(localStorage.getItem('is_acked_notices')||'[]')); }catch(e){ return new Set(); } }
