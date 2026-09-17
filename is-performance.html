@@ -246,7 +246,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-15-cleanup';
+const APP_VERSION='growth-2026-09-17-bodycombine';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -299,7 +299,7 @@ function metricPickerHTML(cur,opt){opt=opt||{};
   const curType=mType(cur);
   const types=ROPE_TYPES.map(function(a){return '<button class="chipbtn '+(curType===a[0]?'on':'')+'" data-k="type" data-v="'+a[0]+'">'+a[2]+'</button>';}).join('');
   const fits=FIT_METRICS.map(function(m){return '<button class="chipbtn '+(cur===m?'on':'')+'" data-k="metric" data-v="'+m+'">'+esc(METRICS[m].short)+'</button>';}).join('');
-  const body=opt.body?['height','weight'].map(function(m){return '<button class="chipbtn '+(cur===m?'on':'')+'" data-k="metric" data-v="'+m+'">'+(m==='height'?'身高':'體重')+'</button>';}).join(''):'';
+  const body=opt.body?'<button class="chipbtn '+(cur==='body'?'on':'')+'" data-k="metric" data-v="body">身高體重</button>':'';
   let h='<div style="display:flex;flex-wrap:wrap;gap:6px">'+types+fits+body+'</div>';
   // 時長列：只出「有資料」嘅時長（記錄頁 opt.record 先出齊 7 個畀教練揀）；交叉開／二重跳＝單一項唔出時長
   if(isRopeM(cur)&&curType&&!isSingleRope(curType)){
@@ -686,7 +686,7 @@ function removeMakeupStudent(n){CT_ADDED[CT_CLASS]=(CT_ADDED[CT_CLASS]||[]).filt
 function renderClassTest(){
   if(!CT_CLASS){const ac=activeClasses();CT_CLASS=ac[0]||null;}
   CT_STAGED={};
-  const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
+  const isBody=CT_METRIC==='body';
   $('#view').innerHTML=`
   <div class="card card-pad" style="margin-bottom:14px">
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
@@ -697,7 +697,7 @@ function renderClassTest(){
   </div>
   <div class="card">
     <div class="card-pad" style="padding-bottom:0;display:flex;align-items:center;gap:10px">
-      <div class="sec-h" style="margin:0"><div class="ic">${ico('activity')}</div><h3>${esc(isBody?(CT_METRIC==='height'?'身高':'體重')+' 記錄':classLabel(CT_CLASS||'')+' · '+(METRICS[CT_METRIC]?METRICS[CT_METRIC].lab:''))}</h3></div>
+      <div class="sec-h" style="margin:0"><div class="ic">${ico('activity')}</div><h3>${esc(isBody?'身高體重 記錄':classLabel(CT_CLASS||'')+' · '+(METRICS[CT_METRIC]?METRICS[CT_METRIC].lab:''))}</h3></div>
       <div class="sp"></div>
       <span class="mut" style="font-size:12.5px">輸入成績即時對比個人最佳</span>
     </div>
@@ -729,25 +729,31 @@ function renderClassTest(){
 function ctBest(n){const st=CT_STAGED[n];if(st==null)return null;
   if(typeof st==='object'){const a=[st.v1,st.v2].map(x=>(x!=null&&String(x).trim()!=='')?parseFloat(x):null).filter(x=>x!=null&&!isNaN(x));return a.length?Math.max(...a):null;}
   const v=parseFloat(st);return isNaN(v)?null:v;}
+// 某學生今次有冇填到值（身高體重＝height或weight任一有；其餘＝ctBest 有值）
+function ctHasVal(n){const st=CT_STAGED[n];if(st==null)return false;
+  if(CT_METRIC==='body'){return (st.height!=null&&String(st.height).trim()!=='')||(st.weight!=null&&String(st.weight).trim()!=='');}
+  return ctBest(n)!=null;}
 function renderCTBody(){
-  const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
+  const isBody=CT_METRIC==='body';
   const students=CT_CLASS?ctStudents(CT_CLASS):[];
   if(!students.length){$('#ctBody').innerHTML=emptyBox('呢班未有學生','上面「補堂／臨時加人」可即時加，或喺教練 app 名冊加學生');return;}
   const mt=METRICS[CT_METRIC];
   let html=`<table class="tbl"><thead><tr><th>學生</th>`;
-  if(isBody){html+=`<th class="num">上次</th><th style="width:120px">今日 (${CT_METRIC==='height'?'cm':'kg'})</th>`;}
-  else{html+=`<th class="num">個人最佳</th><th class="num">上次</th><th style="width:96px">第一次</th><th style="width:96px">第二次</th><th></th>`;}   // 🔒 2026-09-15 老闆：身高體重一次性一格；其餘所有項目一律留兩格(有時連續測兩次)，val 取最佳
+  if(isBody){html+=`<th class="num">上次身高</th><th style="width:104px">身高 (cm)</th><th class="num">上次體重</th><th style="width:104px">體重 (kg)</th>`;}   // 🔒 2026-09-17 老闆：身高體重放一起，一張表兩欄一次過填
+  else{html+=`<th class="num">個人最佳</th><th class="num">上次</th><th style="width:96px">第一次</th><th style="width:96px">第二次</th><th></th>`;}   // 🔒 2026-09-15 老闆：其餘所有項目一律留兩格(有時連續測兩次)，val 取最佳
   html+=`</tr></thead><tbody>`;
   students.forEach(n=>{
     const fbid='ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,'');
     const mk=ctIsAdded(CT_CLASS,n)?` <span class="chip" style="background:var(--gold-w,#fbf1d8);color:var(--gold,#a67c22);font-size:10px">補堂</span> <button onclick="removeMakeupStudent('${esc(n)}')" title="移除" style="border:none;background:none;color:var(--mut);cursor:pointer;font-size:12px;padding:0 2px">✕</button>`:'';
     if(isBody){
-      const bs=(BODY[n]||[]).filter(r=>CT_METRIC==='height'?r.height!=null:r.weight!=null);
-      const last=bs.length?bs[bs.length-1]:null;const lastV=last?(CT_METRIC==='height'?last.height:last.weight):null;
-      const staged=CT_STAGED[n];
+      const bsH=(BODY[n]||[]).filter(r=>r.height!=null);const lastH=bsH.length?bsH[bsH.length-1]:null;
+      const bsW=(BODY[n]||[]).filter(r=>r.weight!=null);const lastW=bsW.length?bsW[bsW.length-1]:null;
+      const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};
       html+=`<tr><td style="display:flex;align-items:center;gap:10px">${avatarHTML(n)}<b>${esc(n)}</b>${mk}</td>
-        <td class="num mut">${lastV!=null?lastV+(last.date?` <span style="font-weight:400">(${md(last.date)})</span>`:''):'—'}</td>
-        <td><input class="ct-in ${staged!=null?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="1" value="${staged!=null?staged:''}" placeholder="—"></td></tr>`;
+        <td class="num mut">${lastH!=null?lastH.height+(lastH.date?` <span style="font-weight:400">(${md(lastH.date)})</span>`:''):'—'}</td>
+        <td><input class="ct-in ${(st.height!=null&&st.height!=='')?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="height" value="${st.height!=null?st.height:''}" placeholder="—"></td>
+        <td class="num mut">${lastW!=null?lastW.weight+(lastW.date?` <span style="font-weight:400">(${md(lastW.date)})</span>`:''):'—'}</td>
+        <td><input class="ct-in ${(st.weight!=null&&st.weight!=='')?'staged':''}" inputmode="decimal" data-n="${esc(n)}" data-v="weight" value="${st.weight!=null?st.weight:''}" placeholder="—"></td></tr>`;
     }else{
       const s=series(n,CT_METRIC);const best=s.length?Math.max(...s.map(r=>r.val)):null;
       const last=s.length?s[s.length-1]:null;
@@ -768,7 +774,8 @@ function renderCTBody(){
     inp.oninput=()=>{const n=inp.dataset.n,field=inp.dataset.v,v=inp.value.trim();
       if(!isBody){ let st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{}; if(v===''){delete st['v'+field];}else{st['v'+field]=v;}
         if(st.v1==null&&st.v2==null){delete CT_STAGED[n];}else{CT_STAGED[n]=st;} }
-      else { if(v===''){delete CT_STAGED[n];}else{CT_STAGED[n]=v;} }
+      else { let st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{}; if(v===''){delete st[field];}else{st[field]=v;}   // field=height/weight，兩欄各存
+        if((st.height==null||st.height==='')&&(st.weight==null||st.weight==='')){delete CT_STAGED[n];}else{CT_STAGED[n]=st;} }
       // live PB feedback（非身高體重一律兩格 val 取最佳）
       if(!isBody){const s=series(n,CT_METRIC);const best=s.length?Math.max(...s.map(r=>r.val)):null;const cb=ctBest(n);const beats=cb!=null&&best!=null&&cb>best;
         inp.className='ct-in '+(v!==''?'staged':''); const fb=$('#ctfb-'+btoa(unescape(encodeURIComponent(n))).replace(/=/g,''));if(fb)fb.innerHTML=beats?`<span class="chip up">▲破PB ${cb}</span>`:(cb!=null?`<span class="chip flat">最佳 ${cb}</span>`:'');
@@ -778,17 +785,20 @@ function renderCTBody(){
   });
   updateCTBar();
 }
-function updateCTBar(){const c=Object.keys(CT_STAGED).filter(n=>ctBest(n)!=null).length;$('#ctBar').style.display=c?'flex':'none';$('#ctCount').textContent=c+' 項待儲存';}
+function updateCTBar(){const c=Object.keys(CT_STAGED).filter(n=>ctHasVal(n)).length;$('#ctBar').style.display=c?'flex':'none';$('#ctCount').textContent=c+' 項待儲存';}
 async function saveCT(){
-  const isBody=CT_METRIC==='height'||CT_METRIC==='weight';
-  const names=Object.keys(CT_STAGED).filter(n=>ctBest(n)!=null);
+  const isBody=CT_METRIC==='body';
+  const names=Object.keys(CT_STAGED).filter(n=>ctHasVal(n));
   if(!names.length)return;
   const btn=$('#ctSave');btn.disabled=true;btn.innerHTML='儲存中…';
   try{
     const pbCount=names.filter(n=>{if(isBody)return false;const s=series(n,CT_METRIC).filter(r=>r.date!==CT_DATE);const best=s.length?Math.max(...s.map(r=>r.val)):null;const cb=ctBest(n);return best==null||cb>best;}).length;
     let res;
     if(isBody){
-      const deltas=names.map(n=>{const v=ctBest(n);const ex=(BODY[n]||[]).find(r=>r.date===CT_DATE)||{};return {name:n,date:CT_DATE,height:CT_METRIC==='height'?v:(ex.height!=null?ex.height:''),weight:CT_METRIC==='weight'?v:(ex.weight!=null?ex.weight:'')};});
+      const deltas=names.map(n=>{const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};const ex=(BODY[n]||[]).find(r=>r.date===CT_DATE)||{};
+        const hv=(st.height!=null&&String(st.height).trim()!=='')?parseFloat(st.height):(ex.height!=null?ex.height:'');   // 只填一欄→另一欄保留當日舊值
+        const wv=(st.weight!=null&&String(st.weight).trim()!=='')?parseFloat(st.weight):(ex.weight!=null?ex.weight:'');
+        return {name:n,date:CT_DATE,height:hv,weight:wv};});
       res=await upsertBody(deltas);
     }else{
       const deltas=names.map(n=>{const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};const v1=(st.v1!=null&&String(st.v1).trim()!=='')?parseFloat(st.v1):null;const v2=(st.v2!=null&&String(st.v2).trim()!=='')?parseFloat(st.v2):null;return {name:n,metricId:CT_METRIC,date:CT_DATE,val:ctBest(n),v1:v1,v2:v2};});
