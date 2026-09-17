@@ -248,7 +248,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-17-grades';
+const APP_VERSION='growth-2026-09-17-cert';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -495,6 +495,29 @@ async function upsertGrades(deltas){
   if(res.ok)setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
   else updateSyncBadge();
   return res;
+}
+/* 證書編號（cert_registry）：官網輸入/掃碼此編號→查到該生章別等級。一生一號。 */
+function certRegList(){ const r=SETTINGS['cert_registry']; return Array.isArray(r)?r:(SETTINGS['cert_registry']=[]); }
+function certNoOf(name){ const e=certRegList().find(x=>x&&String(x.name||'').trim()===String(name).trim()); return e?String(e.no||''):''; }
+function certNormJS(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function genCertNo(){ const cs='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const used=new Set(certRegList().map(x=>certNormJS(x&&x.no))); let no; do{ let r=''; for(let i=0;i<6;i++)r+=cs[Math.floor(Math.random()*cs.length)]; no='IS'+r; }while(used.has(certNormJS(no))); return no; }
+async function upsertCert(name,no){
+  setSync('load','儲存中…');
+  const reg=certRegList(); const k=certNormJS(no);
+  // 本地同步：移除同名/同號舊 entry 再加（一生一號）
+  const nreg=reg.filter(x=>x&&certNormJS(x.no)!==k&&String(x.name||'').trim()!==String(name).trim()); nreg.push({no:no,name:name});
+  SETTINGS['cert_registry']=nreg;
+  const res=await syncOrQueue('cert_upsert',[{name:name,no:no}]);
+  if(res.ok)setSync('ok','已儲存 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'}));
+  else updateSyncBadge();
+  return res;
+}
+async function assignCert(name){
+  const no=genCertNo();
+  const res=await upsertCert(name,no);
+  if(res&&res.queued)toast(name+' 證書編號 '+no+'（離線，回網同步）','ok');
+  else toast(name+' 已指派證書編號 '+no,'ok');
+  renderGradesBody();
 }
 async function deletePerf(name,metric,date){
   const r=await apiPost({action:'perf_delete',coachPass:CP,data:[{name,metricId:metric,date}]});
@@ -863,15 +886,20 @@ function renderGradesBody(){
   const students=GR_CLASS?classStudents(GR_CLASS):[];
   const sg=SETTINGS['student_grades']||{};
   if(!students.length){$('#grBody').innerHTML=emptyBox('呢班未有學生','喺教練 app 名冊加學生，或報名核實後即自動出現');return;}
-  let html=`<table class="tbl"><thead><tr><th>學生</th><th style="width:180px">考試等級（已考）</th><th style="width:180px">證書等級（已頒）</th></tr></thead><tbody>`;
+  let html=`<table class="tbl"><thead><tr><th>學生</th><th style="width:170px">考試等級（已考）</th><th style="width:170px">證書等級（已頒）</th><th style="width:180px">證書編號（掃碼查等級）</th></tr></thead><tbody>`;
   students.forEach(n=>{
     const base=sg[n]||{attempted:0,certified:0};
     const st=GR_STAGED[n]||{};
     const att=st.attempted!=null?st.attempted:(+base.attempted||0);
     const cert=st.certified!=null?st.certified:(+base.certified||0);
+    const cno=certNoOf(n);
+    const certCell=cno
+      ? `<span style="font-family:ui-monospace,monospace;font-weight:800;color:var(--navy);font-size:13.5px">${esc(cno)}</span> <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11.5px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(cno)}');toast('已複製 ${esc(cno)}','ok')">複製</button>`
+      : `<button class="btn btn-ghost btn-sm" style="padding:5px 10px;font-size:12px" onclick="assignCert('${esc(n)}')">🎫 生成編號</button>`;
     html+=`<tr><td style="display:flex;align-items:center;gap:10px">${avatarHTML(n)}<b>${esc(n)}</b></td>
       <td><select class="gr-in" data-n="${esc(n)}" data-f="attempted" style="${GR_SEL};${st.attempted!=null?'border-color:var(--teal-d);background:var(--wash)':''}">${badgeOpt(att)}</select></td>
-      <td><select class="gr-in" data-n="${esc(n)}" data-f="certified" style="${GR_SEL};${st.certified!=null?'border-color:var(--teal-d);background:var(--wash)':''}">${badgeOpt(cert)}</select></td></tr>`;
+      <td><select class="gr-in" data-n="${esc(n)}" data-f="certified" style="${GR_SEL};${st.certified!=null?'border-color:var(--teal-d);background:var(--wash)':''}">${badgeOpt(cert)}</select></td>
+      <td>${certCell}</td></tr>`;
   });
   html+=`</tbody></table>`;
   $('#grBody').innerHTML=html;
