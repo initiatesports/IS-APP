@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-17-levelfmt';
+const FRONTEND_VERSION='parent-2026-09-17-foundmk';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -296,6 +296,10 @@ const SA_CLASSES={
 };
 const SA_CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
 const SA_CLASS_IDS=Object.keys(SA_CLASSES);
+/* 🔒 2026-09-17 老闆特批：幼兒全方位運動啟蒙（found-tue5）補堂可直接約去跳繩星期一(c1)/星期四(c8)＋體操星期六(gym-sat2)。
+   綜合運動班（cond-sat5）唔自助約＝私訊教練。呢個 whitelist 同 #SA 後端 FOUND_MK_TARGETS 一一對應。*/
+const FOUND_TUE5_TARGETS=['c1','c8','gym-sat2'];
+const FOUND_TUE5_MK_NOTE='📱 想補「綜合運動班（星期六）」？請私訊教練安排（WhatsApp 6331 7403）。';
 function isSA(cid){ return !!SA_CLASSES[cid]; }
 function clsIsSA(c){ return !!(c && (c._sa || SA_CLASSES[c.key||c.sport||''])); }
 /* #SA 版 sessionsFor：TERM window 逐週，減公眾假期（同 parent-sports 一致；#SA 冇 CLASS_START gate）*/
@@ -321,11 +325,8 @@ const MK_INFO = {
   'bad-sat12':  { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
   'bad-sat12b': { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
   'bad-sat13':  { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
-  'found-tue5': { targets:[
-    { label:'星期四 花式跳繩班（17:00–18:00）', note:'具體日期請私訊教練' },
-    { label:'星期六 體操班', note:'補堂時間為星期五 17:00–18:00 或星期日 09:00–10:00，具體日期請私訊教練' },
-    { label:'星期六 綜合運動班', note:'補堂時間為星期五 17:00–18:00 或星期日 10:00–11:00，具體日期請私訊教練' },
-  ]},
+  // found-tue5（幼兒）2026-09-17 改為可自助約去跳繩 c1/c8＋體操 gym-sat2（見 FOUND_TUE5_TARGETS）；
+  // 綜合班仍私訊（FOUND_TUE5_MK_NOTE）。故此唔再喺 MK_INFO short-circuit。
 };
 function openMakeupInfo(c, owed, info){
   const body = info.targets
@@ -503,8 +504,12 @@ function sessionsFor(cid){
   return out;
 }
 // ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
-function makeupSlotsFor(cid, ownCids){ if(SA_CLASSES[cid]) return saMakeupSlotsFor(cid, ownCids);   // 運動班用 #SA 版（同運動過濾）
-  const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid); return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
+function makeupSlotsFor(cid, ownCids){
+  const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid);
+  if(cid==='found-tue5')   // 幼兒特批：跨項目補堂目標（跳繩 c1/c8 + 體操 gym-sat2）；排除自己另一堂正課
+    return FOUND_TUE5_TARGETS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:(CLASSES[k]||SA_CLASSES[k]||{}).time||''}));
+  if(SA_CLASSES[cid]) return saMakeupSlotsFor(cid, ownCids);   // 運動班用 #SA 版（同運動過濾）
+  return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
 // 某日某班特別時間（後端回傳 map，key=cid|date）；有就用嚟覆寫顯示，令補堂/記錄/摘要對得上證據
 function taTime(cid,date){ return (S.timeAdj&&S.timeAdj[cid+'|'+date])||''; }
 /* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
@@ -1730,6 +1735,7 @@ function openMakeup(ki,ci){
   const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
   openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
     <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
+    ${(c.key||c.sport)==='found-tue5'?`<div class="notice" style="white-space:normal;margin-bottom:8px">${FOUND_TUE5_MK_NOTE}</div>`:''}
     <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfPickDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${dateOpts}</select>
     <div id="mf-classes" style="margin-top:8px"></div>
     <div id="mf-picks" style="margin-top:10px"></div>
