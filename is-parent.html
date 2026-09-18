@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-18-foundflow';
+const FRONTEND_VERSION='parent-2026-09-18-condmk';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -296,16 +296,26 @@ const SA_CLASSES={
 };
 const SA_CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
 const SA_CLASS_IDS=Object.keys(SA_CLASSES);
-/* 🔒 2026-09-17/18 老闆特批：幼兒全方位運動啟蒙（found-tue5）補堂可直接約去跳繩星期一(c1)/星期四(c8)、
-   體操星期六(gym-sat2)、綜合運動班星期六(cond-sat5)——全部自助約，唔使私訊。同 #SA 後端 FOUND_MK_TARGETS 一一對應。
-   補堂流程：先揀課程 → 跳繩再揀星期一/四 → 再揀日期（openMakeupFound_）。*/
-const FOUND_TUE5_TARGETS=['c1','c8','gym-sat2','cond-sat5'];
-const FOUND_MK_COURSES=[
-  { key:'rope',      label:'花式跳繩',            cids:['c1','c8'] },
-  { key:'gym-sat2',  label:'體操（星期六 4–5pm）',   cids:['gym-sat2'] },
-  { key:'cond-sat5', label:'綜合運動班（星期六 5–6pm）', cids:['cond-sat5'] }
-];
-const FOUND_ROPE_DAYS=[ {cid:'c1',label:'星期一 5–6pm'}, {cid:'c8',label:'星期四 5–6pm'} ];
+/* 🔒 2026-09-17/18 老闆特批「跨項目補堂」config（key＝原班 fromKey）。同 #SA 後端 FOUND_MK_TARGETS 一一對應。
+   流程（openMakeupFound_）：courses>1 先揀課程 → 跳繩再揀星期 → 揀日期；單一課程直接入。note＝底部提示。
+   • found-tue5（幼兒）→ 花式跳繩(一/四)＋體操(六)＋綜合運動班(六)，全部自助約。
+   • cond-sat5（綜合本班學生）→ 花式跳繩 星期一/四/六(3–4pm)；排唔到再收集時間約星期五/日。*/
+const CROSS_MK={
+  'found-tue5':{
+    courses:[
+      { key:'rope',      label:'花式跳繩',              cids:['c1','c8'] },
+      { key:'gym-sat2',  label:'體操（星期六 4–5pm）',      cids:['gym-sat2'] },
+      { key:'cond-sat5', label:'綜合運動班（星期六 5–6pm）', cids:['cond-sat5'] }
+    ],
+    ropeDays:[ {cid:'c1',label:'星期一 5–6pm'}, {cid:'c8',label:'星期四 5–6pm'} ]
+  },
+  'cond-sat5':{
+    courses:[ { key:'rope', label:'花式跳繩', cids:['c1','c8','c7'] } ],
+    ropeDays:[ {cid:'c1',label:'星期一 5–6pm'}, {cid:'c8',label:'星期四 5–6pm'}, {cid:'c7',label:'星期六 3–4pm'} ],
+    note:'如未能安排於花式跳繩課程補堂，將會收集全部同學時間，再於某星期五 17:00–18:00 或星期日 10:00–11:00，具體日期請私訊教練。'
+  }
+};
+function crossMkTargets_(fromKey){ const cfg=CROSS_MK[fromKey]; if(!cfg) return []; const s=[]; cfg.courses.forEach(co=>co.cids.forEach(c=>{ if(s.indexOf(c)<0) s.push(c); })); return s; }
 function isSA(cid){ return !!SA_CLASSES[cid]; }
 function clsIsSA(c){ return !!(c && (c._sa || SA_CLASSES[c.key||c.sport||''])); }
 /* #SA 版 sessionsFor：TERM window 逐週，減公眾假期（同 parent-sports 一致；#SA 冇 CLASS_START gate）*/
@@ -326,7 +336,7 @@ function saMakeupSlotsFor(cid, ownCids){ const own=(ownCids&&ownCids.length)?own
    key = 班 id；有 `targets` 就列多個選擇（幼兒），冇就直接顯示 `note`。 */
 const MK_INFO = {
   'gym-sat2':   { note:'補堂時間為星期五 17:00–18:00 或星期日 09:00–10:00，具體日期請私訊教練' },
-  'cond-sat5':  { note:'補堂時間為星期五 17:00–18:00 或星期日 10:00–11:00，具體日期請私訊教練' },
+  // cond-sat5（綜合本班學生）2026-09-18 改為可自助約去花式跳繩(見 CROSS_MK)，唔再 short-circuit 私訊。
   'bad-sat8':   { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
   'bad-sat12':  { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
   'bad-sat12b': { note:'補堂時間為星期二、四 18:00–19:00／星期日 08:00–10:00，具體日期請私訊教練' },
@@ -515,8 +525,8 @@ function sessionsFor(cid){
 // ownCids：學生所有現役班（全部排除），補堂唔會撞返自己另一堂正課；唔傳就只排 cid（舊行為）
 function makeupSlotsFor(cid, ownCids){
   const own=(ownCids&&ownCids.length)?ownCids.slice():[cid]; if(own.indexOf(cid)<0) own.push(cid);
-  if(cid==='found-tue5')   // 幼兒特批：跨項目補堂目標（跳繩 c1/c8 + 體操 gym-sat2）；排除自己另一堂正課
-    return FOUND_TUE5_TARGETS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:(CLASSES[k]||SA_CLASSES[k]||{}).time||''}));
+  if(CROSS_MK[cid])   // 跨項目補堂（幼兒 found-tue5 / 綜合 cond-sat5）：特批目標；排除自己另一堂正課
+    return crossMkTargets_(cid).filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:(CLASSES[k]||SA_CLASSES[k]||{}).time||''}));
   if(SA_CLASSES[cid]) return saMakeupSlotsFor(cid, ownCids);   // 運動班用 #SA 版（同運動過濾）
   return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
 // 某日某班特別時間（後端回傳 map，key=cid|date）；有就用嚟覆寫顯示，令補堂/記錄/摘要對得上證據
@@ -1742,7 +1752,7 @@ function openMakeup(ki,ci){
   MF={ki,ci,byDate,picks:[],owed,sibs:[],sibList};
   if(!cands.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
   // 幼兒 found-tue5：老闆要「先揀課程 → 跳繩再揀星期一/四 → 再揀日期」嘅分層流程
-  if((c.key||c.sport)==='found-tue5'){ openMakeupFound_(c, owed, deadline, cands); return; }
+  if(CROSS_MK[c.key||c.sport]){ openMakeupFound_(c, owed, deadline, cands); return; }
   const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');const cls=byDate[d].map(cd=>mkOptLabel(cd.toKey)).join('／');return `<option value="${d}">${fmt(dt)}${dow(dt)} · ${cls}</option>`;}).join('');
   openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
     <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
@@ -1755,41 +1765,49 @@ function openMakeup(ki,ci){
     <div style="height:12px"></div><button class="btn" id="mf-go" onclick="submitMakeup()" disabled>${t('submitMk')}</button>`);
   renderMfPicks();
 }
-/* 幼兒 found-tue5 分層補堂：1️⃣揀課程（花式跳繩/體操/綜合）→ 跳繩再 2️⃣揀星期一/四 → 3️⃣揀日期。
+/* 跨項目分層補堂（found-tue5 幼兒 / cond-sat5 綜合，config 見 CROSS_MK）：
+   courses>1 先 1️⃣揀課程；跳繩課程再揀星期；最後揀日期。單一課程直接入（省揀課程步驟）。
    重用 MF.picks + renderMfPicks + submitMakeup；byCid = 每個目標班可補日子（已過限期/停課/封鎖已剔）。*/
+const STEP_NUM_=['','1️⃣','2️⃣','3️⃣'];
 function openMakeupFound_(c, owed, deadline, cands){
+  const fromKey=c.key||c.sport, cfg=CROSS_MK[fromKey];
   const byCid={}; cands.forEach(cd=>{ (byCid[cd.toKey]=byCid[cd.toKey]||[]).push(cd.date); });
-  MF.byCid=byCid; MF.curCid='';
-  const courses=FOUND_MK_COURSES.filter(co=>co.cids.some(cid=>(byCid[cid]||[]).length));
-  if(!courses.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel('found-tue5')}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
-  const courseOpts=courses.map(co=>`<option value="${co.key}">${co.label}</option>`).join('');
-  openSheet(`<h2>${t('mkApply')} · ${classLabel('found-tue5')}</h2>
+  MF.byCid=byCid; MF.curCid=''; MF.cfg=cfg; MF.curCourse='';
+  const courses=cfg.courses.filter(co=>co.cids.some(cid=>(byCid[cid]||[]).length));
+  if(!courses.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(fromKey)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
+  MF.courses=courses; const multi=courses.length>1; MF.multiCourse=multi;
+  const courseStep = multi ? `<label class="sd" style="display:block;margin:6px 2px 2px">1️⃣ ${LANG==='en'?'Pick a course':'揀補堂課程'}</label>
+    <select id="mf-course" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundCourse()"><option value="">— ${LANG==='en'?'Pick a course':'揀課程'} —</option>${courses.map(co=>`<option value="${co.key}">${co.label}</option>`).join('')}</select>` : '';
+  const noteHtml = cfg.note ? `<div class="notice" style="white-space:normal;margin:10px 0 4px">${cfg.note}</div>` : '';
+  openSheet(`<h2>${t('mkApply')} · ${classLabel(fromKey)}</h2>
     <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
-    <label class="sd" style="display:block;margin:6px 2px 2px">1️⃣ ${LANG==='en'?'Pick a course':'揀補堂課程'}</label>
-    <select id="mf-course" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundCourse()"><option value="">— ${LANG==='en'?'Pick a course':'揀課程'} —</option>${courseOpts}</select>
+    ${courseStep}
     <div id="mf-day" style="margin-top:8px"></div>
     <div id="mf-datewrap" style="margin-top:8px"></div>
+    ${noteHtml}
     <div id="mf-picks" style="margin-top:10px"></div>
     <input id="mf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="mf-go" onclick="submitMakeup()" disabled>${t('submitMk')}</button>`);
+  if(!multi) mfFoundSelectCourse_(courses[0].key);   // 單一課程：自動入下一步
   renderMfPicks();
 }
-function mfFoundCourse(){
-  const v=$('mf-course').value, dayEl=$('mf-day'), dw=$('mf-datewrap');
-  dayEl.innerHTML=''; dw.innerHTML=''; MF.curCid='';
-  if(!v) return;
-  if(v==='rope'){
-    const days=FOUND_ROPE_DAYS.filter(d=>(MF.byCid[d.cid]||[]).length);
-    dayEl.innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">2️⃣ ${LANG==='en'?'Pick weekday':'揀跳繩班'}</label>
+function mfFoundCourse(){ $('mf-day').innerHTML=''; $('mf-datewrap').innerHTML=''; MF.curCid=''; const v=$('mf-course').value; if(v) mfFoundSelectCourse_(v); }
+function mfFoundSelectCourse_(courseKey){
+  const co=(MF.courses||[]).find(x=>x.key===courseKey); if(!co) return;
+  MF.curCourse=courseKey; MF.curCid=''; $('mf-datewrap').innerHTML='';
+  const dayStep=(MF.multiCourse?1:0)+1;
+  if(courseKey==='rope'){
+    const days=MF.cfg.ropeDays.filter(d=>(MF.byCid[d.cid]||[]).length);
+    $('mf-day').innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">${STEP_NUM_[dayStep]} ${LANG==='en'?'Pick weekday':'揀跳繩班'}</label>
       <select id="mf-day-sel" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundDay()"><option value="">— ${LANG==='en'?'Pick':'揀星期'} —</option>${days.map(d=>`<option value="${d.cid}">${d.label}</option>`).join('')}</select>`;
-  } else { MF.curCid=v; mfFoundDates_(); }
+  } else { $('mf-day').innerHTML=''; MF.curCid=co.cids[0]; mfFoundDates_(); }
 }
 function mfFoundDay(){ MF.curCid=$('mf-day-sel').value; mfFoundDates_(); }
 function mfFoundDates_(){
   const dw=$('mf-datewrap'); if(!MF.curCid){ dw.innerHTML=''; return; }
-  const rope=$('mf-course').value==='rope', step=rope?'3️⃣':'2️⃣';
+  const rope=MF.curCourse==='rope', dateStep=(MF.multiCourse?1:0)+(rope?2:1);
   const opts=(MF.byCid[MF.curCid]||[]).slice().sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
-  dw.innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">${step} ${LANG==='en'?'Pick a date':'揀補堂日期'}</label>
+  dw.innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">${STEP_NUM_[dateStep]} ${LANG==='en'?'Pick a date':'揀補堂日期'}</label>
     <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${opts}</select>`;
 }
 function mfFoundDate(){
