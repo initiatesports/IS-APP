@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-18-mklabel';
+const FRONTEND_VERSION='parent-2026-09-18-foundflow';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -296,10 +296,16 @@ const SA_CLASSES={
 };
 const SA_CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
 const SA_CLASS_IDS=Object.keys(SA_CLASSES);
-/* 🔒 2026-09-17 老闆特批：幼兒全方位運動啟蒙（found-tue5）補堂可直接約去跳繩星期一(c1)/星期四(c8)＋體操星期六(gym-sat2)。
-   綜合運動班（cond-sat5）唔自助約＝私訊教練。呢個 whitelist 同 #SA 後端 FOUND_MK_TARGETS 一一對應。*/
-const FOUND_TUE5_TARGETS=['c1','c8','gym-sat2'];
-const FOUND_TUE5_MK_NOTE='📱 想補「綜合運動班（星期六）」？請私訊教練安排（WhatsApp 6331 7403）。';
+/* 🔒 2026-09-17/18 老闆特批：幼兒全方位運動啟蒙（found-tue5）補堂可直接約去跳繩星期一(c1)/星期四(c8)、
+   體操星期六(gym-sat2)、綜合運動班星期六(cond-sat5)——全部自助約，唔使私訊。同 #SA 後端 FOUND_MK_TARGETS 一一對應。
+   補堂流程：先揀課程 → 跳繩再揀星期一/四 → 再揀日期（openMakeupFound_）。*/
+const FOUND_TUE5_TARGETS=['c1','c8','gym-sat2','cond-sat5'];
+const FOUND_MK_COURSES=[
+  { key:'rope',      label:'花式跳繩',            cids:['c1','c8'] },
+  { key:'gym-sat2',  label:'體操（星期六 4–5pm）',   cids:['gym-sat2'] },
+  { key:'cond-sat5', label:'綜合運動班（星期六 5–6pm）', cids:['cond-sat5'] }
+];
+const FOUND_ROPE_DAYS=[ {cid:'c1',label:'星期一 5–6pm'}, {cid:'c8',label:'星期四 5–6pm'} ];
 function isSA(cid){ return !!SA_CLASSES[cid]; }
 function clsIsSA(c){ return !!(c && (c._sa || SA_CLASSES[c.key||c.sport||''])); }
 /* #SA 版 sessionsFor：TERM window 逐週，減公眾假期（同 parent-sports 一致；#SA 冇 CLASS_START gate）*/
@@ -1735,10 +1741,11 @@ function openMakeup(ki,ci){
   });
   MF={ki,ci,byDate,picks:[],owed,sibs:[],sibList};
   if(!cands.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
+  // 幼兒 found-tue5：老闆要「先揀課程 → 跳繩再揀星期一/四 → 再揀日期」嘅分層流程
+  if((c.key||c.sport)==='found-tue5'){ openMakeupFound_(c, owed, deadline, cands); return; }
   const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');const cls=byDate[d].map(cd=>mkOptLabel(cd.toKey)).join('／');return `<option value="${d}">${fmt(dt)}${dow(dt)} · ${cls}</option>`;}).join('');
   openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
     <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
-    ${(c.key||c.sport)==='found-tue5'?`<div class="notice" style="white-space:normal;margin-bottom:8px">${FOUND_TUE5_MK_NOTE}</div>`:''}
     <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfPickDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${dateOpts}</select>
     <div id="mf-classes" style="margin-top:8px"></div>
     <div id="mf-picks" style="margin-top:10px"></div>
@@ -1748,8 +1755,52 @@ function openMakeup(ki,ci){
     <div style="height:12px"></div><button class="btn" id="mf-go" onclick="submitMakeup()" disabled>${t('submitMk')}</button>`);
   renderMfPicks();
 }
+/* 幼兒 found-tue5 分層補堂：1️⃣揀課程（花式跳繩/體操/綜合）→ 跳繩再 2️⃣揀星期一/四 → 3️⃣揀日期。
+   重用 MF.picks + renderMfPicks + submitMakeup；byCid = 每個目標班可補日子（已過限期/停課/封鎖已剔）。*/
+function openMakeupFound_(c, owed, deadline, cands){
+  const byCid={}; cands.forEach(cd=>{ (byCid[cd.toKey]=byCid[cd.toKey]||[]).push(cd.date); });
+  MF.byCid=byCid; MF.curCid='';
+  const courses=FOUND_MK_COURSES.filter(co=>co.cids.some(cid=>(byCid[cid]||[]).length));
+  if(!courses.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel('found-tue5')}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
+  const courseOpts=courses.map(co=>`<option value="${co.key}">${co.label}</option>`).join('');
+  openSheet(`<h2>${t('mkApply')} · ${classLabel('found-tue5')}</h2>
+    <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
+    <label class="sd" style="display:block;margin:6px 2px 2px">1️⃣ ${LANG==='en'?'Pick a course':'揀補堂課程'}</label>
+    <select id="mf-course" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundCourse()"><option value="">— ${LANG==='en'?'Pick a course':'揀課程'} —</option>${courseOpts}</select>
+    <div id="mf-day" style="margin-top:8px"></div>
+    <div id="mf-datewrap" style="margin-top:8px"></div>
+    <div id="mf-picks" style="margin-top:10px"></div>
+    <input id="mf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
+    <div style="height:12px"></div><button class="btn" id="mf-go" onclick="submitMakeup()" disabled>${t('submitMk')}</button>`);
+  renderMfPicks();
+}
+function mfFoundCourse(){
+  const v=$('mf-course').value, dayEl=$('mf-day'), dw=$('mf-datewrap');
+  dayEl.innerHTML=''; dw.innerHTML=''; MF.curCid='';
+  if(!v) return;
+  if(v==='rope'){
+    const days=FOUND_ROPE_DAYS.filter(d=>(MF.byCid[d.cid]||[]).length);
+    dayEl.innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">2️⃣ ${LANG==='en'?'Pick weekday':'揀跳繩班'}</label>
+      <select id="mf-day-sel" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundDay()"><option value="">— ${LANG==='en'?'Pick':'揀星期'} —</option>${days.map(d=>`<option value="${d.cid}">${d.label}</option>`).join('')}</select>`;
+  } else { MF.curCid=v; mfFoundDates_(); }
+}
+function mfFoundDay(){ MF.curCid=$('mf-day-sel').value; mfFoundDates_(); }
+function mfFoundDates_(){
+  const dw=$('mf-datewrap'); if(!MF.curCid){ dw.innerHTML=''; return; }
+  const rope=$('mf-course').value==='rope', step=rope?'3️⃣':'2️⃣';
+  const opts=(MF.byCid[MF.curCid]||[]).slice().sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
+  dw.innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">${step} ${LANG==='en'?'Pick a date':'揀補堂日期'}</label>
+    <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${opts}</select>`;
+}
+function mfFoundDate(){
+  const sel=$('mf-date'); const d=sel.value; if(!d) return;
+  if(MF.picks.some(p=>p.date===d&&p.toKey===MF.curCid)){ sel.value=''; return; }   // 已揀過同一堂
+  if(MF.picks.length>=MF.owed){ toast(t('mkMax',MF.owed)); sel.value=''; return; }
+  MF.picks.push({date:d,toKey:MF.curCid}); renderMfPicks(); sel.value='';
+}
 function mfPickDate(){
-  const d=$('mf-date').value, area=$('mf-classes');
+  const area=$('mf-classes'); if(!area) return;   // found-tue5 分層流程冇呢個容器
+  const d=$('mf-date').value;
   if(!d){ area.innerHTML=''; return; }
   area.innerHTML=(MF.byDate[d]||[]).map(cd=>{
     const taken=MF.picks.some(p=>p.date===cd.date&&p.toKey===cd.toKey);
