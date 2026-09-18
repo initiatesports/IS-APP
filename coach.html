@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-16-mkblock-fix';
+const FRONTEND_VERSION = 'coach-2026-09-19-retry404';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -709,7 +709,7 @@ async function apiGet(params){
 // 任何「寫入」動作自動清晒快取 → 下次開 tab 一定攞到最新，唔會顯示舊資料。
 const _readCache = {};
 const _READ_ACT = { load:1, dailyList:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1 };
-async function apiPost(body){
+async function _apiPostOnce_(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
@@ -719,6 +719,23 @@ async function apiPost(body){
   const j = await res.json();
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
   return j;
+}
+/* 唯讀 action 自動重試（2026-09-19，對齊 is-parent apiRO／is-leave-makeup PR#591）。
+   Apps Script /exec 間中回 404 HTML 頁（唔係 JSON）→ res.json() 直接 throw，教練開頁第一 call 中招就見
+   「未能載入雲端資料，請重新整理」／「運動班資料載入失敗」，要自己重開。keep-warm 監測每晚都影到呢類
+   404（09-18 就有 #9/#11 多次），班堂 5–8pm 撞正＝真磨擦。
+   ⚠️ 只重試 _READ_ACT 入面嘅唯讀 action；寫入重試會雙寫（點名／學費／錢），一律維持單次。
+   契約不變：有回應（即使 ok:false）照原樣返，全部試完仍 throw 由 caller 顯示原本嘅失敗訊息。 */
+async function apiPost(body){
+  const act = body && body.action;
+  if (!act || !_READ_ACT[act]) return await _apiPostOnce_(body);
+  let err = null;
+  for (let i = 0; i < 3; i++){
+    try { const j = await _apiPostOnce_(body); if (j) return j; }
+    catch(e){ err = e; }                     // 非 JSON(404 頁)／逾時／網絡 → 可重試
+    if (i < 2) await new Promise(s => setTimeout(s, 600 * (i + 1)));
+  }
+  throw err || new Error('network');
 }
 // 🔀 2026-09-13 審計#3/#4/#5：強制指定 backend post（畀「跨全班」操作 —— 今日全部班停課／生成全部學費／
 //   今日總點名 —— 冇單一 cid，要兩個 backend 各打一次，唔可以淨落 #4，否則運動班盲）。失敗回 null。
@@ -793,11 +810,22 @@ function applyCoachLoadData(data){
 function saveCoachLoad(data){ try{ localStorage.setItem('is_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
 function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('is_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
 // 🔀 #SA load（獨立 fetch；失敗當空，唔阻跳繩載入）
-async function _saLoad_(){ try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000); try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal}); const j=await r.json();
+async function _saLoadOnce_(){ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
+  try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal}); return await r.json(); }
+  finally{ clearTimeout(tm); } }
+async function _saLoad_(){
+  // 2026-09-19：同 apiPost 一樣加唯讀重試（/exec 間中回 404 HTML 頁 → r.json() throw）。load 係純讀，重試安全。
+  let j=null, err=null;
+  for(let i=0;i<3;i++){
+    try{ j=await _saLoadOnce_(); err=null; break; }
+    catch(e){ err=e; j=null; if(i<2) await new Promise(s=>setTimeout(s,600*(i+1))); }
+  }
+  if(err) return {__saFail:true, __saErr:String((err&&err.message)||err)};
   // 🔒 2026-09-13 審計#20：一定要睇 ok。以前失敗/超時/密碼唔同步只 return {}，令合併結果「完全成功但運動班全部空」
   //   兼亮綠燈兼寫入快取（下次秒開一樣冇運動班），教練喺綠燈之下用殘缺名冊點名。而家明確標 __saFail。
   if(!j || j.err || j.error || j.ok===false){ return {__saFail:true, __saErr:String((j&&(j.err||j.error))||'load 回應非 ok')}; }
-  return j; } finally{ clearTimeout(tm); } }catch(e){ return {__saFail:true, __saErr:String((e&&e.message)||e)}; } }
+  return j;
+}
 // 合併兩個 backend 嘅 load（cid 唔撞）。periodVoid 係「期數→名單」，唔可以覆蓋要 union 名單。
 function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
   const pv={}; [a.periodVoid||{}, b.periodVoid||{}].forEach(m=>Object.keys(m).forEach(p=>{ pv[p]=(pv[p]||[]).concat(m[p]||[]); }));
