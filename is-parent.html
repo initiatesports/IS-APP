@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-17-foundmk';
+const FRONTEND_VERSION='parent-2026-09-18-mklabel';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -487,6 +487,9 @@ function fmt(d){const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}/$
 function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-').map(Number);return fmt(new Date(y,m-1,d));}
 function classLabel(cid){const sa=SA_CLASSES[cid];const c=sa||CLASSES[cid];if(!c)return cid;const day=LANG==='en'?({'星期一':'Mon','星期二':'Tue','星期三':'Wed','星期四':'Thu','星期五':'Fri','星期六':'Sat','星期日':'Sun'}[c.dayZh]||c.dayZh):c.dayZh;return (sa?(c.sport+'・'):'')+day+' '+c.time;}
 function classKey(c){return c.key||c.sport;}
+/* 補堂目標顯示名：跳繩(c1–c9)嘅 classLabel 淨係「星期X 時間」冇運動名。跨項目補堂（幼兒 found-tue5 →
+   跳繩/體操）令家長喺「揀日期」下拉淨睇到日期，唔知補緊邊個運動。此 helper 一律回「運動 時間」。*/
+function mkOptLabel(toKey){ const sa=SA_CLASSES[toKey]; if(sa) return sa.sport+' '+sa.time; const c=CLASSES[toKey]; return '花式跳繩'+(c?(' '+c.time):''); }
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400);}
 
 /* client 端 sessionsFor（與後端一致）*/
@@ -1732,7 +1735,7 @@ function openMakeup(ki,ci){
   });
   MF={ki,ci,byDate,picks:[],owed,sibs:[],sibList};
   if(!cands.length){ openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2><div class="notice warn">${t('mkNoSlot')}</div><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
-  const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
+  const dateOpts=Object.keys(byDate).sort().map(d=>{const dt=new Date(d+'T00:00:00');const cls=byDate[d].map(cd=>mkOptLabel(cd.toKey)).join('／');return `<option value="${d}">${fmt(dt)}${dow(dt)} · ${cls}</option>`;}).join('');
   openSheet(`<h2>${t('mkApply')} · ${classLabel(c.key||c.sport)}</h2>
     <p class="sd">${t('mkSd',owed,fmtDate(deadline))}</p>
     ${(c.key||c.sport)==='found-tue5'?`<div class="notice" style="white-space:normal;margin-bottom:8px">${FOUND_TUE5_MK_NOTE}</div>`:''}
@@ -1750,7 +1753,7 @@ function mfPickDate(){
   if(!d){ area.innerHTML=''; return; }
   area.innerHTML=(MF.byDate[d]||[]).map(cd=>{
     const taken=MF.picks.some(p=>p.date===cd.date&&p.toKey===cd.toKey);
-    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${classLabel(cd.toKey)}</div><div class="s">${cd.adj?'<span style="color:#0E8A96;font-weight:800">⏰ '+cd.adj+'（'+(LANG==='en'?'special time':'特別時間')+'）</span>':(cd.time||'')}</div></div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
+    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${mkOptLabel(cd.toKey)}</div><div class="s">${cd.adj?'<span style="color:#0E8A96;font-weight:800">⏰ '+cd.adj+'（'+(LANG==='en'?'special time':'特別時間')+'）</span>':(cd.time||'')}</div></div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
   }).join('');
 }
 function mfAdd(date,toKey){
@@ -1762,7 +1765,7 @@ function mfAdd(date,toKey){
 function renderMfPicks(){
   const el=$('mf-picks'); if(!el) return;
   el.innerHTML=MF.picks.length
-    ? `<div class="confirm-q">${t('picked',MF.picks.length)}</div>`+MF.picks.map((p,i)=>{const d=new Date(p.date+'T00:00:00');return `<div class="opt on"><div class="t">${classLabel(p.toKey)}・${fmt(d)}${dow(d)}</div><div class="cap" onclick="mfRemove(${i})" style="cursor:pointer">✕</div></div>`;}).join('')
+    ? `<div class="confirm-q">${t('picked',MF.picks.length)}</div>`+MF.picks.map((p,i)=>{const d=new Date(p.date+'T00:00:00');return `<div class="opt on"><div class="t">${mkOptLabel(p.toKey)}・${fmt(d)}${dow(d)}</div><div class="cap" onclick="mfRemove(${i})" style="cursor:pointer">✕</div></div>`;}).join('')
     : `<div class="confirm-q">${t('none')}</div>`;
   if($('mf-go')) $('mf-go').disabled=MF.picks.length===0;
 }
