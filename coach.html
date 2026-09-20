@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-20-adv';
+const FRONTEND_VERSION = 'coach-2026-09-20-netfail';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -710,7 +710,13 @@ async function apiGet(params){
 // 讀取快取（stale-while-revalidate）：切返開過嘅 tab 即顯快取、背景攞新→唔使每次等 3 秒平台冷啟動。
 // 任何「寫入」動作自動清晒快取 → 下次開 tab 一定攞到最新，唔會顯示舊資料。
 const _readCache = {};
-const _READ_ACT = { load:1, dailyList:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1 };
+/* 唯讀 action 名單（雙用途：① 唔清讀取快取 ② 可以自動重試）。
+   🔒 2026-09-20 審計#10：mkBlocks/rosterList/transfersList/returnsAll/pendingMedNotes 本身就係純讀
+   （已逐個 grep 後端 function body 確認零 setValue/appendRow/MailApp），但一直冇入呢個名單 → 拎唔到
+   重試，令 09-16 啱啱加嘅「封鎖面板載入失敗警示」會因為一次短暫 404 就誤報，而同一刻 load 自己康復
+   ＝訊號互相矛盾。補返入嚟。*/
+const _READ_ACT = { load:1, dailyList:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1,
+                    mkBlocks:1, rosterList:1, transfersList:1, returnsAll:1, pendingMedNotes:1 };
 async function _apiPostOnce_(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
   const payload = Object.assign({}, body);
@@ -722,6 +728,14 @@ async function _apiPostOnce_(body){
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
   return j;
 }
+/* 302 丟 body：Apps Script POST 間中被重導向，body 唔見咗 → 落咗 doGet → 回 {ok:false,err:"unknown action"}。
+   同 is-parent `isLostPost_` 一字不差（審計 2026-09-20 #8：coach 原本冇呢個，所以「對齊 is-parent」只做咗一半）。*/
+function isLostPost_(r){ const m=String((r&&(r.err||r.error))||'').trim();
+  return /^unknown action$/i.test(m) || /unknown action:\s*undefined/i.test(m); }
+/* 逾時(AbortError)唔可以重試 —— client abort 殺唔死 server 端執行，後端仲喺度行緊，再送兩次
+   只會對 #4 三倍 load，兼令 apiDaily 一類「有副作用」嘅 route 並發跑（審計 2026-09-20 #7/#9）。
+   真正值得重試嘅係「有回應但唔係 JSON」（404 HTML 頁，請求根本未入到我哋 handler）同純網絡錯誤。*/
+function isAbortErr_(e){ return !!e && (e.name === 'AbortError' || /abort/i.test(String(e.message||e))); }
 /* 唯讀 action 自動重試（2026-09-19，對齊 is-parent apiRO／is-leave-makeup PR#591）。
    Apps Script /exec 間中回 404 HTML 頁（唔係 JSON）→ res.json() 直接 throw，教練開頁第一 call 中招就見
    「未能載入雲端資料，請重新整理」／「運動班資料載入失敗」，要自己重開。keep-warm 監測每晚都影到呢類
@@ -731,22 +745,41 @@ async function _apiPostOnce_(body){
 async function apiPost(body){
   const act = body && body.action;
   if (!act || !_READ_ACT[act]) return await _apiPostOnce_(body);
-  let err = null;
+  let err = null, last = null;
   for (let i = 0; i < 3; i++){
-    try { const j = await _apiPostOnce_(body); if (j) return j; }
-    catch(e){ err = e; }                     // 非 JSON(404 頁)／逾時／網絡 → 可重試
+    try { const j = await _apiPostOnce_(body); last = j; if (j && !isLostPost_(j)) return j; }
+    catch(e){ err = e; if (isAbortErr_(e)) break; }   // 逾時＝後端仲行緊，唔重試（見 isAbortErr_）
     if (i < 2) await new Promise(s => setTimeout(s, 600 * (i + 1)));
   }
+  if (last) return last;                     // 最後一次有回應（lost-post）→ 照返，契約同以前一樣
   throw err || new Error('network');
 }
-// 🔀 2026-09-13 審計#3/#4/#5：強制指定 backend post（畀「跨全班」操作 —— 今日全部班停課／生成全部學費／
-//   今日總點名 —— 冇單一 cid，要兩個 backend 各打一次，唔可以淨落 #4，否則運動班盲）。失敗回 null。
+/* 🔀 2026-09-13 審計#3/#4/#5：強制指定 backend post（畀「跨全班」操作 —— 今日全部班停課／生成全部學費／
+   今日總點名 —— 冇單一 cid，要兩個 backend 各打一次，唔可以淨落 #4，否則運動班盲）。
+   🔒 2026-09-20 審計#1/#2：原本失敗一律 `return null`，而所有 caller 嘅警示條件都係
+   `if (rSA && !rSA.ok && rSA.err)` —— null 令呢句變 false，於是「運動班停課失敗／今日點名攞唔到
+   運動班」會靜靜跌落 else，教練見到綠色 ✓「運動班 0 班」，以為今日冇運動班而唔係失敗。
+   而家改回一個「明確失敗物件」：`.ok` 仍然係 falsy（合併邏輯照樣跳過，零行為改變），但 `.err` 有值
+   → 原本嗰句警示會正常彈出。另外對唯讀 action 加同 apiPost 一樣嘅重試（寫入一律唔重試，防雙寫）。*/
 async function apiPostUrl_(url, body){
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
-  const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  try{ const res = await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal }); return await res.json(); }
-  catch(e){ return null; } finally{ clearTimeout(tm); }
+  const act = payload.action;
+  const tries = (act && _READ_ACT[act]) ? 3 : 1;   // ⚠️ 只有唯讀 action 先重試；cancelDay 等寫入永遠單次
+  let err = null, last = null;
+  for (let i = 0; i < tries; i++){
+    const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
+    try{
+      const res = await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal });
+      const j = await res.json(); last = j;
+      if (j && !isLostPost_(j)) return j;
+    }
+    catch(e){ err = e; if (isAbortErr_(e)) break; }
+    finally{ clearTimeout(tm); }
+    if (i < tries - 1) await new Promise(s => setTimeout(s, 600 * (i + 1)));
+  }
+  if (last) return last;
+  return { __netFail:true, ok:false, err:'連線失敗（'+String((err&&err.message)||err||'網絡')+'）' };
 }
 
 // C2：敏感檔案（付款截圖/醫生紙）已改私有,唔可以直接 <a href=drive>。用教練密碼經 getSecureFile 攞 base64 再開。
@@ -1527,7 +1560,15 @@ async function renderMedNoteVerify(){
   // 🔀 2026-09-13：合併運動班(#SA)待核實醫生紙(老闆決定運動班都要教練核實)。verifyMedNote 已按 x.cid 路由。
   let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'pendingMedNotes'}), apiPostUrl_(SA_API_URL,{action:'pendingMedNotes'}) ]); }catch(e){ r=null; rSA=null; }
   MNV_LIST=[].concat((r&&r.ok&&r.list)?r.list:[], (rSA&&rSA.ok&&rSA.list)?rSA.list:[]);
-  if(!MNV_LIST.length){ host.innerHTML=''; return; }   // 冇待核實就唔顯示
+  /* 🔒 2026-09-20 審計#2（同族）：#SA 攞唔到唔可以靜靜顯示「冇待核實」——運動班嘅醫生紙就永遠唔會入
+     核實佇列，家長交咗都冇人批。攞唔到就明講，唔好扮乾淨。*/
+  const mnSaBad = !rSA || !rSA.ok;
+  if(!MNV_LIST.length){
+    host.innerHTML = mnSaBad
+      ? `<div style="margin:0 16px;padding:10px 12px;border-radius:10px;background:rgba(224,80,80,.12);border:1px solid rgba(224,80,80,.45);color:#e05050;font-size:12.5px;font-weight:700">⚠ 運動班醫生紙佇列載入失敗（${vnEsc(String((rSA&&rSA.err)||'連線失敗'))}），唔代表冇待核實。請重新整理。</div>`
+      : '';
+    return;   // 冇待核實就唔顯示
+  }
   host.innerHTML=`<div class="section-header">🩺 病假紙核實（${MNV_LIST.length}）</div>
   <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
     <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">家長上傳咗醫生紙。撳「睇醫生紙」核對真偽 → <b>核實</b>後正式當請假、可補堂；<b>拒絕</b>則作缺席、不設補堂。</div>`
@@ -2238,8 +2279,13 @@ async function loadMakeupRoll(){
   const date=(document.getElementById('mkroll-date')||{}).value||todayStr();
   const box=document.getElementById('mkroll-list'); if(!box) return;
   box.innerHTML=`<div style="padding:10px 4px;color:var(--muted);font-size:13px">載入中…</div>`;
-  let r; try{ r=await apiPost({action:'dailyList', date, coachPass:cpass()}); }catch(e){ r=null; }
+  /* 🔀 2026-09-20 審計：2026-09-13 審計#3 幫「每日點名」同「手動工具」補咗 #SA 合併，漏咗呢個入口 ——
+     運動班（體操／羽毛球／綜合…）嘅補堂客喺呢度永遠見唔到，教練以為「當日冇補堂」，該補堂唔會被標
+     出席／缺席，補堂 ledger 對唔到數。同其餘入口一樣兩個 backend 各打一次。*/
+  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'dailyList', date, coachPass:cpass()}), apiPostUrl_(SA_API_URL,{action:'dailyList', date}) ]); }catch(e){ r=null; rSA=null; }
   if(!r||!r.ok){ box.innerHTML=`<div style="padding:10px 4px;color:var(--muted);font-size:13px">載入失敗</div>`; return; }
+  if(rSA && rSA.ok && Array.isArray(rSA.list) && rSA.list.length) r = Object.assign({}, r, { list:(r.list||[]).concat(rSA.list) });
+  const mkSaBad = !rSA || !rSA.ok;           // 運動班攞唔到 → 要出聲，唔可以扮「當日冇補堂」
   MKROLL=[];
   (r.list||[]).forEach(g=>{
     const key=g.c.key||g.c.sport, label=(g.c.dayZh||'')+' '+(g.c.time||'');
@@ -2253,6 +2299,13 @@ async function loadMakeupRoll(){
   });
   MKROLL.sort((a,b)=>a.name.localeCompare(b.name));
   filterMakeupRoll();
+  if(mkSaBad){
+    toast('⚠ 運動班補堂名單攞唔到（'+((rSA&&rSA.err)||'連線失敗')+'）——下面只有跳繩，請再試','⚠');
+    const w=document.createElement('div');
+    w.style.cssText='margin:8px 0;padding:9px 11px;border-radius:10px;background:rgba(224,80,80,.12);border:1px solid rgba(224,80,80,.45);color:#e05050;font-size:12px;font-weight:700';
+    w.textContent='⚠ 運動班補堂載入失敗，下面唔齊全（唔代表當日冇運動班補堂）。';
+    box.prepend(w);
+  }
 }
 function filterMakeupRoll(){
   const box=document.getElementById('mkroll-list'); if(!box) return;
@@ -2887,8 +2940,21 @@ async function loadDaily(){
   catch(e){ if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>連線錯誤，請再試<br><span style="font-size:12px">（確認已部署統一後端並填好 API_URL）</span></p></div>`; return; }
   if (!r || !r.ok) { if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>${(r&&r.err)||'載入失敗'}</p></div>`; return; }
   if (rSA && rSA.ok && Array.isArray(rSA.list) && rSA.list.length) r = Object.assign({}, r, { list:(r.list||[]).concat(rSA.list) });   // cid 唔撞→concat 合併
-  coachDailyData = r; saveCoachDaily(coachDate, r);          // 背景 fetch 成功 → 更新快取 + 重新渲染最新
+  /* 🔒 2026-09-20 審計#2：#SA 攞唔到唔可以靜靜咁算。以前 #4 一 throw 兩邊一齊死（教練見「連線錯誤」會
+     重開）；自從 #4 加咗重試，#4 自己康復亮綠燈，而 #SA 靜靜 null → 教練見到一個「正常」嘅點名表，但
+     體操／羽毛球／綜合／幼兒等 7 個運動班完全唔喺度，佢會以為當日冇堂而漏點名。同 2026-09-13 審計#20
+     「綠燈之下用殘缺名冊點名」同一類，所以一定要出聲、而且唔好寫入快取（免下次秒開一樣殘缺）。*/
+  const saBad = !rSA || !rSA.ok;
+  coachDailyData = r;
+  if (!saBad) saveCoachDaily(coachDate, r);                  // 背景 fetch 成功 → 更新快取 + 重新渲染最新
   renderDailyList(r, box);
+  if (saBad) {
+    toast('⚠ 運動班今日點名攞唔到（' + ((rSA && rSA.err) || '連線失敗') + '）——下面只有跳繩班，請再試一次', '⚠');
+    const w = document.createElement('div');
+    w.style.cssText = 'margin:8px 16px;padding:10px 12px;border-radius:10px;background:rgba(224,80,80,.12);border:1px solid rgba(224,80,80,.45);color:#e05050;font-size:12.5px;font-weight:700';
+    w.textContent = '⚠ 運動班（體操／羽毛球／綜合／幼兒…）今日點名載入失敗，下面唔齊全。請重新整理，唔好當今日冇運動班。';
+    box.prepend(w);
+  }
 }
 function renderDailyList(r, box){
   if (!r.list || !r.list.length) {
