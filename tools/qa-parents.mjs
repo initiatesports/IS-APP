@@ -445,7 +445,9 @@ async function sweep(label, exec, rows, withPin) {
   console.log("\n---JSON---");
   console.log(JSON.stringify({
     date: TODAY,
-    tested: { c4: s4, c9: s9 },
+    // sa 必須出現喺 JSON：2026-09 統一 is-parent 後運動班家長全部行 #SA，
+    // 漏咗嗰欄＝下游（每日報告／90% 登入率門檻）對 #SA 完全盲，20 個家長全部登入唔到都唔會報。
+    tested: { c4: s4, sa: sSA, c9: s9 },
     firstCall: { ...FIRSTCALL, pct: FIRSTCALL.total ? Math.round(FIRSTCALL.fail / FIRSTCALL.total * 1000) / 10 : 0 },
     counts: { LEAK: (bySev.LEAK || []).length, OWED: (bySev.OWED || []).length, REPORT: (bySev.REPORT || []).length, MKSTUCK: (bySev.MKSTUCK || []).length, MKMADEUP: (bySev.MKMADEUP || []).length, FUTURE: (bySev.FUTURE || []).length, FEE: (bySev.FEE || []).length, HISTGAP: (bySev.HISTGAP || []).length, UNPOINTED: (bySev.UNPOINTED || []).length, PT: (bySev.PT || []).length, ERR: (bySev.ERR || []).length },
     anomalies,
