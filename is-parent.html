@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-20-adv';
+const FRONTEND_VERSION='parent-2026-09-20-adv2';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -318,6 +318,8 @@ const CROSS_MK={
 };
 function crossMkTargets_(fromKey){ const cfg=CROSS_MK[fromKey]; if(!cfg) return []; const s=[]; cfg.courses.forEach(co=>co.cids.forEach(c=>{ if(s.indexOf(c)<0) s.push(c); })); return s; }
 function isSA(cid){ return !!SA_CLASSES[cid]; }
+const ADV_CIDS=['c9','c10'];   // 花式跳繩進階班（星期五 c9 / 星期六 c10）：持續訓練、收費經進階班報名模組，唔提供自助加操
+function isAdv(cid){ return ADV_CIDS.indexOf(cid)>=0; }
 function clsIsSA(c){ return !!(c && (c._sa || SA_CLASSES[c.key||c.sport||''])); }
 /* #SA 版 sessionsFor：TERM window 逐週，減公眾假期（同 parent-sports 一致；#SA 冇 CLASS_START gate）*/
 function saSessionsFor(cid){
@@ -1126,7 +1128,7 @@ function classCard(child,ki,c,ci){
       <button class="btn ghost sm" onclick="openLeave(${ki},${ci})">${t('applyLeave')}</button>
       ${mkBtn}
     </div>
-    ${isSA(c.key)?''/* 🔒 2026-09-13 審計#18：加操只限跳繩(openAddon 只 iterate 跳繩 CLASS_IDS + 跳繩價階梯 + toKey 打去 #4)。運動班卡顯示呢個掣＝家長想加體操卻付$130加咗一堂跳繩。運動班暫唔提供自助加操。*/:`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>`}
+    ${(isSA(c.key)||isAdv(c.key))?''/* 🔒 2026-09-13 審計#18：加操只限跳繩(openAddon 只 iterate 跳繩 CLASS_IDS + 跳繩價階梯 + toKey 打去 #4)。運動班卡顯示呢個掣＝家長想加體操卻付$130加咗一堂跳繩。運動班暫唔提供自助加操。2026-09-20：進階班(c9/c10)持續訓練+經進階班模組收費，亦唔提供自助加操。*/:`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openAddon(${ki},${ci})">${t('applyAddon')}</button>`}
     ${cancellableLeaves(c).length?`<button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="openCancelLeave(${ki},${ci})">${t('cancelLeave',cancellableLeaves(c).length)}</button>`:''}`;
       }
       // 未激活・付款未開放（更遠嘅未來期）→ 排定通知
@@ -1382,10 +1384,11 @@ function addonCumCost(n){ return n>=4?n*110:n*130; }
 let AD={};
 function openAddon(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
+  if(isSA(c.key)||isAdv(c.key)) return;   // 運動班/進階班唔提供自助加操（掣已隱藏，呢度防其他途徑觸發）
   // 候選：所有班別未來上課日（同一課程）
   const cands=[]; const seen={};
   const _mkBlk=new Set(S.mkBlock||[]);   // 逐節封鎖：封咗嘅節唔畀加操（同補堂 1685 一致，封晒所有入口）
-  CLASS_IDS.forEach(k=>{ sessionsFor(k).forEach(d=>{ if(d>=todayStr() && !_mkBlk.has(k+'|'+d)){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });
+  CLASS_IDS.forEach(k=>{ if(isAdv(k)) return; sessionsFor(k).forEach(d=>{ if(d>=todayStr() && !_mkBlk.has(k+'|'+d)){ const key=k+d; if(!seen[key]){seen[key]=1; cands.push({toKey:k,date:d,time:CLASSES[k].time,adj:taTime(k,d)});} } }); });   // 進階班(c9/c10)選拔性，唔做自助加操目標
   cands.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   const byDate={}; cands.forEach(x=>{ (byDate[x.date]=byDate[x.date]||[]).push(x); });
   AD={ki,ci,name:child.name,pick:null,byDate};
