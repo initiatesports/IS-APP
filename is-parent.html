@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-20-audit';
+const FRONTEND_VERSION='parent-2026-09-20-adv';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -261,13 +261,14 @@ const CLASSES={
      CLASS_IDS 冇佢哋 → makeupSlotsFor 永遠唔提供呢兩班、c8 學生自己亦冇時段可補、
      CLASS_START_HH['c8'] undefined → 用 '00:00' → 「開課前 6 小時不可取消」由前一日 18:00 就封鎖。 */
   c8:{dayZh:'星期四',wd:4,time:'5–6pm',students:[]},
-  c9:{dayZh:'星期五',wd:5,time:'6–8pm',students:[]}
+  c9:{dayZh:'星期五',wd:5,time:'6–8pm',students:[]},
+  c10:{dayZh:'星期六',wd:6,time:'6–8pm',students:[]}
 };
 /* 新開班起始日（同後端 CLASS_START 一致）：sessionsFor 由此日起先排堂 */
-const CLASS_START={c8:'2026-09-07',c9:'2026-10-01'};
-const CLASS_START_HH={c1:'17:00',c2:'18:00',c3:'17:00',c4:'18:00',c5:'18:00',c6:'11:00',c7:'15:00',c8:'17:00',c9:'18:00'}; // 補堂開課鐘點(24h)：CLASSES.time 係顯示字("5–6pm")無法運算，另存機器格式供「開課前6h不可取消」計算
+const CLASS_START={c8:'2026-09-07',c9:'2026-10-01',c10:'2026-10-01'};
+const CLASS_START_HH={c1:'17:00',c2:'18:00',c3:'17:00',c4:'18:00',c5:'18:00',c6:'11:00',c7:'15:00',c8:'17:00',c9:'18:00',c10:'18:00'}; // 補堂開課鐘點(24h)：CLASSES.time 係顯示字("5–6pm")無法運算，另存機器格式供「開課前6h不可取消」計算
 function mkHrsToStart(toKey,dateIso){ const hh=(SA_CLASS_START_HH[toKey]||CLASS_START_HH[toKey]||'00:00'); return (new Date(dateIso+'T'+hh+':00')-new Date())/36e5; }
-const CLASS_DOW = { c1:1,c2:1,c3:3,c4:3,c5:5,c6:6,c7:6,c8:4,c9:5 };
+const CLASS_DOW = { c1:1,c2:1,c3:3,c4:3,c5:5,c6:6,c7:6,c8:4,c9:5,c10:6 };
 const CLASS_IDS = Object.keys(CLASSES);
 /* ═══════════ 運動班（#SA 非跳繩）合併 ═══════════
    老闆 2026-09-01：家長一個登入睇晒仔女跳繩＋運動班（體操/羽毛球/田徑/綜合體能等）。

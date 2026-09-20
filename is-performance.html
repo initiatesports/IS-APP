@@ -248,7 +248,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-20-audit';
+const APP_VERSION='growth-2026-09-20-adv';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -310,7 +310,7 @@ function metricPickerHTML(cur,opt){opt=opt||{};
   }
   return h;
 }
-const CLASS_IDS=['c1','c2','c3','c4','c5','c6','c7','c8','c9'];   // 2026-09-19：補返 c8(星期四)/c9；活躍班別實際由 #4 roster 自動跟(見 activeClasses)
+const CLASS_IDS=['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'];   // 2026-09-19：補返 c8(星期四)/c9；2026-09-20 加 c10(進階·星期六)；活躍班別實際由 #4 roster 自動跟(見 activeClasses)
 /* 花式跳繩章別 14 級（L1-7 彩虹章、L8-14 行星章）。值域 0-14，0=未有。同官網/教練主頁 BADGE_DATA 一致。 */
 const BADGE_NAMES=['—','紅色章','橙色章','黃色章','綠色章','藍色章','靛色章','紫色章','水星章','金星章','火星章','木星章','土星章','天王星章','海王星章'];
 // 教練下拉:領先「Level N」+章別名做參考(老闆 2026-09-17:直接顯示 level 幾)
@@ -533,7 +533,7 @@ async function deleteBodyRec(name,date){
   return r;
 }
 /* 班別 */
-const CLASS_LABEL_FB={c1:'星期一 5–6pm',c2:'星期一 6–7pm',c3:'星期三 5–6pm',c4:'星期三 6–7pm',c5:'星期五 6–7pm',c6:'星期六 11am–12',c7:'星期六 3–4pm',c8:'星期四 5–6pm',c9:'星期五 6–8pm'};
+const CLASS_LABEL_FB={c1:'星期一 5–6pm',c2:'星期一 6–7pm',c3:'星期三 5–6pm',c4:'星期三 6–7pm',c5:'星期五 6–7pm',c6:'星期六 11am–12',c7:'星期六 3–4pm',c8:'星期四 5–6pm',c9:'星期五 6–8pm（進階）',c10:'星期六 6–8pm（進階）'};
 function classLabel(cid){
   const dz=SETTINGS['class_'+cid+'_dayZh']||'', tm=SETTINGS['class_'+cid+'_time']||'';
   if(!dz && !tm && CLASS_LABEL_FB[cid]) return CLASS_LABEL_FB[cid];   // #11 settings 未有 c8/c9 → 用內建 fallback，唔會顯示原始「c8」
