@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-18-condmk';
+const FRONTEND_VERSION='parent-2026-09-20-venue';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1016,7 +1016,7 @@ function showModalNotices(){
   if(document.querySelector('.notice-modal-ov')) return;
   const acked=ackedNotices();
   const pending=(S.notices||[]).filter(n=>n.modal && n.id && !acked.has(n.id));
-  if(!pending.length) return;
+  if(!pending.length){ try{ showVenuePopup(); }catch(e){} return; }   // 通知彈完 → 接住彈「非青衣地點」提示
   const n=pending[pending.length-1];   // S.notices 最新喺前 → 由最舊未讀嗰個開始彈，逐個嚟
   const ov=document.createElement('div'); ov.className='notice-modal-ov';
   ov.style.cssText='position:fixed;inset:0;z-index:1000000;background:rgba(20,40,45,.55);display:flex;align-items:center;justify-content:center;padding:22px';
@@ -1028,6 +1028,38 @@ function showModalNotices(){
     <button class="nm-ok" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">${LANG==='en'?'Got it':'知道了'}</button>
   </div>`;
   ov.querySelector('.nm-ok').onclick=function(){ markNoticeAcked(n.id); ov.remove(); showModalNotices(); };   // 仲有下一個未讀 → 繼續彈
+  document.body.appendChild(ov);
+}
+/* 📍 非青衣體育館地點提示（老闆 2026-09-20）：仔女未來正課／已約補堂如果唔喺青衣體育館（例如長發體育館），
+   開頁彈一次 blocking modal 話畀家長知，撳「知道了」即記低（每部機每筆 date|cid|地點 認一次，過咗當日/清咗地點自動唔再彈）。*/
+const HOME_VENUES=['青衣體育館','青衣','青衣運動場'];   // 呢啲當「平常地點」唔彈；其餘（長發／楓樹窩／青衣西南／翠怡／自訂）＝要提示
+function collectAwayVenues_(){
+  const t=todayStr(), out=[], seen={}, kids=(S.family&&S.family.children)||[];
+  kids.forEach(function(ch){ (ch.classes||[]).forEach(function(c){
+    const cid=c.key||c.sport;
+    (c.sessions||[]).forEach(function(s){ if(s.date>=t){ const v=venueAt(s.date,cid);
+      if(v&&v.centre&&HOME_VENUES.indexOf(v.centre)<0){ const k='venue|'+s.date+'|'+cid+'|'+v.centre; if(!seen[k]){seen[k]=1;out.push({key:k,date:s.date,cid:cid,centre:v.centre,room:v.room||'',child:ch.name});} } }});
+    (c.makeups||[]).forEach(function(m){ if(m.date>=t && m.status!=='取消'){ const v=venueAt(m.date,m.to);
+      if(v&&v.centre&&HOME_VENUES.indexOf(v.centre)<0){ const k='venue|'+m.date+'|'+m.to+'|'+v.centre; if(!seen[k]){seen[k]=1;out.push({key:k,date:m.date,cid:m.to,centre:v.centre,room:v.room||'',child:ch.name,mk:true});} } }});
+  }); });
+  return out.sort(function(a,b){ return a.date<b.date?-1:1; });
+}
+function showVenuePopup(){
+  if(document.querySelector('.notice-modal-ov')||document.querySelector('.venue-modal-ov')) return;
+  const acked=ackedNotices();
+  const items=collectAwayVenues_().filter(function(x){ return !acked.has(x.key); });
+  if(!items.length) return;
+  const rows=items.map(function(x){ const d=new Date(x.date+'T00:00:00'); return `<div style="padding:9px 0;border-top:1px solid #eef3f5"><div style="font-weight:800;color:#0E8A96">📍 ${x.centre}${x.room?'・'+x.room:''}</div><div style="font-size:13px;color:#2b3a42;margin-top:2px">${fmt(d)}${dow(d)}・${mkOptLabel(x.cid)}${x.mk?'（補堂）':''}・${x.child}</div></div>`; }).join('');
+  const ov=document.createElement('div'); ov.className='venue-modal-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:1000000;background:rgba(20,40,45,.55);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:24px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.28);max-height:82vh;overflow:auto">
+    <div style="font-size:34px;text-align:center">📍</div>
+    <div style="font-size:17px;font-weight:800;color:#14303a;margin:6px 0 8px;text-align:center">${LANG==='en'?'Venue change':'上課地點更改'}</div>
+    <div style="font-size:14px;line-height:1.6;color:#2b3a42;text-align:center;margin-bottom:2px">${LANG==='en'?'The following session(s) are NOT at Tsing Yi Sports Centre. Please note the venue:':'以下課堂<b>唔喺青衣體育館</b>，請留意上課地點：'}</div>
+    ${rows}
+    <button class="vm-ok" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">${LANG==='en'?'Got it':'知道了'}</button>
+  </div>`;
+  ov.querySelector('.vm-ok').onclick=function(){ items.forEach(function(x){ markNoticeAcked(x.key); }); ov.remove(); };
   document.body.appendChild(ov);
 }
 /* 📈 出席趨勢圖：全期 session 時間軸（綠出席／紫補堂／黃請假）+ 出席率。純顯示，唔影響任何功能。*/
@@ -1806,7 +1838,7 @@ function mfFoundDay(){ MF.curCid=$('mf-day-sel').value; mfFoundDates_(); }
 function mfFoundDates_(){
   const dw=$('mf-datewrap'); if(!MF.curCid){ dw.innerHTML=''; return; }
   const rope=MF.curCourse==='rope', dateStep=(MF.multiCourse?1:0)+(rope?2:1);
-  const opts=(MF.byCid[MF.curCid]||[]).slice().sort().map(d=>{const dt=new Date(d+'T00:00:00');return `<option value="${d}">${fmt(dt)}${dow(dt)}</option>`;}).join('');
+  const opts=(MF.byCid[MF.curCid]||[]).slice().sort().map(d=>{const dt=new Date(d+'T00:00:00');const _v=venueAt(d,MF.curCid);return `<option value="${d}">${fmt(dt)}${dow(dt)}${_v?(' · 📍'+(_v.centre||'')):''}</option>`;}).join('');
   dw.innerHTML=`<label class="sd" style="display:block;margin:6px 2px 2px">${STEP_NUM_[dateStep]} ${LANG==='en'?'Pick a date':'揀補堂日期'}</label>
     <select id="mf-date" class="codein" style="letter-spacing:normal;text-align:left" onchange="mfFoundDate()"><option value="">— ${LANG==='en'?'Pick a date':'揀日期'} —</option>${opts}</select>`;
 }
@@ -1822,7 +1854,9 @@ function mfPickDate(){
   if(!d){ area.innerHTML=''; return; }
   area.innerHTML=(MF.byDate[d]||[]).map(cd=>{
     const taken=MF.picks.some(p=>p.date===cd.date&&p.toKey===cd.toKey);
-    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${mkOptLabel(cd.toKey)}</div><div class="s">${cd.adj?'<span style="color:#0E8A96;font-weight:800">⏰ '+cd.adj+'（'+(LANG==='en'?'special time':'特別時間')+'）</span>':(cd.time||'')}</div></div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
+    const _v=venueAt(cd.date,cd.toKey);
+    const _vl=_v?`<div class="s" style="color:#0E8A96;font-weight:700">📍 ${_v.centre||''}${_v.room?'・'+_v.room:''}</div>`:'';
+    return `<div class="opt ${taken?'on':''}" onclick="mfAdd('${cd.date}','${cd.toKey}')"><div><div class="t">${mkOptLabel(cd.toKey)}</div><div class="s">${cd.adj?'<span style="color:#0E8A96;font-weight:800">⏰ '+cd.adj+'（'+(LANG==='en'?'special time':'特別時間')+'）</span>':(cd.time||'')}</div>${_vl}</div><div class="cap" style="${taken?'':'display:none'}">✓</div></div>`;
   }).join('');
 }
 function mfAdd(date,toKey){
@@ -1834,7 +1868,7 @@ function mfAdd(date,toKey){
 function renderMfPicks(){
   const el=$('mf-picks'); if(!el) return;
   el.innerHTML=MF.picks.length
-    ? `<div class="confirm-q">${t('picked',MF.picks.length)}</div>`+MF.picks.map((p,i)=>{const d=new Date(p.date+'T00:00:00');return `<div class="opt on"><div class="t">${mkOptLabel(p.toKey)}・${fmt(d)}${dow(d)}</div><div class="cap" onclick="mfRemove(${i})" style="cursor:pointer">✕</div></div>`;}).join('')
+    ? `<div class="confirm-q">${t('picked',MF.picks.length)}</div>`+MF.picks.map((p,i)=>{const d=new Date(p.date+'T00:00:00');const _v=venueAt(p.date,p.toKey);const _vl=_v?`<div class="s" style="color:#0E8A96;font-weight:700">📍 ${_v.centre||''}${_v.room?'・'+_v.room:''}</div>`:'';return `<div class="opt on"><div><div class="t">${mkOptLabel(p.toKey)}・${fmt(d)}${dow(d)}</div>${_vl}</div><div class="cap" onclick="mfRemove(${i})" style="cursor:pointer">✕</div></div>`;}).join('')
     : `<div class="confirm-q">${t('none')}</div>`;
   if($('mf-go')) $('mf-go').disabled=MF.picks.length===0;
 }

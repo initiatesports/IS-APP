@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-19-retry404';
+const FRONTEND_VERSION = 'coach-2026-09-20-venue';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1655,12 +1655,20 @@ let TIMEADJ_MAP={};   // 🔒 審計P3：特別時間 override {cid|date:time}�
 function taTime_(cid,date){ try{ return TIMEADJ_MAP[cid+'|'+date] || ((anyClass(cid)||{}).time) || ''; }catch(e){ return (anyClass(cid)||{}).time||''; } }
 function venueAt_(cid,date){ try{ var v=VENUES_CACHE.find(function(x){ return x.date===date && ((x.cid||'')===cid||(x.cid||'')===''); }); return v?((v.centre||'')+(v.room?(' '+v.room):'')):''; }catch(e){ return ''; } }
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
+const TA_TIME_SLOTS=['8–9am','8–10am','9–10am','10–11am','11am–12','12–1pm','12–2pm','1–2pm','2–3pm','3–4pm','4–5pm','4:50–5:50pm','5–6pm','6–7pm','6–8pm','7–8pm','8–9pm'];
 const VN_ROOMS=['羽毛球場','活動室','舞蹈室','壁球室','主場館'];
 const VN_INS='width:100%;padding:10px;border-radius:9px;background:#1b1b1b;color:#eee;border:1px solid #333;font-size:14px;margin-bottom:8px';
 let VN_COURTS_MAP={};   // cid → Set(揀咗嘅羽毛球場號)  ・逐班獨立
 function vnEsc(s){return String(s||'').replace(/</g,'&lt;');}
 function vnDayZh(dateStr){ const WZ=['日','一','二','三','四','五','六']; if(!dateStr) return ''; return '星期'+WZ[new Date(dateStr+'T00:00:00').getDay()]; }
 function vnCidLabel(cid){ return cid?((ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)||cid):'全部'; }
+// 班別 label 套當日「特別時間」override（Part 3：⏰改時間後，📍上課地點顯示新時間）。
+function vnLabelAt_(cid, date){
+  const base=vnCidLabel(cid); if(!cid||!date) return base;
+  const c=ALL_CLASSES[cid]||{}, ov=(TIMEADJ_MAP[cid+'|'+date]||'');
+  if(ov && c.time && base.indexOf(c.time)>=0) return base.replace(c.time, ov)+'（特別時間）';
+  return base;
+}
 /* 🛡️ 審計#29：classLabel() 喺加操列表（「💳 繳費」頁）用咗，但成個檔從來冇定義過
    → 第一筆加操一寫入就 ReferenceError，成版死。補返一個同 vnCidLabel 一致嘅實作。 */
 function classLabel(cid){
@@ -1670,7 +1678,9 @@ function classLabel(cid){
 }
 function vnDayClasses(dateStr){   // 當日所有課堂（跳繩 #4 ＋ 運動班 #SA，只列有學生嘅班；空時段唔列）
   const day=vnDayZh(dateStr);
-  return Object.keys(ALL_CLASSES).filter(cid=>{ const c=ALL_CLASSES[cid]; if(!c||realStuCount_(c)<1) return false; return !day || !c.dayZh || c.dayZh===day; })
+  return Object.keys(ALL_CLASSES).filter(cid=>{ const c=ALL_CLASSES[cid]; if(!c||realStuCount_(c)<1) return false;
+      if(isDiscontinued_(cid)) return false;   // 停辦／未成班（如 c2 星期一6–7pm 暫停）唔喺地點／時間清單出現
+      return !day || !c.dayZh || c.dayZh===day; })
     .map(cid=>({cid, label:(ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)||cid}));
 }
 function vnOptSel(list, val){
@@ -1735,7 +1745,7 @@ function vnRenderRows(){
   const cls=vnDayClasses(date);
   if(!cls.length){ box.innerHTML='<div style="padding:6px 2px 10px;font-size:13px;color:var(--muted)">當日冇恆常班課堂。</div>'; return; }
   box.innerHTML=`<div style="font-size:12px;color:var(--muted);margin:2px 2px 8px">${vnDayZh(date)}・共 ${cls.length} 班：逐班揀場，一個掣儲存全日</div>`
-    + cls.map(c=>vnRowHtml(c.cid, c.label)).join('')
+    + cls.map(c=>vnRowHtml(c.cid, vnLabelAt_(c.cid, date))).join('')
     + (cls.length>1 ? `<button class="btn-makeup-done" style="width:100%;margin-bottom:8px;background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="vnCopyFirst()">↧ 全部同第一班一樣</button>` : '');
 }
 function vnCopyFirst(){   // 把第一班嘅選擇複製去全部（同一地點時方便）
@@ -1775,7 +1785,7 @@ async function renderVenueAdmin(){
     html+=`<div class="class-list">`+VENUES_CACHE.map(v=>`
       <div class="class-row" style="align-items:flex-start">
         <div class="class-row-info"><h3 style="font-size:14px;font-weight:600;white-space:normal">📍 ${vnEsc(v.centre)}${v.room?'・'+vnEsc(v.room):''}</h3>
-          <p>${v.date}・${vnEsc(vnCidLabel(v.cid))}</p></div>
+          <p>${v.date}・${vnEsc(vnLabelAt_(v.cid, v.date))}</p></div>
         <button class="btn-makeup-done" style="background:rgba(255,255,255,.06);border-color:#444;color:#bbb" onclick="delVenue('${v.date}','${v.cid||''}')">清除</button>
       </div>`).join('')+`</div>`;
   } else { html+=`<div style="padding:4px 4px 10px;font-size:13px;color:var(--muted)">未設定。設定後家長喺請假補堂端嘅每節旁邊會見到地點；你照舊喺 group 出都得。</div>`; }
@@ -1837,7 +1847,8 @@ function renderTimeAdjAdmin(){
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5">改某一日某班嘅上課時間（<b>只此一天</b>，唔影響其他堂）→ 家長端即時顯示新時間＋彈窗通知，過咗當日自動消失。長期改時間請用下面「班別管理」。</div>
       <input type="date" id="ta-date" value="${TA_LAST_DATE||vnDefaultDate()}" onchange="taRenderClasses()" style="${VN_INS}">
       <select id="ta-cid" style="${VN_INS}"><option value="">— 先揀日期 —</option></select>
-      <input id="ta-time" placeholder="新時間，例如 6–7pm" style="${VN_INS}">
+      <select id="ta-time" onchange="taTimeToggleOther()" style="${VN_INS}"><option value="">— 揀新時間 —</option>${TA_TIME_SLOTS.map(t=>`<option value="${t}">${t}</option>`).join('')}<option value="__other">其他（自己填）</option></select>
+      <input id="ta-time-other" placeholder="自訂時間，例如 4:50–5:50pm" style="display:none;${VN_INS}">
       <button class="btn-makeup-done" style="width:100%" onclick="postTimeAdj()">💾 設定並通知家長</button>
     </div>`;
   taRenderClasses();
@@ -1849,8 +1860,11 @@ function taRenderClasses(){
   const cls=vnDayClasses(date);
   sel.innerHTML = cls.length ? ('<option value="">— 揀班別 —</option>'+cls.map(c=>{ const cc=CLASSES[c.cid]||{}; const lbl=('花式跳繩 '+(cc.dayZh||'')+' '+(cc.time||'')).trim(); return `<option value="${c.cid}">${vnEsc(lbl)}</option>`; }).join('')) : '<option value="">當日冇課堂</option>';
 }
+function taTimeToggleOther(){ const s=document.getElementById('ta-time'), o=document.getElementById('ta-time-other'); if(!s||!o) return; o.style.display=(s.value==='__other')?'block':'none'; if(s.value==='__other') o.focus(); }
 async function postTimeAdj(){
-  const date=(document.getElementById('ta-date')||{}).value||'', cid=(document.getElementById('ta-cid')||{}).value||'', time=((document.getElementById('ta-time')||{}).value||'').trim();
+  const date=(document.getElementById('ta-date')||{}).value||'', cid=(document.getElementById('ta-cid')||{}).value||'';
+  let time=((document.getElementById('ta-time')||{}).value||'').trim();
+  if(time==='__other') time=((document.getElementById('ta-time-other')||{}).value||'').trim();
   if(!date){ toast('請揀日期','⚠'); return; }
   if(!cid){ toast('請揀班別','⚠'); return; }
   if(!time){ toast('請輸入新時間','⚠'); return; }
@@ -1860,6 +1874,8 @@ async function postTimeAdj(){
   if(!r||!r.ok){ toast(r&&r.err?'失敗：'+r.err:'設定失敗，請再試','⚠'); return; }
   toast('✓ 已設定，家長端即時顯示新時間＋通知','✓');
   const ti=document.getElementById('ta-time'); if(ti) ti.value='';
+  const to=document.getElementById('ta-time-other'); if(to){ to.value=''; to.style.display='none'; }
+  try{ renderVenueAdmin(); }catch(e){}   // 特別時間改咗 → 上課地點面板即時反映新時間（Part 3）
 }
 let NOTICES_CACHE=[];
 async function renderNoticesAdmin(){
