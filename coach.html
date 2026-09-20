@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-20-netfail';
+const FRONTEND_VERSION = 'coach-2026-09-20-audit2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1645,6 +1645,20 @@ async function mlSubmit(kind){
   if(!name){ msg.style.color='var(--red,#f87171)'; msg.textContent='請輸入學生姓名'; return; }
   if(!date){ msg.style.color='var(--red,#f87171)'; msg.textContent='請揀日期'; return; }
   if(!cid){ msg.style.color='var(--red,#f87171)'; msg.textContent='請揀當日班別'; return; }
+  /* 🔒 2026-09-20 審計#18：呢個下拉特登包晒運動班（2026-09-13 審計#3），但 #SA 後端**冇**
+     coachAddMakeup／coachDrill 兩個 case（已用 action diff 逐個核實）→ 撳落去跌落 default，
+     教練淨係見到「失敗：unknown action」，唔知係「運動班唔支援」定係「系統壞咗」。
+     真正嘅 port 要搬 5 個 #SA 仲未有嘅 helper（studentUnitRate_／addEnrollDynAdj_／coachDrillSheet_…），
+     而且 coachDrill 會**出加操費**＝動錢，唔適合喺冇得 live dry-run 嘅情況下摸黑搬。
+     所以呢度先講清楚，等教練即刻知道要點做，唔好對住一句 unknown action 發呆。
+     （🟡請假 markLeave 兩邊都有，運動班照用得。）*/
+  if(isSA(cid) && kind!=='leave'){
+    msg.style.color='var(--amber,#e0a050)';
+    msg.innerHTML='運動班暫時未支援教練端「'+(kind==='makeup'?'補堂':'加操')+'」（後端未有呢個功能）。<br>'
+      +'・<b>請假</b>：運動班支援，可以用返「🟡 請假」掣。<br>'
+      +'・<b>補堂／加操</b>：請暫時人手記低，或叫家長喺家長頁自助約。';
+    return;
+  }
   msg.style.color='var(--muted,#888)'; msg.textContent='處理緊…';
   const body = kind==='makeup' ? {action:'coachAddMakeup', name, toKey:cid, toDate:date, coachPass:cpass()}
              : kind==='leave'  ? {action:'markLeave', name, classId:cid, date, coachPass:cpass()}
