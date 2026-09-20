@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-20-audit';
+const FRONTEND_VERSION = 'coach-2026-09-20-adv';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -628,9 +628,11 @@ const CLASSES = {
   c8: { label:'星期四 5:00–6:00 PM', day:'Thu', dayZh:'星期四', time:'5–6pm',
         students:[] },                                   // 2026-09 新開：花式跳繩星期四（rope-thu6）2026-08-15 跳繩↔體操對調
   c9: { label:'星期五 6:00–8:00 PM（進階）', day:'Fri', dayZh:'星期五', time:'6–8pm',
-        students:[] }                                    // 花式跳繩進階班（rope-adv-fri，10月開始・需遴選）
+        students:[] },                                   // 花式跳繩進階班·星期五（rope-adv "fri"/"both"，10月開始・需遴選）
+  c10:{ label:'星期六 6:00–8:00 PM（進階）', day:'Sat', dayZh:'星期六', time:'6–8pm',
+        students:[] }                                    // 花式跳繩進階班·星期六（rope-adv "sat"/"both"，10月開始）2026-09-20
 };
-const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6, c8:4, c9:5 };
+const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6, c8:4, c9:5, c10:6 };
 
 /* ═══════════ 運動班（#SA 非跳繩）合併（2026-09-04，mirror is-parent）═══════════
    coach.html 而家同時管跳繩(#4)＋運動班(#SA)。cid 唔會撞（c1..c9 vs found-tue2 等）。
