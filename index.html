@@ -514,6 +514,8 @@ function tVerify(){
   var cr=S.certResult;
   var result='';
   if(cr==='loading'){result='<div style="margin-top:20px;border:1px solid rgba(62,207,207,0.3);background:rgba(62,207,207,0.06);padding:18px 20px;font-size:13.5px;color:rgba(255,255,255,0.7)">查詢中…</div>';}
+  /* 審計#4：'busy' 要喺 `else if(cr)` **之前**判（佢係 truthy string，否則會當成證書物件 render）。*/
+  else if(cr==='busy'){result='<div style="margin-top:20px;border:1px solid rgba(201,161,92,0.45);background:rgba(201,161,92,0.10);padding:18px 20px;font-size:13.5px;color:rgba(255,255,255,0.75)">系統暫時繁忙，未能完成查詢 —— <b>唔代表證書無效</b>。請稍等幾秒再試。<div style="margin-top:12px"><button onclick="doVerify()" style="background:#C9A15C;color:#0F1A28;border:none;cursor:pointer;padding:10px 20px;font-weight:900;font-size:13px;font-family:inherit">再試一次</button></div><div style="margin-top:10px;font-size:12.5px;color:rgba(255,255,255,0.55)">仍然唔得？請 WhatsApp 6331 7403，我哋即刻幫你核實。</div></div>';}
   else if(cr){
     var _cl=Number(cr.certified)||0, _al=Number(cr.attempted)||0;
     var _cc=badgeColor(_cl), _cn=badgeName(_cl);
@@ -556,10 +558,16 @@ function doVerify(){
     .then(function(r){return r.json();})
     .then(function(d){
       if(d&&d.ok&&d.name){ S.certResult={no:q, name:d.name, nameEn:'', certified:Number(d.certified)||0, attempted:Number(d.attempted)||0, program:'INITIATE SPORTS', year:''}; }
+      /* 🔒 2026-09-20 審計#4：後端被節流（rlBlocked_('certverify',60) 係**全域** counter，10 分鐘
+         60 次，唔分 IP 唔分編號）會回 {ok:false, locked:true}。以前前端唔睇 locked，一律當「查無
+         此證書編號」→ 頒證書嗰晚一班家長一齊掃，quota 一燒完，之後每一位**攞住真證書**嘅家長都
+         見到「查無此證書編號」，第一個反應係「間公司發假證書？」。呢個係拎住實體證書嗰一刻嘅信任
+         判決，一定要分開講。*/
+      else if(d&&d.locked){ S.certResult='busy'; }
       else { S.certResult=false; }
       render();
     })
-    .catch(function(){ S.certResult=false; render(); });
+    .catch(function(){ S.certResult='busy'; render(); });   // 網絡／冷啟動回 HTML → 唔可以當「查無此證書」
 }
 
 function openCourse(idx){S.course=ALL_COURSES[idx].name;render();window.scrollTo(0,0);}
@@ -615,8 +623,14 @@ function render(){
 function revealScan(){var vh=window.innerHeight;document.querySelectorAll('[data-reveal]').forEach(function(el){if(el.getBoundingClientRect().top<vh*0.94)el.classList.add('rv-in');});}
 window.addEventListener('scroll',function(){if(window._rvraf)return;window._rvraf=requestAnimationFrame(function(){window._rvraf=null;revealScan();});},{passive:true});
 var _mq=window.matchMedia('(min-width:1024px)');_mq.addEventListener('change',render);
-/* ── #11 CMS 動態載入：證書驗證(cert_registry) + 學生成就(achievements) + 知識分享(knowledge_posts)（老闆 2026-08-31；器材/課程做法2進行中，seed #11+改admin後再接）──
-   格式同 v3 CERTS / ACH 一致（已核實）；#11 有資料就覆寫內建預設，令教練端 admin 新增證書/成就即時反映、證書驗證唔會凍結。*/
+/* ── #11 CMS 動態載入：學生成就(achievements) + 知識分享(knowledge_posts)（老闆 2026-08-31；器材/課程做法2進行中，seed #11+改admin後再接）──
+   格式同 v3 ACH 一致（已核實）；#11 有資料就覆寫內建預設，令教練端 admin 新增成就即時反映。
+   ⚠️ 2026-09-20 審計#27 更正一個**錯誤嘅事實陳述**：呢度原本寫住「證書驗證唔會凍結」，但
+   `cert_registry` 喺 2026-08-29 審計#21 已經由後端 loadHome() 嘅 PUBLIC_KEYS 移走（唔再公開派），
+   所以下面 `_cmsArr(map,'cert_registry')` 由嗰日起**永遠係 null ＝ 死 code**，CERTS 一直凍結喺
+   硬編嗰批。證書驗證而家係靠 doVerify() 打後端 certGrade（gated by 證書編號本身）＝單一真相。
+   保留呢段只作舊格式兼容，唔好以為佢仲通；亦**唔好**把 cert_registry 放返 PUBLIC_KEYS（會重新
+   把全校證書名單變成匿名可讀，打爆 2026-08-29 嗰個 gate）。*/
 var CMS_API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 function _cmsArr(map,k){ var v=map[k]; if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(e){ return null; } } return Array.isArray(v)?v:null; }
 function cmsApply(settings){
