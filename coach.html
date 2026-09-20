@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-20-venue';
+const FRONTEND_VERSION = 'coach-2026-09-20-audit';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1665,9 +1665,9 @@ function vnCidLabel(cid){ return cid?((ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)
 // 班別 label 套當日「特別時間」override（Part 3：⏰改時間後，📍上課地點顯示新時間）。
 function vnLabelAt_(cid, date){
   const base=vnCidLabel(cid); if(!cid||!date) return base;
-  const c=ALL_CLASSES[cid]||{}, ov=(TIMEADJ_MAP[cid+'|'+date]||'');
-  if(ov && c.time && base.indexOf(c.time)>=0) return base.replace(c.time, ov)+'（特別時間）';
-  return base;
+  const ov=(TIMEADJ_MAP[cid+'|'+date]||'');
+  // 直接 append 特別時間，唔靠 label 內 substring replace（跳繩 label 用「5:00–6:00 PM」同 time「5–6pm」格式唔同，replace 會 miss）。
+  return ov ? (base+'（特別時間 '+ov+'）') : base;
 }
 /* 🛡️ 審計#29：classLabel() 喺加操列表（「💳 繳費」頁）用咗，但成個檔從來冇定義過
    → 第一筆加操一寫入就 ReferenceError，成版死。補返一個同 vnCidLabel 一致嘅實作。 */
@@ -1858,7 +1858,7 @@ function taRenderClasses(){
   const date=(document.getElementById('ta-date')||{}).value||'';
   if(!date){ sel.innerHTML='<option value="">— 先揀日期 —</option>'; return; }
   const cls=vnDayClasses(date);
-  sel.innerHTML = cls.length ? ('<option value="">— 揀班別 —</option>'+cls.map(c=>{ const cc=CLASSES[c.cid]||{}; const lbl=('花式跳繩 '+(cc.dayZh||'')+' '+(cc.time||'')).trim(); return `<option value="${c.cid}">${vnEsc(lbl)}</option>`; }).join('')) : '<option value="">當日冇課堂</option>';
+  sel.innerHTML = cls.length ? ('<option value="">— 揀班別 —</option>'+cls.map(c=>`<option value="${c.cid}">${vnEsc(vnCidLabel(c.cid))}</option>`).join('')) : '<option value="">當日冇課堂</option>';
 }
 function taTimeToggleOther(){ const s=document.getElementById('ta-time'), o=document.getElementById('ta-time-other'); if(!s||!o) return; o.style.display=(s.value==='__other')?'block':'none'; if(s.value==='__other') o.focus(); }
 async function postTimeAdj(){
@@ -1875,6 +1875,7 @@ async function postTimeAdj(){
   toast('✓ 已設定，家長端即時顯示新時間＋通知','✓');
   const ti=document.getElementById('ta-time'); if(ti) ti.value='';
   const to=document.getElementById('ta-time-other'); if(to){ to.value=''; to.style.display='none'; }
+  try{ TIMEADJ_MAP[cid+'|'+date]=time; }catch(e){}   // 本地即時更新，令下面 renderVenueAdmin 即刻反映（唔使等下次 load）
   try{ renderVenueAdmin(); }catch(e){}   // 特別時間改咗 → 上課地點面板即時反映新時間（Part 3）
 }
 let NOTICES_CACHE=[];
@@ -2117,8 +2118,8 @@ async function showSummerMakeups(classId, date){
   if(box.dataset.tok!==token) return;   // 期間切咗班/日 → 唔好覆蓋
   if(!r||!r.ok||!Array.isArray(r.list)) return;
   const g=r.list.find(x=>x.c&&(x.c.key===classId||x.c.sport===classId));
-  const summer=g?(g.rows||[]).filter(x=>x.summer):[];
-  box.innerHTML=summer.map(row=>`<div class="summerinfo">🔵 <b>${vnEsc(row.name)}</b> · ${vnEsc(row.note||'暑期補堂')}<span class="sub">暑期跳繩補堂・出席喺暑期系統(#9)點名，唔喺此處標記</span></div>`).join('');
+  const summer=g?(g.rows||[]).filter(x=>x.summer||x.saGuest):[];
+  box.innerHTML=summer.map(row=>`<div class="summerinfo">🔵 <b>${vnEsc(row.name)}</b> · ${vnEsc(row.note||(row.saGuest?'跨項目補堂':'暑期補堂'))}<span class="sub">${row.saGuest?'出席喺運動班系統計，唔喺此處標記':'暑期跳繩補堂・出席喺暑期系統(#9)點名，唔喺此處標記'}</span></div>`).join('');
 }
 function renderRollTable(){
   const list = document.getElementById('student-list');
@@ -2896,8 +2897,8 @@ function renderDailyList(r, box){
   box.innerHTML = r.list.map((g, gi) => {
     const key = g.c.key || g.c.sport;
     const label = (g.c.dayZh || g.c.wd || '') + ' ' + (g.c.time || '');
-    const realRows = g.rows.filter(x => !x.summer);       // 暑期補堂只提示、唔計入點名數
-    const summerRows = g.rows.filter(x => x.summer);
+    const realRows = g.rows.filter(x => !x.summer && !x.saGuest);   // 暑期(summer)＋跨系統運動班補堂客(saGuest)只提示、唔可點名、唔計入點名數
+    const summerRows = g.rows.filter(x => x.summer || x.saGuest);   // 兩類都行資訊卡（出席喺各自系統計）
     const present = realRows.filter(x => x.status === '出席').length;   // 補堂未算出席(待確認)→ 只計喺未點,唔虛高出席數
     const miss = realRows.filter(x => !x.status || x.status === '補堂').length;
     return `<div class="cgrp" id="cg${gi}">
@@ -2912,10 +2913,12 @@ function renderDailyList(r, box){
     </div>`;
   }).join('');
 }
-// 暑期花式跳繩補堂：只顯示提示（出席喺暑期系統 #9 點名，唔喺此處寫入）
+// 補堂資訊卡（只顯示、唔可點名）：暑期跳繩補堂(summer，出席喺#9點名) 或 跨系統運動班補堂客(saGuest，出席喺運動班系統計)。
 function summerInfoHTML(row){
-  return `<div class="summerinfo">🔵 <b>${row.name}</b> · ${row.note||'暑期補堂'}
-    <span class="sub">今日嚟補堂 · 出席請喺暑期教練頁點名</span></div>`;
+  const sub = row.saGuest ? '今日嚟補堂 · 出席喺運動班系統計，唔使喺此處點名'
+                          : '今日嚟補堂 · 出席請喺暑期教練頁點名';
+  return `<div class="summerinfo">🔵 <b>${row.name}</b> · ${row.note||(row.saGuest?'跨項目補堂':'暑期補堂')}
+    <span class="sub">${sub}</span></div>`;
 }
 function attRowHTML(g, row, key){
   const mk = row.makeup ? 1 : 0;
