@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-20-venue';
+const FRONTEND_VERSION='parent-2026-09-20-audit';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -588,7 +588,7 @@ function childHistory(child){
   (child.classes||[]).forEach(c=>{
     const lbl=classLabel(c.key||c.sport);
     (c.sessions||[]).forEach(s=>{ if(s.status==='出席') out.attended.push({date:s.date,label:lbl}); });
-    (c.makeups||[]).forEach(m=>{ if(m.status==='出席') out.attended.push({date:m.date,label:classLabel(m.to)+'（補堂）'}); });
+    (c.makeups||[]).forEach(m=>{ if(m.status==='出席') out.attended.push({date:m.date,label:mkOptLabel(m.to)+'（補堂）'}); });
     // 🔒 2026-09-13 審計#4：用 makeups[].from（原缺席日）判「已補」，唔好再靠「最舊 k 條已補」猜（slice(len-owed)）。
     //   後端 6d279a9 之後補堂實際 from＝訂堂時寫落嘅缺席日，可補非最舊嘅假 → slice 猜法會標錯邊條未補、顯示錯限期。
     //   同 classCard 一致（_bookedFrom + !madeUp）。
@@ -728,6 +728,11 @@ function mergeSAInto(sa){
   // #SA 特別時間 map 併入（補堂/顯示用；key=cid|date，同 #4 唔會撞因 cid 唔同）
   if(sa.timeAdj){ S.timeAdj=Object.assign({},S.timeAdj||{},sa.timeAdj); }
   if(Array.isArray(sa.mkBlock)&&sa.mkBlock.length){ S.mkBlock=(S.mkBlock||[]).concat(sa.mkBlock); }
+  // 場地跨系統合併（跨項目補堂 📍 要見到對面系統嘅地點）：per-date 合併，兩系統 cid 唔撞。
+  if(sa.venues){ S.venues=S.venues||{}; Object.keys(sa.venues).forEach(function(dt){
+    var a=S.venues[dt], b=sa.venues[dt];
+    S.venues[dt]=(a&&b&&typeof a==='object'&&typeof b==='object')?Object.assign({},a,b):(b||a);
+  }); }
   let changed=false;
   kids.forEach(sk=>{
     const cls=(sk.classes||[]).map(c=>Object.assign({},c,{_sa:true}));
@@ -989,7 +994,7 @@ function renderParent(){
     if(upMk.length){
       html+=`<div class="banner" style="margin-top:8px;background:var(--teal-dim,#e6f6f8);border-color:#bfe3e7;color:#0a6b74">
         <div style="font-weight:700">${t('upMkBanner',upMk.length)}</div>
-        <div style="font-size:13px;margin-top:3px">${upMk.map(m=>{const d=new Date(m.date+'T00:00:00');return `${fmt(d)}${dow(d)}・${classLabel(m.to)}${m.adj?' <span style="color:#0E8A96;font-weight:800">⏰'+m.adj+'</span>':''}`;}).join('<br>')}</div>
+        <div style="font-size:13px;margin-top:3px">${upMk.map(m=>{const d=new Date(m.date+'T00:00:00');return `${fmt(d)}${dow(d)}・${mkOptLabel(m.to)}${m.adj?' <span style="color:#0E8A96;font-weight:800">⏰'+m.adj+'</span>':''}`;}).join('<br>')}</div>
         <div style="font-size:11.5px;opacity:.85;margin-top:4px">${t('upMkHint')}</div></div>`;
     }
     html+=`<div class="cards-grid">`;
@@ -1164,7 +1169,7 @@ function classCard(child,ki,c,ci){
           return `<div style="padding:4px 0">
               ${fromD?`<div style="font-size:12px;color:var(--amber);font-weight:600">📅 ${fmt(fromD)}${dow(fromD)} ${t('leaveTag')}</div>`:''}
               <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2)">
-                <span>${fromD?'↳ ':''}${t('mkToShort')} ${classLabel(m.to)}・${fmt(d)}${dow(d)}${_adj?' <span style="color:#0E8A96;font-weight:800">⏰'+_adj+'</span>':''}</span>
+                <span>${fromD?'↳ ':''}${t('mkToShort')} ${mkOptLabel(m.to)}・${fmt(d)}${dow(d)}${_adj?' <span style="color:#0E8A96;font-weight:800">⏰'+_adj+'</span>':''}</span>
                 <span style="color:${done?'var(--green)':'var(--teal-dark)'};font-weight:700;white-space:nowrap;margin-left:8px">${lbl}</span>
               </div>
               ${_v?`<div style="font-size:12px;color:#666;margin-top:1px">📍 ${_v.centre||''}${_v.room?'・'+_v.room:''}</div>`:''}
@@ -1908,7 +1913,7 @@ function openCancelMakeup(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci], opts=cancellableMakeups(c); XF={ki,ci,picks:[],opts};
   if(!opts.length){ openSheet(`<h2>${t('cancelMkT')}</h2><p class="sd">${t('noCancelMk')}</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
   openSheet(`<h2>${t('cancelMkT')} · ${classLabel(c.key||c.sport)}</h2><p class="sd">${t('cancelMkSd')}</p>
-    <div>${opts.map((m,i)=>{const d=new Date(m.date+'T00:00:00');return `<div class="opt" onclick="toggleCancelMk(${i},this)"><div><div class="t">${classLabel(m.to)}・${fmt(d)}${dow(d)}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
+    <div>${opts.map((m,i)=>{const d=new Date(m.date+'T00:00:00');return `<div class="opt" onclick="toggleCancelMk(${i},this)"><div><div class="t">${mkOptLabel(m.to)}・${fmt(d)}${dow(d)}</div></div><div class="cap" style="display:none">✓</div></div>`;}).join('')}</div>
     <div class="confirm-q" id="xf-count">${t('none')}</div>
     <input id="xf-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
     <div style="height:12px"></div><button class="btn" id="xf-go" onclick="submitCancelMakeup()" disabled>${t('cancelMkT')}</button>`);
@@ -1923,7 +1928,7 @@ async function submitCancelMakeup(){
   const btn=$('xf-go'); btn.disabled=true; btn.textContent=t('submitting');
   let fail=0,err='',done=[];
   for(const i of XF.picks){ const m=XF.opts[i];
-    try{ const r=await api('cancelMakeup',{name:child.name,fromKey,toKey:m.to,toDate:m.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';}else{const d=new Date(m.date+'T00:00:00');done.push(`${classLabel(m.to)}・${fmt(d)}`);} }catch(e){fail++;err=String(e);}
+    try{ const r=await api('cancelMakeup',{name:child.name,fromKey,toKey:m.to,toDate:m.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';}else{const d=new Date(m.date+'T00:00:00');done.push(`${mkOptLabel(m.to)}・${fmt(d)}`);} }catch(e){fail++;err=String(e);}
   }
   closeSheet(); await refresh();
   if(fail) return toast(t('failN',fail,err));
