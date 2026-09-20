@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-20-adv2';
+const FRONTEND_VERSION='parent-2026-09-20-adv3';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -531,7 +531,7 @@ function makeupSlotsFor(cid, ownCids){
   if(CROSS_MK[cid])   // 跨項目補堂（幼兒 found-tue5 / 綜合 cond-sat5）：特批目標；排除自己另一堂正課
     return crossMkTargets_(cid).filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:(CLASSES[k]||SA_CLASSES[k]||{}).time||''}));
   if(SA_CLASSES[cid]) return saMakeupSlotsFor(cid, ownCids);   // 運動班用 #SA 版（同運動過濾）
-  return CLASS_IDS.filter(k=>own.indexOf(k)<0).map(k=>({key:k,time:CLASSES[k].time})); }
+  return CLASS_IDS.filter(k=>own.indexOf(k)<0 && !isAdv(k)).map(k=>({key:k,time:CLASSES[k].time})); }   // 剔走進階班(c9/c10)：選拔性，唔做自助補堂目標（老闆 2026-09-20）
 // 某日某班特別時間（後端回傳 map，key=cid|date）；有就用嚟覆寫顯示，令補堂/記錄/摘要對得上證據
 function taTime(cid,date){ return (S.timeAdj&&S.timeAdj[cid+'|'+date])||''; }
 /* 加 N 個月（用作每節補堂限期 = 請假日 + 2 個月）*/
