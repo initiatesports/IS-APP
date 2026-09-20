@@ -5861,7 +5861,12 @@ function buildSettingsPayload() {
   Object.entries(STUDENT_PHOTOS).forEach(([n, d]) => { payload['photo_'+n] = d; });
   payload['photo_index'] = JSON.stringify(Object.keys(STUDENT_PHOTOS));
   payload['badge_data']       = JSON.stringify(BADGE_DATA);
-  payload['student_grades']   = JSON.stringify(STUDENT_GRADES);
+  /* 🔒 2026-09-20 審計#3：student_grades 唔再由呢度整份覆寫（同 cert_registry 做法睇齊）。
+     後端 save_settings 係 per-key merge，但 key 入面嘅內容係整個 replace。朝早開住呢個 tab、中午
+     喺成長中心（grades_upsert，per-student merge）入咗 8 個學生等級、夜晚返舊 tab 撳「星之學員」／
+     換相 → 8 個等級全部打回朝早嘅舊值。更差：load 失敗令 STUDENT_GRADES 停留喺 {}，一存檔就全校
+     章別歸零，官網掃 QR 全部變「尚未頒發」。＝course_items 出過嗰單事故同一個模。
+     而家改行 grades_upsert（見 setStudentGrade），只寫改動嗰一個學生。*/
   payload['knowledge_posts']  = JSON.stringify(KNOWLEDGE_POSTS);
   payload['equipment_items']  = JSON.stringify(EQUIPMENT_ITEMS);
   payload['course_items']     = JSON.stringify(COURSE_ITEMS);
@@ -5924,7 +5929,9 @@ function restoreSettings(rows) {
   const bd = tryParse('badge_data', null);
   if (bd && bd.levels) BADGE_DATA = bd;
   const sg = tryParse('student_grades', null);
-  if (sg && typeof sg==='object') STUDENT_GRADES = sg;
+  // 🔒 2026-09-20 審計#3：補返 non-empty 守（下面審計#16 嗰段註解講嘅規矩，student_grades 就係漏網
+  //    嗰條）。load 失敗／key 缺失 → 保留現值，唔好畀 {} 洗走記憶體入面嘅等級。
+  if (sg && typeof sg==='object' && Object.keys(sg).length) STUDENT_GRADES = sg;
   /* 🔒 審計#16（老闆 2026-08-29）：四條 CMS load 一律要加 `.length` 守，唔可以畀空陣列覆蓋內建預設。
      官網 index.html:2159 一路都有呢個守（`Array.isArray(x) && x.length`），教練端冇 ——「改咗 N−1 處」。
      實際已經爆緊：live #11 settings 嘅 course_items 係 `[]` → 教練端「課程介紹」一 load 就被空陣列
@@ -6812,10 +6819,21 @@ function saveBadgeMeta() {
   renderBadgeScreen();
 }
 
-function setStudentGrade(name, field, val) {
+/* 🔒 2026-09-20 審計#3：以前改一個學生嘅等級係行 syncCMS() —— 即係把成個 STUDENT_GRADES 整份送去
+   覆寫，會用呢個 tab 開頁嗰刻嘅舊 snapshot 蓋走成長中心之後做嘅所有改動。
+   改行 grades_upsert（後端 per-student merge，同成長中心一致），只寫改動嗰一個學生。 */
+async function setStudentGrade(name, field, val) {
   if (!STUDENT_GRADES[name]) STUDENT_GRADES[name] = { attempted:0, certified:0 };
   STUDENT_GRADES[name][field] = +val;
-  syncCMS();
+  setSyncIndicator('saving');
+  try {
+    const r = await apiPost({ action:'grades_upsert', data:[{ name:name, [field]: +val }] });
+    if (r && (r.ok === false || r.error)) throw new Error(r.error || '儲存失敗');
+    setSyncIndicator('ok');
+  } catch(e) {
+    setSyncIndicator('error');
+    toast('等級儲存失敗，請再試（' + (e && e.message || e) + '）', '⚠');
+  }
 }
 
 function playBadgeVideo(ytId, title) {
@@ -7402,7 +7420,7 @@ async function syncCMS() {
     await apiPost({ action: 'save_settings', data: {
       ...buildSettingsPayload(),
       badge_data:       JSON.stringify(BADGE_DATA),
-      student_grades:   JSON.stringify(STUDENT_GRADES),
+      // 審計#3：student_grades 已移走（見 buildSettingsPayload 註）——改行 grades_upsert per-student 增量
       knowledge_posts:  JSON.stringify(KNOWLEDGE_POSTS),
       equipment_items:  JSON.stringify(EQUIPMENT_ITEMS),
       course_items:     JSON.stringify(COURSE_ITEMS),

@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-20-adv3';
+const FRONTEND_VERSION='parent-2026-09-20-grades';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -887,21 +887,29 @@ function openGrowthReport(name){
 }
 /* 🏅 背景載入花式跳繩章別等級（#11 homeGrades，verifyParent_ gated）→ 填入每個仔女嘅 #badge-ki。
    非阻塞：開頁照顯示，攞到即注入；攞唔到靜靜唔顯示（唔阻家長頁）。 */
+/* 🔒 2026-09-20 審計#21：以前用**其中一個**仔女嘅 token 打一次，後端就回**全校** student_grades
+   （每個學生嘅中文全名＋等級），前端只用自己嗰一兩條。任何一位家長開 devtools 就攞到全校名單。
+   改成逐個仔女各用自己嘅 childToken 問一次，後端只回嗰一個（同 homeReport 一樣嘅 pattern）。
+   兼容兩種回應（d.grades 新／d.student_grades 舊），令前後端邊個先上線都唔會斷。*/
 async function loadBadgeGrades(){
   const kids=(S.family&&S.family.children)||[]; if(!kids.length) return;
-  let auth=null;
-  for(const ch of kids){ const tk=(S.family.childTokens||{})[ch.name]; if(tk){ auth={name:ch.name,token:tk,last4:(S.family.last4||'')}; break; } }
-  if(!auth) return;
-  let sg=null;
-  try{
-    const res=await fetch(API_11,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeGrades',name:auth.name,last4:auth.last4,token:auth.token})});
-    const d=await res.json();
-    if(d&&d.ok&&d.student_grades) sg=d.student_grades;
-  }catch(e){ return; }
-  if(!sg) return;
+  const last4=(S.family.last4||'');
+  const results=await Promise.all(kids.map(async(ch)=>{
+    const tk=(S.family.childTokens||{})[ch.name];
+    if(!tk) return null;
+    try{
+      const res=await fetch(API_11,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeGrades',name:ch.name,last4:last4,token:tk})});
+      const d=await res.json();
+      if(!d||!d.ok) return null;
+      if(d.grades) return d.grades;                                   // 新：只回本人
+      if(d.student_grades) return d.student_grades[ch.name]||d.student_grades[String(ch.name).trim()]||null;   // 舊
+    }catch(e){}
+    return null;
+  }));
+  if(!results.some(Boolean)) return;
   kids.forEach((ch,ki)=>{
     const box=document.getElementById('badge-'+ki); if(!box) return;
-    const g=sg[ch.name]||sg[String(ch.name).trim()]; if(!g) return;
+    const g=results[ki]; if(!g) return;
     const cert=Number(g.certified)||0, att=Number(g.attempted)||0;
     if(cert<1 && att<1) return;   // 未有等級唔顯示
     const certTxt=cert>0?badgeLbl11(cert):'尚未頒發';

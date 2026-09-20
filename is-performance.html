@@ -248,7 +248,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-20-adv';
+const APP_VERSION='growth-2026-09-20-audit';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}
@@ -436,10 +436,18 @@ function loadLocal(){try{const c=JSON.parse(localStorage.getItem('growth_cache')
 let PENDING=[];try{PENDING=JSON.parse(localStorage.getItem('growth_pending')||'[]');}catch(e){PENDING=[];}
 function savePending(){try{localStorage.setItem('growth_pending',JSON.stringify(PENDING));}catch(e){}updateSyncBadge();}
 function updateSyncBadge(){const el=$('#sync');if(!el)return;if(PENDING.length){el.className='sync err';$('#syncTxt').textContent='待同步 '+PENDING.length+' 項';}}
+/* 🔒 2026-09-20 審計#22：以前伺服器**拒絕**（收到合法 JSON 但 ok:false，例如密碼閘被撞到上限、
+   「冇有效學生資料」）同「真係冇網絡」一齊掉入 catch → 入 PENDING → 上面彈綠色「已記錄（離線，
+   回網自動同步）」。老闆以為入咗，但其實永遠寫唔入；而 flushPending 見到同一條又一直失敗就 break，
+   成條 queue 卡死喺度，#syncTxt 長期顯示「待同步 N 項」。
+   而家分開兩種：有回應但被拒 → rejected（唔入 queue、紅色講出後端原因）；fetch throw／非 JSON
+   → 先當離線入 queue。*/
 async function syncOrQueue(action,data){
-  try{const r=await apiPost({action,coachPass:CP,data});if(!r||r.ok===false)throw new Error((r&&r.error)||'儲存失敗');
-    return {ok:true,r};}
-  catch(e){PENDING.push({action,data});savePending();return {ok:false,queued:true,err:e.message};}
+  let r=null;
+  try{ r=await apiPost({action,coachPass:CP,data}); }
+  catch(e){ PENDING.push({action,data}); savePending(); return {ok:false,queued:true,err:e.message}; }
+  if(r && r.ok!==false && !r.error) return {ok:true,r};
+  return {ok:false,rejected:true,err:(r&&(r.error||r.err))||'伺服器拒絕咗呢次儲存'};
 }
 async function flushPending(){
   if(!PENDING.length||!navigator.onLine||!CP)return 0;
@@ -514,9 +522,19 @@ async function upsertCert(name,no){
   return res;
 }
 async function assignCert(name){
+  /* 🔒 2026-09-20 審計#24：「生成編號」同「設定證書等級」係兩個獨立動作。只做咗第一步就印證書派出去，
+     家長掃 QR 會見到「VERIFIED ✓ / 學生姓名」＋大隻字「**尚未頒發證書**」（官網 index.html 見
+     certified=0 就咁寫）——家長手上攞住張實體證書，個網頁話佢未頒發。出發前擋一擋。*/
+  const _sg=SETTINGS['student_grades']||{};
+  const _st=GR_STAGED[name]||{};                                     // 計埋仲未撳「儲存全部」嗰個
+  const cert=Number(_st.certified!=null?_st.certified:(_sg[name]&&_sg[name].certified))||0;
+  if(cert<1 && !confirm(name+' 仲未設定「證書等級」。\n\n而家生成編號、印咗證書派出去，家長掃 QR 會見到「尚未頒發證書」。\n\n建議先喺下面揀好等級再生成。仍然要繼續？')) return;
+  /* 🔒 審計#23 配套：離線／舊快取狀態下 UI 會以為「未指派」而顯示生成掣，一撳就換走舊編號、
+     令已經印咗派咗嘅 QR 失效。後端而家會拒絕（回 existing），呢度唔好再靜靜當成功。*/
   const no=genCertNo();
   const res=await upsertCert(name,no);
-  if(res&&res.queued)toast(name+' 證書編號 '+no+'（離線，回網同步）','ok');
+  if(res&&res.rejected)toast('指派失敗：'+res.err,'err');            // 審計#22：被拒唔可以扮成功
+  else if(res&&res.queued)toast(name+' 證書編號 '+no+'（離線，回網同步）','ok');
   else toast(name+' 已指派證書編號 '+no,'ok');
   renderGradesBody();
 }
@@ -854,9 +872,13 @@ async function saveCT(){
       const deltas=names.map(n=>{const st=(CT_STAGED[n]&&typeof CT_STAGED[n]==='object')?CT_STAGED[n]:{};const v1=(st.v1!=null&&String(st.v1).trim()!=='')?parseFloat(st.v1):null;const v2=(st.v2!=null&&String(st.v2).trim()!=='')?parseFloat(st.v2):null;return {name:n,metricId:CT_METRIC,date:CT_DATE,val:ctBest(n),v1:v1,v2:v2};});
       res=await upsertPerf(deltas);
     }
-    if(res&&res.queued)toast('已記錄 '+names.length+' 項（離線，回網自動同步）','ok');
-    else toast('已儲存 '+names.length+' 項'+(pbCount?('，'+pbCount+' 人破紀錄 🎉'):''),'ok');
-    CT_STAGED={};renderCTBody();
+    // 審計#22：被伺服器拒絕 → 紅色講出原因，而且**唔好清走 staged**，等老闆可以原封不動再試
+    if(res&&res.rejected){ toast('儲存失敗：'+res.err,'err'); renderCTBody(); }
+    else {
+      if(res&&res.queued)toast('已記錄 '+names.length+' 項（離線，回網自動同步）','ok');
+      else toast('已儲存 '+names.length+' 項'+(pbCount?('，'+pbCount+' 人破紀錄 🎉'):''),'ok');
+      CT_STAGED={};renderCTBody();
+    }
   }catch(e){toast('儲存失敗：'+e.message,'err');}
   btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
 }
@@ -885,7 +907,14 @@ function renderGrades(){
       <button class="btn btn-teal btn-sm" id="grSave">${ico('check')}儲存全部</button>
     </div>
   </div>`;
-  $$('#grClass button').forEach(b=>b.onclick=()=>{GR_CLASS=b.dataset.c;renderGrades();});
+  /* 🔒 2026-09-20 審計#25：renderGrades() 第一句就 GR_STAGED={}，所以改咗 6 個學生未撳「儲存全部」
+     就撳去第二個班，6 項改動會無聲無息消失（連底部「N 位待儲存」bar 都一齊冇），老闆好易以為已經
+     入咗。同 logout 已有嘅 PENDING confirm 一致，加一個 confirm。*/
+  $$('#grClass button').forEach(b=>b.onclick=()=>{
+    const n=Object.keys(GR_STAGED||{}).length;
+    if(n && !confirm('仲有 '+n+' 位未儲存，切換班別會放棄呢啲改動。繼續？')) return;
+    GR_CLASS=b.dataset.c;renderGrades();
+  });
   $('#grSave').onclick=saveGrades;
   renderGradesBody();
 }
@@ -928,9 +957,13 @@ async function saveGrades(){
   const btn=$('#grSave');btn.disabled=true;btn.innerHTML='儲存中…';
   const deltas=names.map(n=>Object.assign({name:n},GR_STAGED[n]));
   const res=await upsertGrades(deltas);
-  if(res&&res.queued)toast('已記錄 '+names.length+' 位（離線，回網自動同步）','ok');
-  else toast('已儲存 '+names.length+' 位章別等級','ok');
-  GR_STAGED={};renderGradesBody();
+  // 審計#22：被拒就唔好清走 staged（否則老闆以為入咗，其實要重新逐個再揀一次）
+  if(res&&res.rejected){ toast('儲存失敗：'+res.err,'err'); renderGradesBody(); }
+  else {
+    if(res&&res.queued)toast('已記錄 '+names.length+' 位（離線，回網自動同步）','ok');
+    else toast('已儲存 '+names.length+' 位章別等級','ok');
+    GR_STAGED={};renderGradesBody();
+  }
   btn.disabled=false;btn.innerHTML=ico('check')+'儲存全部';
 }
 
@@ -1538,9 +1571,21 @@ async function checkForUpdate(){
     if(latest&&latest!==APP_VERSION) showUpdateBanner(latest);
   }catch(e){}
 }
+/* 🔒 2026-09-20 審計#5：以前用 location.pathname 砌新網址，**原本嘅 query string 冇帶返**。
+   家長喺 is-parent 撳「📈成長報告」開 is-performance.html?report=1 → 版本檢查見舊版 → redirect →
+   report=1 冇咗 → 佢見到「成長中心 · 請輸入教練密碼」。gc_upd_tried 個 sessionStorage 守仲會令佢
+   唔會再 redirect，家長就卡死喺密碼畫面。即係**每次我哋 bump 版本，第一批開報告嘅家長就中招**。
+   而家保留晒現有 query（?report=1 / ?lb=1 都跟住去新版）。*/
+function updUrl_(latest){
+  try{
+    const u=new URL(location.href);
+    u.searchParams.set('v', latest); u.searchParams.set('_r', String(Date.now()));
+    return u.pathname + u.search;
+  }catch(e){ return location.pathname+'?v='+encodeURIComponent(latest)+'&_r='+Date.now(); }
+}
 function showUpdateBanner(latest){
   if(document.getElementById('update-banner')) return;
-  try{ if(sessionStorage.getItem('gc_upd_tried')!==latest){ sessionStorage.setItem('gc_upd_tried',latest); location.replace(location.pathname+'?v='+encodeURIComponent(latest)+'&_r='+Date.now()); return; } }catch(e){}
+  try{ if(sessionStorage.getItem('gc_upd_tried')!==latest){ sessionStorage.setItem('gc_upd_tried',latest); location.replace(updUrl_(latest)); return; } }catch(e){}
   const ov=document.createElement('div'); ov.id='update-banner';
   ov.style.cssText='position:fixed;inset:0;z-index:1000001;background:rgba(20,40,45,.6);display:flex;align-items:center;justify-content:center;padding:22px';
   ov.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:400px;width:100%;padding:26px 22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.3);text-align:center">
@@ -1549,7 +1594,7 @@ function showUpdateBanner(latest){
     <div style="font-size:14px;line-height:1.6;color:#5a6b72">為確保用到最新功能，請即更新。</div>
     <button class="upd-now" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">立即更新</button>
   </div>`;
-  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('gc_upd_tried');}catch(e){} location.replace(location.pathname+'?v='+encodeURIComponent(latest)+'&_r='+Date.now()); };
+  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('gc_upd_tried');}catch(e){} location.replace(updUrl_(latest)); };
   document.body.appendChild(ov);
 }
 try{ checkForUpdate(); }catch(e){}
