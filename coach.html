@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-20-audit2';
+const FRONTEND_VERSION = 'coach-2026-09-21-adultwed';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -653,10 +653,11 @@ const SA_CLASSES = {
   "bad-sun8":      { label:'羽毛球 · 星期日 8–10am', day:'Sun', dayZh:'星期日', time:'8–10am', sport:'羽毛球', venue:'青衣', students:[] },
   "bad-sat12":     { label:'羽毛球（其中一小時）· 星期六 12–2pm', day:'Sat', dayZh:'星期六', time:'12–2pm', sport:'羽毛球（其中一小時）', venue:'青衣', students:[] },
   "tennis-sat":    { label:'網球 · 星期六 6–8pm', day:'Sat', dayZh:'星期六', time:'6–8pm', sport:'網球', venue:'青衣公園／翠怡花園／盈翠半島網球場', students:[] },
+  "fit-adult-wed": { label:'成人增肌減脂 · 星期三 10–11am', day:'Wed', dayZh:'星期三', time:'10–11am', sport:'成人增肌減脂', venue:'青衣', students:[] },
   "fit-adult-fri": { label:'成人增肌減脂 · 星期五 8–9pm', day:'Fri', dayZh:'星期五', time:'8–9pm', sport:'成人增肌減脂', venue:'青衣', students:[] },
   "fit-adult-sat": { label:'成人增肌減脂 · 星期六 8–9pm', day:'Sat', dayZh:'星期六', time:'8–9pm', sport:'成人增肌減脂', venue:'青衣', students:[] }
 };
-const SA_CLASS_DOW = {"found-tue2":2,"found-tue5":2,"cond-tue6":2,"cond-sat5":6,"cond-sun11":0,"gym-thu5":4,"gym-sat2":6,"gym-sun10":0,"ath-fri":5,"bad-sat8":6,"bad-sun8":0,"bad-sat12":6,"tennis-sat":6,"fit-adult-fri":5,"fit-adult-sat":6};
+const SA_CLASS_DOW = {"found-tue2":2,"found-tue5":2,"cond-tue6":2,"cond-sat5":6,"cond-sun11":0,"gym-thu5":4,"gym-sat2":6,"gym-sun10":0,"ath-fri":5,"bad-sat8":6,"bad-sun8":0,"bad-sat12":6,"tennis-sat":6,"fit-adult-wed":3,"fit-adult-fri":5,"fit-adult-sat":6};
 function isSA(cid){ return !!SA_CLASSES[cid]; }
 function anyClass(cid){ return CLASSES[cid] || SA_CLASSES[cid] || null; }   // 合併查表（cid 唔撞）
 function anyDow(cid){ return isSA(cid) ? SA_CLASS_DOW[cid] : CLASS_DOW[cid]; }
