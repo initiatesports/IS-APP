@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-11-referrer';
+const FRONTEND_VERSION='enroll-2026-09-21-adulttrial';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -558,7 +558,7 @@ const TT_PT='私人訓練 / 痛症處理（可預約）';
 const TT_DAYS=[
   {d:'星期一', slots:[['09:00–16:00',TT_PT],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩','未夠人成班'],['18:00–19:00',TT_PT],['19:00–21:00',TT_PT]]},
   {d:'星期二', slots:[['09:00–16:00',TT_PT],['17:00–18:00','幼兒綜合運動 ①'],['18:00–19:00','羽毛球','未夠人成班'],['18:00–19:00',TT_PT],['19:00–21:00',TT_PT]]},
-  {d:'星期三', slots:[['09:00–16:00',TT_PT],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–21:00',TT_PT]]},
+  {d:'星期三', slots:[['09:00–16:00',TT_PT],['10:00–11:00','成人增肌減脂'],['17:00–18:00','花式跳繩'],['18:00–19:00','花式跳繩'],['19:00–21:00',TT_PT]]},
   {d:'星期四', slots:[['09:00–16:00',TT_PT],['17:00–18:00','花式跳繩 ②'],['18:00–19:00','羽毛球','未夠人成班'],['18:00–19:00',TT_PT],['19:00–21:00',TT_PT]]},
   {d:'星期五', slots:[['09:00–16:00',TT_PT],['16:50–17:50','田徑','未夠人成班'],['16:50–17:50',TT_PT],['18:00–19:00','花式跳繩'],['18:00–20:00','進階跳繩（10月開始）③'],['20:00–21:00','成人增肌減脂']]},
   {d:'星期六', slots:[['08:00–10:00','羽毛球','未夠人成班'],['08:00–10:00',TT_PT],['11:00–12:00','花式跳繩','已滿'],['12:00–14:00','羽毛球（其中一小時）','已滿'],['15:00–16:00','花式跳繩'],['16:00–17:00','體操'],['17:00–18:00','綜合體能＋田徑'],['18:00–21:00',TT_PT]]},
@@ -987,12 +987,12 @@ function renderAdultForm(){
       <input type="checkbox" class="ad_c" data-id="${c.id}" style="margin-top:3px">
       <div style="flex:1;min-width:0"><div class="cn">${esc(c.sport)}</div>
         <div class="cm">${esc([c.day,c.time,c.venue].filter(Boolean).join(' · '))}｜${seat}</div></div>
-      <div class="cp">${money(c.price)}<div class="cm" style="font-weight:400;color:var(--mut);font-size:11px">（${money(per)}／節）</div></div></label>`;
+      <div class="cp">試堂 $150<div class="cm" style="font-weight:400;color:var(--mut);font-size:11px">繼續 ${money(c.price)}／期</div></div></label>`;
   }).join('') || '<p class="hint">成人班暫未開放報名，歡迎 WhatsApp 查詢。</p>';
   app.innerHTML=`
   <div class="card">
     <h2>成人課程報名</h2>
-    <p class="hint">歡迎成人／樂齡人士報名。收費固定 <b>$150／節</b>（每期 8 堂 $1,200）；<b>1 對 1／1 對 2 私人訓練</b>另按需要安排、收費面議，歡迎 <a href="${waLink('我想查詢成人私人訓練')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a>。</p>
+    <p class="hint">歡迎成人／樂齡人士報名。<b>試堂 ＋ 報名合一，填一次即可</b>：第一次只收<b>試堂費 $150（1 堂）</b>，提交前上傳付款截圖；試堂後如繼續，按成人班恆常收費<b>每期 8 堂 $1,200（每節 $150）</b>，由教練另行安排繳費。<b>1 對 1／1 對 2 私人訓練</b>另按需要安排、收費面議，歡迎 <a href="${waLink('我想查詢成人私人訓練')}" target="_blank" style="color:var(--teal);font-weight:700">WhatsApp 6331 7403</a>。</p>
     <div class="fld"><label>English Name 英文全名 <span style="color:var(--err)">*</span><br><span class="hint" style="font-weight:400">Same as HKID / Passport，例：Chan Tai Man（成人以英文全名報名，毋須中文名）</span></label><input id="ad_en" placeholder="Chan Tai Man"></div>
     <div class="fld"><label>暱稱（想上堂時點樣稱呼你？）</label><input id="ad_nick" placeholder="例：Alex／阿文"></div>
     <div class="fld"><label>揀課程（可多選）</label>${opts}
@@ -1101,15 +1101,15 @@ async function renderAdultPay(){
       <div class="fld" style="margin-top:12px"><label>上載付款截圖</label><input type="file" id="adp_file" accept="image/*"><div id="adp_thumb" class="hint" style="margin-top:6px"></div></div>`;
   let payBox;
   if(PREVIEW){
-    payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b>${money(amt)}</b></span></div>${uploadBox}
+    payBox=`<div class="sumline"><span class="k">試堂費</span><span><b>${money(amt)}</b></span></div>${uploadBox}
       <div class="banner" style="margin-top:10px">🔎 <b>預覽模式</b>：唔會真提交，亦唔使真過數。真實報名時流程一模一樣。</div>`;
   }else if(!quoteOk){
-    payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b style="color:#c0392b">計算失敗</b></span></div>
+    payBox=`<div class="sumline"><span class="k">試堂費</span><span><b style="color:#c0392b">計算失敗</b></span></div>
       <div class="banner" style="margin-top:12px;border-color:#c0392b">⚠️ 一時計唔到學費（網絡或伺服器繁忙）。請撳「返回」再試一次，或 WhatsApp 6331 7403。<b>未計到費用前唔會提交，亦唔代表免費。</b></div>`;
   }else if(amt>0){
-    payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b>${money(amt)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${amt}',this)">複製</button></span></div>${uploadBox}`;
+    payBox=`<div class="sumline"><span class="k">試堂費</span><span><b>${money(amt)}</b> <button class="btn sm ghost" style="padding:3px 8px;font-size:12px;margin:0" onclick="copyTxt('${amt}',this)">複製</button></span></div>${uploadBox}`;
   }else{
-    payBox=`<div class="sumline"><span class="k">應繳學費</span><span><b style="color:var(--ok)">$0（暫免付費）</b></span></div>
+    payBox=`<div class="sumline"><span class="k">試堂費</span><span><b style="color:var(--ok)">$0（暫免付費）</b></span></div>
       <div class="banner" style="margin-top:12px">你揀嘅課程暫未需即時付費${q.selfClass?'（自組班待教練安排）':'（已滿，已為你排候補）'}，直接提交即可，有位或落實安排會再通知你。</div>`;
   }
   app.innerHTML=`
@@ -1155,7 +1155,7 @@ function renderAdultDone(r){
   const wl = r.waitlisted ? `<div class="banner" style="margin-top:8px">部分課程已滿，已為你<b>候補</b>：${esc(r.waitCourses||'')}（有位會 WhatsApp 通知）。</div>` : '';
   const selfNote = r.selfClass ? `<div class="banner" style="margin-top:8px">你揀咗<b>自組班別</b>，教練會 WhatsApp 同你落實上課時間及安排。</div>` : '';
   const paid = r.status==='待核實';
-  const payNote = (r.amount||0)>0 ? `<div class="banner" style="margin-top:8px">應繳學費：<b>${money(r.amount||0)}</b>　·　狀態：<b>${paid?'已收到付款截圖，核實中 ✓':'待付款'}</b><br>${paid?'我哋核實後會 WhatsApp 通知你確認。':'如未過數，請以 FPS 轉數後把截圖 WhatsApp 至 <a href="'+waLink('成人報名過數截圖｜編號 '+(r.id||''))+'" target="_blank" style="color:var(--teal);font-weight:700">6331 7403</a>。'}</div>` : '';
+  const payNote = (r.amount||0)>0 ? `<div class="banner" style="margin-top:8px">試堂費：<b>${money(r.amount||0)}</b>　·　狀態：<b>${paid?'已收到付款截圖，核實中 ✓':'待付款'}</b><br>${paid?'我哋核實後會 WhatsApp 通知你確認。':'如未過數，請以 FPS 轉數後把截圖 WhatsApp 至 <a href="'+waLink('成人報名過數截圖｜編號 '+(r.id||''))+'" target="_blank" style="color:var(--teal);font-weight:700">6331 7403</a>。'}</div>` : '';
   app.innerHTML=`
   <div class="card">
     <h2>✅ 成人報名已收到</h2>

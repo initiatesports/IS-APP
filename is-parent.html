@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-10-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-20-grades';
+const FRONTEND_VERSION='parent-2026-09-21-adultwed';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -292,10 +292,11 @@ const SA_CLASSES={
   "bad-sun8":{sport:'羽毛球',dayZh:'星期日',wd:0,time:'8–10am'},
   "bad-sat12":{sport:'羽毛球（其中一小時）',dayZh:'星期六',wd:6,time:'12–2pm'},
   "tennis-sat":{sport:'網球',dayZh:'星期六',wd:6,time:'6–8pm'},
+  "fit-adult-wed":{sport:'成人增肌減脂',dayZh:'星期三',wd:3,time:'10–11am'},
   "fit-adult-fri":{sport:'成人增肌減脂',dayZh:'星期五',wd:5,time:'8–9pm'},
   "fit-adult-sat":{sport:'成人增肌減脂',dayZh:'星期六',wd:6,time:'8–9pm'}
 };
-const SA_CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
+const SA_CLASS_START_HH={"found-tue2":'14:00',"found-tue5":'17:00',"cond-tue6":'18:00',"cond-sat5":'17:00',"cond-sun11":'11:00',"gym-thu5":'18:00',"gym-sat2":'16:00',"gym-sun10":'10:00',"ath-fri":'16:50',"bad-sat8":'08:00',"bad-sun8":'08:00',"bad-sat12":'12:00',"tennis-sat":'18:00',"fit-adult-wed":'10:00',"fit-adult-fri":'20:00',"fit-adult-sat":'20:00'};
 const SA_CLASS_IDS=Object.keys(SA_CLASSES);
 /* 🔒 2026-09-17/18 老闆特批「跨項目補堂」config（key＝原班 fromKey）。同 #SA 後端 FOUND_MK_TARGETS 一一對應。
    流程（openMakeupFound_）：courses>1 先揀課程 → 跳繩再揀星期 → 揀日期；單一課程直接入。note＝底部提示。
