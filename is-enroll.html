@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-21-adultlink';
+const FRONTEND_VERSION='enroll-2026-09-21-adultparq';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -500,8 +500,9 @@ async function boot(){
     _try++;
     try{ S.cfg=await apiGet({action:'enrollConfig'}); break; }
     catch(e){
-      if(_try>=3){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div><button class="btn" style="margin-top:10px" onclick="boot()">🔄 重試</button></div>'; return; }
+      if(_try>=6){ app.innerHTML='<div class="card"><div class="msg err">連線失敗，請稍後再試。</div><button class="btn" style="margin-top:10px" onclick="boot()">🔄 重試</button></div>'; return; }
       app.innerHTML='<div class="card"><div class="msg">連線中…⏳（正在喚醒伺服器，第 '+_try+' 次，請稍候）</div></div>';
+      await new Promise(r=>setTimeout(r, 1500));   // 後端間歇回 404/冷啟動：重試前稍候，畀後端暖機（增至 6 次，撞正冷啟動都撐得住）
     }
   }
   document.getElementById('periodLbl').textContent='';   // 右上角唔顯示期數
@@ -978,6 +979,8 @@ function renderMakeupInfo(inFlow){ if(inFlow)flowStep("renderMakeupInfo");
   </div>`;
 }
 /* ════ 成人課程報名（獨立表單；成人自己報，欄位同兒童唔同）════ */
+const ADULT_HEALTH=['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','運動的特殊要求或限制','以前受傷或手術','以上不適用'];
+const ADULT_PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
 function renderAdultForm(){
   const cs=((S.cfg&&S.cfg.courses)||[]).filter(c=>c.sport==='成人增肌減脂班');
   const opts=cs.map(c=>{
@@ -1009,6 +1012,12 @@ function renderAdultForm(){
     <div class="fld"><label>身體上有否任何舊患 or 經常性會出現痠痛的位置？</label><textarea id="ad_inj" rows="2" placeholder="例：右膝舊患／肩頸經常痠痛；如無可留空"></textarea></div>
     <div class="fld"><label>運動經驗年資？平時有冇做開咩運動？（eg. 瑜伽、Gym、跑步等）</label><textarea id="ad_exp" rows="2" placeholder="例：健身 2 年、偶爾跑步"></textarea></div>
     <div class="fld"><label>想透過呢個訓練班改善什麼問題／達到什麼目標？（eg. 增肌減脂、改善體態、舒緩痛症）</label><textarea id="ad_goal" rows="2" placeholder="例：增肌減脂、改善圓肩寒背"></textarea></div>
+    <div class="fld"><label>健康狀況（可多選；如全部沒有，請剔「以上不適用」）<span style="color:var(--err)">*</span></label>
+      <div id="ad_health">${ADULT_HEALTH.map(h=>`<label class="chk"><input type="checkbox" class="ad_h" value="${esc(h)}" onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>${esc(h)}</span></label>`).join('')}</div></div>
+    <div class="fld"><label>健康篩查 PAR-Q<span style="color:var(--err)">*</span></label>
+      <div class="terms" style="max-height:170px;font-size:12px">${ADULT_PARQ.map((q,i)=>`<p>${i+1}. ${esc(q)}</p>`).join('')}</div>
+      <label class="chk"><input type="checkbox" id="ad_parqok" onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>以上 7 項我全部答「否」，健康良好、適合參加運動。</span></label>
+      <input id="ad_parqnote" style="margin-top:6px" placeholder="如有任何一項為「是」，請喺此註明（並先徵詢醫生）"></div>
     <div class="msg" id="ad_msg"></div>
     <div class="navbtns">
       <button class="btn ghost sm" onclick="renderHome()">‹ 返回</button>
@@ -1019,6 +1028,9 @@ function renderAdultForm(){
   if(a){ const set=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null)el.value=v;};
     (a.courseIds||[]).forEach(id=>{const cb=document.querySelector('.ad_c[data-id="'+id+'"]'); if(cb)cb.checked=true;});
     set('ad_en',a.en); set('ad_nick',a.nick); set('ad_mob',a.mob); set('ad_email',a.email); set('ad_inj',a.injury); set('ad_exp',a.exp); set('ad_goal',a.goal);
+    (a.health||[]).forEach(h=>{const cb=[...document.querySelectorAll('.ad_h')].find(x=>x.value===h); if(cb){cb.checked=true; const w=cb.closest('.chk'); if(w)w.classList.add('on');}});
+    if(a.parqok){const pq=document.getElementById('ad_parqok'); if(pq){pq.checked=true; const w=pq.closest('.chk'); if(w)w.classList.add('on');}}
+    set('ad_parqnote',a.parqnote);
     if(a.gender){const g=document.getElementById('ad_gender'); if(g)g.value=a.gender;}
     if(a.self){const s=document.getElementById('ad_self'); if(s)s.checked=true; const bx=document.getElementById('ad_self_box'); if(bx)bx.style.display='';
       const r=document.querySelector('input[name=ad_selfday][value="'+a.selfDay+'"]'); if(r)r.checked=true; set('ad_selftime',a.selfTime); } }
@@ -1033,19 +1045,26 @@ function adultToTerms(){
   let en=document.getElementById('ad_en').value.trim();
   let mob=document.getElementById('ad_mob').value.replace(/\D/g,'');
   let email=document.getElementById('ad_email').value.trim();
+  let health=[...document.querySelectorAll('.ad_h:checked')].map(c=>c.value);
+  const parqok=document.getElementById('ad_parqok').checked;
+  const parqnote=document.getElementById('ad_parqnote').value.trim();
   if(!PREVIEW){
     if(!ids.length && !self){ msg.className='msg err'; msg.textContent='請最少揀一個成人課程，或剔選「已夠 4 人自組班別」。'; return; }
     if(self && !selfDay){ msg.className='msg err'; msg.textContent='請揀自組班時段（日間／晚間）。'; return; }
     if(!en){ msg.className='msg err'; msg.textContent='請填寫英文姓名（English Name）。'; return; }
     if(mob.length<8){ msg.className='msg err'; msg.textContent='請填寫正確聯絡電話（8 位數字）。'; return; }
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.className='msg err'; msg.textContent='請填寫正確電郵地址（報名確認信會寄到此電郵）。'; return; }
+    if(!health.length){ msg.className='msg err'; msg.textContent='請剔選「健康狀況」（如全部沒有，請剔「以上不適用」）。'; document.getElementById('ad_health').scrollIntoView({block:'center'}); return; }
+    if(!parqok && !parqnote){ msg.className='msg err'; msg.textContent='請完成健康篩查 PAR-Q：全部答「否」請剔選；如有任何一項為「是」請喺下面註明。'; document.getElementById('ad_parqok').scrollIntoView({block:'center'}); return; }
+    if(!parqok){ if(!confirm('你喺健康篩查 PAR-Q 有項答「是」。為安全起見，本機構建議先諮詢醫生，確認適合參加運動。你已了解並確定繼續報名？')) return; }   // 高風險項→提示諮詢醫生
   } else {   // 🔎 預覽模式：空欄自動填示範值，等你可以直接一頁頁揭去睇，唔使真填（同 adultToPay 的 !PREVIEW 一致）
     if(!ids.length && !self){ const _f=document.querySelector('.ad_c'); if(_f) ids=[_f.getAttribute('data-id')]; }
-    if(!en) en='Preview User'; if(mob.length<8) mob='90000000'; if(!email) email='preview@example.com';
+    if(!en) en='Preview User'; if(mob.length<8) mob='90000000'; if(!email) email='preview@example.com'; if(!health.length) health=['以上不適用'];
   }
   S.adult={ courseIds:ids, self, selfDay, selfTime:(document.getElementById('ad_selftime')?document.getElementById('ad_selftime').value.trim():''),
     en, nick:document.getElementById('ad_nick').value.trim(), gender:document.getElementById('ad_gender').value, mob, email,
-    injury:document.getElementById('ad_inj').value.trim(), exp:document.getElementById('ad_exp').value.trim(), goal:document.getElementById('ad_goal').value.trim() };
+    injury:document.getElementById('ad_inj').value.trim(), exp:document.getElementById('ad_exp').value.trim(), goal:document.getElementById('ad_goal').value.trim(),
+    health, parqok, parqnote, parq:(parqok?'全部否（適合運動）':(parqnote?('有項為是：'+parqnote):'未完成')) };
   renderAdultTerms();
 }
 function renderAdultTerms(){
@@ -1151,6 +1170,7 @@ async function submitAdult(){
   const btn=document.getElementById('adp_go'); if(btn) btn.disabled=true;
   const body={ action:'adultEnroll', courseIds:(a.courseIds||[]).join(','), selfClass:a.self?'1':'', selfDay:a.selfDay||'', selfTime:a.selfTime||'',
     englishName:a.en, nickname:a.nick, gender:a.gender, mobile:a.mob, email:a.email||'', injury:a.injury, experience:a.exp, goal:a.goal,
+    health:(a.health||[]).join('、'), parq:a.parq||'', parqnote:a.parqnote||'',
     healthAck:'1', termsAgreed:'1', signId:a.signId, signImg:a.signImg||'', payImg:a.payImg||'',
     clientToken:(S._adTok||(S._adTok='ad'+Date.now()+Math.random().toString(36).slice(2))) };
   try{
