@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0F1A28">
+<title>INITIATE SPORTS · 章別示範影片</title>
+<style>
+  body{margin:0;font-family:'Noto Sans TC',-apple-system,sans-serif;background:#0F1A28;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center}
+  .card{padding:40px 28px;max-width:420px}
+  .brand{font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:15px;letter-spacing:.04em}
+  .brand span{color:#3ECFCF}
+  h1{font-size:22px;font-weight:900;margin:18px 0 6px}
+  p{font-size:14px;line-height:1.8;color:rgba(255,255,255,.72);margin:0}
+  .lv{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#3ECFCF;color:#0F1A28;font-family:Archivo,sans-serif;font-weight:900;font-size:24px;margin-top:22px}
+  a.btn{display:inline-block;margin-top:22px;padding:12px 26px;background:#3ECFCF;color:#0F1A28;font-weight:900;font-size:14px;text-decoration:none;border-radius:8px}
+  a.link{display:block;margin-top:14px;color:rgba(255,255,255,.55);font-size:12.5px;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="card" id="app">
+  <div class="brand">INITIATE <span>SPORTS</span></div>
+  <div id="msg"><h1>載入中⋯</h1></div>
+</div>
+<script>
+// 章別示範影片對照表 —— 影片拍好後，喺對應 level 填返 YouTube 連結（不公開影片都得），
+// 學生掃同一個 QR Code 就會自動直達新影片，本子唔使重印。
+var VIDEOS = {
+  1:  'https://youtu.be/oLgeE1wfzhU',   // 紅色章
+  2:  'https://youtu.be/AWFbYTnfKZo',   // 橙色章
+  3:  'https://youtu.be/JTx3Fcnd0DM',   // 黃色章
+  4:  'https://youtu.be/8XnscUtoscA',   // 綠色章
+  5:  'https://youtu.be/iZR-N5XWQ-M',   // 藍色章
+  6:  'https://youtu.be/82CVP9c--p0',   // 靛色章
+  7:  'https://youtu.be/uSk051iqqug',   // 紫色章
+  8:  '',                               // Mercury 水星章
+  9:  '',                               // Venus 金星章
+  10: '',                               // Mars 火星章
+  11: '',                               // Jupiter 木星章
+  12: '',                               // Saturn 土星章
+  13: '',                               // Uranus 天王星章
+  14: ''                                // Neptune 海王星章
+};
+var NAMES = {1:'紅色章',2:'橙色章',3:'黃色章',4:'綠色章',5:'藍色章',6:'靛色章',7:'紫色章',
+  8:'Mercury 水星章',9:'Venus 金星章',10:'Mars 火星章',11:'Jupiter 木星章',
+  12:'Saturn 土星章',13:'Uranus 天王星章',14:'Neptune 海王星章'};
+var BADGE_PAGE = 'https://www.initiatesportshk.com/?view=badge';
+var lv = parseInt(new URLSearchParams(location.search).get('level') || '', 10);
+var msg = document.getElementById('msg');
+if (lv >= 1 && lv <= 14) {
+  var url = (VIDEOS[lv] || '').trim();
+  if (url) {
+    msg.innerHTML = '<h1>正在前往示範影片⋯</h1><p>Level ' + lv + ' · ' + NAMES[lv] + '</p>';
+    location.replace(url);
+  } else {
+    msg.innerHTML = '<div class="lv">' + lv + '</div>'
+      + '<h1>Level ' + lv + ' · ' + NAMES[lv] + '</h1>'
+      + '<p>示範影片拍攝中，好快同大家見面！<br>不如先去官網睇下考核內容？</p>'
+      + '<a class="btn" href="' + BADGE_PAGE + '">睇章別考核內容</a>'
+      + '<a class="link" href="https://www.initiatesportshk.com">返回官網</a>';
+  }
+} else {
+  msg.innerHTML = '<h1>搵唔到呢個等級</h1><p>請重新掃描筆記本上嘅 QR Code。</p>'
+    + '<a class="btn" href="' + BADGE_PAGE + '">睇章別考核內容</a>';
+}
+</script>
+</body>
+</html>
