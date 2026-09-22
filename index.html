@@ -440,6 +440,26 @@ function tPt(){
     +'</div>';
 }
 
+function tTherapy(){
+  var box=function(g){return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:16px 18px"><div style="font-size:12.5px;font-weight:900;color:#3ECFCF">'+g[0]+'</div><div style="font-size:12.5px;line-height:1.7;color:rgba(255,255,255,0.65);margin-top:5px">'+g[1]+'</div></div>';};
+  var fits=[['肩頸腰背痛','長期或反覆嘅肩頸、腰背、膝、髖或關節痛，想搵出根源處理'],['姿勢不良','圓肩、寒背、骨盆前傾等姿勢問題，想改善體態'],['動作代償','某組肌肉「唔開工」、由其他部位過度代償，令發力錯、易受傷'],['舊患反覆','舊傷或手術後力量／活動度未恢復，郁下就痛'],['運動表現受限','想提升運動表現但被痛症或活動度限制'],['安全重新開始','久坐少動、想安全咁重新開始運動']].map(box).join('');
+  var flow=[['① 評估','詳細徒手評估：動作篩查、姿勢與痛症檢查，以 NKT 揾出邊組肌肉失衡、邊組過度代償嘅真正源頭'],['② 處理','NKT 從神經層面重建正確發力，SCS 以溫和徒手手法即時放鬆繃緊肌肉、紓緩痛點'],['③ 建議','度身訓練與日常建議，由根源改善、減少復發；情況需要時會建議先求醫或轉介']].map(box).join('');
+  var creds=COACH_CREDS.map(function(c){return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:15px 17px"><div style="font-size:12px;font-weight:900;color:#3ECFCF">'+c.label+'</div><div style="font-size:12.5px;line-height:1.7;color:rgba(255,255,255,0.65);margin-top:5px">'+c.value+'</div></div>';}).join('');
+  return '<div style="padding:40px 24px 8px">'+eyebrow('SPORTS THERAPY · PAIN CARE')+h1('運動治療 ＋ 痛症處理')
+    +'<p style="font-size:15px;color:rgba(255,255,255,0.6);margin:14px 0 0;line-height:2;max-width:720px">由具 <b style="color:#fff">NKT 神經動能療法</b> × <b style="color:#fff">SCS 拮抗鬆弛術</b> 資格之教練，以徒手評估及矯正，處理肩頸腰背等痛症、姿勢不良及動作代償問題。<b style="color:#fff">前香港隊運動員</b>、運動科學背景，由根源改善、減少復發。</p>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:24px">'
+      +'<div style="background:rgba(62,207,207,0.08);border:1px solid rgba(62,207,207,0.4);padding:18px 16px;text-align:center"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:30px;color:#fff">$600</div><div style="font-size:12.5px;font-weight:700;color:#3ECFCF;margin-top:3px">首次看診</div><div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:4px">含詳細評估</div></div>'
+      +'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:18px 16px;text-align:center"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:30px;color:#fff">$700</div><div style="font-size:12.5px;font-weight:700;color:#3ECFCF;margin-top:3px">其後每次</div><div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:4px">覆診</div></div>'
+      +'</div>'
+    +h2('邊啲情況啱？ <span style="color:#3ECFCF">/ FOR WHOM</span>')+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:16px">'+fits+'</div>'
+    +'<div style="margin-top:32px;background:rgba(62,207,207,0.07);border:1px solid rgba(62,207,207,0.2);padding:22px 22px"><div style="font-family:Archivo,\'Noto Sans HK\',sans-serif;font-weight:900;font-style:italic;font-size:16px;color:#3ECFCF">獨家組合：NKT × SCS 徒手治療</div><p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.65);margin:10px 0 0">教練同時具備 <b style="color:#fff">NKT 神經動能療法</b>與 <b style="color:#fff">SCS 拮抗鬆弛術</b>兩項專業徒手治療資格 —— 罕有嘅組合。</p><p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.65);margin:8px 0 0"><b style="color:#fff">NKT</b>：從神經與大腦控制層面，找出動作代償與肌肉失衡嘅「真正源頭」，而唔係只處理表面酸痛。</p><p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.65);margin:8px 0 0"><b style="color:#fff">SCS</b>：以溫和徒手手法，即時放鬆繃緊肌肉、紓緩痛點，安全適合各年齡。</p></div>'
+    +h2('睇診流程 <span style="color:#3ECFCF">/ HOW</span>')+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:16px">'+flow+'</div>'
+    +h2('關於教練 <span style="color:#3ECFCF">/ COACH</span>')+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:16px">'+creds+'</div>'
+    +'<div style="margin-top:18px;border:1px solid rgba(255,255,255,0.1);padding:16px 18px;font-size:12px;line-height:1.9;color:rgba(255,255,255,0.55)">＊運動治療不能取代醫療診斷。如涉及嚴重痛症、懷疑病理或急性受傷，本機構會建議你先求醫。改期或取消請於預約時間 24 小時前通知。</div>'
+    +'<div style="margin-top:30px;text-align:center"><a href="is-therapy-enroll.html" style="display:inline-block;background:#3ECFCF;color:#0F1A28;padding:15px 34px;font-weight:900;font-size:15px;text-decoration:none;'+chipSkew+'">'+skewIn('📝 立即預約看診 →')+'</a><div style="margin-top:12px"><a href="https://wa.me/85263317403?text='+encodeURIComponent('我想查詢運動治療／痛症處理')+'" target="_blank" style="color:rgba(255,255,255,0.6);font-size:13px;text-decoration:underline">或 WhatsApp 6331 7403 查詢</a></div></div>'
+    +'</div>';
+}
+
 function tFeatures(){
   var pillars=SC_PILLARS.map(function(p){return '<div style="border:1px solid rgba(62,207,207,0.3);padding:14px 0;text-align:center"><div style="font-family:Archivo,\'Noto Sans HK\',sans-serif;font-weight:900;font-style:italic;font-size:14px;color:#3ECFCF">'+p+'</div></div>';}).join('');
   var reports=REPORT_ITEMS.map(function(r){return '<div style="display:flex;gap:12px;align-items:flex-start;border:1px solid rgba(255,255,255,0.08);padding:13px 15px"><span style="color:#3ECFCF;font-family:Archivo,sans-serif;font-weight:900;font-style:italic;flex-shrink:0">'+r.num+'</span><span style="font-size:12.5px;line-height:1.7;color:rgba(255,255,255,0.7)">'+r.text+'</span></div>';}).join('');
@@ -581,6 +601,7 @@ function bodyForPanel(){
   if(S.panel==='home')return tHome();
   if(S.panel==='courses')return S.course?tCourseDetail():tCourses();
   if(S.panel==='pt')return tPt();
+  if(S.panel==='therapy')return tTherapy();
   if(S.panel==='features')return tFeatures();
   if(S.panel==='ach')return tAch();
   if(S.panel==='knowledge')return tKnowledge();
@@ -678,7 +699,7 @@ function initFromUrl_(){
     var no=String(pr.get('no')||'').trim();
     if(!v) return;
     var isPanel=MENU.some(function(m){return m[0]===v;});
-    if(v==='verify'||isPanel){ S.panel=v; }
+    if(v==='verify'||v==='therapy'||isPanel){ S.panel=v; }   // therapy 未入可見 MENU（預覽用 ?view=therapy），OK 後先加入 nav 公開
     if(v==='verify' && no){ S.certQ=no; setTimeout(doVerify,0); }   // doVerify 內部會 render
   }catch(e){}
 }
