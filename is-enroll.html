@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-21-adulttrial';
+const FRONTEND_VERSION='enroll-2026-09-21-adulttrial2';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1027,17 +1027,22 @@ function renderAdultForm(){
 }
 function adultToTerms(){
   const msg=document.getElementById('ad_msg');
-  const ids=[...document.querySelectorAll('.ad_c:checked')].map(c=>c.getAttribute('data-id'));
+  let ids=[...document.querySelectorAll('.ad_c:checked')].map(c=>c.getAttribute('data-id'));
   const self=document.getElementById('ad_self').checked;
   const selfDay=(document.querySelector('input[name=ad_selfday]:checked')||{}).value||'';
-  const en=document.getElementById('ad_en').value.trim();
-  const mob=document.getElementById('ad_mob').value.replace(/\D/g,'');
-  const email=document.getElementById('ad_email').value.trim();
-  if(!ids.length && !self){ msg.className='msg err'; msg.textContent='請最少揀一個成人課程，或剔選「已夠 4 人自組班別」。'; return; }
-  if(self && !selfDay){ msg.className='msg err'; msg.textContent='請揀自組班時段（日間／晚間）。'; return; }
-  if(!en){ msg.className='msg err'; msg.textContent='請填寫英文姓名（English Name）。'; return; }
-  if(mob.length<8){ msg.className='msg err'; msg.textContent='請填寫正確聯絡電話（8 位數字）。'; return; }
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.className='msg err'; msg.textContent='請填寫正確電郵地址（報名確認信會寄到此電郵）。'; return; }
+  let en=document.getElementById('ad_en').value.trim();
+  let mob=document.getElementById('ad_mob').value.replace(/\D/g,'');
+  let email=document.getElementById('ad_email').value.trim();
+  if(!PREVIEW){
+    if(!ids.length && !self){ msg.className='msg err'; msg.textContent='請最少揀一個成人課程，或剔選「已夠 4 人自組班別」。'; return; }
+    if(self && !selfDay){ msg.className='msg err'; msg.textContent='請揀自組班時段（日間／晚間）。'; return; }
+    if(!en){ msg.className='msg err'; msg.textContent='請填寫英文姓名（English Name）。'; return; }
+    if(mob.length<8){ msg.className='msg err'; msg.textContent='請填寫正確聯絡電話（8 位數字）。'; return; }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.className='msg err'; msg.textContent='請填寫正確電郵地址（報名確認信會寄到此電郵）。'; return; }
+  } else {   // 🔎 預覽模式：空欄自動填示範值，等你可以直接一頁頁揭去睇，唔使真填（同 adultToPay 的 !PREVIEW 一致）
+    if(!ids.length && !self){ const _f=document.querySelector('.ad_c'); if(_f) ids=[_f.getAttribute('data-id')]; }
+    if(!en) en='Preview User'; if(mob.length<8) mob='90000000'; if(!email) email='preview@example.com';
+  }
   S.adult={ courseIds:ids, self, selfDay, selfTime:(document.getElementById('ad_selftime')?document.getElementById('ad_selftime').value.trim():''),
     en, nick:document.getElementById('ad_nick').value.trim(), gender:document.getElementById('ad_gender').value, mob, email,
     injury:document.getElementById('ad_inj').value.trim(), exp:document.getElementById('ad_exp').value.trim(), goal:document.getElementById('ad_goal').value.trim() };
