@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-21-adulttrial2';
+const FRONTEND_VERSION='enroll-2026-09-21-adulttrial3';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1050,10 +1050,13 @@ function adultToTerms(){
 }
 function renderAdultTerms(){
   const t=(S.cfg&&S.cfg.terms)||{statements:[],version:''};
+  // 成人試堂＋繼續收費條款（由後端 fitness notes 攞前 2 條＝試堂 $150／繼續 $1,200，同後端 DRY）置頂寫入條款
+  const _adc=((S.cfg&&S.cfg.courses)||[]).find(c=>c.sport==='成人增肌減脂班');
+  const _feeNotes=((_adc&&_adc.notes)||[]).slice(0,2);
   // 成人版：本人為自己報名（唔係家長代報）→ 濾走「家長接送」條，其餘「家長／學員／子女」字樣改「本人」
-  const ops=(t.statements||[]).slice(4)
+  const ops=_feeNotes.concat((t.statements||[]).slice(4)
     .filter(s=>!/^接送及安全/.test(s))
-    .map(s=>s.replace(/家長／監護人|家長/g,'本人').replace(/學員/g,'本人').replace(/小兒／小女|子女/g,'本人').replace(/本人本人/g,'本人'));
+    .map(s=>s.replace(/家長／監護人|家長/g,'本人').replace(/學員/g,'本人').replace(/小兒／小女|子女/g,'本人').replace(/本人本人/g,'本人')));
   app.innerHTML=`
   <div class="card">
     <h2>課程條款及簽署</h2>
