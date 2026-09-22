@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-21-adulttrial3';
+const FRONTEND_VERSION='enroll-2026-09-21-adultlink';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -506,8 +506,8 @@ async function boot(){
   }
   document.getElementById('periodLbl').textContent='';   // 右上角唔顯示期數
   await loadOfficialCourses();   // 同步官網課程介紹（失敗＝用內置 fallback）
-  // 預覽直達成人流程：?preview=1&flow=adult
-  if(PREVIEW && (new URLSearchParams(location.search).get('flow')||'').toLowerCase()==='adult'){ renderAdultForm(); return; }
+  // 直達成人報名：?flow=adult（真連結，唔使經課程首頁；加 &preview=1 為預覽）。老闆 2026-09-21 要成人專屬連結。
+  if((new URLSearchParams(location.search).get('flow')||'').toLowerCase()==='adult'){ renderAdultForm(); return; }
   const _rf=flowRestore();   // 🔄 reload 後續傳：有未完成報名（同版本、3 小時內）就問繼續／重新開始（老闆 2026-08-28）
   if(_rf){ renderResumePrompt(_rf); return; }
   renderHome();
