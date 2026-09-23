@@ -75,7 +75,7 @@
 <div class="ver" id="ver"></div></div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
-const FRONTEND_VERSION='therapy-2026-09-23-v4';
+const FRONTEND_VERSION='therapy-2026-09-23-v5';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA='https://wa.me/85263317403?text='+encodeURIComponent('我想查詢運動治療／痛症處理');
 const $=s=>document.querySelector(s);
@@ -83,7 +83,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const money=n=>'$'+(Number(n)||0).toLocaleString();
 const HEALTH=['氣喘或呼吸相關疾病','糖尿病或血糖相關疾病','關節或活動問題','心臟病','運動誘發的病症','肌肉或骨骼狀況','目前正在服用的長期藥物','任何身體限制','以前受傷或手術','以上不適用'];
 const PARQ=['醫生曾否話你心臟有問題、只可做醫生建議嘅運動？','你做運動時會否感到胸口痛？','過去一個月，你有冇喺冇做運動時都感到胸口痛？','你曾否因暈眩失去平衡、或失去知覺？','你嘅骨骼或關節（如脊骨、膝、髖）有冇毛病，會因運動而惡化？','醫生現時有冇開血壓或心臟藥畀你？','有冇其他理由令你唔應該做運動？'];
-let CFG=null, S={visitType:'首次', health:[], parqok:false, parqnote:'', signImg:'', payImg:''};
+const MEDQ=[{k:'oldpain',q:'身體有無舊患，或已困擾你很長時間的疼痛？',ph:'請填詳情：部位、幾耐、點樣痛'},{k:'scar',q:'身體有無明顯疤痕？',ph:'請填詳情：部位、成因（如手術／受傷）'},{k:'surgery',q:'之前身體有無部位經歷過手術？',ph:'請填詳情：部位、手術類型、大約時間'}];
+let CFG=null, S={visitType:'首次', health:[], parqok:false, parqnote:'', signImg:'', payImg:'', med:{oldpain:{yn:'',note:''},scar:{yn:'',note:''},surgery:{yn:'',note:''}}};
 
 async function fetchT(u,o,ms){ const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||45000); try{ const r=await fetch(u,Object.assign({signal:c.signal},o||{})); return await r.json(); } finally{ clearTimeout(t); } }
 async function apiGet(action){ return fetchT(API+'?action='+encodeURIComponent(action)); }
@@ -172,6 +173,9 @@ function renderForm(){
       <textarea id="f_times" placeholder="例：平日晚上、星期六下午">${esc(S.times||'')}</textarea></div>
     <div class="fld"><label class="lb">最近半個月睡眠質素 <span class="req">*</span> <span class="hint">1＝很差、5＝很好</span></label>
       <div class="chips" id="f_sleep">${[1,2,3,4,5].map(n=>`<div class="chip ${String(S.sleep)===String(n)?'on':''}" data-v="${n}" onclick="pickSleep(${n})">${n}</div>`).join('')}</div></div>
+    ${MEDQ.map(o=>`<div class="fld"><label class="lb">${esc(o.q)} <span class="req">*</span></label>
+      <div class="chips" id="yn_${o.k}">${['無','有'].map(v=>`<div class="chip ${S.med[o.k].yn===v?'on':''}" data-v="${v}" onclick="pickYN('${o.k}','${v}')">${v}</div>`).join('')}</div>
+      <textarea id="mq_${o.k}" placeholder="${esc(o.ph)}" style="margin-top:8px;display:${S.med[o.k].yn==='有'?'block':'none'}">${esc(S.med[o.k].note||'')}</textarea></div>`).join('')}
     <div class="fld"><label class="lb">健康狀況（可多選；如全部沒有請剔「以上不適用」）<span class="req">*</span></label>
       <div id="f_health">${HEALTH.map(h=>`<label class="chk ${S.health.includes(h)?'on':''}"><input type="checkbox" class="hh" value="${esc(h)}" ${S.health.includes(h)?'checked':''} onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>${esc(h)}</span></label>`).join('')}</div></div>
     <div class="fld"><label class="lb">健康篩查 PAR-Q <span class="req">*</span></label>
@@ -184,11 +188,14 @@ function renderForm(){
 }
 function pickVt(v){ S.visitType=v; document.querySelectorAll('.vt .v').forEach(el=>el.classList.toggle('on',el.dataset.v===v)); }
 function pickSleep(n){ S.sleep=n; document.querySelectorAll('#f_sleep .chip').forEach(el=>el.classList.toggle('on',String(el.dataset.v)===String(n))); }
+function pickYN(k,v){ S.med[k].yn=v; const box=document.getElementById('yn_'+k); if(box) box.querySelectorAll('.chip').forEach(el=>el.classList.toggle('on',el.dataset.v===v)); const ta=document.getElementById('mq_'+k); if(ta) ta.style.display=(v==='有'?'block':'none'); }
+function medStr(k){ const o=S.med[k]||{}; return o.yn==='有' ? ('有：'+(o.note||'')) : (o.yn||''); }
 function grab1(){
   S.name=($('#f_name').value||'').trim(); S.phone=($('#f_phone').value||'').replace(/\D/g,'');
   S.email=($('#f_email').value||'').trim(); S.complaint=($('#f_complaint').value||'').trim();
   S.times=($('#f_times').value||'').trim();
   S.health=[...document.querySelectorAll('.hh:checked')].map(c=>c.value);
+  MEDQ.forEach(o=>{ const ta=document.getElementById('mq_'+o.k); if(ta) S.med[o.k].note=(ta.value||'').trim(); });
   S.parqok=$('#f_parqok').checked; S.parqnote=($('#f_parqnote').value||'').trim();
 }
 function toTerms(){
@@ -199,12 +206,15 @@ function toTerms(){
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.email)){ m.className='msg err'; m.textContent='請填寫有效電郵地址。'; return; }
     if(!S.complaint){ m.className='msg err'; m.textContent='請填寫主訴／痛症描述。'; return; }
     if(!S.sleep){ m.className='msg err'; m.textContent='請選擇最近半個月睡眠質素（1–5 分）。'; return; }
+    for(const o of MEDQ){ if(!S.med[o.k].yn){ m.className='msg err'; m.textContent='請回答：'+o.q; return; }
+      if(S.med[o.k].yn==='有' && !S.med[o.k].note){ m.className='msg err'; m.textContent='你喺「'+o.q+'」選咗「有」，請填寫詳情。'; return; } }
     if(!S.health.length){ m.className='msg err'; m.textContent='請剔選健康狀況（如全部沒有，請剔「以上不適用」）。'; return; }
     if(!S.parqok && !S.parqnote){ m.className='msg err'; m.textContent='請完成健康篩查 PAR-Q：全部答「否」請剔選；如有「是」請註明。'; return; }
     if(!S.parqok){ if(!confirm('你喺 PAR-Q 有項答「是」。為安全起見，本機構建議先諮詢醫生。你已了解並確定繼續？')) return; }
   } else {
     if(!S.name) S.name='Preview User'; if(S.phone.length<8) S.phone='90000000'; if(!/@/.test(S.email)) S.email='preview@example.com';
     if(!S.complaint) S.complaint='（預覽）右膊頭痛'; if(!S.health.length) S.health=['以上不適用']; if(!S.sleep) S.sleep=3;
+    MEDQ.forEach(o=>{ if(!S.med[o.k].yn) S.med[o.k].yn='無'; });
   }
   S.parq = S.parqok ? '全部否（適合運動）' : (S.parqnote?('有項為是：'+S.parqnote):'未完成');
   renderTerms();
@@ -269,6 +279,7 @@ async function submitTherapy(){
   m.className='msg'; m.textContent='提交中…⏳'; const btn=$('#p_go'); btn.disabled=true;
   const body={ action:'therapyBook', name:S.name, phone:S.phone, email:S.email, visitType:S.visitType,
     complaint:S.complaint, times:S.times, sleep:S.sleep, health:(S.health||[]).join('、'), parq:S.parq, parqnote:S.parqnote,
+    oldpain:medStr('oldpain'), scar:medStr('scar'), surgery:medStr('surgery'),
     signEn:S.signEn, signId:S.signId, signImg:S.signImg||'', payImg:S.payImg||'', agree:'1',
     clientToken:(S._tok||(S._tok='th_'+Date.now()+Math.random().toString(36).slice(2))) };
   let res; try{ res=await apiPost(body,45000); }catch(e){ res=null; }
