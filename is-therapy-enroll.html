@@ -75,7 +75,7 @@
 <div class="ver" id="ver"></div></div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
-const FRONTEND_VERSION='therapy-2026-09-22-v1';
+const FRONTEND_VERSION='therapy-2026-09-23-v2';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA='https://wa.me/85263317403?text='+encodeURIComponent('我想查詢運動治療／痛症處理');
 const $=s=>document.querySelector(s);
@@ -131,20 +131,23 @@ function renderIntro(){
   $('#app').innerHTML=`
   <div class="card hero">
     <h1>運動治療 ＋ 痛症處理</h1>
-    <p style="opacity:.92">由具 <b>NKT × SCS</b> 資格之教練，以徒手評估及矯正，處理肩頸腰背等痛症、姿勢不良及動作代償問題。前香港隊運動員 · 運動科學背景。</p>
+    <p style="opacity:.92">結合運動科學與徒手治療 —— 由具運動科學背景、<b>前香港隊運動員</b>之教練，運用 <b>NKT 神經動能療法</b>、<b>SCS 拮抗鬆弛術</b>及 <b>DNS 動態神經肌肉穩定術</b>，由神經肌肉控制嘅根源處理痛症、姿勢及動作問題，令改善更持久、復發更少。</p>
     <div>
-      <span class="pill">🩺 徒手評估</span><span class="pill">🎯 痛症根源處理</span><span class="pill">🧭 動作矯正</span><span class="pill">🧘 姿勢改善</span>
-    </div>
-    <div class="fee">
-      <div class="fx"><b>${money(CFG.firstFee||600)}</b><span>首次看診（含詳細評估）</span></div>
-      <div class="fx"><b>${money(CFG.followupFee||700)}</b><span>其後每次</span></div>
+      <span class="pill">🩺 徒手評估</span><span class="pill">🎯 痛症根源處理</span><span class="pill">🧭 動作矯正</span><span class="pill">🧘 姿勢與呼吸</span>
     </div>
   </div>
   <div class="card">
     <h2>邊啲情況啱？</h2>
     <p class="mut">肩頸腰背痛 · 舊患反覆 · 姿勢不良（圓肩寒背）· 動作代償 · 運動表現受限 · 想安全重新開始運動。</p>
-    <p class="mut" style="margin-top:8px">✔ 徒手評估揾出痛症根源（邊組肌肉「唔開工」、邊組過度代償）<br>✔ NKT／SCS 即場處理，重建正確發力<br>✔ 度身訓練建議，由根源改善、減少復發</p>
-    <button class="btn" style="margin-top:8px" onclick="renderForm()">開始預約看診 →</button>
+    <p class="mut" style="margin-top:8px"><b style="color:var(--teal-d)">NKT</b> 由神經層面揾出肌肉失衡嘅真正源頭　<b style="color:var(--teal-d)">SCS</b> 溫和放鬆繃緊肌肉、即場紓緩痛點　<b style="color:var(--teal-d)">DNS</b> 重建核心穩定與呼吸模式，改善姿勢與動作效率。</p>
+  </div>
+  <div class="card">
+    <h2>收費</h2>
+    <div class="fee">
+      <div class="fx"><b>${money(CFG.firstFee||600)}</b><span>首次看診（含詳細評估）</span></div>
+      <div class="fx"><b>${money(CFG.followupFee||700)}</b><span>其後每次</span></div>
+    </div>
+    <button class="btn" style="margin-top:14px" onclick="renderForm()">開始預約看診 →</button>
     <div style="text-align:center;margin-top:10px"><a class="wa" href="${WA}" target="_blank">或 WhatsApp 6331 7403 查詢</a></div>
     <div class="mut" style="text-align:center;margin-top:10px;font-size:12px">＊運動治療不能取代醫療診斷；如涉嚴重痛症或病理，請先求醫。</div>
   </div>`;
@@ -204,13 +207,12 @@ function toTerms(){
 }
 /* ═══ 步驟 2：條款 + 簽名 ═══ */
 function renderTerms(){
-  const notes=(CFG.notes||[]); const stmts=((CFG.terms&&CFG.terms.statements)||[]).slice(4)
-    .filter(s=>!/^接送及安全/.test(s)).map(s=>s.replace(/家長／監護人|家長/g,'本人').replace(/學員/g,'本人').replace(/小兒／小女|子女/g,'本人').replace(/本人本人/g,'本人'));
+  const notes=(CFG.notes||[]);   // 只用運動治療專屬條款（THERAPY_NOTES）；唔用課程通用條款（開班/補堂/服飾/器材等對看診完全不適用）。老闆 2026-09-23
   $('#app').innerHTML=`
   <div class="card">
     ${steps(2)}
     <h2>注意事項及條款</h2>
-    <div class="terms">${notes.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}${stmts.map((s,i)=>`<p><b>${notes.length+i+1}.</b> ${esc(s)}</p>`).join('')}</div>
+    <div class="terms">${notes.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div>
     <label class="chk ${S.agree?'on':''}"><input type="checkbox" id="t_agree" ${S.agree?'checked':''} onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>本人已閱讀並<b>同意以上注意事項及條款</b>，並明白運動治療不能取代醫療診斷。</span></label>
     <div class="fld"><label class="lb">英文全名 <span class="req">*</span> <span class="hint">Same as HKID／Passport</span></label><input id="t_en" type="text" placeholder="Chan Tai Man" value="${esc(S.signEn||'')}"></div>
     <div class="fld"><label class="lb">證件號碼首 4 位 <span class="req">*</span></label><input id="t_id" type="text" maxlength="8" placeholder="A123" value="${esc(S.signId||'')}"></div>

@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-23-adultterms';
+const FRONTEND_VERSION='enroll-2026-09-23-adultterms2';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1077,12 +1077,11 @@ function renderAdultTerms(){
   const adultize=s=>{
     s=s.replace(/家長／監護人|家長/g,'本人').replace(/學員/g,'本人').replace(/小兒／小女|子女/g,'本人').replace(/本人本人/g,'本人');
     if(/^服飾及出席規定/.test(s)) return '服飾及出席規定：上課請穿著合適運動服飾及運動鞋。若教練評估服飾可能增加受傷風險，有權拒絕該堂，該堂學費照扣。若預計遲到，請提前 WhatsApp 通知教練；遲到超過 15 分鐘或未能安排上堂，該堂學費照扣。';
-    if(/^暫停課堂安排/.test(s)) return '暫停課堂安排：本班為恆常訓練班。除因身體原因（須提供醫生證明供教練核實）外，恕不接受因私人原因而暫停課堂或暫緩繳費。成人班收費固定，暫停或退出後重新加入須按當時新收費計算。';
     if(/個人資料收集聲明（PDPO）/.test(s)) return '個人資料收集聲明（PDPO）：本機構收集你之個人資料（包括姓名、聯絡電話及電郵、證件號碼首 4 位、健康狀況、簽署及付款截圖），僅用於報名、編班、繳費核實、安全及通訊用途。資料會妥善保存，保留至課程完結後合理期間即予刪除，不會在未經同意下轉交無關第三方（法律要求者除外）。你有權要求查閱及更正，查詢可 WhatsApp 6331 7403。';
     return s;
   };
   const ops=_feeNotes.concat((t.statements||[]).slice(4)
-    .filter(s=>!/^接送及安全/.test(s) && !/^器材及裝束/.test(s))   // 成人：刪接送、刪「自備拍子繩／球拍」器材條
+    .filter(s=>!/^接送及安全/.test(s) && !/^器材及裝束/.test(s) && !/^暫停課堂安排/.test(s))   // 成人：刪接送、器材（拍子繩/球拍）、暫停課堂（老闆 2026-09-23 直接刪）
     .map(adultize));
   app.innerHTML=`
   <div class="card">
