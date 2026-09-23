@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-23-adultterms2';
+const FRONTEND_VERSION='enroll-2026-09-23-golive';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -539,6 +539,7 @@ function renderHome(){
     <button class="btn" id="hm_adult" style="margin-top:10px;background:#0f766e">成人課程報名 →</button>
     <button class="btn" id="hm_trial" style="margin-top:10px;background:var(--gold,#c79a3e);color:#241a02">🎟️ 新生試堂報名（先試一堂）</button>
     <button class="btn ghost" id="hm_pt" style="margin-top:10px">⭐ 私人訓練（1 對 1 度身訂造）</button>
+    <button class="btn ghost" id="hm_therapy" style="margin-top:10px">🩺 運動治療 · 痛症處理（預約看診）</button>
     <button class="btn ghost" id="hm_timetable" style="margin-top:10px">📅 課程時間表（2026–2027 學年）</button>
     <button class="btn ghost" id="hm_makeup" style="margin-top:10px">🗓 請假 / 補堂（自助辦理）</button>
     <button class="btn ghost" id="hm_gear" style="margin-top:10px">🛒 器材選購</button>
@@ -551,6 +552,7 @@ function renderHome(){
   document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
   document.getElementById('hm_gear').onclick=()=>renderGearStore();
   document.getElementById('hm_pt').onclick=()=>renderPtInfo();
+  document.getElementById('hm_therapy').onclick=()=>{ location.href='is-therapy-enroll.html'; };
   document.getElementById('hm_look').onclick=renderLogin;
 }
 // 📅 課程時間表（2026–2027 學年）。老闆 2026-08-26：喺報名系統加掣，一撳睇晒每週課堂。
