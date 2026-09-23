@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-21-adultwed';
+const FRONTEND_VERSION = 'coach-2026-09-23-rolledlast';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1501,7 +1501,8 @@ function renderHome(){
   try{ renderTodo(); }catch(e){ console.error('renderTodo',e); }
 
   const todayDow = hkDow();
-  const todayCls = sortedShownClasses_().filter(([id]) => anyDow(id) === todayDow);   // 🔀 有學生(夠人開班)+今日+時間序
+  const todayCls = sortedShownClasses_().filter(([id]) => anyDow(id) === todayDow)   // 🔀 有學生(夠人開班)+今日+時間序
+    .map((e,i)=>[e,i]).sort((a,b)=>(rolledToday_(a[0][0])-rolledToday_(b[0][0]))||(a[1]-b[1])).map(x=>x[0]);   // ✅ 已點名嘅班排去下面（老闆 2026-09-23），其餘保持時間序
   const todayWrap = document.getElementById('today-classes');
   todayWrap.innerHTML = todayCls.length
     ? todayCls.map(([id, cls]) => classRowHTML(id, cls)).join('')
@@ -2971,7 +2972,13 @@ async function loadDaily(){
     box.prepend(w);
   }
 }
+// ✅ 老闆 2026-09-23：當日已點名嘅班自動排去下面。「已點名」＝有正式學生被教練點咗「出席／缺席」
+//   （唔計家長預先請假、停課、豁免等預設狀態，否則未點名嘅班都會被當已點而沉底）。
+function rolledToday_(id){ const log=ATT_LOG[id+'|'+todayStr()]; if(!log) return 0;
+  const roster=new Set((anyClass(id)||{}).students||[]); return Object.keys(log).some(n=>roster.has(n)&&(log[n]==='present'||log[n]==='noshow'))?1:0; }
+function rolledGrp_(g){ return (g.rows||[]).some(x=>!x.makeup&&!x.summer&&!x.saGuest&&(x.status==='出席'||x.status==='缺席'))?1:0; }
 function renderDailyList(r, box){
+  if (r && Array.isArray(r.list)) r = Object.assign({}, r, { list: r.list.map((g,i)=>[g,i]).sort((a,b)=>(rolledGrp_(a[0])-rolledGrp_(b[0]))||(a[1]-b[1])).map(x=>x[0]) });   // 穩定排序：未點名在上、已點名在下
   if (!r.list || !r.list.length) {
     const d = new Date(coachDate + 'T00:00:00');
     box.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}（星期${'日一二三四五六'[d.getDay()]}）<br>當日冇班別上課</p></div>`;
