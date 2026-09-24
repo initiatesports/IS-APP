@@ -203,6 +203,42 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .rpt tr.net td{font-weight:900;font-size:17px;border-top:2px solid var(--border2);border-bottom:none;padding-top:11px}
 .mut{color:var(--muted)}
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* 頂部橫向 nav（desktop 用；mobile 隱藏，改用底部 tab bar） */
+.topnav{display:none}
+.topbar-sp{display:none}
+.topnav button{background:none;border:none;color:var(--ink2);font-family:inherit;font-size:14px;font-weight:700;padding:9px 13px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.topnav button:hover{background:var(--surface2);color:var(--ink)}
+.topnav button.on{background:var(--teal-dim);color:var(--teal)}
+.topnav .ti{font-size:15px}
+/* dashboard 多欄容器（desktop 生效；mobile 為單欄 block，維持原順序原間距） */
+.dash-top,.dash-grid{display:block}
+/* ─────────── DESKTOP ≥1024px：善用闊芒、頂部 nav、表格 ─────────── */
+@media(min-width:1024px){
+  :root{--nav-h:0px}
+  body{padding-bottom:40px}
+  .tabbar{display:none!important}
+  .top h1{flex:none}
+  .topnav{display:flex;gap:2px;margin-left:10px}
+  .topbar-sp{display:block;flex:1}
+  .fab{bottom:26px;right:26px}
+  .scope.sticky{top:57px}
+  /* Hero + 現金跑道 並排 */
+  .dash-top{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;margin-bottom:16px}
+  .dash-top>.hero,.dash-top>.card{margin-bottom:0;height:100%}
+  .hero{padding:22px 24px}
+  .hero-net{font-size:46px}
+  .hero-r svg{width:190px;height:88px}
+  .hero-r .mut{font-size:12px}
+  /* 分析區 2 欄 dashboard grid，闊卡 span 2 */
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;grid-auto-flow:row dense}
+  .dash-grid>.card{margin-bottom:0}
+  .dash-grid>.span2{grid-column:1 / -1}
+  .kpis{margin-bottom:16px}
+}
+@media(min-width:1280px){
+  .dash-grid{grid-template-columns:1fr 1fr 1fr}
+  .dash-grid>.span2{grid-column:span 2}
+}
 @media print{ .noprint,.fab,.tabbar{display:none!important} body{background:#fff;color:#000;padding:0} .wrap{max-width:100%} .card{border:1px solid #ccc;box-shadow:none;background:#fff;color:#000;break-inside:avoid} .card h3,.rpt td,.rpthead{color:#000} .rpt tr.tot td{background:#f2f2f2} .pos{color:#0a7a4a!important}.neg{color:#c0392b!important} }
 </style>
 </head>
@@ -239,8 +275,20 @@ function bucketsInRange(a,b,gran){ const out=[], d=new Date(a+'T00:00:00Z'), end
 /* 按 gran 分桶彙總（收入/支出逐筆按日期；場租按期攤落該期嘅桶）*/
 function aggregateGran(gran){
   const B={}; const mk=k=>{ if(!B[k]) B[k]={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}}; return B[k]; };
-  (DATA.income||[]).forEach(r=>{ const k=bucketOf(r.date,gran); if(!k) return; const o=mk(k);
-    if(r.status==='已收') o.inPaid+=r.amt; else o.inDue+=r.amt; o.catIn[r.cat]=(o.catIn[r.cat]||0)+r.amt; });
+  (DATA.income||[]).forEach(r=>{
+    // 🔒 老闆 2026-09-24：報名課程學費係報名時(8月)一次過預繳成個 9-10 月課程 → 收入按【課程期數嘅月份】攤分
+    //   （同場租攤分同一機制），令月度/趨勢/本月睇到嗰期課程收入，唔會全部谷落繳費嗰個月。
+    //   只攤報名課程收入(src=EN…)；私訓逐節/私訓套票/器材店訂單/手動收入維持按實際日期。總額不變。
+    const enrollRng = /^EN/.test(String(r.src||'')) ? periodRange(r.period) : null;
+    const enrollBks = enrollRng ? bucketsInRange(enrollRng[0], enrollRng[1], gran) : null;
+    if(enrollBks && enrollBks.length){
+      const each=r.amt/enrollBks.length;
+      enrollBks.forEach(k=>{ const o=mk(k); if(r.status==='已收') o.inPaid+=each; else o.inDue+=each; o.catIn[r.cat]=(o.catIn[r.cat]||0)+each; });
+    } else {
+      const k=bucketOf(r.date,gran); if(!k) return; const o=mk(k);
+      if(r.status==='已收') o.inPaid+=r.amt; else o.inDue+=r.amt; o.catIn[r.cat]=(o.catIn[r.cat]||0)+r.amt;
+    }
+  });
   (DATA.expense||[]).forEach(r=>{ const k=bucketOf(r.date,gran); if(!k) return; const o=mk(k);
     o.exp+=r.amt; o.catEx[r.cat]=(o.catEx[r.cat]||0)+r.amt; });
   Object.keys(DATA.venueByPeriod||{}).forEach(p=>{ const rent=DATA.venueByPeriod[p]||0; if(!rent) return;
@@ -310,14 +358,18 @@ function catBars(obj,color){
 }
 
 /* ── shell：頂欄 / 底 tab / 選單 ── */
+const NAV_ITEMS=[['dash','📊','概覽'],['ledger','🧾','賬目'],['report','📈','報表'],['settings','⚙️','設定']];
+function navItems(kind){ return NAV_ITEMS.map(([v,i,l])=>`<button class="${VIEW===v?'on':''}" onclick="closeMenu();VIEW='${v}';renderApp()">${kind==='bottom'?`<span class="i">${i}</span>`:`<span class="ti">${i}</span>`}${l}</button>`).join(''); }
 function topBar(title, extra){ return `<div class="top noprint"><div class="wrap">
     <h1>📊 INITIATE <span>${esc(title)}</span></h1>
+    <nav class="topnav">${navItems('top')}</nav>
+    <span class="topbar-sp"></span>
     ${extra||''}
     <button class="tbtn" id="rfbtn" onclick="refresh()" title="刷新">↻</button>
     <button class="tbtn" onclick="toggleMenu(event)" title="更多">⋯</button>
   </div></div>`; }
-function navHtml(){ const t=(v,i,l)=>`<button class="${VIEW===v?'on':''}" onclick="closeMenu();VIEW='${v}';renderApp()"><span class="i">${i}</span>${l}</button>`;
-  return `<div class="tabbar noprint">${t('dash','📊','概覽')}${t('ledger','🧾','賬目')}${t('report','📈','報表')}${t('settings','⚙️','設定')}</div>`; }
+function navHtml(){ return `<div class="tabbar noprint">${navItems('bottom')}</div>`; }
+function isWide(){ try{ return !!(typeof window!=='undefined' && window.matchMedia && window.matchMedia('(min-width:1024px)').matches); }catch(e){ return false; } }
 function toggleMenu(e){ if(e&&e.stopPropagation) e.stopPropagation();
   if($('acmenu')){ closeMenu(); return; }
   const m=document.createElement('div'); m.id='acmenu'; m.className='menu';
@@ -416,37 +468,27 @@ function renderDash(){
   // 生意健康帶 + 自動總結
   html+=healthBand(monthB,curMonth,curYear);
 
-  // Hero：本期淨利
-  html+=`<div class="hero"><div class="hero-l">
+  // Hero + 現金跑道（desktop 並排 2 欄；mobile 上下疊）
+  html+=`<div class="dash-top"><div class="hero"><div class="hero-l">
     <div class="hero-lab">${esc(scopeLabel)} 淨利（已收 − 支出）</div>
     <div class="hero-net ${net>=0?'pos':'neg'} num">${fmt0(net)}</div>
     <div class="hero-sub"><span class="pos">↑收入 ${fmt0(S.inPaid)}</span><span class="neg">↓支出 ${fmt0(S.exp)}</span></div>
     ${S.inDue>0?`<div class="hero-note">連待收 ${fmt0(S.inDue)}，全收後預計 ${fmt0(netFull)}</div>`:''}
-  </div><div class="hero-r">${sparkline(monthB,6)}</div></div>`;
+  </div><div class="hero-r">${sparkline(monthB,6)}</div></div>${cashRunwayCard(monthB)}</div>`;
 
-  // 現金跑道
-  html+=cashRunwayCard(monthB);
-  // KPI（環比 MoM）
+  // KPI（環比 MoM，4 張一行）
   html+=kpiCard(monthB,curYear);
-  // 洞察（含前端計算）
+
+  // 分析區（desktop 2 欄 dashboard grid；mobile 維持單欄同原順序）
+  html+=`<div class="dash-grid">`;
   html+=insightsCard(buildInsights(monthB,curMonth));
-  // 應收
   html+=receivablesCard();
-  // 趨勢
-  html+=`<div class="card"><h3>📈 ${SCOPE==='week'?'週度':'月度'}趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trend}</div>`;
-  // 分類
-  html+=`<div class="grid2">
-    <div class="card"><h3>💰 收入分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catIn,'linear-gradient(90deg,#2fb9c9,#1b8d9b)')}</div>
-    <div class="card"><h3>🧾 支出分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catEx,'linear-gradient(90deg,#ff6b6b,#c0392b)')}</div>
-  </div>`;
-  // 逐班盈虧（卡片 + 回本人數）
-  html+=`<div class="card"><h3>🏫 逐班盈虧<span class="tag">本報名期 · 含回本人數</span></h3>${pnlCards()}</div>`;
-  // 私訓
+  html+=`<div class="card span2"><h3>📈 ${SCOPE==='week'?'週度':'月度'}趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trend}</div>`;
+  html+=`<div class="card"><h3>💰 收入分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catIn,'linear-gradient(90deg,#2fb9c9,#1b8d9b)')}</div>`;
+  html+=`<div class="card"><h3>🧾 支出分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catEx,'linear-gradient(90deg,#ff6b6b,#c0392b)')}</div>`;
+  html+=`<div class="card span2"><h3>🏫 逐班盈虧<span class="tag">本報名期 · 含回本人數</span></h3>${pnlCards()}</div>`;
   html+=ptCards();
-  // 家庭 LTV
-  html+=`<div class="card"><h3>👨‍👩‍👧 家庭價值 LTV<span class="tag">累計已收</span></h3>${ltvCards()}</div>`;
-  // 續報率
-  html+=renewalCard();
+  html+=`</div>`;
 
   html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細帶入。<br>場租＝康文署費率自動計；每晚 23:00 自動刷新。撳右下角 ＋ 即可 in-app 記賬。</div></div>`;
   $('app').innerHTML=html+fabHtml()+navHtml();
@@ -457,9 +499,6 @@ function healthBand(monthB,curMonth,curYear){
   const pnlLoss=(DATA.classPnL||[]).slice(1).filter(r=>(+r[6]||0)<0); const lossTot=pnlLoss.reduce((a,r)=>a+(+r[6]||0),0);
   const cash=+DATA.cashBalance||0, avgExp=avgMonthlyExp(monthB,curMonth,3);
   const runway=cash>0?(avgExp>0?cash/avgExp:99):null;
-  const fam=(DATA.familyLTV||[]).slice(1);
-  const renewed=fam.filter(r=>/已續/.test(String(r[3]))).length, notR=fam.filter(r=>/未續/.test(String(r[3]))).length;
-  const rrate=(renewed+notR)>0?renewed/(renewed+notR)*100:null;
   const DOT={g:'var(--green)',a:'var(--amber)',r:'var(--red)'};
   const chips=[
     {e:'💰',l:'本月淨利',v:fmt0(thisNet),d:thisNet>=0?'g':'r'},
@@ -467,14 +506,12 @@ function healthBand(monthB,curMonth,curYear){
     {e:'📥',l:'應收未收',v:fmt0(dueTotal),d:dueTotal>0?'a':'g'},
     {e:'📉',l:'蝕本班',v:pnlLoss.length+'班',d:pnlLoss.length>0?'r':'g'}
   ];
-  if(rrate!=null) chips.push({e:'🔁',l:'續報率',v:Math.round(rrate)+'%',d:rrate>=70?'g':(rrate>=50?'a':'r')});
   const band=`<div class="health">${chips.map(c=>`<div class="hchip"><div class="hl"><span class="dot" style="background:${DOT[c.d]}"></span>${c.e} ${esc(c.l)}</div><div class="hv num" style="color:${c.d==='r'?'var(--red)':(c.d==='a'?'var(--amber)':'var(--ink)')}">${esc(String(c.v))}</div></div>`).join('')}</div>`;
   const light=thisNet<0?'🔴 紅燈':(pnlLoss.length===0?'🟢 綠燈':'🟡 黃燈');
   let parts=[`本月${light}`];
   if(pnlLoss.length) parts.push(`${pnlLoss.length} 班蝕錢（${fmt0(lossTot)}）要跟`);
   if(dueTotal>0) parts.push(`應收 ${fmt0(dueTotal)} 待收`);
   if(runway!=null&&runway<3) parts.push(`現金跑道僅 ${runway.toFixed(1)} 個月`);
-  if(rrate!=null&&rrate<50) parts.push(`續報率偏低 ${Math.round(rrate)}%`);
   return band+`<div class="summary">${parts.join('；')}。</div>`;
 }
 function cashRunwayCard(monthB){
@@ -541,43 +578,38 @@ function receivablesCard(){
   return `<div class="card"><h3>📥 應收（未收）<span class="tag">共 ${fmt0(tot)}</span></h3>
     ${rows.slice(0,25).map(([n,v])=>`<div class="mrow"><div class="l"><div class="t">${esc(n)}</div></div><div class="r"><div class="num" style="font-weight:800;color:var(--amber)">${fmt0(v)}</div></div></div>`).join('')}</div>`;
 }
+function pnlRow_(r){ const name=r[1], time=r[2], hc=+r[3]||0, tui=+r[4]||0, rent=+r[5]||0, net=+r[6]||0;
+  const per=hc>0?tui/hc:0, be=per>0?Math.ceil(rent/per):0, gap=be-hc;
+  return {name,time,hc,tui,rent,net,per,be,gap}; }
 function pnlCards(){
   const p=DATA.classPnL||[]; if(p.length<2) return '<div class="empty">未有已核實報名</div>';
-  return p.slice(1).map(r=>{
-    const name=r[1], time=r[2], hc=+r[3]||0, tui=+r[4]||0, rent=+r[5]||0, net=+r[6]||0;
-    const per=hc>0?tui/hc:0, be=per>0?Math.ceil(rent/per):0, gap=be-hc;
-    let beTxt;
-    if(per<=0) beTxt='—（未有學費資料）';
-    else if(gap>0) beTxt=`⚠️ 回本需 ${be} 人，尚差 ${gap} 人`;
-    else beTxt=`✅ 已回本（${be} 人回本，現多 ${-gap} 人）`;
+  const rows=p.slice(1).map(pnlRow_);
+  if(isWide()){  // desktop：表格（密、一眼多資料）
+    return `<div class="tbl-scroll"><table><thead><tr><th>班別</th><th class="n">人數</th><th class="n">學費</th><th class="n">場租</th><th class="n">淨利</th><th class="n">回本人數</th><th>狀態</th></tr></thead><tbody>`+
+      rows.map(x=>{ const beTxt = x.per<=0?'—':(x.gap>0?`${x.be} 人（差 ${x.gap}）`:`✅ ${x.be} 人`);
+        return `<tr><td>${esc(x.name)}<div class="mut" style="font-size:11px">${esc(x.time)}</div></td><td class="n">${x.hc}</td><td class="n">${fmt0(x.tui)}</td><td class="n neg">${fmt0(x.rent)}</td><td class="n ${x.net>=0?'pos':'neg'}" style="font-weight:800">${fmt0(x.net)}</td><td class="n ${x.gap>0?'neg':'pos'}">${beTxt}</td><td>${x.net>=0?'<span class="pill g">賺</span>':'<span class="pill r">蝕</span>'}</td></tr>`; }).join('')+
+      `</tbody></table></div>`;
+  }
+  return rows.map(x=>{ let beTxt;
+    if(x.per<=0) beTxt='—（未有學費資料）';
+    else if(x.gap>0) beTxt=`⚠️ 回本需 ${x.be} 人，尚差 ${x.gap} 人`;
+    else beTxt=`✅ 已回本（${x.be} 人回本，現多 ${-x.gap} 人）`;
     return `<div class="pnl-card"><div class="pnl-top">
-      <div class="pnl-name">${esc(name)}<div class="pnl-time">${esc(time)}</div></div>
-      <div class="pnl-net ${net>=0?'pos':'neg'} num">${fmt0(net)}<span class="pill ${net>=0?'g':'r'}">${net>=0?'賺':'蝕'}</span></div></div>
-      <div class="pnl-meta"><span>👥 ${hc} 人</span><span>學費 ${fmt0(tui)}</span><span class="neg">場租 ${fmt0(rent)}</span></div>
-      <div class="pnl-be ${gap>0?'neg':'pos'}">${beTxt}</div></div>`;
+      <div class="pnl-name">${esc(x.name)}<div class="pnl-time">${esc(x.time)}</div></div>
+      <div class="pnl-net ${x.net>=0?'pos':'neg'} num">${fmt0(x.net)}<span class="pill ${x.net>=0?'g':'r'}">${x.net>=0?'賺':'蝕'}</span></div></div>
+      <div class="pnl-meta"><span>👥 ${x.hc} 人</span><span>學費 ${fmt0(x.tui)}</span><span class="neg">場租 ${fmt0(x.rent)}</span></div>
+      <div class="pnl-be ${x.gap>0?'neg':'pos'}">${beTxt}</div></div>`;
   }).join('');
 }
 function ptCards(){
   const inc=(DATA.income||[]).filter(r=>r.cat==='私訓'||r.cat==='私訓套票'); if(!inc.length) return '';
   const pkg=inc.filter(r=>r.cat==='私訓套票'), sess=inc.filter(r=>r.cat==='私訓');
   const pkgT=pkg.reduce((a,r)=>a+r.amt,0), sessPaid=sess.filter(r=>r.status==='已收').reduce((a,r)=>a+r.amt,0), sessDue=sess.filter(r=>r.status!=='已收').reduce((a,r)=>a+r.amt,0);
-  const rows=inc.slice().sort((a,b)=>(b.date||'')<(a.date||'')?-1:1).slice(0,30).map(r=>`<div class="mrow"><div class="l"><div class="t">${esc(r.name||'—')}</div><div class="s">${dmy(r.date)} · ${esc(r.desc||r.cat)}</div></div><div class="r"><div class="num" style="font-weight:800">${fmt0(r.amt)}</div>${r.status==='已收'?'<span class="pill g">已收</span>':'<span class="pill a">待收</span>'}</div></div>`).join('');
-  return `<div class="card"><h3>⭐ 私人訓練<span class="tag">套票 ${fmt0(pkgT)} · 已收 ${fmt0(sessPaid)}${sessDue?(' · 待收 '+fmt0(sessDue)):''}</span></h3>${rows}</div>`;
-}
-function ltvCards(){
-  const l=(DATA.familyLTV||[]).slice(1).slice(0,15); if(!l.length) return '<div class="empty">未有數據</div>';
-  return l.map(r=>`<div class="mrow"><div class="l"><div class="t">${esc(r[1])}</div><div class="s">報名 ${esc(String(r[2]))} 期${r[3]?(' · '+esc(String(r[3]))):''}</div></div><div class="r"><div class="num" style="font-weight:800;color:var(--gold)">${fmt0(r[4])}</div></div></div>`).join('');
-}
-function renewalCard(){
-  const fam=(DATA.familyLTV||[]).slice(1); if(!fam.length) return '';
-  const renewed=fam.filter(r=>/已續/.test(String(r[3]))).length;
-  const notRenewed=fam.filter(r=>/未續/.test(String(r[3])));
-  const dueCnt=renewed+notRenewed.length; if(!dueCnt) return '';
-  const rate=Math.round(renewed/dueCnt*100), col=rate>=70?'var(--green)':(rate>=50?'var(--amber)':'var(--red)');
-  const list=notRenewed.filter(r=>/高價值/.test(String(r[3])));
-  return `<div class="card"><h3>🔁 續報率<span class="tag">本期</span></h3>
-    <div class="runway-big" style="color:${col}">${rate}% <small>${renewed}/${dueCnt} 已續</small></div>
-    ${list.length?`<div class="mut" style="font-size:12px;margin:10px 0 6px">🔴 高價值未續（優先跟進）</div>${list.map(r=>`<div class="renew-row"><span>${esc(r[1])}</span><span class="num" style="color:var(--gold);font-weight:800">${fmt0(r[4])}</span></div>`).join('')}`:'<div class="mut" style="font-size:12px;margin-top:8px">未見高價值未續，做得好 👍</div>'}</div>`;
+  const list=inc.slice().sort((a,b)=>(b.date||'')<(a.date||'')?-1:1).slice(0,30);
+  const body = isWide()
+    ? `<div class="tbl-scroll"><table><thead><tr><th>日期</th><th>學員</th><th>項目</th><th class="n">金額</th><th>狀態</th></tr></thead><tbody>`+list.map(r=>`<tr><td>${dmy(r.date)}</td><td>${esc(r.name||'—')}</td><td>${esc(r.desc||r.cat)}</td><td class="n" style="font-weight:700">${fmt0(r.amt)}</td><td>${r.status==='已收'?'<span class="pill g">已收</span>':'<span class="pill a">待收</span>'}</td></tr>`).join('')+`</tbody></table></div>`
+    : list.map(r=>`<div class="mrow"><div class="l"><div class="t">${esc(r.name||'—')}</div><div class="s">${dmy(r.date)} · ${esc(r.desc||r.cat)}</div></div><div class="r"><div class="num" style="font-weight:800">${fmt0(r.amt)}</div>${r.status==='已收'?'<span class="pill g">已收</span>':'<span class="pill a">待收</span>'}</div></div>`).join('');
+  return `<div class="card"><h3>⭐ 私人訓練<span class="tag">套票 ${fmt0(pkgT)} · 已收 ${fmt0(sessPaid)}${sessDue?(' · 待收 '+fmt0(sessDue)):''}</span></h3>${body}</div>`;
 }
 function sportTimeslotCard(){
   const pnl=(DATA.classPnL||[]).slice(1); if(!pnl.length) return '';
@@ -808,6 +840,9 @@ function logout(){ FP=''; DATA=null; VIEW='dash'; try{ sessionStorage.removeItem
 (function(){ let p=''; try{ p=sessionStorage.getItem('acct_fp')||''; }catch(e){}
   if(p){ FP=p; renderLogin('載入中…'); fetchData(p).then(r=>{ if(r&&r.ok){ DATA=r; renderApp(); } else renderLogin(''); }); }
   else renderLogin('');
+  // 過 1024px 斷點時重繪（換頂部/底部 nav、卡片⇄表格），避免手機↔電腦切換時佈局唔跟
+  try{ const mq=window.matchMedia('(min-width:1024px)'); const onmq=()=>{ if(DATA) renderApp(); };
+    if(mq.addEventListener) mq.addEventListener('change',onmq); else if(mq.addListener) mq.addListener(onmq); }catch(e){}
 })();
 </script>
 </body>
