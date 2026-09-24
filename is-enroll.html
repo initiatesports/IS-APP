@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-23-golive';
+const FRONTEND_VERSION='enroll-2026-09-24-badminton-no-uniform';
 const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1221,7 +1221,7 @@ function renderWeather(){ flowStep("renderWeather");
     </div>
     <div class="banner" style="margin-top:12px;background:#fdecea;border-color:var(--err);color:var(--err)">⚠️ 所有因惡劣天氣而取消之課堂，將<b>不獲補課或退款</b>，導師會因應情況調節課程進度。</div>
     <p class="hint" style="margin-top:10px">＊熱帶氣旋警告懸掛期間或天氣惡劣時，家長應視乎情況決定是否讓子女上課，安全第一。</p>
-    <div class="navbtns" style="margin-top:14px"><button class="btn ghost sm" onclick="renderUniform()">‹ 返回</button><button class="btn" onclick="renderMakeupInfo(true)">下一步 →</button></div>
+    <div class="navbtns" style="margin-top:14px"><button class="btn ghost sm" onclick="${orderNeedsUniform()?'renderUniform':'renderProfileScreen'}()">‹ 返回</button><button class="btn" onclick="renderMakeupInfo(true)">下一步 →</button></div>
   </div>`;
   window.scrollTo(0,0);
 }
@@ -1547,7 +1547,15 @@ function uShort(){ const v=S.uniform&&S.uniform.opt; return v===3?'制服＋速�
 function uniformCost(){ return (S.uniform&&S.uniform.cost)||0; }
 function setUOpt(v){ const o=UNIFORM_OPTS.find(x=>x.v===v); S.uniform={opt:v,cost:o.cost,size:(v===1?'':(S.uniform&&S.uniform.size)||'')}; renderUniform(); }
 function setUSize(s){ S.uniform=S.uniform||{}; S.uniform.size=s; renderUniform(); }
+/* 制服適用性：一張單只要有任何非羽毛球課程就要制服（全會服，混合單保留）；純羽毛球單唔用。老闆 2026-09-24。
+   同後端 enrollNeedUniform_ 同一規矩。用 sport 開頭「羽毛球」判斷（config 冇送 eng）。 */
+function orderNeedsUniform(){
+  const picked=(S.cfg&&S.cfg.courses||[]).filter(c=>(S.courses||[]).indexOf(c.id)>=0);
+  if(!picked.length) return true;   // 未揀／認唔到 → 保守當要
+  return picked.some(c=> !/羽毛球/.test(String(c.sport||'')));
+}
 function renderUniform(){ flowStep("renderUniform");
+  if(!orderNeedsUniform()){ S.uniform={opt:0,cost:0,size:''}; saveDraft(); renderWeather(); return; }   // 純羽毛球單：唔用制服，跳過整步
   if(!S.uniform) S.uniform={opt:(S.isNew?2:0),cost:(S.isNew?180:0),size:''};
   const _isOld=!!(S.family&&S.family.isOld);   // 只買上衣／短褲＝舊生補件專屬（老闆 2026-08-16）；新生一定買整套或已有
   const opts=UNIFORM_OPTS.filter(o=> !o.oldOnly || _isOld);
@@ -1711,7 +1719,8 @@ async function renderFee(){ flowStep("renderFee");
 }
 /* ════ ⑤B 課程注意事項（家長逐項閱讀及同意；合約 PDF 會列明）════ */
 function renderNotes(){ flowStep("renderNotes");
-  const common=S.cfg.commonNotes||[];
+  let common=(S.cfg.commonNotes||[]).slice();
+  if(!orderNeedsUniform()&&S.cfg.dressPlainNote) common=common.map(s=> /INITIATE SPORTS 制服/.test(s) ? S.cfg.dressPlainNote : s);   // 純羽毛球單：唔逼制服
   const picked=(S.cfg.courses||[]).filter(c=>S.courses.indexOf(c.id)>=0);
   const seen={}, blocks=[];
   const _isOld=!!(S.family&&S.family.isOld);
@@ -1758,7 +1767,8 @@ function renderTerms(){ flowStep("renderTerms");
   const pf=S.profile||{};
   const sEn=esc(S.signEn||pf['簽署人英文名']||'');   // 唔預填學生英文名，聲明人應為家長本人
   const sId=esc(S.signId||pf['證件首4']||'');
-  const st=t.statements||[];
+  let st=(t.statements||[]).slice();
+  if(!orderNeedsUniform()&&S.cfg.dressPlainTerm) st=st.map(s=> /INITIATE SPORTS 訓練服/.test(s) ? S.cfg.dressPlainTerm : s);   // 純羽毛球單：服飾條款唔逼制服
   const consents=st.slice(0,4);   // 健康聲明／拍攝公開／私隱／資料屬實
   const ops=st.slice(4);          // 營運條款（成班／退款／請假補堂／天氣／場地／服飾／器材／暫停／接送／風險／PDPO 等）
   // 拍攝及公開＝選擇性同意（PCPD：同意須自願，不影響報名）；其餘 3 項（健康／私隱／資料屬實）維持必剔
