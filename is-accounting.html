@@ -4,33 +4,38 @@
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>INITIATE 會計儀表盤</title>
+<title>INITIATE 會計</title>
 <style>
 :root{
   --bg:#0f1720; --surface:#18222e; --surface2:#1f2b39; --border:#2a3a4d; --border2:#35485e;
   --ink:#eef3f8; --ink2:#aebccb; --muted:#7d8ea0;
-  --teal:#2fb9c9; --teal-d:#1b8d9b; --navy:#25384d;
+  --teal:#2fb9c9; --teal-d:#1b8d9b; --teal-dim:rgba(47,185,201,.16); --navy:#25384d;
   --green:#3fcf8e; --green-dim:rgba(63,207,142,.14);
   --red:#ff6b6b; --red-dim:rgba(255,107,107,.14);
   --amber:#f5c451; --amber-dim:rgba(245,196,81,.14);
   --purple:#a78bfa; --gold:#e6b84c;
   --r:15px; --r-sm:11px;
+  --nav-h:60px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang HK","Noto Sans HK","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-body{min-height:100vh;padding-bottom:40px}
+body{min-height:100vh;padding-bottom:calc(var(--nav-h) + 26px + env(safe-area-inset-bottom,0px))}
 .wrap{max-width:1120px;margin:0 auto;padding:0 16px}
 a{color:var(--teal)}
 .num{font-variant-numeric:tabular-nums}
 /* header */
-.top{position:sticky;top:0;z-index:20;background:rgba(15,23,32,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:13px 0}
-.top .wrap{display:flex;align-items:center;gap:12px}
-.top h1{font-size:17px;font-weight:800;letter-spacing:.2px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top{position:sticky;top:0;z-index:20;background:rgba(15,23,32,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:12px 0}
+.top .wrap{display:flex;align-items:center;gap:10px}
+.top h1{font-size:16px;font-weight:800;letter-spacing:.2px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top h1 span{color:var(--teal)}
-.tbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--ink2);border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.tbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--ink2);border-radius:10px;min-width:40px;min-height:40px;padding:8px 11px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px}
 .tbtn:hover{border-color:var(--teal);color:var(--ink)}
+/* menu dropdown */
+.menu{position:fixed;top:54px;right:14px;z-index:70;background:var(--surface2);border:1px solid var(--border2);border-radius:13px;padding:6px;display:flex;flex-direction:column;min-width:190px;box-shadow:0 14px 36px rgba(0,0,0,.55)}
+.menu a,.menu button{background:none;border:none;color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;text-align:left;padding:12px 12px;border-radius:9px;cursor:pointer;text-decoration:none;display:block}
+.menu a:hover,.menu button:hover{background:var(--surface)}
 /* login */
 .login{max-width:360px;margin:16vh auto 0;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px 26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .login .logo{font-size:34px;margin-bottom:6px}
@@ -38,20 +43,38 @@ a{color:var(--teal)}
 .login p{color:var(--muted);font-size:13px;margin-bottom:20px}
 .login input{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:11px;padding:13px 14px;font-size:16px;text-align:center;letter-spacing:.15em;font-family:inherit;outline:none}
 .login input:focus{border-color:var(--teal)}
-.login button{width:100%;margin-top:12px;background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.login button{width:100%;margin-top:12px;background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
 .login .err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px}
-/* scope tabs */
-.scope{display:flex;gap:8px;margin:18px 0 14px;flex-wrap:wrap;align-items:center}
-.chip{background:var(--surface);border:1.5px solid var(--border2);color:var(--ink2);border-radius:20px;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+/* scope tabs (sticky) */
+.scope{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.scope.sticky{position:sticky;top:45px;z-index:14;background:var(--bg);margin:0 -16px 12px;padding:12px 16px 10px;border-bottom:1px solid var(--border)}
+.chip{background:var(--surface);border:1.5px solid var(--border2);color:var(--ink2);border-radius:20px;padding:9px 15px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;min-height:40px}
 .chip.on{background:var(--teal);border-color:var(--teal);color:#04252a}
-.scope select{background:var(--surface);border:1.5px solid var(--border2);color:var(--ink);border-radius:20px;padding:8px 14px;font-size:13.5px;font-weight:700;font-family:inherit;outline:none}
+.scope select{background:var(--surface);border:1.5px solid var(--border2);color:var(--ink);border-radius:20px;padding:9px 14px;font-size:13.5px;font-weight:700;font-family:inherit;outline:none;min-height:40px}
 .scope .sp{flex:1}
+/* health band */
+.health{display:flex;gap:8px;overflow-x:auto;padding:2px 0 5px;margin:2px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.health::-webkit-scrollbar{display:none}
+.hchip{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:9px 13px;min-width:104px}
+.hchip .hl{font-size:10.5px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.hchip .hl .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.hchip .hv{font-size:16px;font-weight:900;margin-top:4px;white-space:nowrap}
+.summary{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;font-size:13px;font-weight:700;color:var(--ink);margin-bottom:16px;line-height:1.55}
+/* hero */
+.hero{background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--border2);border-radius:var(--r);padding:18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.hero-l{min-width:0}
+.hero-lab{font-size:12px;color:var(--muted);font-weight:700}
+.hero-net{font-size:40px;font-weight:900;letter-spacing:-1.5px;line-height:1.05;margin:4px 0 7px}
+.hero-net.pos{color:var(--green)} .hero-net.neg{color:var(--red)}
+.hero-sub{font-size:13px;font-weight:800;display:flex;gap:12px;flex-wrap:wrap}
+.hero-note{font-size:11.5px;color:var(--muted);margin-top:7px}
+.hero-r{flex:none}
 /* KPI */
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 @media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden}
 .kpi .lab{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px}
-.kpi .val{font-size:26px;font-weight:900;letter-spacing:-.5px;line-height:1}
+.kpi .val{font-size:24px;font-weight:900;letter-spacing:-.5px;line-height:1}
 .kpi .val small{font-size:15px;font-weight:800;color:var(--muted)}
 .kpi .sub{font-size:11.5px;color:var(--ink2);margin-top:7px}
 .kpi.pos .val{color:var(--green)} .kpi.neg .val{color:var(--red)}
@@ -59,9 +82,21 @@ a{color:var(--teal)}
 /* card */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:17px 18px;margin-bottom:16px}
 .card h3{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.card h3 .tag{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted)}
+.card h3 .tag{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);text-align:right}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+/* cash runway */
+.runway-big{font-size:34px;font-weight:900;letter-spacing:-1px;margin:2px 0 10px}
+.runway-big small{font-size:15px;color:var(--muted);font-weight:800}
+.runway-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:10px}
+.runway-set{display:flex;align-items:center;gap:13px;cursor:pointer}
+.rset-ic{font-size:26px;flex:none}
+.rset-t{font-size:14.5px;font-weight:800}
+.rset-s{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.rset-arrow{margin-left:auto;font-size:24px;color:var(--muted);flex:none}
+.renew-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.renew-row:last-child{border-bottom:none}
+.linkbtn{background:none;border:none;color:var(--teal);font-weight:800;font-family:inherit;cursor:pointer;font-size:12px;padding:3px 4px}
 /* table */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;color:var(--muted);font-size:11.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--border)}
@@ -71,9 +106,25 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
 .pill.g{background:var(--green-dim);color:var(--green)} .pill.r{background:var(--red-dim);color:var(--red)} .pill.a{background:var(--amber-dim);color:var(--amber)}
+/* per-class P&L cards */
+.pnl-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:10px}
+.pnl-card:last-child{margin-bottom:0}
+.pnl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pnl-name{font-size:14px;font-weight:800;min-width:0}
+.pnl-time{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px}
+.pnl-net{font-size:21px;font-weight:900;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.pnl-net.pos{color:var(--green)} .pnl-net.neg{color:var(--red)}
+.pnl-meta{display:flex;gap:13px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:10px}
+.pnl-be{font-size:12px;font-weight:700;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border)}
+/* mini rows (PT / LTV) */
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 12px;margin-bottom:8px}
+.mrow:last-child{margin-bottom:0}
+.mrow .l{min-width:0}
+.mrow .l .t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .l .s{font-size:11px;color:var(--muted);margin-top:2px}
+.mrow .r{text-align:right;white-space:nowrap}
 /* chart */
-.chart-wrap{overflow-x:auto}
-.legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink2);margin-top:6px;flex-wrap:wrap}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink2);margin-top:8px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
 .catrow{display:flex;align-items:center;gap:10px;padding:6px 0}
 .catrow .nm{width:96px;font-size:12.5px;color:var(--ink2);flex:none}
@@ -82,42 +133,56 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .catrow .amt{width:74px;text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
 .empty{color:var(--muted);text-align:center;padding:26px;font-size:13px}
 .foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:18px;line-height:1.7}
-.fin{background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit;outline:none}
+.fin{background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:9px;padding:10px 11px;font-size:14px;font-family:inherit;outline:none}
 .fin:focus{border-color:var(--teal)}
-.vd{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px}
+.vd{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:6px}
 .vd:hover{color:var(--red)}
+.voidbtn{background:var(--red-dim);border:1px solid rgba(255,107,107,.4);color:var(--red);border-radius:9px;font-size:12px;font-weight:800;padding:0 12px;font-family:inherit;cursor:pointer;min-height:40px;min-width:44px}
+.voidbtn:active{transform:scale(.95)}
 .bar-mini{height:6px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:4px}
 .bar-mini>i{display:block;height:100%;border-radius:4px}
 .spin{display:inline-block;width:15px;height:15px;border:2px solid var(--border2);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* bottom tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(15,23,32,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar button{flex:1;background:none;border:none;color:var(--muted);font-family:inherit;padding:9px 0 8px;min-height:var(--nav-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:11px;font-weight:700}
+.tabbar button .i{font-size:20px;line-height:1}
+.tabbar button.on{color:var(--teal)}
 /* FAB + 記賬 sheet */
-.fab{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;width:58px;height:58px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#04252a;font-size:30px;font-weight:800;box-shadow:0 8px 24px rgba(47,185,201,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.fab{position:fixed;right:16px;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom,0px));z-index:44;width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#04252a;font-size:30px;font-weight:800;box-shadow:0 8px 24px rgba(47,185,201,.42);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
 .fab:active{transform:scale(.94)}
 #scrim{position:fixed;inset:0;background:rgba(4,8,13,.6);z-index:50;display:none;align-items:flex-end;justify-content:center}
 #scrim.on{display:flex}
 .sheet{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow-y:auto;animation:up .22s cubic-bezier(.2,.9,.3,1.1)}
 @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
 .sheet h3{font-size:17px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sheet p.hint{color:var(--muted);font-size:12.5px;margin:-6px 0 14px;line-height:1.5}
 .seg{display:flex;gap:8px;margin-bottom:14px}
-.seg button{flex:1;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink2);border-radius:11px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
-.seg button.on{background:var(--teal-dim,rgba(47,185,201,.16));border-color:var(--teal);color:var(--teal)}
-.amtbox{text-align:center;margin:6px 0 14px}
+.seg button{flex:1;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink2);border-radius:11px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;min-height:44px}
+.seg button.on{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+.amtbox{text-align:center;margin:6px 0 12px}
 .amtbox .amt{font-size:40px;font-weight:900;letter-spacing:-1px}
 .amtbox .amt small{font-size:20px;color:var(--muted);font-weight:800}
-.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.keys button{background:var(--surface2);border:1px solid var(--border2);color:var(--ink);border-radius:11px;padding:15px 0;font-size:20px;font-weight:700;cursor:pointer;font-family:inherit}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.keys button{background:var(--surface2);border:1px solid var(--border2);color:var(--ink);border-radius:11px;padding:15px 0;font-size:20px;font-weight:700;cursor:pointer;font-family:inherit;min-height:52px}
 .keys button:active{background:var(--border2)}
+.divider{height:1px;background:var(--border);margin:14px -4px}
 .fld{margin-bottom:12px}
 .fld label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
-.fld input,.fld select{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;outline:none}
+.fld input,.fld select{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink);border-radius:10px;padding:12px;font-size:15px;font-family:inherit;outline:none}
 .catchips{display:flex;gap:7px;flex-wrap:wrap}
-.catchips button{background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink2);border-radius:20px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.catchips button{background:var(--surface2);border:1.5px solid var(--border2);color:var(--ink2);border-radius:20px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;min-height:40px}
 .catchips button.on{background:var(--teal);border-color:var(--teal);color:#04252a}
-.srow{display:flex;gap:9px;margin-top:6px}
-.srow button{flex:1;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.catchips button.sug{border-color:var(--teal);border-style:dashed;color:var(--teal)}
+.catsug{font-size:12px;color:var(--ink2);margin-top:8px;min-height:14px}
+.srow{display:flex;gap:9px;margin-top:8px}
+.srow button{border:none;border-radius:12px;padding:14px 10px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;min-height:50px}
+.srow .btn-cancel{flex:0 0 auto;background:none;border:1px solid var(--border2)!important;color:var(--muted)}
+.srow .btn-again{flex:1;background:var(--surface2);border:1.5px solid var(--teal)!important;color:var(--teal)}
+.srow .btn-save{flex:1.4;background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a}
 .btn-primary{background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a}
 .btn-ghost{background:var(--surface2);border:1px solid var(--border2)!important;color:var(--ink2)}
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);border:1px solid var(--border2);color:var(--ink);padding:11px 18px;border-radius:24px;font-size:14px;z-index:60;opacity:0;transition:.25s;pointer-events:none;display:flex;align-items:center;gap:10px}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 26px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);border:1px solid var(--border2);color:var(--ink);padding:11px 18px;border-radius:24px;font-size:14px;z-index:60;opacity:0;transition:.25s;pointer-events:none;display:flex;align-items:center;gap:10px}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 #toast button{background:none;border:none;color:var(--teal);font-weight:800;cursor:pointer;font-family:inherit;font-size:14px}
 .led-day{margin:16px 0 6px;font-size:12px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
@@ -127,7 +192,6 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .led .m .t{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .led .m .s{font-size:11.5px;color:var(--muted);margin-top:2px}
 .led .a{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
-.led .vd{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px}
 .badge{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--surface2);color:var(--muted);margin-left:5px;vertical-align:1px}
 /* 財務報表 */
 .rpthead{text-align:center;font-weight:800;font-size:15px;margin:6px 0 14px;line-height:1.6}
@@ -138,7 +202,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .rpt tr.tot td{font-weight:800;border-top:1px solid var(--border);border-bottom:none;background:var(--surface2)}
 .rpt tr.net td{font-weight:900;font-size:17px;border-top:2px solid var(--border2);border-bottom:none;padding-top:11px}
 .mut{color:var(--muted)}
-@media print{ .noprint,.fab{display:none!important} body{background:#fff;color:#000;padding:0} .wrap{max-width:100%} .card{border:1px solid #ccc;box-shadow:none;background:#fff;color:#000;break-inside:avoid} .card h3,.rpt td,.rpthead{color:#000} .rpt tr.tot td{background:#f2f2f2} .pos{color:#0a7a4a!important}.neg{color:#c0392b!important} }
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media print{ .noprint,.fab,.tabbar{display:none!important} body{background:#fff;color:#000;padding:0} .wrap{max-width:100%} .card{border:1px solid #ccc;box-shadow:none;background:#fff;color:#000;break-inside:avoid} .card h3,.rpt td,.rpthead{color:#000} .rpt tr.tot td{background:#f2f2f2} .pos{color:#0a7a4a!important}.neg{color:#c0392b!important} }
 </style>
 </head>
 <body>
@@ -188,28 +253,51 @@ function sumBuckets(B,keys){ const s={inPaid:0,inDue:0,exp:0,catIn:{},catEx:{}};
     Object.keys(o.catIn).forEach(c=>s.catIn[c]=(s.catIn[c]||0)+o.catIn[c]);
     Object.keys(o.catEx).forEach(c=>s.catEx[c]=(s.catEx[c]||0)+o.catEx[c]); });
   return s; }
+function prevMonthOf(k){ const m=String(k).match(/(\d{4})-(\d{2})/); if(!m) return ''; let y=+m[1], mo=+m[2]-1; if(mo<1){ mo=12; y--; } return y+'-'+String(mo).padStart(2,'0'); }
+function avgMonthlyExp(monthB,curKey,n){ const ks=Object.keys(monthB).filter(k=>k<=curKey).sort().slice(-n); if(!ks.length) return 0; const s=ks.reduce((a,k)=>a+(monthB[k].exp||0),0); return s/ks.length; }
 
-/* ── SVG 月度趨勢圖（收入柱 vs 支出柱 + 淨利折線）── */
+/* ── SVG 趨勢圖（收入柱 vs 支出柱 + 淨利折線，負值可見）── */
 function trendSVG(B, labelFn, lastN){
   let keys=Object.keys(B).sort(); if(lastN && keys.length>lastN) keys=keys.slice(-lastN);
   if(!keys.length) return '<div class="empty">未有數據</div>';
-  const W=Math.max(560, keys.length*74), H=210, padL=8, padR=8, padB=34, padT=14;
-  const bw=(W-padL-padR)/keys.length;
-  let maxV=1; keys.forEach(k=>{ const o=B[k]; maxV=Math.max(maxV,o.inPaid+o.inDue,o.exp); });
-  const y=v=>padT+(H-padT-padB)*(1-v/maxV);
-  let bars='', line='', pts=[];
+  const n=keys.length, W=344, H=196, padL=4, padR=30, padB=24, padT=12;
+  const plotW=W-padL-padR, plotH=H-padT-padB, bw=plotW/n;
+  let maxTop=1, minNet=0;
+  keys.forEach(k=>{ const o=B[k], inc=o.inPaid+o.inDue; maxTop=Math.max(maxTop,inc,o.exp); minNet=Math.min(minNet,inc-o.exp); });
+  const top=maxTop, bot=minNet<0?minNet*1.06:0, span=(top-bot)||1;
+  const y=v=>padT+plotH*(1-(v-bot)/span);
+  const zeroY=y(0);
+  const kf=v=>{ const a=Math.abs(v); const s=a>=1000?(a/1000).toFixed(a>=10000?0:1)+'k':String(Math.round(a)); return (v<0?'-':'')+s; };
+  let grid='';
+  const ticks=[top, top/2, 0]; if(bot<0) ticks.push(bot);
+  ticks.forEach(t=>{ const yy=y(t); grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#2a3a4d" stroke-width="1" ${t!==0?'stroke-dasharray="3 4"':''}></line><text x="${W-padR+3}" y="${(yy+3).toFixed(1)}" font-size="8" fill="#7d8ea0">${kf(t)}</text>`; });
+  let bars='', pts=[];
   keys.forEach((k,i)=>{
-    const o=B[k], cx=padL+bw*i, gap=bw*0.16, w=(bw-gap*3)/2;
-    const inc=o.inPaid+o.inDue, net=inc-o.exp;
-    bars+=`<rect x="${cx+gap}" y="${y(inc)}" width="${w}" height="${H-padB-y(inc)}" rx="3" fill="#2fb9c9"></rect>`;
-    bars+=`<rect x="${cx+gap*2+w}" y="${y(o.exp)}" width="${w}" height="${H-padB-y(o.exp)}" rx="3" fill="#ff6b6b" opacity=".85"></rect>`;
-    const px=cx+bw/2, py=y(Math.max(0,net)); pts.push([px,py]);
-    bars+=`<text x="${px}" y="${H-padB+15}" text-anchor="middle" font-size="10" fill="#7d8ea0">${esc(labelFn(k))}</text>`;
+    const o=B[k], cx=padL+bw*i, gap=bw*0.18, w=(bw-gap*3)/2;
+    const inc=o.inPaid+o.inDue, net=inc-o.exp, yi=y(inc), ye=y(o.exp);
+    bars+=`<rect x="${(cx+gap).toFixed(1)}" y="${yi.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,zeroY-yi).toFixed(1)}" rx="2.5" fill="#2fb9c9"><title>${esc(labelFn(k))} 收入 ${fmt0(inc)}</title></rect>`;
+    bars+=`<rect x="${(cx+gap*2+w).toFixed(1)}" y="${ye.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,zeroY-ye).toFixed(1)}" rx="2.5" fill="#ff6b6b" opacity=".82"><title>${esc(labelFn(k))} 支出 ${fmt0(o.exp)}</title></rect>`;
+    const px=cx+bw/2, py=y(net); pts.push([px,py,net]);
+    bars+=`<text x="${px.toFixed(1)}" y="${H-padB+14}" text-anchor="middle" font-size="8.5" fill="#7d8ea0">${esc(labelFn(k))}</text>`;
   });
-  line='<polyline fill="none" stroke="#3fcf8e" stroke-width="2.2" points="'+pts.map(p=>p[0]+','+p[1]).join(' ')+'"></polyline>'
-     + pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#3fcf8e"></circle>`).join('');
-  return `<div class="chart-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet" style="min-width:${W}px">${bars}${line}</svg></div>
-    <div class="legend"><span><i style="background:#2fb9c9"></i>收入</span><span><i style="background:#ff6b6b"></i>支出</span><span><i style="background:#3fcf8e"></i>淨利</span></div>`;
+  const poly=`<polyline fill="none" stroke="#3fcf8e" stroke-width="2" points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}"></polyline>`;
+  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="${p[2]>=0?'#3fcf8e':'#ff6b6b'}"><title>淨利 ${fmt0(p[2])}</title></circle>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet" style="display:block">${grid}${bars}${poly}${dots}</svg>
+    <div class="legend"><span><i style="background:#2fb9c9"></i>收入</span><span><i style="background:#ff6b6b"></i>支出</span><span><i style="background:#3fcf8e"></i>淨利（負值可見）</span></div>`;
+}
+/* 迷你淨利 sparkline */
+function sparkline(monthB,n){
+  let ks=Object.keys(monthB).sort(); ks=ks.slice(-n); if(ks.length<2) return '';
+  const vals=ks.map(k=>monthB[k].inPaid-monthB[k].exp);
+  const mn=Math.min(...vals,0), mx=Math.max(...vals,0), rng=(mx-mn)||1;
+  const W=96,H=46,pad=5, step=(W-pad*2)/(vals.length-1);
+  const y=v=>pad+(H-pad*2)*(1-(v-mn)/rng);
+  const pts=vals.map((v,i)=>[pad+step*i,y(v)]);
+  const zeroY=y(0), last=vals[vals.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><line x1="${pad}" y1="${zeroY.toFixed(1)}" x2="${W-pad}" y2="${zeroY.toFixed(1)}" stroke="#2a3a4d" stroke-dasharray="2 3"></line>`
+    +`<polyline fill="none" stroke="${last>=0?'#3fcf8e':'#ff6b6b'}" stroke-width="2" points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}"></polyline>`
+    +pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="1.9" fill="${vals[i]>=0?'#3fcf8e':'#ff6b6b'}"></circle>`).join('')
+    +`</svg><div class="mut" style="font-size:10px;text-align:center;margin-top:2px">近 ${vals.length} 月淨利</div>`;
 }
 /* 分類條 */
 function catBars(obj,color){
@@ -221,7 +309,28 @@ function catBars(obj,color){
     <div class="amt" style="${v<0?'color:var(--red)':''}">${fmt0(v)}</div></div>`).join('');
 }
 
-/* ── render ── */
+/* ── shell：頂欄 / 底 tab / 選單 ── */
+function topBar(title, extra){ return `<div class="top noprint"><div class="wrap">
+    <h1>📊 INITIATE <span>${esc(title)}</span></h1>
+    ${extra||''}
+    <button class="tbtn" id="rfbtn" onclick="refresh()" title="刷新">↻</button>
+    <button class="tbtn" onclick="toggleMenu(event)" title="更多">⋯</button>
+  </div></div>`; }
+function navHtml(){ const t=(v,i,l)=>`<button class="${VIEW===v?'on':''}" onclick="closeMenu();VIEW='${v}';renderApp()"><span class="i">${i}</span>${l}</button>`;
+  return `<div class="tabbar noprint">${t('dash','📊','概覽')}${t('ledger','🧾','賬目')}${t('report','📈','報表')}${t('settings','⚙️','設定')}</div>`; }
+function toggleMenu(e){ if(e&&e.stopPropagation) e.stopPropagation();
+  if($('acmenu')){ closeMenu(); return; }
+  const m=document.createElement('div'); m.id='acmenu'; m.className='menu';
+  m.innerHTML=`<a href="${esc((DATA&&DATA.sheetUrl)||'#')}" target="_blank" rel="noopener" onclick="closeMenu()">🗂 開 Google Sheet</a>
+    <button onclick="closeMenu();openPass()">🔒 修改財務密碼</button>
+    <button onclick="closeMenu();logout()">🚪 登出</button>`;
+  document.body.appendChild(m);
+  setTimeout(()=>document.addEventListener('click',closeMenuOnce),0);
+}
+function closeMenu(){ const m=$('acmenu'); if(m) m.remove(); }
+function closeMenuOnce(){ closeMenu(); document.removeEventListener('click',closeMenuOnce); }
+
+/* ── login / setup ── */
 function renderLogin(msg){
   $('app').innerHTML=`<div class="login"><div class="logo">📊</div><h2>會計儀表盤</h2><p>INITIATE SPORTS · 財務總覽</p>
     <input id="pw" type="password" inputmode="numeric" placeholder="財務密碼" autocomplete="off">
@@ -268,7 +377,7 @@ async function fetchData(pw){
   }catch(e){} await new Promise(r=>setTimeout(r,800*(i+1))); }
   return {ok:false,err:'伺服器繁忙，請再試'};
 }
-async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(FP); if(r&&r.ok){ DATA=r; renderApp(); } else if(btn){ btn.textContent='↻ 刷新'; } }
+async function refresh(){ const btn=$('rfbtn'); if(btn){ btn.innerHTML='<span class="spin"></span>'; } const r=await fetchData(FP); if(r&&r.ok){ DATA=r; renderApp(); } else if(btn){ btn.textContent='↻'; } }
 
 function weekMonday(w){ const m=String(w).match(/(\d{4})-W(\d{1,2})/); if(!m) return ''; const y=+m[1], wk=+m[2];
   const jan4=new Date(Date.UTC(y,0,4)), day=jan4.getUTCDay()||7, mon1=new Date(jan4); mon1.setUTCDate(jan4.getUTCDate()-(day-1));
@@ -276,6 +385,8 @@ function weekMonday(w){ const m=String(w).match(/(\d{4})-W(\d{1,2})/); if(!m) re
 function weekLabel(w){ const d=weekMonday(w), n=(String(w).match(/W(\d+)/)||[])[1]; return d?('第'+n+'週 ('+d.slice(8,10)+'/'+d.slice(5,7)+'起)'):String(w); }
 function weekShort(w){ const d=weekMonday(w); return d?(d.slice(8,10)+'/'+d.slice(5,7)):String(w); }
 function granOf(){ return SCOPE==='week'?'week':(SCOPE==='year'?'year':'month'); }
+
+/* ── 概覽 ── */
 function renderDash(){
   const gran=granOf(), B=aggregateGran(gran), monthB=aggregateGran('month'), weekB=aggregateGran('week');
   const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4), curWeek=isoWeek(todayISO());
@@ -283,7 +394,6 @@ function renderDash(){
   if(SCOPE!=='all' && !PICK) PICK=cur;
   const keys = SCOPE==='all'?Object.keys(B):[PICK];
   const S=sumBuckets(B,keys), inc=S.inPaid+S.inDue, net=S.inPaid-S.exp, netFull=inc-S.exp;
-  const Y=sumBuckets(monthB, Object.keys(monthB).filter(k=>k.slice(0,4)===curYear)), ytdNet=Y.inPaid-Y.exp;
   const scopeLabel = SCOPE==='all'?'全期':(SCOPE==='week'?weekLabel(PICK):(SCOPE==='year'?(PICK+' 年'):(PICK.replace('-','年')+'月')));
   let picker='';
   if(SCOPE==='month'){ const ks=[...new Set(Object.keys(monthB).concat([curMonth]))].sort().reverse();
@@ -292,66 +402,134 @@ function renderDash(){
     picker=`<select onchange="PICK=this.value;renderDash()">${ys.map(y=>`<option value="${y}" ${PICK===y?'selected':''}>${y} 全年</option>`).join('')}</select>`; }
   else if(SCOPE==='week'){ const ks=[...new Set(Object.keys(weekB).concat([curWeek]))].sort().reverse().slice(0,26);
     picker=`<select onchange="PICK=this.value;renderDash()">${ks.map(k=>`<option value="${k}" ${PICK===k?'selected':''}>${weekLabel(k)}</option>`).join('')}</select>`; }
-  const trend = SCOPE==='week' ? trendSVG(weekB, weekShort, 12) : trendSVG(monthB, k=>k.slice(2).replace('-','/'), 18);
+  const trend = SCOPE==='week' ? trendSVG(weekB, weekShort, 8) : trendSVG(monthB, k=>k.slice(2).replace('-','/'), 7);
 
-  let html=`<div class="top"><div class="wrap">
-    <h1>📊 INITIATE <span>會計儀表盤</span></h1>
-    <button class="tbtn" onclick="VIEW='ledger';renderApp()">🧾 賬目</button>
-    <button class="tbtn" onclick="VIEW='report';renderApp()">📊 報表</button>
-    <button class="tbtn" onclick="VIEW='settings';renderApp()">⚙️ 設定</button>
-    <button class="tbtn" id="rfbtn" onclick="refresh()">↻</button>
-    <a class="tbtn" href="${esc(DATA.sheetUrl||'#')}" target="_blank" rel="noopener">🗂</a>
-    <button class="tbtn" onclick="openPass()">🔒</button>
-    <button class="tbtn" onclick="logout()">登出</button>
-  </div></div><div class="wrap">
-  <div class="scope">
-    <button class="chip ${SCOPE==='week'?'on':''}" onclick="setScope('week')">週度</button>
-    <button class="chip ${SCOPE==='month'?'on':''}" onclick="setScope('month')">月度</button>
-    <button class="chip ${SCOPE==='year'?'on':''}" onclick="setScope('year')">年度</button>
-    <button class="chip ${SCOPE==='all'?'on':''}" onclick="setScope('all')">全期</button>
-    ${picker}
-    <div class="sp"></div>
-  </div>`;
+  let html=topBar('會計儀表盤')+`<div class="wrap">
+    <div class="scope sticky">
+      <button class="chip ${SCOPE==='week'?'on':''}" onclick="setScope('week')">週</button>
+      <button class="chip ${SCOPE==='month'?'on':''}" onclick="setScope('month')">月</button>
+      <button class="chip ${SCOPE==='year'?'on':''}" onclick="setScope('year')">年</button>
+      <button class="chip ${SCOPE==='all'?'on':''}" onclick="setScope('all')">全期</button>
+      ${picker}<div class="sp"></div>
+    </div>`;
 
-  // KPI
-  html+=`<div class="kpis">
-    <div class="kpi"><div class="bar" style="background:var(--teal)"></div><div class="lab">${esc(scopeLabel)} 收入（已收）</div><div class="val num">${fmt0(S.inPaid)}</div><div class="sub">連待收共 ${fmt0(inc)}</div></div>
-    <div class="kpi"><div class="bar" style="background:var(--red)"></div><div class="lab">${esc(scopeLabel)} 支出</div><div class="val num">${fmt0(S.exp)}</div><div class="sub">含自動場租</div></div>
-    <div class="kpi ${net>=0?'pos':'neg'}"><div class="bar" style="background:${net>=0?'var(--green)':'var(--red)'}"></div><div class="lab">${esc(scopeLabel)} 淨利（已收−支出）</div><div class="val num">${fmt0(net)}</div><div class="sub">全收後預計 ${fmt0(netFull)}</div></div>
-    <div class="kpi ${ytdNet>=0?'pos':'neg'}"><div class="bar" style="background:var(--gold)"></div><div class="lab">${esc(curYear)} 年累計淨利 (YTD)</div><div class="val num">${fmt0(ytdNet)}</div><div class="sub">收入 ${fmt0(Y.inPaid)} · 支出 ${fmt0(Y.exp)}</div></div>
-  </div>`;
+  // 生意健康帶 + 自動總結
+  html+=healthBand(monthB,curMonth,curYear);
 
+  // Hero：本期淨利
+  html+=`<div class="hero"><div class="hero-l">
+    <div class="hero-lab">${esc(scopeLabel)} 淨利（已收 − 支出）</div>
+    <div class="hero-net ${net>=0?'pos':'neg'} num">${fmt0(net)}</div>
+    <div class="hero-sub"><span class="pos">↑收入 ${fmt0(S.inPaid)}</span><span class="neg">↓支出 ${fmt0(S.exp)}</span></div>
+    ${S.inDue>0?`<div class="hero-note">連待收 ${fmt0(S.inDue)}，全收後預計 ${fmt0(netFull)}</div>`:''}
+  </div><div class="hero-r">${sparkline(monthB,6)}</div></div>`;
+
+  // 現金跑道
+  html+=cashRunwayCard(monthB);
+  // KPI（環比 MoM）
+  html+=kpiCard(monthB,curYear);
+  // 洞察（含前端計算）
+  html+=insightsCard(buildInsights(monthB,curMonth));
+  // 應收
+  html+=receivablesCard();
   // 趨勢
-  html+=insightsCard();
   html+=`<div class="card"><h3>📈 ${SCOPE==='week'?'週度':'月度'}趨勢<span class="tag">收入 · 支出 · 淨利</span></h3>${trend}</div>`;
-
   // 分類
   html+=`<div class="grid2">
     <div class="card"><h3>💰 收入分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catIn,'linear-gradient(90deg,#2fb9c9,#1b8d9b)')}</div>
     <div class="card"><h3>🧾 支出分類<span class="tag">${esc(scopeLabel)}</span></h3>${catBars(S.catEx,'linear-gradient(90deg,#ff6b6b,#c0392b)')}</div>
   </div>`;
-
-  // 應收
-  html+=receivablesCard();
-  // 逐班盈虧
-  html+=`<div class="card"><h3>🏫 逐班盈虧<span class="tag">本報名期</span></h3>${pnlTable()}</div>`;
-
+  // 逐班盈虧（卡片 + 回本人數）
+  html+=`<div class="card"><h3>🏫 逐班盈虧<span class="tag">本報名期 · 含回本人數</span></h3>${pnlCards()}</div>`;
   // 私訓
-  html+=ptSection(S);
-
+  html+=ptCards();
   // 家庭 LTV
-  html+=`<div class="card"><h3>👨‍👩‍👧 家庭價值 LTV<span class="tag">累計已收</span></h3>${ltvTable()}</div>`;
+  html+=`<div class="card"><h3>👨‍👩‍👧 家庭價值 LTV<span class="tag">累計已收</span></h3>${ltvCards()}</div>`;
+  // 續報率
+  html+=renewalCard();
 
-  html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細表帶入。<br>場地費＝康文署費率自動計；改「場租設定」分頁即重算。每晚 23:00 自動刷新。撳右下角 ＋ 即可 in-app 記賬。</div></div>`;
-  $('app').innerHTML=html+fabHtml();
+  html+=`<div class="foot">數據即時由報名記錄／收據／私訓（逐節＋預付套票）自動彙總；支出＋場租由會計明細帶入。<br>場租＝康文署費率自動計；每晚 23:00 自動刷新。撳右下角 ＋ 即可 in-app 記賬。</div></div>`;
+  $('app').innerHTML=html+fabHtml()+navHtml();
 }
-function insightsCard(){
-  const ins=(DATA.insights||[]); if(!ins.length) return '';
+function healthBand(monthB,curMonth,curYear){
+  const tM=monthB[curMonth]||{inPaid:0,inDue:0,exp:0}; const thisNet=tM.inPaid-tM.exp;
+  const dueTotal=(DATA.income||[]).filter(r=>r.status&&r.status!=='已收'&&r.amt>0).reduce((a,r)=>a+r.amt,0);
+  const pnlLoss=(DATA.classPnL||[]).slice(1).filter(r=>(+r[6]||0)<0); const lossTot=pnlLoss.reduce((a,r)=>a+(+r[6]||0),0);
+  const cash=+DATA.cashBalance||0, avgExp=avgMonthlyExp(monthB,curMonth,3);
+  const runway=cash>0?(avgExp>0?cash/avgExp:99):null;
+  const fam=(DATA.familyLTV||[]).slice(1);
+  const renewed=fam.filter(r=>/已續/.test(String(r[3]))).length, notR=fam.filter(r=>/未續/.test(String(r[3]))).length;
+  const rrate=(renewed+notR)>0?renewed/(renewed+notR)*100:null;
+  const DOT={g:'var(--green)',a:'var(--amber)',r:'var(--red)'};
+  const chips=[
+    {e:'💰',l:'本月淨利',v:fmt0(thisNet),d:thisNet>=0?'g':'r'},
+    {e:'⏳',l:'現金跑道',v:runway==null?'未設':(runway>=99?'99+月':runway.toFixed(1)+'月'),d:runway==null?'a':(runway<3?'r':(runway<6?'a':'g'))},
+    {e:'📥',l:'應收未收',v:fmt0(dueTotal),d:dueTotal>0?'a':'g'},
+    {e:'📉',l:'蝕本班',v:pnlLoss.length+'班',d:pnlLoss.length>0?'r':'g'}
+  ];
+  if(rrate!=null) chips.push({e:'🔁',l:'續報率',v:Math.round(rrate)+'%',d:rrate>=70?'g':(rrate>=50?'a':'r')});
+  const band=`<div class="health">${chips.map(c=>`<div class="hchip"><div class="hl"><span class="dot" style="background:${DOT[c.d]}"></span>${c.e} ${esc(c.l)}</div><div class="hv num" style="color:${c.d==='r'?'var(--red)':(c.d==='a'?'var(--amber)':'var(--ink)')}">${esc(String(c.v))}</div></div>`).join('')}</div>`;
+  const light=thisNet<0?'🔴 紅燈':(pnlLoss.length===0?'🟢 綠燈':'🟡 黃燈');
+  let parts=[`本月${light}`];
+  if(pnlLoss.length) parts.push(`${pnlLoss.length} 班蝕錢（${fmt0(lossTot)}）要跟`);
+  if(dueTotal>0) parts.push(`應收 ${fmt0(dueTotal)} 待收`);
+  if(runway!=null&&runway<3) parts.push(`現金跑道僅 ${runway.toFixed(1)} 個月`);
+  if(rrate!=null&&rrate<50) parts.push(`續報率偏低 ${Math.round(rrate)}%`);
+  return band+`<div class="summary">${parts.join('；')}。</div>`;
+}
+function cashRunwayCard(monthB){
+  const cash=+DATA.cashBalance||0, curKey=todayISO().slice(0,7);
+  const avgExp=avgMonthlyExp(monthB,curKey,3);
+  const thisM=monthB[curKey]||{inPaid:0,exp:0}, cashNet=(thisM.inPaid||0)-(thisM.exp||0);
+  if(cash<=0){
+    return `<div class="card runway-set" onclick="openCash()"><div class="rset-ic">💵</div>
+      <div><div class="rset-t">撳我設定現金結餘</div><div class="rset-s">輸入銀行／現金戶口總額，計出仲有幾多個月營運跑道</div></div>
+      <div class="rset-arrow">›</div></div>`;
+  }
+  const runway = avgExp>0 ? cash/avgExp : 99;
+  const col = runway<3?'var(--red)':(runway<6?'var(--amber)':'var(--green)');
+  const rtxt = runway>=99?'99+':runway.toFixed(1);
+  const pct = Math.min(100, runway/12*100);
+  return `<div class="card"><h3>⏳ 現金跑道<span class="tag">現金 ÷ 近3月月均支出</span></h3>
+    <div class="runway-big" style="color:${col}">${rtxt} <small>個月</small></div>
+    <div class="bar-mini" style="height:8px"><i style="width:${pct.toFixed(0)}%;background:${col}"></i></div>
+    <div class="runway-meta"><span>現金結餘 ${fmt0(cash)}</span><span>月均支出 ${fmt0(avgExp)}</span><span class="${cashNet>=0?'pos':'neg'}">本月現金淨變動 ${cashNet>=0?'+':''}${fmt0(cashNet)}</span></div>
+    <div class="mut" style="font-size:11px;margin-top:8px">🔴 少於 3 個月 · 🟡 3–6 個月 · 🟢 6 個月以上。<button class="linkbtn" onclick="openCash()">改結餘</button></div></div>`;
+}
+function kpiCard(monthB,curYear){
+  const curKey=todayISO().slice(0,7), prevKey=prevMonthOf(curKey);
+  const tM=monthB[curKey]||{inPaid:0,inDue:0,exp:0}, pM=monthB[prevKey]||{inPaid:0,inDue:0,exp:0};
+  const tInc=tM.inPaid+tM.inDue, pInc=pM.inPaid+pM.inDue, tExp=tM.exp, pExp=pM.exp, tNet=tM.inPaid-tM.exp, pNet=pM.inPaid-pM.exp;
+  const Y=sumBuckets(monthB,Object.keys(monthB).filter(k=>k.slice(0,4)===curYear)); const ytdNet=Y.inPaid-Y.exp;
+  const mom=(cur,prev,invert)=>{ if(!prev) return '<span class="mut">環比 —</span>'; const d=(cur-prev)/Math.abs(prev)*100; const up=d>=0; const good=invert?!up:up; const arr=up?'▲':'▼'; return `環比 <span style="color:${good?'var(--green)':'var(--red)'};font-weight:800">${arr} ${Math.abs(d).toFixed(0)}%</span>`; };
+  return `<div class="kpis">
+    <div class="kpi"><div class="bar" style="background:var(--teal)"></div><div class="lab">本月收入（連待收）</div><div class="val num">${fmt0(tInc)}</div><div class="sub">${mom(tInc,pInc,false)}</div></div>
+    <div class="kpi"><div class="bar" style="background:var(--red)"></div><div class="lab">本月支出</div><div class="val num">${fmt0(tExp)}</div><div class="sub">${mom(tExp,pExp,true)}</div></div>
+    <div class="kpi ${tNet>=0?'pos':'neg'}"><div class="bar" style="background:${tNet>=0?'var(--green)':'var(--red)'}"></div><div class="lab">本月淨利（已收−支出）</div><div class="val num">${fmt0(tNet)}</div><div class="sub">${mom(tNet,pNet,false)}</div></div>
+    <div class="kpi ${ytdNet>=0?'pos':'neg'}"><div class="bar" style="background:var(--gold)"></div><div class="lab">${esc(curYear)} YTD 淨利</div><div class="val num">${fmt0(ytdNet)}</div><div class="sub">收 ${fmt0(Y.inPaid)} · 支 ${fmt0(Y.exp)}</div></div>
+  </div>`;
+}
+function buildInsights(monthB,curKey){
+  const extra=[];
+  const pnlLoss=(DATA.classPnL||[]).slice(1).filter(r=>(+r[6]||0)<0);
+  if(pnlLoss.length){ const tot=pnlLoss.reduce((a,r)=>a+(+r[6]||0),0);
+    extra.push({level:'red',icon:'🔴',title:`${pnlLoss.length} 班蝕錢（合共 ${fmt0(tot)}）`,detail:pnlLoss.map(r=>esc(r[1])+' '+fmt0(+r[6]||0)).join('、')}); }
+  const rec=DATA.recurring||[], applied=DATA.recurringApplied||{}, pend=rec.filter(t=>!applied[t.id]);
+  if(pend.length){ const tot=pend.reduce((a,t)=>a+(+t.amount||0),0);
+    extra.push({level:'amber',icon:'🔁',title:`${pend.length} 個固定支出本月未入（${fmt0(tot)}）`,detail:pend.map(t=>esc(t.name)+' '+fmt0(t.amount)).join('、'),action:'recur'}); }
+  const S=sumBuckets(monthB,[curKey]), bud=(DATA.budgets||{})[curKey]||{}, over=[];
+  Object.keys(bud).forEach(c=>{ const b=+bud[c]||0, act=Math.round(S.catEx[c]||0); if(b>0&&act>b) over.push(esc(c)+' 超 '+fmt0(act-b)); });
+  if(over.length) extra.push({level:'amber',icon:'📊',title:`${over.length} 個分類本月超預算`,detail:over.join('、')});
+  return extra.concat(DATA.insights||[]);
+}
+function insightsCard(ins){
+  ins=ins||[]; if(!ins.length) return '';
   const col={red:'var(--red)',amber:'var(--amber)',info:'var(--teal)'};
-  const rows=ins.map((x,i)=>`<div style="display:flex;gap:11px;align-items:flex-start;padding:9px 0;${i<ins.length-1?'border-bottom:1px solid var(--border)':''}">
+  const rows=ins.map((x,i)=>`<div style="display:flex;gap:11px;align-items:flex-start;padding:10px 0;${i<ins.length-1?'border-bottom:1px solid var(--border)':''}">
     <div style="font-size:19px;flex:none">${x.icon||'•'}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14px;color:${col[x.level]||'var(--ink)'}">${esc(x.title)}</div>
-    <div style="font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.5">${esc(x.detail||'')}</div></div></div>`).join('');
+    <div style="font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.5">${esc(x.detail||'')}</div>
+    ${x.action==='recur'?'<button class="linkbtn" style="margin-top:4px;font-size:13px" onclick="applyAllRecur()">一撳全部入賬 ›</button>':''}</div></div>`).join('');
   return `<div class="card" style="border-color:var(--border2)"><h3>🔔 財務洞察 <span class="tag">要跟進</span></h3>${rows}</div>`;
 }
 function receivablesCard(){
@@ -361,58 +539,98 @@ function receivablesCard(){
   const rows=Object.entries(byName).sort((a,b)=>b[1]-a[1]);
   const tot=rows.reduce((a,r)=>a+r[1],0);
   return `<div class="card"><h3>📥 應收（未收）<span class="tag">共 ${fmt0(tot)}</span></h3>
-    <table><thead><tr><th>學生 / 項目</th><th class="n">金額</th></tr></thead><tbody>${
-      rows.slice(0,25).map(([n,v])=>`<tr><td>${esc(n)}</td><td class="n" style="font-weight:800;color:var(--amber)">${fmt0(v)}</td></tr>`).join('')
-    }</tbody></table></div>`;
+    ${rows.slice(0,25).map(([n,v])=>`<div class="mrow"><div class="l"><div class="t">${esc(n)}</div></div><div class="r"><div class="num" style="font-weight:800;color:var(--amber)">${fmt0(v)}</div></div></div>`).join('')}</div>`;
 }
-function pnlTable(){
+function pnlCards(){
   const p=DATA.classPnL||[]; if(p.length<2) return '<div class="empty">未有已核實報名</div>';
-  const rows=p.slice(1);
-  return `<table><thead><tr><th>班別</th><th class="n">人數</th><th class="n">學費收入</th><th class="n">場租</th><th class="n">淨利</th><th>狀態</th></tr></thead><tbody>${
-    rows.map(r=>{ const net=Number(r[6])||0; return `<tr><td>${esc(r[1])}<br><span style="color:var(--muted);font-size:11px">${esc(r[2])}</span></td><td class="n">${r[3]}</td><td class="n">${fmt0(r[4])}</td><td class="n neg">${fmt0(r[5])}</td><td class="n ${net>=0?'pos':'neg'}" style="font-weight:800">${fmt0(net)}</td><td>${net>=0?'<span class="pill g">賺</span>':'<span class="pill r">蝕</span>'}</td></tr>`; }).join('')
-  }</tbody></table>`;
+  return p.slice(1).map(r=>{
+    const name=r[1], time=r[2], hc=+r[3]||0, tui=+r[4]||0, rent=+r[5]||0, net=+r[6]||0;
+    const per=hc>0?tui/hc:0, be=per>0?Math.ceil(rent/per):0, gap=be-hc;
+    let beTxt;
+    if(per<=0) beTxt='—（未有學費資料）';
+    else if(gap>0) beTxt=`⚠️ 回本需 ${be} 人，尚差 ${gap} 人`;
+    else beTxt=`✅ 已回本（${be} 人回本，現多 ${-gap} 人）`;
+    return `<div class="pnl-card"><div class="pnl-top">
+      <div class="pnl-name">${esc(name)}<div class="pnl-time">${esc(time)}</div></div>
+      <div class="pnl-net ${net>=0?'pos':'neg'} num">${fmt0(net)}<span class="pill ${net>=0?'g':'r'}">${net>=0?'賺':'蝕'}</span></div></div>
+      <div class="pnl-meta"><span>👥 ${hc} 人</span><span>學費 ${fmt0(tui)}</span><span class="neg">場租 ${fmt0(rent)}</span></div>
+      <div class="pnl-be ${gap>0?'neg':'pos'}">${beTxt}</div></div>`;
+  }).join('');
 }
-function ptSection(S){
-  const inc=(DATA.income||[]).filter(r=>r.cat==='私訓'||r.cat==='私訓套票');
-  if(!inc.length) return '';
+function ptCards(){
+  const inc=(DATA.income||[]).filter(r=>r.cat==='私訓'||r.cat==='私訓套票'); if(!inc.length) return '';
   const pkg=inc.filter(r=>r.cat==='私訓套票'), sess=inc.filter(r=>r.cat==='私訓');
   const pkgT=pkg.reduce((a,r)=>a+r.amt,0), sessPaid=sess.filter(r=>r.status==='已收').reduce((a,r)=>a+r.amt,0), sessDue=sess.filter(r=>r.status!=='已收').reduce((a,r)=>a+r.amt,0);
-  return `<div class="card"><h3>⭐ 私人訓練<span class="tag">套票 ${fmt0(pkgT)} · 逐節已收 ${fmt0(sessPaid)}${sessDue?(' · 待收 '+fmt0(sessDue)):''}</span></h3>
-    <table><thead><tr><th>日期</th><th>學員</th><th>項目</th><th class="n">金額</th><th>狀態</th></tr></thead><tbody>${
-      inc.slice().sort((a,b)=>(b.date||'')<(a.date||'')?-1:1).slice(0,30).map(r=>`<tr><td>${dmy(r.date)}</td><td>${esc(r.name)}</td><td>${esc(r.desc)}</td><td class="n" style="font-weight:700">${fmt0(r.amt)}</td><td>${r.status==='已收'?'<span class="pill g">已收</span>':'<span class="pill a">待收</span>'}</td></tr>`).join('')
-    }</tbody></table></div>`;
+  const rows=inc.slice().sort((a,b)=>(b.date||'')<(a.date||'')?-1:1).slice(0,30).map(r=>`<div class="mrow"><div class="l"><div class="t">${esc(r.name||'—')}</div><div class="s">${dmy(r.date)} · ${esc(r.desc||r.cat)}</div></div><div class="r"><div class="num" style="font-weight:800">${fmt0(r.amt)}</div>${r.status==='已收'?'<span class="pill g">已收</span>':'<span class="pill a">待收</span>'}</div></div>`).join('');
+  return `<div class="card"><h3>⭐ 私人訓練<span class="tag">套票 ${fmt0(pkgT)} · 已收 ${fmt0(sessPaid)}${sessDue?(' · 待收 '+fmt0(sessDue)):''}</span></h3>${rows}</div>`;
 }
-function ltvTable(){
-  const l=DATA.familyLTV||[]; if(l.length<2) return '<div class="empty">未有數據</div>';
-  const rows=l.slice(1).slice(0,15);
-  return `<table><thead><tr><th>家庭（學生）</th><th class="n">報名期數</th><th>本期</th><th class="n">累計 LTV</th></tr></thead><tbody>${
-    rows.map(r=>`<tr><td>${esc(r[1])}</td><td class="n">${r[2]}</td><td>${esc(r[3])}</td><td class="n" style="font-weight:800;color:var(--gold)">${fmt0(r[4])}</td></tr>`).join('')
-  }</tbody></table>`;
+function ltvCards(){
+  const l=(DATA.familyLTV||[]).slice(1).slice(0,15); if(!l.length) return '<div class="empty">未有數據</div>';
+  return l.map(r=>`<div class="mrow"><div class="l"><div class="t">${esc(r[1])}</div><div class="s">報名 ${esc(String(r[2]))} 期${r[3]?(' · '+esc(String(r[3]))):''}</div></div><div class="r"><div class="num" style="font-weight:800;color:var(--gold)">${fmt0(r[4])}</div></div></div>`).join('');
+}
+function renewalCard(){
+  const fam=(DATA.familyLTV||[]).slice(1); if(!fam.length) return '';
+  const renewed=fam.filter(r=>/已續/.test(String(r[3]))).length;
+  const notRenewed=fam.filter(r=>/未續/.test(String(r[3])));
+  const dueCnt=renewed+notRenewed.length; if(!dueCnt) return '';
+  const rate=Math.round(renewed/dueCnt*100), col=rate>=70?'var(--green)':(rate>=50?'var(--amber)':'var(--red)');
+  const list=notRenewed.filter(r=>/高價值/.test(String(r[3])));
+  return `<div class="card"><h3>🔁 續報率<span class="tag">本期</span></h3>
+    <div class="runway-big" style="color:${col}">${rate}% <small>${renewed}/${dueCnt} 已續</small></div>
+    ${list.length?`<div class="mut" style="font-size:12px;margin:10px 0 6px">🔴 高價值未續（優先跟進）</div>${list.map(r=>`<div class="renew-row"><span>${esc(r[1])}</span><span class="num" style="color:var(--gold);font-weight:800">${fmt0(r[4])}</span></div>`).join('')}`:'<div class="mut" style="font-size:12px;margin-top:8px">未見高價值未續，做得好 👍</div>'}</div>`;
+}
+function sportTimeslotCard(){
+  const pnl=(DATA.classPnL||[]).slice(1); if(!pnl.length) return '';
+  const SPORTS=['花式跳繩','跳繩','羽毛球','匹克球','體操','田徑','籃球','體適能','乒乓球'];
+  const bySport={}, byDay={}, dayRe=/星期([一二三四五六日天])|週([一二三四五六日])/;
+  pnl.forEach(r=>{ const nm=String(r[1]||''), tm=String(r[2]||''), net=+r[6]||0;
+    let sp=SPORTS.find(s=>nm.includes(s)||tm.includes(s))||'其他'; if(sp==='跳繩') sp='花式跳繩';
+    bySport[sp]=(bySport[sp]||0)+net;
+    const dm=(nm+tm).match(dayRe), day=dm?('星期'+(dm[1]||dm[2]).replace('天','日')):'其他'; byDay[day]=(byDay[day]||0)+net; });
+  const bar=(obj,title)=>{ const ent=Object.entries(obj).sort((a,b)=>b[1]-a[1]); if(!ent.length) return '';
+    const max=Math.max(...ent.map(e=>Math.abs(e[1])))||1;
+    return `<div class="mut" style="font-size:12px;margin:12px 0 4px;font-weight:700">${title}</div>`+ent.map(([k,v])=>`<div class="catrow"><div class="nm">${esc(k)}</div><div class="track"><div class="fill" style="width:${Math.max(3,Math.abs(v)/max*100)}%;background:${v>=0?'linear-gradient(90deg,#2fb9c9,#1b8d9b)':'var(--red)'}"></div></div><div class="amt" style="${v<0?'color:var(--red)':''}">${fmt0(v)}</div></div>`).join(''); };
+  return `<div class="card"><h3>📊 運動別 / 時段別盈虧<span class="tag">本報名期</span></h3>${bar(bySport,'按運動')}${bar(byDay,'按星期')}</div>`;
 }
 function dmy(s){ const m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:(s||'—'); }
 function setScope(s){ SCOPE=s; PICK=''; renderDash(); }
-/* ── 記賬 + 賬目 + toast (MVP) ── */
+
+/* ── 記賬 + 賬目 + toast ── */
 let VIEW='dash', EXP=null, TOASTt=null, TOAST_UNDO=null, RSCOPE='month', RPICK='';
-function fabHtml(){ return `<button class="fab" onclick="openExpense()" title="記賬">＋</button>`; }
-function renderApp(){ if(VIEW==='ledger') renderLedger(); else if(VIEW==='report') renderReport(); else if(VIEW==='settings') renderSettings(); else renderDash(); }
+function fabHtml(){ return `<button class="fab noprint" onclick="openExpense()" title="記賬">＋</button>`; }
+function renderApp(){ closeMenu(); if(VIEW==='ledger') renderLedger(); else if(VIEW==='report') renderReport(); else if(VIEW==='settings') renderSettings(); else renderDash(); }
 async function acctPost(body){ for(let i=0;i<4;i++){ try{ const res=await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}); const t=(await res.text()).trim(); if(t.startsWith('{')){ const j=JSON.parse(t); if(!/unknown action/i.test(String(j.err||''))) return j; } }catch(e){} await new Promise(x=>setTimeout(x,700*(i+1))); } return {ok:false,err:'網絡問題，請再試'}; }
+
+/* 現金結餘設定 */
+function openCash(){ let s=$('scrim'); if(!s){ s=document.createElement('div'); s.id='scrim'; s.onclick=e=>{ if(e.target===s) closeSheet(); }; document.body.appendChild(s); }
+  s.innerHTML=`<div class="sheet"><h3>💵 設定現金結餘</h3>
+    <p class="hint">輸入你目前銀行 + 現金戶口總額，用嚟計「現金跑道」——仲有幾多個月營運資金。</p>
+    <div class="fld"><label>現金結餘（HKD）</label><input id="cashIn" type="number" inputmode="numeric" value="${(+DATA.cashBalance||0)||''}" placeholder="例：50000"></div>
+    <div class="srow"><button class="btn-cancel" onclick="closeSheet()">取消</button><button class="btn-save" onclick="saveCash()">儲存</button></div>
+  </div>`; s.classList.add('on'); const el=$('cashIn'); if(el&&el.focus) el.focus();
+}
+async function saveCash(){ const v=parseInt(($('cashIn').value||'0'),10)||0; const r=await acctPost({action:'acctSetCash',acctPass:FP,cash:v});
+  if(r&&r.ok){ closeSheet(); DATA.cashBalance=v; toast('已更新現金結餘'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+
 function renderSettings(){
   const budgets=DATA.budgets||{}, closed=DATA.closedPeriods||{}, cats=(DATA.categories||[]).map(c=>c.name), curMonth=todayISO().slice(0,7);
   const bmonths=Object.keys(budgets).sort().reverse();
   const budgetRows=bmonths.map(mo=>Object.entries(budgets[mo]).map(e=>`<tr><td>${mo.replace('-','/')}</td><td>${esc(e[0])}</td><td class="n">${fmt0(e[1])}</td><td><button class="vd" onclick="setBudget('${mo}','${esc(e[0]).replace(/'/g,'')}',0)">✕</button></td></tr>`).join('')).join('')||'<tr><td colspan="4" class="mut">未設預算</td></tr>';
   const periods=[...new Set((DATA.income||[]).map(r=>r.period).filter(Boolean).concat(Object.keys(closed)))].sort().reverse();
-  const periodRows=periods.map(p=>`<tr><td>${esc(p)}</td><td>${closed[p]?'<span class="pill r">已封</span>':'<span class="pill g">開放</span>'}</td><td class="n">${closed[p]?`<button class="tbtn" onclick="reopenPeriod('${esc(p)}')">解封</button>`:`<button class="tbtn" onclick="closePeriod('${esc(p)}')">封帳</button>`}</td></tr>`).join('')||'<tr><td colspan="3" class="mut">冇資料</td></tr>';
-  let html=`<div class="top"><div class="wrap"><h1>⚙️ <span>設定</span></h1><button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button></div></div>
-    <div class="wrap" style="padding-bottom:80px">
+  const periodRows=periods.map(p=>`<tr><td>${esc(p)}</td><td>${closed[p]?'<span class="pill r">已封</span>':'<span class="pill g">開放</span>'}</td><td class="n">${closed[p]?`<button class="tbtn" style="font-size:12px" onclick="reopenPeriod('${esc(p)}')">解封</button>`:`<button class="tbtn" style="font-size:12px" onclick="closePeriod('${esc(p)}')">封帳</button>`}</td></tr>`).join('')||'<tr><td colspan="3" class="mut">冇資料</td></tr>';
+  const cash=+DATA.cashBalance||0;
+  let html=topBar('設定')+`<div class="wrap">
+    <div class="card"><h3>💵 現金結餘<span class="tag">計現金跑道用</span></h3>
+      <div class="mrow" onclick="openCash()" style="cursor:pointer"><div class="l"><div class="t">${cash>0?fmt0(cash):'尚未設定'}</div><div class="s">撳我更新銀行／現金總額</div></div><div class="r" style="font-size:22px;color:var(--muted)">›</div></div></div>
     <div class="card"><h3>📊 預算設定<span class="tag">按月・分類</span></h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input type="month" id="bg-mo" value="${curMonth}" class="fin" style="width:auto;flex:1;min-width:120px">
         <select id="bg-cat" class="fin" style="width:auto;flex:1;min-width:110px">${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>
         <input id="bg-amt" type="number" inputmode="numeric" placeholder="$" class="fin" style="width:82px">
         <button class="tbtn" style="background:var(--teal);color:#04252a" onclick="saveBudget()">加</button></div>
-      <table><thead><tr><th>月份</th><th>分類</th><th class="n">預算</th><th></th></tr></thead><tbody>${budgetRows}</tbody></table></div>
+      <div class="tbl-scroll"><table><thead><tr><th>月份</th><th>分類</th><th class="n">預算</th><th></th></tr></thead><tbody>${budgetRows}</tbody></table></div></div>
     ${(function(){ const rec=DATA.recurring||[], applied=DATA.recurringApplied||{};
-      const rows=rec.map(t=>`<tr><td>${esc(t.name)}<div class="mut" style="font-size:11px">${esc(t.category)} · 每月${t.day}號</div></td><td class="n">${fmt0(t.amount)}</td><td class="n">${applied[t.id]?'<span class="pill g">本月已入</span>':`<button class="tbtn" onclick="applyRecur('${t.id}')">本月套用</button>`}</td><td><button class="vd" onclick="delRecur('${t.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="mut">未設模板</td></tr>';
+      const rows=rec.map(t=>`<tr><td>${esc(t.name)}<div class="mut" style="font-size:11px">${esc(t.category)} · 每月${t.day}號</div></td><td class="n">${fmt0(t.amount)}</td><td class="n">${applied[t.id]?'<span class="pill g">本月已入</span>':`<button class="tbtn" style="font-size:12px" onclick="applyRecur('${t.id}')">本月套用</button>`}</td><td><button class="vd" onclick="delRecur('${t.id}')">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="mut">未設模板</td></tr>';
       return `<div class="card"><h3>🔁 可重複支出<span class="tag">一鍵入固定開支</span></h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input id="rc-name" placeholder="例：保險／電話費" class="fin" style="flex:1;min-width:120px">
@@ -420,12 +638,12 @@ function renderSettings(){
         <input id="rc-amt" type="number" inputmode="numeric" placeholder="$" class="fin" style="width:78px">
         <input id="rc-day" type="number" inputmode="numeric" placeholder="號" value="1" class="fin" style="width:56px" title="每月幾號">
         <button class="tbtn" style="background:var(--teal);color:#04252a" onclick="saveRecur()">加</button></div>
-      <table><thead><tr><th>項目</th><th class="n">金額</th><th class="n">本月</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`; })()}
+      <div class="tbl-scroll"><table><thead><tr><th>項目</th><th class="n">金額</th><th class="n">本月</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`; })()}
     <div class="card"><h3>🔒 月結鎖帳<span class="tag">封咗嘅期唔可再記賬</span></h3>
-      <table><thead><tr><th>期別</th><th>狀態</th><th class="n"></th></tr></thead><tbody>${periodRows}</tbody></table></div>
-    <div class="card"><h3>🔑 財務密碼</h3><button class="tbtn" onclick="renderSetup(0)">修改財務密碼</button></div>
-    <div class="foot">預算會喺報表同概覽對比實際；封帳後嗰期唔可以再記/改賬（解封要填原因、留審計）。</div></div>`;
-  $('app').innerHTML=html+fabHtml();
+      <div class="tbl-scroll"><table><thead><tr><th>期別</th><th>狀態</th><th class="n"></th></tr></thead><tbody>${periodRows}</tbody></table></div></div>
+    <div class="card"><h3>🔑 財務密碼</h3><button class="tbtn" style="font-size:13px" onclick="renderSetup(0)">修改財務密碼</button></div>
+    <div class="foot">預算會喺報表同概覽對比實際；封帳後嗰期唔可以再記/改賬（解封要填原因、留審計）。其他操作（開 Google Sheet／登出）喺右上角 ⋯ 選單。</div></div>`;
+  $('app').innerHTML=html+fabHtml()+navHtml();
 }
 async function saveBudget(){ const mo=$('bg-mo').value, cat=$('bg-cat').value, amt=$('bg-amt').value;
   if(!mo||!cat||!amt){ toast('填月份／分類／金額'); return; }
@@ -440,6 +658,10 @@ async function saveRecur(){ const name=$('rc-name').value.trim(), cat=$('rc-cat'
   if(r&&r.ok){ toast('已加模板'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
 async function delRecur(id){ if(!confirm('刪除呢個模板？（已入嘅賬唔受影響）')) return; const r=await acctPost({action:'acctRecurringDelete',acctPass:FP,id:id}); if(r&&r.ok){ const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
 async function applyRecur(id){ const r=await acctPost({action:'acctRecurringApply',acctPass:FP,id:id}); if(r&&(r.ok||r.dup)){ toast(r.dup?'本月已入過':'已記本月呢筆'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function applyAllRecur(){ const rec=DATA.recurring||[], applied=DATA.recurringApplied||{}, pend=rec.filter(t=>!applied[t.id]); if(!pend.length){ toast('冇未入嘅固定支出'); return; }
+  toast('入賬中…'); let ok=0; for(const t of pend){ const r=await acctPost({action:'acctRecurringApply',acctPass:FP,id:t.id}); if(r&&(r.ok||r.dup)) ok++; }
+  const d=await fetchData(FP); if(d&&d.ok)DATA=d; toast('已入 '+ok+' 筆固定支出'); renderApp(); }
+
 function renderReport(){
   const gran = RSCOPE==='year'?'year':'month', B=aggregateGran(gran), monthB=aggregateGran('month');
   const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4);
@@ -463,14 +685,12 @@ function renderReport(){
       const col=pct>100?'var(--red)':(pct>=90?'var(--amber)':'var(--green)');
       return `<tr><td>${esc(c)}<div class="bar-mini"><i style="width:${Math.min(100,pct).toFixed(0)}%;background:${col}"></i></div></td><td class="n">${fmt0(bud)}</td><td class="n">${fmt0(act)}</td><td class="n" style="color:${over>0?'var(--red)':'var(--green)'}">${over>0?'+':''}${fmt0(over)}</td></tr>`; }).join('');
     const tBud=budCats.reduce((s,c)=>s+budByCat[c],0), tAct=budCats.reduce((s,c)=>s+Math.round(S.catEx[c]||0),0);
-    budCard=`<div class="card"><h3>🎯 預算 vs 實際<span class="tag">${RSCOPE==='year'?'全年':'本月'}</span></h3><table class="rpt"><thead><tr><th>分類</th><th class="n">預算</th><th class="n">實際</th><th class="n">差異</th></tr></thead><tbody>${rows}<tr class="tot"><td>合計</td><td class="n">${fmt0(tBud)}</td><td class="n">${fmt0(tAct)}</td><td class="n" style="color:${tAct-tBud>0?'var(--red)':'var(--green)'}">${tAct-tBud>0?'+':''}${fmt0(tAct-tBud)}</td></tr></tbody></table><div class="mut" style="font-size:11px;margin-top:8px">綠=90%內 · 黃=接近爆 · 紅=超支。喺設定頁改預算。</div></div>`;
+    budCard=`<div class="card"><h3>🎯 預算 vs 實際<span class="tag">${RSCOPE==='year'?'全年':'本月'}</span></h3><div class="tbl-scroll"><table class="rpt"><thead><tr><th>分類</th><th class="n">預算</th><th class="n">實際</th><th class="n">差異</th></tr></thead><tbody>${rows}<tr class="tot"><td>合計</td><td class="n">${fmt0(tBud)}</td><td class="n">${fmt0(tAct)}</td><td class="n" style="color:${tAct-tBud>0?'var(--red)':'var(--green)'}">${tAct-tBud>0?'+':''}${fmt0(tAct-tBud)}</td></tr></tbody></table></div><div class="mut" style="font-size:11px;margin-top:8px">綠=90%內 · 黃=接近爆 · 紅=超支。喺設定頁改預算。</div></div>`;
   }
   const expRows=Object.entries(S.catEx).filter(e=>Math.abs(e[1])>0).sort((a,b)=>b[1]-a[1]).map(e=>`<tr><td>${esc(e[0])}</td><td class="n">${fmt0(e[1])}</td></tr>`).join('');
-  let html=`<div class="top noprint"><div class="wrap"><h1>📊 <span>財務報表</span></h1>
-    <button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button>
-    <button class="tbtn" onclick="window.print()">🖨 列印/PDF</button></div></div>
-    <div class="wrap" style="padding-bottom:60px">
-    <div class="scope noprint" style="margin:16px 0 8px">
+  const printBtn=`<button class="tbtn" onclick="window.print()" title="列印/PDF">🖨</button>`;
+  let html=topBar('財務報表', printBtn)+`<div class="wrap">
+    <div class="scope noprint" style="margin:14px 0 8px">
       <button class="chip ${RSCOPE==='month'?'on':''}" onclick="RSCOPE='month';RPICK='';renderApp()">月報表</button>
       <button class="chip ${RSCOPE==='year'?'on':''}" onclick="RSCOPE='year';RPICK='';renderApp()">年報表</button>${picker}<div class="sp"></div></div>
     <div class="rpthead">INITIATE SPORTS · 財務報表<br><span>${esc(label)}</span></div>
@@ -488,13 +708,14 @@ function renderReport(){
       <tr class="net"><td>淨現金流</td><td class="n ${cashNet>=0?'pos':'neg'}">${fmt0(cashNet)}</td></tr>
       ${totalRev-cashIn>0?`<tr><td class="mut" style="font-size:11.5px">未收應收 $${Math.round(totalRev-cashIn)}（未計入現金）</td><td></td></tr>`:''}
       </tbody></table></div>
+    ${sportTimeslotCard()}
     ${(function(){ const exs=(DATA.expense||[]).filter(r=>String(r.date||'').startsWith(RPICK)).sort((a,b)=>(a.date<b.date?-1:1));
       if(!exs.length) return '';
       const rows=exs.map(r=>`<tr><td>${dmy(r.date)}</td><td>${esc(r.cat||'')}</td><td>${esc(r.desc||'')}${r.file?' <span class="mut" style="font-size:10px">🧾單據</span>':''}</td><td class="n">${fmt0(r.amt)}</td><td class="noprint">${r.file?`<button class="vd" onclick="viewReceipt('${esc(r.file)}')">📎</button>`:''}</td></tr>`).join('');
       const tot=exs.reduce((s,r)=>s+(+r.amt||0),0), withRcpt=exs.filter(r=>r.file).length;
-      return `<div class="card"><h3>🧾 支出明細（報稅用）<span class="tag">${exs.length} 筆 · ${withRcpt} 張單據</span></h3><table class="rpt"><thead><tr><th>日期</th><th>類別</th><th>說明</th><th class="n">金額</th><th class="noprint"></th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="3">合計</td><td class="n">${fmt0(tot)}</td><td class="noprint"></td></tr></tbody></table><div class="mut" style="font-size:11px;margin-top:8px">列印此頁即為報稅支出清單；單據相存喺私有 Drive，撳 📎 可逐張查閱。場租另按康文署費率入賬。</div></div>`; })()}
+      return `<div class="card"><h3>🧾 支出明細（報稅用）<span class="tag">${exs.length} 筆 · ${withRcpt} 張單據</span></h3><div class="tbl-scroll"><table class="rpt"><thead><tr><th>日期</th><th>類別</th><th>說明</th><th class="n">金額</th><th class="noprint"></th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="3">合計</td><td class="n">${fmt0(tot)}</td><td class="noprint"></td></tr></tbody></table></div><div class="mut" style="font-size:11px;margin-top:8px">列印此頁即為報稅支出清單；單據相存喺私有 Drive，撳 📎 可逐張查閱。場租另按康文署費率入賬。</div></div>`; })()}
     <div class="foot noprint">報表即時由系統數據計算；列印/PDF 可畀會計或報稅用。</div></div>`;
-  $('app').innerHTML=html+fabHtml();
+  $('app').innerHTML=html+fabHtml()+navHtml();
 }
 function toast(msg){ let el=$('toast'); if(!el){ el=document.createElement('div'); el.id='toast'; document.body.appendChild(el); }
   el.textContent=msg; el.classList.add('on'); clearTimeout(TOASTt); TOASTt=setTimeout(()=>el.classList.remove('on'),2400); }
@@ -509,23 +730,32 @@ async function viewReceipt(fileId){ toast('開緊單據…'); const r=await acct
     if((r.mime||'').indexOf('pdf')>=0) w.location=src; else w.document.write('<title>'+ (r.name||'單據') +'</title><body style="margin:0;background:#111"><img src="'+src+'" style="max-width:100%;display:block;margin:auto"></body>'); }
   else toast((r&&r.err)||'開唔到'); }
 function closeSheet(){ const s=$('scrim'); if(s) s.classList.remove('on'); }
+const EXP_RULES=[[/場地|租場|球場|康文署|體育館|場租/,'場地租金'],[/保險/,'保險'],[/繩|器材|球拍|羽毛球|波|制服|球衣|裝備/,'器材／制服入貨'],[/宣傳|廣告|印刷|傳單|海報|推廣/,'宣傳推廣'],[/交通|的士|巴士|車費|泊車|油/,'交通']];
+function suggestFor(note){ for(const [re,c] of EXP_RULES){ if(re.test(note||'')) return c; } return ''; }
+function suggestCat(val){ EXP.note=val;
+  const sug=(EXP.kind==='expense')?suggestFor(val):'';
+  const wrap=$('catwrap'); if(wrap&&wrap.querySelectorAll){ const btns=wrap.querySelectorAll('button'); (btns.forEach?btns:[]).forEach(b=>{ if(b.classList) b.classList.remove('sug'); if(sug && b.dataset && b.dataset.c===sug && EXP.cat!==sug && b.classList) b.classList.add('sug'); }); }
+  const hint=$('catsug'); if(hint) hint.innerHTML=(sug&&EXP.cat!==sug)?`💡 建議分類：<b>${esc(sug)}</b> <button class="linkbtn" onclick="EXP.cat='${esc(sug)}';suggestCat(EXP.note);renderSheet()">採用</button>`:'';
+}
 function renderSheet(){
   let s=$('scrim'); if(!s){ s=document.createElement('div'); s.id='scrim'; s.onclick=e=>{ if(e.target===s) closeSheet(); }; document.body.appendChild(s); }
   const cats=(DATA.categories||[]).map(c=>c.name);
   const catList = EXP.kind==='income' ? ['PT加收','現金收入','退款','其他收入'] : (cats.length?cats:['場地租金','器材／制服入貨','宣傳推廣','行政雜費','其他']);
+  const sug=(EXP.kind==='expense')?suggestFor(EXP.note):'';
   s.innerHTML=`<div class="sheet">
     <h3>${EXP.kind==='expense'?'🧾 記一筆支出':'💰 記一筆收入'}</h3>
     <div class="seg"><button class="${EXP.kind==='expense'?'on':''}" onclick="EXP.kind='expense';EXP.cat='';renderSheet()">支出</button><button class="${EXP.kind==='income'?'on':''}" onclick="EXP.kind='income';EXP.cat='';renderSheet()">收入</button></div>
     <div class="amtbox"><div class="amt"><small>$</small>${EXP.amt||'0'}</div></div>
     <div class="keys">${[1,2,3,4,5,6,7,8,9].map(n=>`<button onclick="expKey('${n}')">${n}</button>`).join('')}<button onclick="expKey('c')" style="color:var(--red)">C</button><button onclick="expKey('0')">0</button><button onclick="expKey('b')">⌫</button></div>
-    <div class="fld"><label>類別</label><div class="catchips">${catList.map(c=>`<button class="${EXP.cat===c?'on':''}" onclick="EXP.cat=this.dataset.c;renderSheet()" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+    <div class="divider"></div>
+    <div class="fld"><label>類別</label><div class="catchips" id="catwrap">${catList.map(c=>`<button class="${EXP.cat===c?'on':((sug===c&&!EXP.cat)?'sug':'')}" onclick="EXP.cat=this.dataset.c;suggestCat(EXP.note);renderSheet()" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div><div class="catsug" id="catsug">${(sug&&EXP.cat!==sug)?`💡 建議分類：<b>${esc(sug)}</b> <button class="linkbtn" onclick="EXP.cat='${esc(sug)}';suggestCat(EXP.note);renderSheet()">採用</button>`:''}</div></div>
     ${EXP.kind==='income'?`<div class="fld"><label>學生 / 對象（可選）</label><input value="${esc(EXP.name||'')}" oninput="EXP.name=this.value" placeholder="例：甘卓熹"></div>`:''}
     <div class="fld"><label>日期</label><input type="date" value="${EXP.date}" onchange="EXP.date=this.value"></div>
-    <div class="fld"><label>備註（可選）</label><input value="${esc(EXP.note||'')}" oninput="EXP.note=this.value" placeholder="說明"></div>
+    <div class="fld"><label>備註（可選）</label><input value="${esc(EXP.note||'')}" oninput="suggestCat(this.value)" placeholder="打字會自動建議分類，例：租場 / 保險"></div>
     ${EXP.kind==='expense'?`<div class="fld"><label>單據相 / PDF（可選，報稅用）</label>
       ${EXP.receiptFileId?`<div class="mut" style="font-size:12.5px">📎 已附：${esc(EXP.receiptName||'單據')} <button class="vd" onclick="EXP.receiptFileId='';EXP.receiptName='';renderSheet()">移除</button></div>`
         :`<input type="file" accept="image/*,application/pdf" onchange="pickReceipt(this)" style="font-size:12.5px"><div id="rcup" class="mut" style="font-size:11.5px;margin-top:4px"></div>`}</div>`:''}
-    <div class="srow"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" onclick="saveExpense(true)">儲存＋再記</button><button class="btn-primary" onclick="saveExpense(false)">儲存</button></div>
+    <div class="srow"><button class="btn-cancel" onclick="closeSheet()">取消</button><button class="btn-again" onclick="saveExpense(true)">＋再記</button><button class="btn-save" onclick="saveExpense(false)">儲存</button></div>
   </div>`;
   s.classList.add('on');
 }
@@ -551,7 +781,7 @@ function renderLedger(){
   (DATA.income||[]).forEach(r=>items.push({t:'in',date:r.date,name:r.name,cat:r.cat,desc:r.desc,amt:r.amt,status:r.status,manual:(r.src==='MI'),id:r.id,pending:r._pending}));
   (DATA.expense||[]).forEach(r=>items.push({t:'ex',date:r.date,cat:r.cat,desc:r.desc,amt:-r.amt,manual:true,id:r.id,pending:r._pending,file:r.file}));
   items.sort((a,b)=>(b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:0));
-  let html=`<div class="top"><div class="wrap"><h1>🧾 <span>賬目流水</span></h1><button class="tbtn" onclick="VIEW='dash';renderApp()">← 概覽</button><button class="tbtn" onclick="refresh()" id="rfbtn">↻</button></div></div><div class="wrap" style="padding-bottom:100px">`;
+  let html=topBar('賬目流水')+`<div class="wrap">`;
   if(!items.length) html+='<div class="empty">未有記錄。撳右下角 ＋ 記第一筆。</div>';
   let lastD='';
   items.forEach(x=>{ if(x.date!==lastD){ lastD=x.date; const day=items.filter(y=>y.date===x.date); const net=day.reduce((a,y)=>a+y.amt,0);
@@ -562,10 +792,10 @@ function renderLedger(){
       <div class="s">${esc([x.name,x.desc,(x.status&&x.status!=='已收'?x.status:'')].filter(Boolean).join(' · '))||' '}</div></div>
       <div class="a" style="color:${inc?'var(--green)':'var(--red)'}">${inc?'+':''}${fmt0(x.amt)}</div>
       ${x.file?`<button class="vd" onclick="viewReceipt('${esc(x.file)}')" title="睇單據">📎</button>`:''}
-      ${(x.manual&&!x.pending&&x.id&&x.id!=='(pending)')?`<button class="vd" onclick="voidEntry('${x.t}','${esc(x.id)}')" title="作廢">✕</button>`:''}</div>`; });
-  $('app').innerHTML=html+'</div>'+fabHtml();
+      ${(x.manual&&!x.pending&&x.id&&x.id!=='(pending)')?`<button class="voidbtn" onclick="voidEntry('${x.t}','${esc(x.id)}')" title="作廢">作廢</button>`:''}</div>`; });
+  $('app').innerHTML=html+'</div>'+fabHtml()+navHtml();
 }
-async function voidEntry(t,id){ if(!confirm('確定作廢呢筆？（會保留審計記錄）')) return;
+async function voidEntry(t,id){ if(!confirm('確定作廢呢筆？作廢後會保留審計記錄，但唔再計入收支。')) return;
   const action=t==='ex'?'acctExpenseVoid':'acctIncomeVoid';
   if(t==='ex') DATA.expense=(DATA.expense||[]).filter(x=>x.id!==id); else DATA.income=(DATA.income||[]).filter(x=>x.id!==id);
   renderApp();
