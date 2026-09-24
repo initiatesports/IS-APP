@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-23-rolledlast';
+const FRONTEND_VERSION = 'coach-2026-09-24-venue-sort-time';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1712,6 +1712,12 @@ async function gfRun(dry){
 let VENUES_CACHE=[];
 let TIMEADJ_MAP={};   // 🔒 審計P3：特別時間 override {cid|date:time}（由 load 帶入，教練端顯示要套）
 function taTime_(cid,date){ try{ return TIMEADJ_MAP[cid+'|'+date] || ((anyClass(cid)||{}).time) || ''; }catch(e){ return (anyClass(cid)||{}).time||''; } }
+// 由時間字串（如「5–6pm」「11am–12」「10:00-11:00」「12–1pm」）抽開始分鐘，供排序用。老闆 2026-09-24：地點清單要按時間先後排。
+function vnStartMin_(t){ t=String(t||'').toLowerCase(); const m=t.match(/(\d{1,2})(?::(\d{2}))?/); if(!m) return 99999;
+  let h=parseInt(m[1],10), mm=m[2]?parseInt(m[2],10):0; const pm=/pm/.test(t), am=/am/.test(t);
+  if(pm && h<12) h+=12; else if(am && h===12) h=0; return h*60+mm; }
+// 一個 venue 卡／班別嘅排序 key＝日期(ISO) + 當日開始時間（特別時間優先）。
+function vnSortKey_(cid,date){ return String(date||'')+'|'+String(10000+vnStartMin_(taTime_(cid,date))).slice(-5); }
 function venueAt_(cid,date){ try{ var v=VENUES_CACHE.find(function(x){ return x.date===date && ((x.cid||'')===cid||(x.cid||'')===''); }); return v?((v.centre||'')+(v.room?(' '+v.room):'')):''; }catch(e){ return ''; } }
 const VN_CENTRES=['青衣體育館','楓樹窩體育館','長發體育館','青衣西南體育館','翠怡花園會所','青衣運動場'];
 const TA_TIME_SLOTS=['8–9am','8–10am','9–10am','10–11am','11am–12','12–1pm','12–2pm','1–2pm','2–3pm','3–4pm','4–5pm','4:50–5:50pm','5–6pm','6–7pm','6–8pm','7–8pm','8–9pm'];
@@ -1740,7 +1746,8 @@ function vnDayClasses(dateStr){   // 當日所有課堂（跳繩 #4 ＋ 運動�
   return Object.keys(ALL_CLASSES).filter(cid=>{ const c=ALL_CLASSES[cid]; if(!c||realStuCount_(c)<1) return false;
       if(isDiscontinued_(cid)) return false;   // 停辦／未成班（如 c2 星期一6–7pm 暫停）唔喺地點／時間清單出現
       return !day || !c.dayZh || c.dayZh===day; })
-    .map(cid=>({cid, label:(ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)||cid}));
+    .map(cid=>({cid, label:(ALL_CLASSES[cid]&&ALL_CLASSES[cid].label)||cid}))
+    .sort((a,b)=> vnStartMin_(taTime_(a.cid,dateStr))-vnStartMin_(taTime_(b.cid,dateStr)));   // 老闆 2026-09-24：同日多班亦按時間先後排
 }
 function vnOptSel(list, val){
   const inList=list.indexOf(val)>=0;
@@ -1841,6 +1848,7 @@ async function renderVenueAdmin(){
       <button id="vn-wa-copy" style="display:none;width:100%;margin-top:6px;padding:11px;border-radius:9px;background:#2b2b2b;color:#eee;border:1px solid #444;font-size:14px;font-weight:700;cursor:pointer" onclick="copyWa()">📄 複製文案</button>
     </div>`;
   if(VENUES_CACHE.length){
+    VENUES_CACHE=VENUES_CACHE.slice().sort((a,b)=> vnSortKey_(a.cid,a.date)<vnSortKey_(b.cid,b.date)?-1:1);   // 老闆 2026-09-24：全部按日期＋時間先後排（#4 跳繩＋#SA 運動班混住嗰陣尤其亂）
     html+=`<div class="class-list">`+VENUES_CACHE.map(v=>`
       <div class="class-row" style="align-items:flex-start">
         <div class="class-row-info"><h3 style="font-size:14px;font-weight:600;white-space:normal">📍 ${vnEsc(v.centre)}${v.room?'・'+vnEsc(v.room):''}</h3>
