@@ -517,7 +517,9 @@ function healthBand(monthB,curMonth,curYear){
 function cashRunwayCard(monthB){
   const cash=+DATA.cashBalance||0, curKey=todayISO().slice(0,7);
   const avgExp=avgMonthlyExp(monthB,curKey,3);
-  const thisM=monthB[curKey]||{inPaid:0,exp:0}, cashNet=(thisM.inPaid||0)-(thisM.exp||0);
+  // 本月現金淨變動＝按實際收錢日嘅已收 − 本月支出（唔用攤分收入，反映真實現金流）
+  const cashInM=(DATA.income||[]).filter(r=>r.status==='已收' && String(r.date||'').startsWith(curKey)).reduce((a,r)=>a+(Number(r.amt)||0),0);
+  const thisM=monthB[curKey]||{exp:0}, cashNet=cashInM-(thisM.exp||0);
   if(cash<=0){
     return `<div class="card runway-set" onclick="openCash()"><div class="rset-ic">💵</div>
       <div><div class="rset-t">撳我設定現金結餘</div><div class="rset-s">輸入銀行／現金戶口總額，計出仲有幾多個月營運跑道</div></div>
@@ -699,7 +701,11 @@ function renderReport(){
   const curMonth=todayISO().slice(0,7), curYear=curMonth.slice(0,4);
   if(!RPICK) RPICK = RSCOPE==='year'?curYear:curMonth;
   const S=sumBuckets(B,[RPICK]);
-  const totalRev=S.inPaid+S.inDue, totalExp=S.exp, net=totalRev-totalExp, cashIn=S.inPaid, cashOut=S.exp, cashNet=cashIn-cashOut;
+  const totalRev=S.inPaid+S.inDue, totalExp=S.exp, net=totalRev-totalExp;
+  // 🔒 老闆 2026-09-24：損益表(P&L)用攤分後收入；現金流量表要反映【實際收錢日】——報名 8 月一次過收足就落 8 月。
+  //   cashIn = 已收 income 按實際日期(r.date)落 RPICK；唔用攤分後嘅 S.inPaid。cashOut 用支出實際日期＋該期場租。
+  const cashIn=(DATA.income||[]).filter(r=>r.status==='已收' && String(r.date||'').startsWith(RPICK)).reduce((a,r)=>a+(Number(r.amt)||0),0);
+  const cashOut=S.exp, cashNet=cashIn-cashOut;
   const label = RSCOPE==='year'?(RPICK+' 年度'):(RPICK.replace('-','年')+'月');
   const mkeys=[...new Set(Object.keys(monthB).concat([curMonth]))].sort().reverse();
   const ykeys=[...new Set(Object.keys(monthB).map(k=>k.slice(0,4)).concat([curYear]))].sort().reverse();
@@ -735,7 +741,7 @@ function renderReport(){
       </tbody></table><div class="mut" style="font-size:11px;margin-top:8px">收入含待收；場租按康文署費率自動計、按期攤分。</div></div>
     ${budCard}
     <div class="card"><h3>現金流量表 Cash Flow<span class="tag">現金收付制</span></h3><table class="rpt"><tbody>
-      <tr><td>現金流入（已收）</td><td class="n pos">${fmt0(cashIn)}</td></tr>
+      <tr><td>現金流入（已收・按實際收錢日）</td><td class="n pos">${fmt0(cashIn)}</td></tr>
       <tr><td>現金流出（支出＋場租）</td><td class="n neg">${fmt0(cashOut)}</td></tr>
       <tr class="net"><td>淨現金流</td><td class="n ${cashNet>=0?'pos':'neg'}">${fmt0(cashNet)}</td></tr>
       ${totalRev-cashIn>0?`<tr><td class="mut" style="font-size:11.5px">未收應收 $${Math.round(totalRev-cashIn)}（未計入現金）</td><td></td></tr>`:''}
