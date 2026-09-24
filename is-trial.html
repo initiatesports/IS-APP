@@ -86,8 +86,8 @@ input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--tea
   <div class="foot">INITIATE SPORTS · 新生試堂報名　·　青衣體育館<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='trial-2026-09-17-nocache';
-const API='https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec';
+const FRONTEND_VERSION='trial-2026-09-24-d2';
+const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端（舊 #4 AKfycbxNikFc… fallback）
 const $=s=>document.querySelector(s);
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
 const PREVIEW=(function(){ try{ return new URLSearchParams(location.search).get('preview')==='1'; }catch(e){ return false; } })();
