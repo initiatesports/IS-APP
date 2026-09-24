@@ -580,16 +580,16 @@ function receivablesCard(){
   return `<div class="card"><h3>📥 應收（未收）<span class="tag">共 ${fmt0(tot)}</span></h3>
     ${rows.slice(0,25).map(([n,v])=>`<div class="mrow"><div class="l"><div class="t">${esc(n)}</div></div><div class="r"><div class="num" style="font-weight:800;color:var(--amber)">${fmt0(v)}</div></div></div>`).join('')}</div>`;
 }
-function pnlRow_(r){ const name=r[1], time=r[2], hc=+r[3]||0, tui=+r[4]||0, rent=+r[5]||0, net=+r[6]||0;
-  const per=hc>0?tui/hc:0, be=per>0?Math.ceil(rent/per):0, gap=be-hc;
-  return {name,time,hc,tui,rent,net,per,be,gap}; }
+function pnlRow_(r){ const name=r[1], time=r[2], hc=+r[3]||0, tui=+r[4]||0, rent=+r[5]||0, net=+r[6]||0, coach=+r[9]||0;
+  const per=hc>0?tui/hc:0, be=per>0?Math.ceil((rent+coach)/per):0, gap=be-hc;   // 回本＝(場租+教練成本)÷每生學費
+  return {name,time,hc,tui,rent,net,coach,per,be,gap}; }
 function pnlCards(){
   const p=DATA.classPnL||[]; if(p.length<2) return '<div class="empty">未有已核實報名</div>';
   const rows=p.slice(1).map(pnlRow_);
   if(isWide()){  // desktop：表格（密、一眼多資料）
-    return `<div class="tbl-scroll"><table><thead><tr><th>班別</th><th class="n">人數</th><th class="n">學費</th><th class="n">場租</th><th class="n">淨利</th><th class="n">回本人數</th><th>狀態</th></tr></thead><tbody>`+
+    return `<div class="tbl-scroll"><table><thead><tr><th>班別</th><th class="n">人數</th><th class="n">學費</th><th class="n">場租</th><th class="n">教練</th><th class="n">淨利</th><th class="n">回本人數</th><th>狀態</th></tr></thead><tbody>`+
       rows.map(x=>{ const beTxt = x.per<=0?'—':(x.gap>0?`${x.be} 人（差 ${x.gap}）`:`✅ ${x.be} 人`);
-        return `<tr><td>${esc(x.name)}<div class="mut" style="font-size:11px">${esc(x.time)}</div></td><td class="n">${x.hc}</td><td class="n">${fmt0(x.tui)}</td><td class="n neg">${fmt0(x.rent)}</td><td class="n ${x.net>=0?'pos':'neg'}" style="font-weight:800">${fmt0(x.net)}</td><td class="n ${x.gap>0?'neg':'pos'}">${beTxt}</td><td>${x.net>=0?'<span class="pill g">賺</span>':'<span class="pill r">蝕</span>'}</td></tr>`; }).join('')+
+        return `<tr><td>${esc(x.name)}<div class="mut" style="font-size:11px">${esc(x.time)}</div></td><td class="n">${x.hc}</td><td class="n">${fmt0(x.tui)}</td><td class="n neg">${fmt0(x.rent)}</td><td class="n neg">${x.coach?fmt0(x.coach):'—'}</td><td class="n ${x.net>=0?'pos':'neg'}" style="font-weight:800">${fmt0(x.net)}</td><td class="n ${x.gap>0?'neg':'pos'}">${beTxt}</td><td>${x.net>=0?'<span class="pill g">賺</span>':'<span class="pill r">蝕</span>'}</td></tr>`; }).join('')+
       `</tbody></table></div>`;
   }
   return rows.map(x=>{ let beTxt;
@@ -599,7 +599,7 @@ function pnlCards(){
     return `<div class="pnl-card"><div class="pnl-top">
       <div class="pnl-name">${esc(x.name)}<div class="pnl-time">${esc(x.time)}</div></div>
       <div class="pnl-net ${x.net>=0?'pos':'neg'} num">${fmt0(x.net)}<span class="pill ${x.net>=0?'g':'r'}">${x.net>=0?'賺':'蝕'}</span></div></div>
-      <div class="pnl-meta"><span>👥 ${x.hc} 人</span><span>學費 ${fmt0(x.tui)}</span><span class="neg">場租 ${fmt0(x.rent)}</span></div>
+      <div class="pnl-meta"><span>👥 ${x.hc} 人</span><span>學費 ${fmt0(x.tui)}</span><span class="neg">場租 ${fmt0(x.rent)}</span>${x.coach?`<span class="neg">教練 ${fmt0(x.coach)}</span>`:''}</div>
       <div class="pnl-be ${x.gap>0?'neg':'pos'}">${beTxt}</div></div>`;
   }).join('');
 }
