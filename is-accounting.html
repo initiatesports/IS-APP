@@ -673,6 +673,16 @@ function renderSettings(){
         <input id="rc-day" type="number" inputmode="numeric" placeholder="號" value="1" class="fin" style="width:56px" title="每月幾號">
         <button class="tbtn" style="background:var(--teal);color:#04252a" onclick="saveRecur()">加</button></div>
       <div class="tbl-scroll"><table><thead><tr><th>項目</th><th class="n">金額</th><th class="n">本月</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`; })()}
+    ${(function(){ const cd={}; (DATA.coachDraft&&DATA.coachDraft.rows||[]).forEach(r=>cd[r.cid]=r);
+      const cls=(DATA.classPnL||[]).slice(1).filter(r=>r&&r[0]&&!/總|合計/.test(String(r[0])));
+      const draftTot=(DATA.coachDraft&&DATA.coachDraft.total)||0, per=(DATA.coachDraft&&DATA.coachDraft.period)||DATA.enrollPeriod||'';
+      const rows=cls.length?cls.map(r=>{ const cid=r[0], nm=esc((r[1]||'')+' '+(r[2]||'')); const rate=(DATA.coachRates||{})[cid]||0; const d=cd[cid]; const sess=d?d.sessions:8; const amt=rate*sess;
+        return `<tr><td>${nm}</td><td class="n"><input id="cr-${esc(cid)}" type="number" inputmode="numeric" value="${rate||''}" placeholder="$/堂" class="fin" style="width:76px;padding:6px 8px;text-align:right"></td><td class="n mut" style="font-size:11.5px">${sess}堂</td><td class="n" style="font-weight:700">${amt?fmt0(amt):'—'}</td><td><button class="tbtn" style="font-size:12px" onclick="saveCoachRate('${esc(cid)}')">存</button></td></tr>`; }).join(''):'<tr><td colspan="5" class="mut">未有開緊嘅班（需有報名）</td></tr>';
+      return `<div class="card"><h3>🧑‍🏫 教練費率 + 教練薪<span class="tag">草稿→確認先落帳</span></h3>
+        <div class="mut" style="font-size:12px;margin-bottom:10px;line-height:1.6">逐班填「每堂費率」→ 系統按 <b>費率×堂數</b> 生成本期草稿 → 撳確認先記入「教練」支出（<b>絕不自動落帳</b>；同班同期唔會重複）。</div>
+        <div class="tbl-scroll"><table><thead><tr><th>班別</th><th class="n">每堂費率</th><th class="n">堂數</th><th class="n">本期</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+        ${draftTot>0?`<button class="btn-primary" style="width:100%;margin-top:12px" onclick="postCoachSalary()">✅ 確認落帳「${esc(per)}」教練薪 ${fmt0(draftTot)}</button>`:`<div class="mut" style="font-size:12px;margin-top:8px">設好費率後，呢度會顯示本期草稿總額，確認先落帳。</div>`}
+      </div>`; })()}
     <div class="card"><h3>🔒 月結鎖帳<span class="tag">封咗嘅期唔可再記賬</span></h3>
       <div class="tbl-scroll"><table><thead><tr><th>期別</th><th>狀態</th><th class="n"></th></tr></thead><tbody>${periodRows}</tbody></table></div></div>
     <div class="card"><h3>🔑 財務密碼</h3><button class="tbtn" style="font-size:13px" onclick="renderSetup(0)">修改財務密碼</button></div>
@@ -686,6 +696,14 @@ async function saveBudget(){ const mo=$('bg-mo').value, cat=$('bg-cat').value, a
 async function setBudget(mo,cat,amt){ const r=await acctPost({action:'acctBudgetUpsert',acctPass:FP,month:mo,category:cat,amount:amt}); if(r&&r.ok){ const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } }
 async function closePeriod(p){ if(!confirm('封帳「'+p+'」？封咗就唔可以再記賬（之後可解封）')) return; const r=await acctPost({action:'acctPeriodClose',acctPass:FP,period:p}); if(r&&r.ok){ toast('已封帳'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
 async function reopenPeriod(p){ const reason=prompt('解封「'+p+'」原因（會記入審計）：'); if(!reason) return; const r=await acctPost({action:'acctPeriodClose',acctPass:FP,period:p,reopen:1,reason:reason}); if(r&&r.ok){ toast('已解封'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function saveCoachRate(cid){ const el=$('cr-'+cid); const v=parseInt((el&&el.value||'0'),10)||0;
+  const r=await acctPost({action:'acctCoachRateUpsert',acctPass:FP,cid:cid,rate:v});
+  if(r&&r.ok){ toast('已設費率'); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
+async function postCoachSalary(){ const dr=DATA.coachDraft||{rows:[]};
+  if(!(dr.rows||[]).length){ toast('未有草稿（先設費率）'); return; }
+  if(!confirm('確認落帳「'+dr.period+'」教練薪 '+fmt0(dr.total)+'？\n會記入「教練」支出（同班同期唔會重複入）。想改金額就改返費率再落。')) return;
+  const r=await acctPost({action:'acctCoachSalaryPost',acctPass:FP,period:dr.period,items:JSON.stringify(dr.rows)});
+  if(r&&r.ok){ toast('已落帳 '+(r.posted||0)+' 班'+(r.dup?('，'+r.dup+' 班之前已入'):'')); const d=await fetchData(FP); if(d&&d.ok)DATA=d; renderApp(); } else toast((r&&r.err)||'失敗'); }
 async function saveRecur(){ const name=$('rc-name').value.trim(), cat=$('rc-cat').value, amt=$('rc-amt').value, day=$('rc-day').value||1;
   if(!name||!amt){ toast('填名稱同金額'); return; }
   const r=await acctPost({action:'acctRecurringUpsert',acctPass:FP,name:name,category:cat,amount:+amt,day:+day});
