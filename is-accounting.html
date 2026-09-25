@@ -127,7 +127,7 @@ const CFG={ API:'https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8
 const START='2026-09';   // 老闆：所有計算由 2026 年 9 月開始（甘卓熹 8/29 一節係例外，後端已處理）
 // 收入 4 大類（後端 acctIncomeGroup_ 派 grp；呢度同一規則做後備）
 const GROUPS=[
-  {k:'團體班',       ic:'👟', c:'var(--g1)', note:'運動班＋跳繩班；報名學費按課程期月份攤分'},
+  {k:'團體班',       ic:'👟', c:'var(--g1)', note:'運動班＋跳繩班；報名學費按實際上課日逐堂計'},
   {k:'私人訓練',     ic:'🏋️', c:'var(--g2)', note:'套票每上一節記一次＋按堂'},
   {k:'Drop-in＆治療', ic:'🩺', c:'var(--g3)', note:'每次自己記金額'},
   {k:'器材',         ic:'🎽', c:'var(--g4)', note:'器材店訂單＋現金售賣'}];
@@ -136,7 +136,7 @@ const IN_CATS=['Drop-in 私訓','運動治療','器材','其他收入'];   // �
 const FIX_CATS=['Drop-in 私訓','運動治療','私訓按堂','器材','其他收入'];   // 改類別（同後端 apiAcctManualIncomeFix 白名單一致）
 let FP='', DATA=null, MODE='month', MON='', YR='', FILTER='all', ADD=null, TOASTt=null;
 const $=id=>document.getElementById(id);
-const fmt=n=>'$'+Math.round(n||0).toLocaleString('en-US');
+const fmt=n=>{ const v=Math.round(n||0); return (v<0?'−':'')+'$'+Math.abs(v).toLocaleString('en-US'); };
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dmy=s=>{ const m=String(s||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:(s||'—'); };
 const monLabel=k=>{ const m=String(k).match(/(\d{4})-(\d{2})/); return m?`${m[1]} 年 ${+m[2]} 月`:k; };
@@ -162,12 +162,14 @@ function ledger(){
   (DATA.income||[]).forEach(r=>{
     if(String(r.status||'')==='void') return;
     const g=grpOf(r), paid=(r.status||'已收')==='已收';
-    const ms=/^EN/.test(String(r.src||''))?periodMonths(r.period):[];
+    const ms=(!DATA.recognized && /^EN/.test(String(r.src||'')))?periodMonths(r.period):[];   // 新後端已逐堂確認（recognized）就按日期，唔再攤
     if(ms.length){ ms.forEach(m=>inc.push({mon:m, amt:r.amt/ms.length, g, paid, r, split:ms.length})); }
     else { const m=String(r.date||'').slice(0,7); if(/^\d{4}-\d{2}$/.test(m)) inc.push({mon:m, amt:r.amt, g, paid, r, split:1}); }
   });
   (DATA.expense||[]).forEach(r=>{ const m=String(r.date||'').slice(0,7); if(!/^\d{4}-\d{2}$/.test(m)) return;
     exp.push({mon:m, amt:+r.amt||0, venue:/場地|場租/.test(String(r.cat||'')), r, auto:false}); });
+  (DATA.venueSessions||[]).forEach(v=>{ const m=String(v.date||'').slice(0,7); if(!/^\d{4}-\d{2}$/.test(m)) return;
+    exp.push({mon:m, amt:+v.cost||0, venue:true, auto:true, sess:v}); });
   Object.keys(DATA.venueByPeriod||{}).forEach(p=>{ const v=+DATA.venueByPeriod[p]||0, ms=periodMonths(p); if(!v||!ms.length) return;
     ms.forEach(m=>exp.push({mon:m, amt:v/ms.length, venue:true, auto:true, r:{period:p, amt:v}, split:ms.length})); });
   return {inc, exp};
@@ -237,7 +239,7 @@ function render(){
     <button class="tbtn hide-sm" onclick="renderSetup(0)">🔑</button>
     <button class="tbtn" onclick="logout()">登出</button></div></div>`;
   $('app').innerHTML=head+`<div class="wrap">`+(MODE==='year'?yearView(L,months):monthView(L))+`
-    <div class="foot">由 2026 年 9 月開始計（甘卓熹 29/08/2026 一節除外）。團體班學費同場租按課程期月份平均攤分；私人訓練、Drop-in、器材按實際日期。
+    <div class="foot">由 2026 年 9 月開始計（甘卓熹 29/08/2026 一節除外）。團體班學費按實際上課日逐堂計（豁免／免費停課嗰節唔計，順延到下一期第一個月）；場租逐堂按實際場地計；私人訓練、Drop-in、器材按實際日期。
     私訓套票同按堂私訓喺教練頁撳出席（按堂填金額）自動入帳；Drop-in 私訓／運動治療喺呢度「＋ 記一筆」。</div></div>`;
 }
 function groupCards(t, total, clickable){
@@ -245,7 +247,7 @@ function groupCards(t, total, clickable){
   return `<div class="grps">`+list.map(g=>{ const a=t.g[g.k]||0, n=t.n[g.k]||0, pct=total?Math.round(a/total*100):0;
     let sub=g.note;
     if(g.k==='私人訓練') sub=`套票 ${t.pkgN} 節 ${fmt(t.pkg)} · 按堂 ${t.perN} 節 ${fmt(t.per)}`;
-    else if(g.k==='團體班') sub=`${n} 筆報名（按月攤分）`;
+    else if(g.k==='團體班') sub=`${n} 筆（逐堂計；豁免唔計）`;
     else sub=`${n} 筆`;
     return `<button class="gcard ${clickable&&FILTER===g.k?'on':''}" ${clickable?`onclick="FILTER=FILTER==='${g.k}'?'all':'${g.k}';render()"`:''}>
       <i class="bar" style="background:${g.c}"></i><div class="nm">${g.ic} ${esc(g.k)}</div><span class="pct">${pct}%</span>
@@ -260,10 +262,22 @@ function sumBoxes(t, lab){
 function monthView(L){
   const t=totals(L, m=>m===MON);
   const inc=L.inc.filter(x=>x.mon===MON), exp=L.exp.filter(x=>x.mon===MON);
-  let h=`<div class="ttl"><h2>${monLabel(MON)}</h2><span class="mut">撳分類卡睇明細</span></div>`+sumBoxes(t,'已收')+groupCards(t, t.inc, true);
+  let h=`<div class="ttl"><h2>${monLabel(MON)}</h2><span class="mut">撳分類卡睇明細</span></div>`+
+    ((DATA.factsErr&&DATA.factsErr.length)?`<div class="card" style="border-color:var(--amber);color:var(--amber);font-size:13px">⚠️ 攞唔到部份上課資料（${esc(DATA.factsErr.join('；'))}），受影響嘅團體班收入暫按月平均、場租可能少計。撳「↻ 刷新」再試。</div>`:'')+
+    sumBoxes(t,'已收')+groupCards(t, t.inc, true);
   // 支出
-  const venAuto=exp.filter(x=>x.auto), exMan=exp.filter(x=>!x.auto);
+  const venAuto=exp.filter(x=>x.auto&&!x.sess), venSess=exp.filter(x=>x.sess), exMan=exp.filter(x=>!x.auto);
+  const vg=venSess.filter(x=>x.sess.kind==='班'), vp=venSess.filter(x=>x.sess.kind!=='班');
+  const vsum=a=>a.reduce((s,x)=>s+x.amt,0), miss=vp.filter(x=>x.sess.missing).length, uns=venSess.filter(x=>x.sess.unsure).length;
   h+=`<div class="card"><h3>🏟️ 支出<span class="tag">${fmt(t.exp)}</span></h3>`+
+    (venSess.length?`<div class="exrow"><div><div>場地租金 · 團體班</div><div class="s">${vg.length} 堂，逐堂按實際場地計</div></div><b class="num">${fmt(vsum(vg))}</b></div>
+      <div class="exrow"><div><div>場地租金 · 私人訓練</div><div class="s">${vp.length} 節${miss?` · <span style="color:var(--amber)">${miss} 節未填場地（教練頁私訓補填）</span>`:''}</div></div><b class="num">${fmt(vsum(vp))}</b></div>
+      ${uns?`<div class="s" style="color:var(--amber);font-size:12px;padding:6px 0">⚠️ ${uns} 堂嘅場地未有價錢規則（暫用 $57／$54），喺明細標咗「價錢未確認」</div>`:''}
+      <details style="margin:6px 0 4px"><summary style="cursor:pointer;color:var(--teal);font-size:13px;font-weight:700">睇逐堂場租明細（${venSess.length}）</summary>
+      <div class="tbl-scroll" style="margin-top:8px"><table><thead><tr><th>日期</th><th>班別／學員</th><th>場地</th><th>時間</th><th>計法</th><th class="n">租金</th></tr></thead><tbody>${
+        venSess.slice().sort((a,b)=>String(a.sess.date).localeCompare(String(b.sess.date))).map(x=>{ const v=x.sess;
+          return `<tr><td class="num">${dmy(v.date)}</td><td>${esc(v.label)}</td><td>${esc([v.centre,v.room].filter(Boolean).join(' ')||'—')}${v.changed?' <span class="badge">改過</span>':''}</td><td>${esc(v.time||'')}</td><td class="d">${esc(v.rule||'')}</td><td class="n">${fmt(v.cost)}</td></tr>`; }).join('')
+      }</tbody></table></div></details>`:'')+
     venAuto.map(x=>`<div class="exrow"><div><div>場地租金（自動估算）</div><div class="s">${esc(x.r.period)} 全期 ${fmt(x.r.amt)} ÷ ${x.split} 個月 · 按已開班逐堂計</div></div><b class="num">${fmt(x.amt)}</b></div>`).join('')+
     exMan.map(x=>`<div class="exrow"><div><div>${esc(x.r.cat||'支出')}${x.r.desc?` · <span class="mut">${esc(x.r.desc)}</span>`:''}</div><div class="s">${dmy(x.r.date)}</div></div>
       <div style="display:flex;gap:8px;align-items:center"><b class="num">${fmt(x.amt)}</b>${x.r.id?`<button class="act del noprint" onclick="voidExp('${esc(x.r.id)}')">作廢</button>`:''}</div></div>`).join('')+

@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-25-v4';
+const FRONTEND_VERSION = 'coach-2026-09-25-v5';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1147,10 +1147,22 @@ async function renderPt(){
     const pct = capN>0 ? Math.min(100, Math.round(done / capN * 100)) : (done>0?100:8);
     const markedToday = (s.sessions || []).some(x => x.date === today);
     const cur = curSrc.slice().sort((a,b) => a.date < b.date ? 1 : -1);  // 最新喺上
-    const rows = cur.map(x => { const d = new Date(x.date + 'T00:00:00');
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-top:1px solid var(--border)"><span>${fmtPtDate(d)}</span><span style="font-weight:800;color:#e0a93a">第 ${x.no} 堂</span></div>`;
-    }).join('') || `<div style="padding:10px 2px;color:var(--muted);font-size:13px">本期暫未有記錄</div>`;
     const nm = s.name.replace(/'/g, "\\'");
+    // 📍 逐節場地＋豁免（老闆 2026-09-25：會計按場地計場租；豁免＝呢節唔收錢）
+    const sByDate = {}; (s.sessions||[]).forEach(x=>{ sByDate[x.date]=x; });
+    const rows = cur.map(x => { const d = new Date(x.date + 'T00:00:00'), full = sByDate[x.date]||x, v = full.venue||'', ex = !!full.exempt, key = i+'|'+x.date;
+      const vTxt = v ? '📍 '+ptVenueLabel(v) : '<span style="color:#c66">⚠ 未填場地</span>';
+      return `<div style="padding:9px 2px;border-top:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${fmtPtDate(d)}</span><span style="font-weight:800;color:${ex?'var(--muted)':'#e0a93a'};${ex?'text-decoration:line-through':''}">第 ${x.no} 堂</span></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;font-size:12px;color:var(--muted)">
+          <span style="flex:1;min-width:0">${vTxt}${ex?' · <b style="color:#e0a93a">豁免（唔收錢）</b>':''}</span>
+          <button onclick="ptVenueEdit('${key}')" style="padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;cursor:pointer;font-family:inherit">${v?'改場地':'填場地'}</button>
+          <button onclick="ptToggleExempt('${nm}','${x.date}',${ex?0:1})" style="padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:${ex?'#e0a93a':'var(--muted)'};font-size:12px;cursor:pointer;font-family:inherit">${ex?'取消豁免':'豁免'}</button>
+        </div>
+        ${PT_VEDIT===key?`<div style="margin-top:8px;padding:10px;border-radius:10px;background:var(--surface2)">${ptVenueFields('pte-'+i+'-'+x.date, v||s.lastVenue||'')}
+          <button onclick="ptSaveVenue('${nm}','${x.date}','pte-${i}-${x.date}')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit">儲存場地</button></div>`:''}
+      </div>`;
+    }).join('') || `<div style="padding:10px 2px;color:var(--muted);font-size:13px">本期暫未有記錄</div>`;
     const hasRec = cur.length;
     // 私訓收費：逐堂設費用（每堂可唔同）+ 加總入帳到某期 + 已入帳歷史
     const rate = s.rate || 0, unb = s.unbilledCount || 0, unbFee = s.unbilledFee || 0, anyUnset = !!s.unbilledAnyUnset;
@@ -1226,6 +1238,7 @@ async function renderPt(){
         <div style="flex:1;height:10px;border-radius:6px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
         <div style="font-weight:800;color:#e0a93a;white-space:nowrap">${progLabel}</div>
       </div>
+      <div style="margin-bottom:8px">${ptVenueFields('ptv-'+i, s.lastVenue||'')}</div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="date" id="ptd-${i}" value="${today}" max="${today}" style="flex:0 0 auto;padding:13px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">
         <button onclick="ptMark('${nm}', ${i})" style="flex:1;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff">✅ 標記呢日上咗堂</button>
@@ -1242,7 +1255,9 @@ async function ptMark(name, i){
   const di = document.getElementById('ptd-' + i);
   const date = di ? di.value : '';
   if (!date) { toast('請揀日期', '⚠'); return; }
-  let r; try { r = await apiPost({ action:'pt_mark', name, date }); } catch(e) { r=null; }
+  const venue = ptVenueRead('ptv-' + i);
+  if (!venue && !confirm('未揀上課場地，會計就計唔到呢節場租。照記錄？（之後可以喺堂數列表「填場地」）')) return;
+  let r; try { r = await apiPost({ action:'pt_mark', name, date, venue }); } catch(e) { r=null; }
   if (!r) { toast('網絡問題，請重試', '⚠'); return; }
   if (!r.ok) { toast(r.err || '記錄失敗', '⚠'); renderPt(); return; }
   toast(r.newCycle ? `已記錄 ${date}；${name} 已夠一期，自動開新第 ${r.cycle} 期` : `已記錄 ${name} ${date} 第 ${r.no} 堂`, '✓');
@@ -1255,6 +1270,35 @@ async function ptUndo(name){
   toast('已撤銷', '✓');
   renderPt();
 }
+/* 📍 私訓場地（「體育館｜場地｜開始-完結」）＋豁免 */
+const PT_ROOMS=['GYM','活動室','舞蹈室','壁球室','羽毛球場'];
+let PT_VEDIT='';
+function ptVenueParse(v){ const p=String(v||'').split('｜'); const t=(p[2]||'').split('-'); return {c:p[0]||'', r:p[1]||'', s:t[0]||'', e:t[1]||''}; }
+function ptVenueLabel(v){ const x=ptVenueParse(v); return [x.c.replace(/體育館|會所/,''), x.r, x.s?(x.s+(x.e?'–'+x.e:'')):''].filter(Boolean).join(' '); }
+function ptVenueFields(pre, v){ const x=ptVenueParse(v); let dur=60;
+  if(x.s&&x.e){ const a=x.s.split(':'), b=x.e.split(':'); const d=(+b[0]*60+ +b[1])-(+a[0]*60+ +a[1]); if(d>0) dur=d; }
+  const st='padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px;min-width:0';
+  const opt=(arr,cur)=>arr.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')+(cur&&arr.indexOf(cur)<0?`<option selected>${cur}</option>`:'');
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <select id="${pre}-c" style="${st}"><option value="">— 上課體育館 —</option>${opt(VN_CENTRES,x.c)}</select>
+    <select id="${pre}-r" style="${st}"><option value="">— 場地 —</option>${opt(PT_ROOMS,x.r)}</select>
+    <input type="time" id="${pre}-s" value="${x.s}" style="${st}" title="開始時間">
+    <select id="${pre}-d" style="${st}">${[60,90,120].map(m=>`<option value="${m}" ${m===dur?'selected':''}>${m} 分鐘</option>`).join('')}</select></div>`; }
+function ptVenueRead(pre){ const g=id=>{ const el=document.getElementById(pre+'-'+id); return el?String(el.value||'').trim():''; };
+  const c=g('c'), r=g('r'), s=g('s'), d=+g('d')||60; if(!c&&!r) return '';
+  let t=''; if(/^\d{1,2}:\d{2}$/.test(s)){ const m=+s.split(':')[0]*60+ +s.split(':')[1]+d; t=s+'-'+String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+  return c+'｜'+r+'｜'+t; }
+function ptVenueEdit(key){ PT_VEDIT=(PT_VEDIT===key?'':key); renderPt(); }
+async function ptSaveVenue(name, date, pre){
+  const venue=ptVenueRead(pre); if(!venue){ toast('請揀體育館同場地','⚠'); return; }
+  let r; try{ r=await apiPost({action:'pt_setVenue', name, date, venue}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'儲存失敗','⚠'); return; }
+  PT_VEDIT=''; toast('已存場地','✓'); renderPt(); }
+async function ptToggleExempt(name, date, on){
+  if(on && !confirm(`${name} ${date} 呢節設為豁免？\n\n豁免＝呢節唔收錢：唔入帳、錢包唔扣、唔扣套票、會計唔計收入（場租照計）。`)) return;
+  let r; try{ r=await apiPost({action:'pt_setExempt', name, date, exempt:on?1:0}); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast((r&&r.err)||'更改失敗','⚠'); return; }
+  toast(on?'已豁免呢節':'已取消豁免','✓'); renderPt(); }
 /* 私訓收費 */
 function ptNextPeriod(label){
   const m = String(label||'').match(/(\d{4})\s*(\d{1,2})-(\d{1,2})月/);
