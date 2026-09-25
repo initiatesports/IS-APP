@@ -599,11 +599,11 @@ const CONFIG = {
   // 教練密碼唔再硬編喺前端；改為登入時輸入並交後端 Code.gs 驗證（見 coachGateSubmit）
   EXPECTED_VERSION: 'is-unified-v2',    // 期望後端版本（健康檢查）
   WHATSAPP: '85263317403',              // 停課文案查詢電話
-  TERM_START: '2026-02-23', TERM_END: '2026-10-31',  // 學期範圍（雙月分頁用，與 Code.gs 一致）
+  TERM_START: '2026-02-23', TERM_END: '2026-12-31',  // 學期範圍（雙月分頁用，與 Code.gs 一致）
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-25-v6';
+const FRONTEND_VERSION = 'coach-2026-09-25-v7';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2746,10 +2746,8 @@ async function renderRenew(){
   }
   const rows=(st.rows||[]), unpaid=rows.filter(r=>r.status==='待付款'), paid=rows.filter(r=>r.status==='已核實'), q=RENEW_Q.trim();
   const sum=a=>a.reduce((s,r)=>s+(r.net||0),0);
-  h+=`<div class="stats-grid" style="margin:8px 0">
-      <div class="stat-card"><div class="num warn">${unpaid.length}</div><div class="lbl">未交 $${sum(unpaid).toLocaleString()}</div></div>
-      <div class="stat-card"><div class="num ok">${paid.length}</div><div class="lbl">已收 $${sum(paid).toLocaleString()}</div></div>
-      <div class="stat-card"><div class="num">${(st.optOut||[]).length}</div><div class="lbl">下期唔續</div></div></div>
+  const sc=(n,l,c)=>`<div style="flex:1;background:var(--surface2);border-radius:12px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:${c}">${n}</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px">${l}</div></div>`;
+  h+=`<div style="display:flex;gap:8px;margin:8px 0 10px">${sc(unpaid.length,'未交 $'+sum(unpaid).toLocaleString(),'#e0a93a')}${sc(paid.length,'已收 $'+sum(paid).toLocaleString(),'#3aa17e')}${sc((st.optOut||[]).length,'下期唔續','var(--text)')}</div>
     <div style="display:flex;gap:6px;margin-bottom:8px">${['未交','已收','全部','唔續'].map(k=>`<button onclick="RENEW_FILTER='${k}';renderRenew()" style="flex:1;padding:8px;border-radius:9px;border:1px solid ${RENEW_FILTER===k?'#e0a93a':'var(--border)'};background:${RENEW_FILTER===k?'rgba(224,169,58,.15)':'transparent'};color:var(--text);font-weight:800;cursor:pointer;font-family:inherit;font-size:12px">${k}</button>`).join('')}</div>
     <input placeholder="搜尋學生" value="${esc(RENEW_Q)}" oninput="RENEW_Q=this.value;renderRenew()" style="width:100%;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:6px">`;
   if(RENEW_FILTER==='唔續'){ h+=(st.optOut||[]).filter(n=>!q||n.indexOf(q)>=0).map(n=>`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding:9px 0"><span>${esc(n)}</span>${btn('取消唔續',`renewOpt('${n.replace(/'/g,"\\'")}',false)`)}</div>`).join('')||'<div style="color:var(--muted);padding:10px 0">冇</div>'; }
