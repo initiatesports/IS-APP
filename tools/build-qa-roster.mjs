@@ -20,7 +20,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 // ⚠️ 同 tools/qa-parents.mjs 一致（家長真正用緊嗰個 /exec）；切 /exec 兩邊要一齊改。
-const EXEC4 = "https://script.google.com/macros/s/AKfycbxNikFcB8n34Lyqc-KKC0oIRhn_-35HXmrAo5mEVhGNZ5g21AdUEMFSca408oo0xUw/exec";
+const EXEC4 = "https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec";
 const EXEC_SA = "https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec";
 
 const OUT = process.argv[2] || "/tmp/qa-roster.json";
