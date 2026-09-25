@@ -282,9 +282,12 @@ function monthView(L){
     exMan.map(x=>`<div class="exrow"><div><div>${esc(x.r.cat||'支出')}${x.r.desc?` · <span class="mut">${esc(x.r.desc)}</span>`:''}</div><div class="s">${dmy(x.r.date)}</div></div>
       <div style="display:flex;gap:8px;align-items:center"><b class="num">${fmt(x.amt)}</b>${x.r.id?`<button class="act del noprint" onclick="voidExp('${esc(x.r.id)}')">作廢</button>`:''}</div></div>`).join('')+
     (exp.length?'':'<div class="empty">呢個月冇支出</div>')+`</div>`;
-  // 收入明細
-  const rows=inc.filter(x=>FILTER==='all'||x.g===FILTER).sort((a,b)=>String(b.r.date||'').localeCompare(String(a.r.date||'')));
-  h+=`<div class="card"><h3>🧾 收入明細${FILTER!=='all'?` · ${esc(FILTER)}`:''}<span class="tag">${rows.length} 筆 · ${fmt(rows.filter(x=>x.paid).reduce((a,x)=>a+x.amt,0))}</span></h3>
+  // 團體班：按班合併（老闆 2026-09-25：唔使逐個學生，只要每班幾多人、收入幾多）
+  if(FILTER==='all'||FILTER==='團體班') h+=classCard(inc.filter(x=>x.g==='團體班'));
+  // 收入明細（團體班以外逐筆）
+  const rows=inc.filter(x=>x.g!=='團體班' && (FILTER==='all'||x.g===FILTER)).sort((a,b)=>String(b.r.date||'').localeCompare(String(a.r.date||'')));
+  if(FILTER==='團體班') return h;
+  h+=`<div class="card"><h3>🧾 收入明細${FILTER!=='all'?` · ${esc(FILTER)}`:'（團體班以外）'}<span class="tag">${rows.length} 筆 · ${fmt(rows.filter(x=>x.paid).reduce((a,x)=>a+x.amt,0))}</span></h3>
     <div class="chips noprint">${['all'].concat(GROUPS.map(g=>g.k)).concat((t.g['其他']||0)?['其他']:[]).map(k=>`<button class="chip ${FILTER===k?'on':''}" onclick="FILTER='${k}';render()">${k==='all'?'全部':esc(k)}</button>`).join('')}</div>`;
   if(!rows.length) h+='<div class="empty">冇記錄</div>';
   else h+=`<div class="tbl-scroll"><table><thead><tr><th>日期</th><th>分類</th><th>學生／對象</th><th>說明</th><th class="n">本月金額</th><th class="noprint"></th></tr></thead><tbody>`+
@@ -294,6 +297,25 @@ function monthView(L){
         <td class="n ${x.paid?'':'mut'}">${fmt(x.amt)}</td>
         <td class="n noprint">${mid?`<button class="act" onclick="openFix('${esc(mid)}')">改類別</button> <button class="act del" onclick="voidInc('${esc(mid)}')">作廢</button>`:''}</td></tr>`; }).join('')+`</tbody></table></div>`;
   return h+`</div>`;
+}
+const REC_CATS=['學費','豁免（唔計）','免費停課（唔計）','豁免順延','免費停課順延'];
+function classCard(items){
+  const M={};
+  items.forEach(x=>{ const r=x.r, cat=String(r.cat||''), key=REC_CATS.indexOf(cat)>=0?String(r.desc||'').split(' · ')[0]:(cat||'其他');
+    const o=M[key]||(M[key]={names:new Set(), inc:0, due:0, ex:0, carry:0});
+    if(cat==='學費') o.names.add(String(r.name||'').trim());
+    if(!x.paid){ o.due+=x.amt; return; }
+    o.inc+=x.amt; if(/（唔計）$/.test(cat)) o.ex+=x.amt; if(/順延$/.test(cat)) o.carry+=x.amt; });
+  const keys=Object.keys(M).sort();
+  const tot=keys.reduce((a,k)=>a+M[k].inc,0), ppl=keys.reduce((a,k)=>a+M[k].names.size,0);
+  let h=`<div class="card"><h3>👟 團體班（按班）<span class="tag">${keys.length} 班 · ${ppl} 人次 · ${fmt(tot)}</span></h3>`;
+  if(!keys.length) return h+'<div class="empty">呢個月冇團體班收入</div></div>';
+  h+=`<div class="tbl-scroll"><table><thead><tr><th>班別</th><th class="n">人數</th><th class="n">本月收入</th><th>備註</th></tr></thead><tbody>`+
+    keys.map(k=>{ const o=M[k], note=[o.ex?`含豁免／停課 ${fmt(o.ex)}`:'', o.carry?`上期豁免順延 +${fmt(o.carry)}`:'', o.due?`另待收 ${fmt(o.due)}`:''].filter(Boolean).join(' · ');
+      return `<tr><td>${esc(k)}</td><td class="n">${o.names.size||'—'}</td><td class="n"><b>${fmt(o.inc)}</b></td><td class="d">${esc(note)}</td></tr>`; }).join('')+
+    `<tr class="tot"><td>合計</td><td class="n">${ppl}</td><td class="n">${fmt(tot)}</td><td></td></tr></tbody></table></div>
+    <div class="foot" style="margin-top:8px">學費按實際上課日逐堂計（每節價＝該生學費÷堂數）；人數＝本月有上堂嘅學生（報兩班嘅學生兩班都計一次）。</div></div>`;
+  return h;
 }
 function yearView(L, months){
   const ms=months.filter(m=>m.slice(0,4)===YR), t=totals(L, m=>m.slice(0,4)===YR);
