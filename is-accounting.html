@@ -56,7 +56,7 @@ button{font-family:inherit}
 .box .val{font-size:30px;font-weight:900;letter-spacing:-.8px;margin-top:6px;line-height:1.05}
 .box .sub{font-size:12px;color:var(--ink2);margin-top:7px}
 .box.net .val{color:var(--green)} .box.net.neg .val{color:var(--red)}
-.grps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.grps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px}
 .gcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;position:relative;overflow:hidden;text-align:left;color:inherit;font-size:inherit}
 .gcard:hover{border-color:var(--border2)}
 .gcard.on{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal) inset}
@@ -114,7 +114,7 @@ td .d{color:var(--muted);font-size:11.5px}
 .srow .yes{background:linear-gradient(120deg,var(--teal),var(--teal-d));color:#04252a}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#25384d;border:1px solid var(--border2);color:var(--ink);padding:11px 18px;border-radius:24px;font-size:14px;z-index:60;opacity:0;transition:.25s;pointer-events:none}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(max-width:900px){ .grps{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:620px){ .grps{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:620px){ .sum{grid-template-columns:1fr} .box .val{font-size:26px} .gcard .amt{font-size:20px} .top h1{width:100%} .hide-sm{display:none} }
 @media print{ .noprint{display:none!important} body{background:#fff;color:#000} .box,.card,.gcard{background:#fff;border:1px solid #ccc;color:#000} td,th{color:#000} }
 </style>
