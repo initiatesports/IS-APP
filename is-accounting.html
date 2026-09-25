@@ -282,6 +282,12 @@ function monthView(L){
     exMan.map(x=>`<div class="exrow"><div><div>${esc(x.r.cat||'支出')}${x.r.desc?` · <span class="mut">${esc(x.r.desc)}</span>`:''}</div><div class="s">${dmy(x.r.date)}</div></div>
       <div style="display:flex;gap:8px;align-items:center"><b class="num">${fmt(x.amt)}</b>${x.r.id?`<button class="act del noprint" onclick="voidExp('${esc(x.r.id)}')">作廢</button>`:''}</div></div>`).join('')+
     (exp.length?'':'<div class="empty">呢個月冇支出</div>')+`</div>`;
+  // 💵 現金收款（按收錢日期；11-12月起續期上堂交現金）
+  const cash=(DATA.cashIn||[]).filter(c=>String(c.date).slice(0,7)===MON);
+  if(cash.length) h+=`<div class="card"><h3>💵 本月現金收款<span class="tag">${cash.length} 筆 · ${fmt(cash.reduce((a,c)=>a+c.amt,0))}</span></h3>
+    <details><summary style="cursor:pointer;color:var(--teal);font-size:13px;font-weight:700">睇明細</summary><div class="tbl-scroll" style="margin-top:8px"><table><thead><tr><th>收錢日期</th><th>學生</th><th>期數</th><th class="n">金額</th></tr></thead><tbody>${
+      cash.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(c=>`<tr><td class="num">${dmy(c.date)}</td><td>${esc(c.name)}</td><td>${esc(c.period)}</td><td class="n">${fmt(c.amt)}</td></tr>`).join('')}</tbody></table></div></details>
+    <div class="foot" style="margin-top:6px">收入照按上課日逐堂計；呢度係實際收到現金嘅日子，方便對數。</div></div>`;
   // 團體班：按班合併（老闆 2026-09-25：唔使逐個學生，只要每班幾多人、收入幾多）
   if(FILTER==='all'||FILTER==='團體班') h+=classCard(inc.filter(x=>x.g==='團體班'));
   // 收入明細（團體班以外逐筆）

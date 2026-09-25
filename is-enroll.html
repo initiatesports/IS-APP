@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-24-d2-backend';
+const FRONTEND_VERSION='enroll-2026-09-25-renew';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -1382,11 +1382,23 @@ async function lookupMine(){
   const res=await apiPost({action:'enrollMyRecords', name, last4});
   btn.disabled=false; btn.textContent='查詢我嘅報名狀態';
   if(!res||res.ok===false){ msg.className='msg err'; msg.textContent=(res&&res.err)||'查詢失敗。'; return; }
-  const recs=res.records||[];
+  const recs=(res.records||[]).filter(r=>!(res.renew && r.id===res.renew.id));   // 續期帳單喺上面卡片顯示，唔重複列（免「請上載截圖」誤導）
   const _stHint = s => ({'待核實':'已收到你嘅付款截圖，核實中','待付款':'請去報名系統上載付款截圖','候補':'課程已滿，已為你排隊，有位即通知，暫免付費','已核實':'已確認，多謝報名 ✓','取消':'此報名已取消'})[s]||'';
   const rows = recs.length ? recs.map(r=>`<div class="sumline" style="align-items:flex-start"><span class="k">${esc(r.courses)}</span><span style="text-align:right"><span class="pill">${esc(r.status)}</span>${_stHint(r.status)?`<div class="cm" style="color:var(--mut);font-size:11px;margin-top:3px;max-width:180px">${_stHint(r.status)}</div>`:''}</span></div>`).join('')
     : '<p class="hint">你未有任何報名記錄。</p>';
-  app.innerHTML=`<div class="card">${steps(1)}<h2>${esc(name)} 嘅報名狀態</h2>${rows}
+  // 💵 11-12月起自動續期帳單（上堂交現金；老闆 2026-09-25）
+  const rb=res.renew, dmy=d=>{ const m=String(d||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}`:d; };
+  const renewHtml = rb ? (()=>{ const d=rb.detail||{}, L=(d.lines||[]);
+    const ln=(k,v,neg)=>`<div class="sumline"><span class="k">${k}</span><span>${neg?'−':''}$${Math.abs(v).toLocaleString()}</span></div>`;
+    return `<div class="card" style="border:2px solid ${rb.paid?'#3aa17e':'#e0a93a'};margin-bottom:14px">
+      <h2 style="margin-bottom:4px">${esc(rb.period)} 學費</h2>
+      <p class="hint" style="margin-top:0">${rb.paid?'✅ 已收，多謝！'+(rb.pay?`（${esc(String(rb.pay).replace(/｜/g,' · '))}）`:''):'唔使再報名，系統已自動續返同班。<b>請於上堂時以現金交學費</b>，教練收款後會發收據。'}</p>
+      ${L.map(l=>`<div class="sumline" style="align-items:flex-start"><span class="k">${esc(String(l.label).replace('|',' '))}<br><span style="font-size:12px;color:#8a979c">${l.sessions} 堂：${(l.dates||[]).map(dmy).join('、')}</span></span><span>$${Number(l.fee).toLocaleString()}</span></div>`).join('')}
+      ${d.multi?ln('多堂優惠',d.multi,1):''}${d.voucher?ln('代金券',d.voucher,1):''}${d.referral?ln('推薦獎賞',d.referral,1):''}${d.scholarship?ln('獎學金',d.scholarship,1):''}
+      ${d.adjust?`<div class="sumline"><span class="k">調整${d.adjustReason?`<br><span style="font-size:12px;color:#8a979c">${esc(d.adjustReason)}</span>`:''}</span><span>${d.adjust<0?'−':'+'}$${Math.abs(d.adjust).toLocaleString()}</span></div>`:''}
+      <div class="sumline" style="font-weight:900;font-size:17px;border-top:2px solid #e3e8ea;padding-top:8px"><span class="k">${rb.paid?'已繳':'應交（現金）'}</span><span>$${Number(rb.net).toLocaleString()}</span></div>
+      <p class="hint" style="font-size:12px">如有任何疑問或唔打算續讀，請 WhatsApp 6331 7403。</p></div>`; })() : '';
+  app.innerHTML=`${renewHtml}<div class="card">${steps(1)}<h2>${esc(name)} 嘅報名狀態</h2>${rows}
     <button class="btn ghost" style="margin-top:14px" onclick="renderLogin()">返回</button></div>`;
 }
 /* ════ ②A 舊生：預覽已有資料，逐項可改（大部分唔使填） ════ */
