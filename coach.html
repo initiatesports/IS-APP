@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-26-v8';
+const FRONTEND_VERSION = 'coach-2026-09-26-v9';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -2553,12 +2553,12 @@ async function renderFees(){
   if(!FEES_PERIOD) FEES_PERIOD=curFeePeriodLabel();
   let r=_readCache['fees'];
   if(!r){
-    wrap.innerHTML='<div style="padding:20px;color:var(--muted)">載入中…</div>';
+    wrap.innerHTML='<div id="renew-box"></div><div style="padding:20px;color:var(--muted)">載入中…</div>'; renderRenew();   // 續期區唔受 feesAll 成敗影響
     // 🔒 2026-09-13 審計：唔再合併 #SA feesAll。運動班學費行報名系統收(冇 genPeriod fee row，SA feesAll 空)，
     //   而繳費頁嘅核實/調整寫入(verifyPay/setFeeAdj/verifyAddon)冇 cid 一律路由 #4 → 若顯示 SA 行、撳核實會核錯
     //   #4 同名家庭學費(黃玥晴/劉家頤式撞名)。SA 收費由報名系統管，唔喺呢頁 → 只讀 #4，除誤核風險。
     try{ r=await apiPost({action:'feesAll', coachPass:cpass()}); }catch(e){ r=null; }
-    if(!r||!r.ok){ wrap.innerHTML='<div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; return; }
+    if(!r||!r.ok){ wrap.innerHTML='<div id="renew-box"></div><div class="empty-state"><div class="icon">⚠</div><p>載入失敗，請確認已部署統一後端</p></div>'; renderRenew(); return; }
     _readCache['fees']=r;   // 快取；任何寫入動作會自動清（見 apiPost）
   }
   FEES_DATA=r.fees||[];
@@ -2654,113 +2654,136 @@ async function renderFees(){
 /* ═══ 💵 11-12月起自動續期＋現金收費（老闆 2026-09-25）═══
    公開前：預覽全部家庭帳單（逐班×實際堂數×每節價、多堂折、券、豁免順延…），可設「下期唔續」，核對無誤撳「公開」。
    公開後：家長喺報名系統「查詢我嘅報名狀態」見明細、上堂交現金；呢度撳「已收現金」→ 已核實＋收據 PDF＋入會計。點名表未交會提示。 */
-let RENEW_ST=null, RENEW_ST_AT=0, RENEW_PV=null, RENEW_FILTER='未交', RENEW_Q='';
+let RENEW_ST=null, RENEW_ST_AT=0, RENEW_PV=null, RENEW_FILTER='未交', RENEW_Q='', RENEW_FAIL_AT=0, RENEW_RC={}, RENEW_BUSY=false;
 function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }   // 續期區用（本檔之前冇 esc）
+function renewDmy(t){ return String(t||'').replace(/(\d{4})-(\d{2})-(\d{2})/g,'$3/$2/$1'); }   // 全系統日期 DD/MM/YYYY
 async function renewPost(body, ms){
   const payload=Object.assign({coachPass:cpass()}, body), url=backendForBody_(payload);
   const c=new AbortController(), tm=setTimeout(()=>c.abort(), ms||120000);
-  try{ const res=await fetch(url,{method:'POST', body:JSON.stringify(payload), signal:c.signal}); return await res.json(); }
+  try{ const res=await fetch(url,{method:'POST', body:JSON.stringify(payload), signal:c.signal}); const j=await res.json();
+    if(payload.action!=='renewStatus' && payload.action!=='renewPreview'){ for(const k in _readCache) delete _readCache[k]; }   // 寫入 → 清讀取快取
+    return j; }
   catch(e){ return {ok:false, err:(e&&e.name==='AbortError')?'等太耐（後端仲計緊），請稍後再撳一次':'網絡問題，請再試'}; }
   finally{ clearTimeout(tm); }
 }
 async function ensureRenewStatus(force){
   if(!force && RENEW_ST && Date.now()-RENEW_ST_AT<300000) return RENEW_ST;
+  if(!force && !RENEW_ST && Date.now()-RENEW_FAIL_AT<120000) return RENEW_ST;   // 失敗後 2 分鐘內唔再打（點名時段唔好重覆拖慢）
   if(ensureRenewStatus._busy) return RENEW_ST; ensureRenewStatus._busy=true;
   try{ const r=await renewPost({action:'renewStatus'}, 45000); if(r&&r.ok){ const first=!RENEW_ST; RENEW_ST=r; RENEW_ST_AT=Date.now();
-      if(first && r.published && document.getElementById('student-list') && typeof currentClass!=='undefined' && currentClass) try{ renderRollTable(); }catch(e){} } }
+      if(first && r.published && document.getElementById('student-list') && typeof currentClass!=='undefined' && currentClass) try{ renderRollTable(); }catch(e){} }
+    else RENEW_FAIL_AT=Date.now(); }
   finally{ ensureRenewStatus._busy=false; }
   return RENEW_ST;
 }
 function renewRowFor(name){ if(!RENEW_ST||!RENEW_ST.published) return null; const k=String(name).replace(/\s/g,''); return (RENEW_ST.rows||[]).find(r=>String(r.name).replace(/\s/g,'')===k && r.status!=='取消')||null; }
 function renewBadge(name){ const r=renewRowFor(name); if(!r || r.status!=='待付款') return '';
-  return `<div class="student-sub warn" style="display:flex;align-items:center;gap:6px">💵 ${esc(RENEW_ST.period)} 未交 $${r.net}<button onclick="event.stopPropagation();renewCash('${r.id}')" style="padding:3px 8px;border-radius:7px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:11px;font-weight:800;cursor:pointer;font-family:inherit">已收現金</button></div>`; }
-function renewDl(rc){ try{ const a=document.createElement('a'); a.href='data:application/pdf;base64,'+rc.pdfBase64; a.download=rc.filename||('收據_'+rc.id+'.pdf'); document.body.appendChild(a); a.click(); a.remove(); }catch(e){} }
+  return `<div class="student-sub warn" style="display:flex;align-items:center;gap:6px">💵 ${esc(RENEW_ST.period)} 未交 $${r.net}<button data-id="${esc(r.id)}" onclick="event.stopPropagation();renewCash(this.dataset.id)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;min-height:32px">已收現金</button></div>`; }
 async function renewCash(id){
+  if(RENEW_BUSY){ toast('處理緊，請等一等…','⏳'); return; }
   const r=(RENEW_ST&&RENEW_ST.rows||[]).find(x=>x.id===id); if(!r) return;
   if(!confirm(`確認已收 ${r.name} 現金 $${r.net}（${RENEW_ST.period} 學費）？\n\n會即時標已繳、出收據、入會計。`)) return;
-  toast('記錄中…','⏳');
-  const res=await renewPost({action:'renewCash', id}, 60000);
-  if(!res||!res.ok){ toast((res&&res.err)||'記錄失敗','⚠'); return; }
+  RENEW_BUSY=true; toast('記錄中…','⏳');
+  let res; try{ res=await renewPost({action:'renewCash', id}, 60000); } finally{ RENEW_BUSY=false; }
+  if(!res||!res.ok){ toast((res&&res.err)||'記錄失敗（可能已記咗，請刷新睇狀態）','⚠'); await ensureRenewStatus(true); renderRenew(); return; }
   if(res.already){ toast('之前已經記咗已收','✓'); }
-  else { toast(`已收 ${res.name} $${res.net}`,'✓'); if(res.receipt&&res.receipt.pdfBase64) renewDl(res.receipt); else if(res.receiptErr) toast('已記已收，但收據生成失敗：'+res.receiptErr,'⚠'); }
-  await ensureRenewStatus(true); if(document.getElementById('renew-box')) renderRenew(); if(document.getElementById('student-list')) try{ renderRollTable(); }catch(e){}
+  else { toast(`已收 ${res.name} $${res.net}`,'✓'); if(res.receipt&&res.receipt.url) RENEW_RC[id]=res.receipt.url; else if(res.receiptErr) toast('已記已收，但收據生成失敗：'+res.receiptErr,'⚠'); }
+  await ensureRenewStatus(true); if(document.getElementById('renew-box')){ RENEW_FILTER='已收'; renderRenew(); } if(document.getElementById('student-list')) try{ renderRollTable(); }catch(e){}
 }
 async function renewCashUndo(id){ const r=(RENEW_ST&&RENEW_ST.rows||[]).find(x=>x.id===id); if(!r) return;
   if(!confirm(`撤銷 ${r.name} 嘅「已收現金」？（改返未交；已出嘅收據唔會自動作廢）`)) return;
   const res=await renewPost({action:'renewCash', id, undo:1}, 45000); if(!res||!res.ok){ toast((res&&res.err)||'撤銷失敗','⚠'); return; }
   toast('已撤銷','✓'); await ensureRenewStatus(true); renderRenew(); }
+function renewRecalc(){ const pv=RENEW_PV; if(!pv) return; const bill=pv.list.filter(x=>!x.optOut&&!x.void&&x.base>0);
+  pv.totals={students:bill.length, net:bill.reduce((a,x)=>a+x.net,0), optOut:pv.list.filter(x=>x.optOut).length}; }
 async function renewOpt(name, on){
-  if(on && !confirm(`${name} 下期（${(RENEW_ST&&RENEW_ST.period)||'11-12月'}）唔續？\n\n唔會出帳單，${(RENEW_ST&&RENEW_ST.start)||'11/1'} 起點名表唔再見佢。`)) return;
+  if(on && !confirm(`${name} 下期（${(RENEW_ST&&RENEW_ST.period)||'11-12月'}）唔續？\n\n唔會出帳單，${renewDmy((RENEW_ST&&RENEW_ST.start)||'')||'11/1'} 起點名表唔再見佢。`)) return;
   const res=await renewPost({action:'renewOptOut', name, on:on?1:0}, 45000);
   if(!res||!res.ok){ toast((res&&res.err)||'更改失敗','⚠'); return; }
   toast(on?`${name} 已設下期唔續`:`${name} 已取消唔續`,'✓');
-  if(RENEW_PV){ const x=(RENEW_PV.list||[]).find(y=>y.name===name); if(x) x.optOut=on; }
+  if(RENEW_PV){ const x=(RENEW_PV.list||[]).find(y=>y.name===name); if(x) x.optOut=on; renewRecalc(); }
   await ensureRenewStatus(true); renderRenew(); }
 async function renewRetry(body, ms){ let r=null; for(let i=0;i<4;i++){ r=await renewPost(body, ms); if(r&&r.ok) return r; if(r&&r.err&&!/網絡|等太耐/.test(r.err)) return r; await new Promise(x=>setTimeout(x,1500*(i+1))); } return r; }   // 後端間中回 404 頁 → 重試
 async function renewLoadPreview(){
-  const pvBox=()=>{ const b=document.getElementById('renew-box'); return b&&b.querySelector('#renew-pv'); };
+  if(RENEW_BUSY){ toast('計緊，請等一等…','⏳'); return; }
+  RENEW_BUSY=true; RENEW_PV=null; renderRenewSync_();
+  const pvBox=()=>document.getElementById('renew-pv');
   let off=0, acc=null, first=true;
-  while(off!=null){
-    const el=pvBox(); if(el) el.innerHTML=`<div style="padding:14px;color:var(--muted)">計緊帳單… ${acc?acc.list.length:0}${acc?' / '+acc.total:''} 人（每批約 20–40 秒）</div>`;
-    const r=await renewRetry({action:'renewPreview', offset:off, limit:10, fresh:first?1:0}, 110000);
-    if(!r||!r.ok){ toast((r&&r.err)||'預覽失敗，請再撳一次','⚠'); RENEW_PV=null; renderRenew(); return; }
-    if(!acc) acc=Object.assign({}, r, {list:[]}); acc.list=acc.list.concat(r.list||[]); acc.factsErr=(acc.factsErr||[]).concat(r.factsErr||[]); off=r.next; first=false;
-  }
-  const bill=acc.list.filter(x=>!x.optOut&&!x.void&&x.base>0);
-  acc.totals={students:bill.length, net:bill.reduce((a,x)=>a+x.net,0), optOut:acc.list.filter(x=>x.optOut).length};
-  RENEW_PV=acc; renderRenew(); }
+  try{
+    while(off!=null){
+      const el=pvBox(); if(el) el.innerHTML=`<div style="padding:14px;color:var(--muted)">計緊帳單… ${acc?acc.list.length:0}${acc?' / '+acc.total:''} 人（每批約 20–40 秒）</div>`;
+      const r=await renewRetry({action:'renewPreview', offset:off, limit:10, fresh:first?1:0}, 110000);
+      if(!r||!r.ok){ toast((r&&r.err)||'預覽失敗，請再撳一次','⚠'); RENEW_PV=null; return; }
+      if(!acc) acc=Object.assign({}, r, {list:[]}); acc.list=acc.list.concat(r.list||[]); acc.factsErr=(acc.factsErr||[]).concat(r.factsErr||[]); off=r.next; first=false;
+    }
+    RENEW_PV=acc; renewRecalc();
+  } finally { RENEW_BUSY=false; renderRenew(); } }
 async function renewPublish(){
   const pv=RENEW_PV; if(!pv){ toast('請先載入預覽核對','⚠'); return; }
+  if(RENEW_BUSY){ toast('處理緊，請等一等…','⏳'); return; }
   const t=prompt(`公開 ${pv.period} 帳單：${pv.totals.students} 個學生，合共 $${pv.totals.net.toLocaleString()}。\n公開後家長即刻喺報名系統見到帳單。\n\n確認請輸入「公開」：`);
   if(t!=='公開') return;
-  let n=0, tot=0, skipped=new Set(), first=true, more=true;
-  while(more){ toast(`公開緊… 已寫 ${n} 張`,'⏳');
-    const r=await renewRetry({action:'renewPublish', confirm:'公開', limit:10, fresh:first?1:0}, 110000);
-    if(!r||!r.ok){ alert(`公開中途失敗（已寫 ${n} 張，未正式公開）：${(r&&r.err)||'網絡問題'}\n再撳一次「公開」會由未寫嗰啲繼續，唔會重複。`); await ensureRenewStatus(true); renderRenew(); return; }
-    n+=r.published||0; tot+=r.total||0; (r.skipped||[]).forEach(x=>skipped.add(x)); more=!!r.more; first=false; }
-  alert(`已公開 ${n} 張帳單，合共 $${tot.toLocaleString()}。`+(skipped.size?`\n\n未出單：${[...skipped].join('、')}`:''));
-  RENEW_PV=null; await ensureRenewStatus(true); renderRenew(); }
+  RENEW_BUSY=true; let n=0, tot=0, skipped=new Set(), first=true, more=true;
+  try{
+    while(more){ toast(`公開緊… 已寫 ${n} 張`,'⏳');
+      const r=await renewRetry({action:'renewPublish', confirm:'公開', limit:10, fresh:first?1:0}, 110000);
+      if(!r||!r.ok){ alert(`公開中途停咗（已寫 ${n} 張，未正式公開，家長未見到）：${(r&&r.err)||'網絡問題'}\n再撳一次「公開」會由未寫嗰啲繼續，唔會重複。`); await ensureRenewStatus(true); return; }
+      n+=r.published||0; tot+=r.total||0; (r.skipped||[]).forEach(x=>skipped.add(x)); more=!!r.more; first=false; }
+    alert(`已公開 ${n} 張帳單，合共 $${tot.toLocaleString()}。`+(skipped.size?`\n\n未出單：${[...skipped].join('、')}`:''));
+    RENEW_PV=null; await ensureRenewStatus(true);
+  } finally { RENEW_BUSY=false; renderRenew(); } }
 function renewLines(x){ return (x.lines||[]).map(l=>`${esc(l.label.replace('|',' '))} × ${l.sessions} 堂${l.unit?` @$${l.unit}`:''} = $${l.fee}`).join('<br>'); }
-async function renderRenew(){
-  const box=document.getElementById('renew-box'); if(!box) return;
-  const st=await ensureRenewStatus(); if(!st){ box.innerHTML=''; return; }
+function renewBtn_(txt, fn, arg, col){ return `<button data-a="${esc(arg)}" onclick="${fn}(this.dataset.a)" style="padding:8px 12px;border-radius:9px;border:1px solid ${col||'var(--border)'};background:transparent;color:${col||'var(--text)'};font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:36px">${txt}</button>`; }
+function renewOptOn(n){ renewOpt(n,true); } function renewOptOff(n){ renewOpt(n,false); }
+function renewListHtml_(){   // 淨係列表（搜尋時只重畫呢部份，唔會甩 focus／打斷中文輸入）
+  const q=RENEW_Q.trim(), st=RENEW_ST;
+  if(st && !st.published){ const pv=RENEW_PV; if(!pv) return '';
+    return pv.list.filter(x=>!q||x.name.indexOf(q)>=0).map(x=>{ const off=x.optOut||x.void;
+      return `<div style="border-top:1px solid var(--border);padding:10px 0;${off?'opacity:.5':''}">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(x.name)}</b><span style="font-weight:900;color:#e0a93a">${off?(x.optOut?'下期唔續':'暫停'):'$'+x.net}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6">${renewLines(x)||'（冇班）'}
+          ${x.multi?`<br>多堂折 −$${x.multi}`:''}${x.voucher?`<br>代金券 −$${x.voucher}`:''}${x.referral?`<br>推薦 −$${x.referral}`:''}${x.scholarship?`<br>獎學金 −$${x.scholarship}`:''}${x.adjust?`<br>帶入調整 ${x.adjust>0?'+':'−'}$${Math.abs(x.adjust)}（${esc(renewDmy(x.adjustReason||''))}）`:''}
+          <br>9-10月實收 $${x.prevPaid}${(x.flags||[]).length?`<br><span style="color:var(--amber)">⚠ ${x.flags.map(esc).join('；')}</span>`:''}</div>
+        <div style="margin-top:6px">${x.optOut?renewBtn_('取消唔續','renewOptOff',x.name):renewBtn_('下期唔續','renewOptOn',x.name,'#c66')}</div></div>`; }).join('')||'<div style="color:var(--muted);padding:10px 0">冇</div>'; }
+  if(!st) return '';
+  if(RENEW_FILTER==='唔續') return (st.optOut||[]).filter(n=>!q||n.indexOf(q)>=0).map(n=>`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding:9px 0"><span>${esc(n)}</span>${renewBtn_('取消唔續','renewOptOff',n)}</div>`).join('')||'<div style="color:var(--muted);padding:10px 0">冇</div>';
+  const L=(st.rows||[]).filter(r=>r.status!=='取消' && (RENEW_FILTER==='全部'||(RENEW_FILTER==='未交'?r.status==='待付款':r.status==='已核實')) && (!q||r.name.indexOf(q)>=0));
+  return L.map(r=>{ const pd=r.status==='已核實';
+    return `<div style="border-top:1px solid var(--border);padding:10px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(r.name)}</b><span style="font-weight:900;color:${pd?'#3aa17e':'#e0a93a'}">$${r.net} ${pd?'✓':''}</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(r.courses.replace(/\|/g,' '))}${pd&&r.pay?`<br>${esc(renewDmy(r.pay).replace(/｜/g,' · '))}`:''}</div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${pd?(RENEW_RC[r.id]?`<a href="${esc(RENEW_RC[r.id])}" target="_blank" rel="noopener" style="padding:8px 12px;border-radius:9px;border:1px solid #3aa17e;color:#3aa17e;font-size:12.5px;font-weight:800;text-decoration:none">⬇️ 收據</a>`:'')+renewBtn_('撤銷已收','renewCashUndo',r.id):renewBtn_('💵 已收現金','renewCash',r.id,'#3aa17e')+renewBtn_('下期唔續','renewOptOn',r.name,'#c66')}</div></div>`; }).join('')||'<div style="color:var(--muted);padding:10px 0">冇</div>';
+}
+function renewSearch(v){ RENEW_Q=v; const el=document.getElementById('renew-list'); if(el) el.innerHTML=renewListHtml_(); }
+function renderRenewSync_(){ const box=document.getElementById('renew-box'); if(box && RENEW_ST) box.innerHTML=renewCardHtml_(RENEW_ST); }
+function renewCardHtml_(st){
   const card=(inner)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin:8px 0 16px">${inner}</div>`;
-  const btn=(txt,on,col)=>`<button onclick="${on}" style="padding:7px 10px;border-radius:9px;border:1px solid ${col||'var(--border)'};background:transparent;color:${col||'var(--text)'};font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">${txt}</button>`;
+  const search=`<input id="renew-q" placeholder="搜尋學生" value="${esc(RENEW_Q)}" oninput="renewSearch(this.value)" style="width:100%;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:8px">`;
   let h=`<div style="font-size:16px;font-weight:900;margin-bottom:4px">💵 ${esc(st.period)} 續期收費（現金）</div>`;
   if(!st.published){
     h+=`<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:10px">未公開。9-10月學生自動續返同班（跟現時名冊），按 11-12月實際堂數計。核對無誤撳「公開」先會畀家長睇到。唔續嘅學生撳「下期唔續」。</div>
-      <div id="renew-pv">${RENEW_PV?'':`<button onclick="renewLoadPreview()" style="width:100%;padding:12px;border-radius:12px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit">📋 載入帳單預覽</button>`}</div>`;
-    if(RENEW_PV){ const pv=RENEW_PV, q=RENEW_Q.trim();
-      const list=pv.list.filter(x=>!q||x.name.indexOf(q)>=0);
+      <div id="renew-pv">${(RENEW_PV||RENEW_BUSY)?'':`<button onclick="renewLoadPreview()" style="width:100%;padding:12px;border-radius:12px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit">📋 載入帳單預覽</button>`}</div>`;
+    if(RENEW_PV && !RENEW_BUSY){ const pv=RENEW_PV;
       h+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;font-size:13px"><b>${pv.totals.students} 人 · 合共 $${pv.totals.net.toLocaleString()}</b><span style="color:var(--muted)">（唔續 ${pv.totals.optOut} 人）</span></div>
-        ${pv.factsErr&&pv.factsErr.length?`<div style="color:#c66;font-size:12px;margin-bottom:8px">⚠️ 部份上課資料攞唔到：${esc(pv.factsErr.join('；'))}，請稍後重新載入</div>`:''}
-        <input placeholder="搜尋學生" value="${esc(RENEW_Q)}" oninput="RENEW_Q=this.value;renderRenew()" style="width:100%;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:8px">`+
-        list.map(x=>{ const nm=x.name.replace(/'/g,"\\'"); const off=x.optOut||x.void;
-          return `<div style="border-top:1px solid var(--border);padding:10px 0;${off?'opacity:.5':''}">
-            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(x.name)}</b><span style="font-weight:900;color:#e0a93a">${off?(x.optOut?'下期唔續':'暫停'):'$'+x.net}</span></div>
-            <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6">${renewLines(x)||'（冇班）'}
-              ${x.multi?`<br>多堂折 −$${x.multi}`:''}${x.voucher?`<br>代金券 −$${x.voucher}`:''}${x.referral?`<br>推薦 −$${x.referral}`:''}${x.scholarship?`<br>獎學金 −$${x.scholarship}`:''}${x.adjust?`<br>帶入調整 ${x.adjust>0?'+':'−'}$${Math.abs(x.adjust)}（${esc(x.adjustReason||'')}）`:''}
-              <br>9-10月實收 $${x.prevPaid}${(x.flags||[]).length?`<br><span style="color:var(--amber)">⚠ ${x.flags.map(esc).join('；')}</span>`:''}</div>
-            <div style="margin-top:6px">${x.optOut?btn('取消唔續',`renewOpt('${nm}',false)`):btn('下期唔續',`renewOpt('${nm}',true)`,'#c66')}</div></div>`; }).join('')+
-        `<button onclick="renewPublish()" style="width:100%;margin-top:12px;padding:13px;border-radius:12px;border:none;font-weight:900;background:linear-gradient(135deg,#3aa17e,#1c6f52);color:#fff;cursor:pointer;font-family:inherit">✅ 核對無誤，公開帳單</button>
+        ${pv.factsErr&&pv.factsErr.length?`<div style="color:#c66;font-size:12px;margin-bottom:8px">⚠️ 部份上課資料攞唔到：${esc(pv.factsErr.join('；'))}，請稍後重新載入（公開時會自動停，唔會出錯單）</div>`:''}
+        ${search}<div id="renew-list">${renewListHtml_()}</div>
+        <button onclick="renewPublish()" style="width:100%;margin-top:12px;padding:13px;border-radius:12px;border:none;font-weight:900;background:linear-gradient(135deg,#3aa17e,#1c6f52);color:#fff;cursor:pointer;font-family:inherit">✅ 核對無誤，公開帳單</button>
         <button onclick="renewLoadPreview()" style="width:100%;margin-top:6px;padding:9px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;font-size:12px">↻ 重新計算預覽</button>`;
     }
-    box.innerHTML=card(h); return;
+    return card(h);
   }
-  const rows=(st.rows||[]), unpaid=rows.filter(r=>r.status==='待付款'), paid=rows.filter(r=>r.status==='已核實'), q=RENEW_Q.trim();
+  const rows=(st.rows||[]), unpaid=rows.filter(r=>r.status==='待付款'), paid=rows.filter(r=>r.status==='已核實');
   const sum=a=>a.reduce((s,r)=>s+(r.net||0),0);
   const sc=(n,l,c)=>`<div style="flex:1;background:var(--surface2);border-radius:12px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:${c}">${n}</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px">${l}</div></div>`;
   h+=`<div style="display:flex;gap:8px;margin:8px 0 10px">${sc(unpaid.length,'未交 $'+sum(unpaid).toLocaleString(),'#e0a93a')}${sc(paid.length,'已收 $'+sum(paid).toLocaleString(),'#3aa17e')}${sc((st.optOut||[]).length,'下期唔續','var(--text)')}</div>
-    <div style="display:flex;gap:6px;margin-bottom:8px">${['未交','已收','全部','唔續'].map(k=>`<button onclick="RENEW_FILTER='${k}';renderRenew()" style="flex:1;padding:8px;border-radius:9px;border:1px solid ${RENEW_FILTER===k?'#e0a93a':'var(--border)'};background:${RENEW_FILTER===k?'rgba(224,169,58,.15)':'transparent'};color:var(--text);font-weight:800;cursor:pointer;font-family:inherit;font-size:12px">${k}</button>`).join('')}</div>
-    <input placeholder="搜尋學生" value="${esc(RENEW_Q)}" oninput="RENEW_Q=this.value;renderRenew()" style="width:100%;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;margin-bottom:6px">`;
-  if(RENEW_FILTER==='唔續'){ h+=(st.optOut||[]).filter(n=>!q||n.indexOf(q)>=0).map(n=>`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding:9px 0"><span>${esc(n)}</span>${btn('取消唔續',`renewOpt('${n.replace(/'/g,"\\'")}',false)`)}</div>`).join('')||'<div style="color:var(--muted);padding:10px 0">冇</div>'; }
-  else { const L=rows.filter(r=>r.status!=='取消' && (RENEW_FILTER==='全部'||(RENEW_FILTER==='未交'?r.status==='待付款':r.status==='已核實')) && (!q||r.name.indexOf(q)>=0));
-    h+=L.map(r=>{ const nm=r.name.replace(/'/g,"\\'"), pd=r.status==='已核實';
-      return `<div style="border-top:1px solid var(--border);padding:10px 0">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(r.name)}</b><span style="font-weight:900;color:${pd?'#3aa17e':'#e0a93a'}">$${r.net} ${pd?'✓':''}</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(r.courses.replace(/\|/g,' '))}${pd&&r.pay?`<br>${esc(r.pay.replace(/｜/g,' · '))}`:''}</div>
-        <div style="display:flex;gap:6px;margin-top:6px">${pd?btn('撤銷已收',`renewCashUndo('${r.id}')`):btn('💵 已收現金',`renewCash('${r.id}')`,'#3aa17e')+btn('下期唔續',`renewOpt('${nm}',true)`,'#c66')}</div></div>`; }).join('')||'<div style="color:var(--muted);padding:10px 0">冇</div>'; }
-  box.innerHTML=card(h);
+    <div style="display:flex;gap:6px;margin-bottom:8px">${['未交','已收','全部','唔續'].map(k=>`<button onclick="RENEW_FILTER='${k}';renderRenew()" style="flex:1;padding:8px;border-radius:9px;border:1px solid ${RENEW_FILTER===k?'#e0a93a':'var(--border)'};background:${RENEW_FILTER===k?'rgba(224,169,58,.15)':'transparent'};color:var(--text);font-weight:800;cursor:pointer;font-family:inherit;font-size:12px;min-height:36px">${k}</button>`).join('')}</div>
+    ${search}<div id="renew-list">${renewListHtml_()}</div>`;
+  return card(h);
+}
+async function renderRenew(){
+  const box=document.getElementById('renew-box'); if(!box) return;
+  const st=await ensureRenewStatus(); if(!st){ box.innerHTML=''; return; }
+  const b2=document.getElementById('renew-box'); if(b2) b2.innerHTML=renewCardHtml_(st);
 }
 async function addReferral(){
   const ref=prompt('推薦人（現有學生中文全名）：','');

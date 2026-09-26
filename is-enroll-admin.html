@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-24-d2';
+const FRONTEND_VERSION='admin-2026-09-26-advtbd';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -534,7 +534,7 @@ function drawAdv(){
             <b style="font-size:15px">${esc(r['學生姓名'])}</b><span class="st ${stCls}">${esc(stt)}</span>
           </div>
           <div style="font-size:13.5px;margin-top:3px"><b>${esc(r['上課時間說明']||r['上課時間']||'')}</b></div>
-          <div style="font-size:13px;margin-top:2px">10 月首月 ${money(r['10月首月收費'])} · 恆常每期 ${money(r['恆常每期收費'])}</div>
+          <div style="font-size:13px;margin-top:2px">恆常每期 ${money(r['恆常每期收費'])}${Number(r['10月首月收費'])>0?' · 首期 '+money(r['10月首月收費']):''}</div>
           <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(r['家長姓名']||'')}・${esc(r['家長電話']||'')}${r['電郵']?'・'+esc(r['電郵']):''}</div>
           <div style="margin-top:5px">${pay}${pdf}　<span class="mut" style="font-size:11.5px">${esc(id)} · ${esc(r['時間戳']||'')}</span></div>
         </div>
@@ -551,7 +551,7 @@ function drawAdv(){
       <div class="stat"><div class="n">${ver}</div><div class="l">已核實</div></div>
       <div class="stat"><div class="n">${can}</div><div class="l">取消</div></div>
     </div>
-    <div class="mut" style="margin-top:8px;font-size:12.5px">核實 = 已收到並核對付款截圖 → 系統會 email 家長確認。10 月首月一律 $400，之後每兩個月一期按恆常收費。</div>
+    <div class="mut" style="margin-top:8px;font-size:12.5px">核實 = 確認名額 → 系統會 email 家長確認。開班日期未定：報名時唔收錢（狀態「待安排」），首期繳費安排開班前另行通知；開班後每兩個月一期按恆常收費。</div>
     <div class="msg" id="msg"></div>
   </div>
   <div class="card"><h2>逐筆進階班報名</h2>${cards}</div>`;

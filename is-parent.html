@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-26-freejump2';
+const FRONTEND_VERSION='parent-2026-09-26-freejump3';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1217,21 +1217,24 @@ function freeJumpCard(child,ki){
 }
 function openFreeJump(ki){
   const child=S.family.children[ki], fj=child.freeJump||{}, blk=new Set(S.mkBlock||[]);
-  const opts=(fj.options||[]).filter(o=>o.date>=todayStr() && !blk.has(o.cid+'|'+o.date));
+  const _bk=new Set((fj.bookings||[]).map(b=>b.to+'|'+b.date));
+  const opts=(fj.options||[]).filter(o=>o.date>=todayStr() && !blk.has(o.cid+'|'+o.date)).map(o=>Object.assign({},o,{booked:_bk.has(o.cid+'|'+o.date)}));
   if(!opts.length){ openSheet(`<h2>預約任跳</h2><p class="sd">未來 4 星期暫時冇可預約時段。</p><button class="btn ghost" onclick="closeSheet()">${t('close')}</button>`); return; }
   const byDate={}; opts.forEach(o=>{ (byDate[o.date]=byDate[o.date]||[]).push(o); });
   const dd=s=>{ const d=new Date(s+'T00:00:00'); return fmt(d)+dow(d); };
   openSheet(`<h2>預約任跳・${child.name}</h2><p class="sd">揀一堂恆常跳繩班（不限次數；開課前 6 小時內不可取消）。</p>
     <div style="max-height:52vh;overflow:auto">${Object.keys(byDate).sort().map(d=>`<div style="margin:8px 0 4px;font-weight:800">${dd(d)}</div>`+
-      byDate[d].map(o=>{ const lb=o.label+(o.time&&String(o.label).indexOf(o.time)<0?'　⏰'+o.time:''); return o.full?`<div class="sess"><span class="d">${lb}</span><span class="pill">已滿</span></div>`
+      byDate[d].map(o=>{ const lb=o.label+(o.time&&String(o.label).indexOf(o.time)<0?'　⏰'+o.time:''); return o.booked?`<div class="sess"><span class="d">${lb}</span><span class="pill p-go">已約</span></div>`:o.full?`<div class="sess"><span class="d">${lb}</span><span class="pill">已滿</span></div>`
         :`<div class="sess"><span class="d">${lb}</span><button class="btn" style="padding:5px 12px;font-size:12.5px;width:auto" onclick="bookFreeJump(${ki},'${o.cid}','${o.date}')">預約</button></div>`; }).join('')).join('')}</div>
     <button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">${t('close')}</button>`);
 }
+let _fjBusy=false;
 async function bookFreeJump(ki,cid,date){
-  const child=S.family.children[ki];
+  if(_fjBusy) return; const child=S.family.children[ki];
+  if((child.freeJump&&child.freeJump.bookings||[]).some(b=>b.to===cid&&b.date===date)){ toast('已經約咗呢堂'); return; }
   if(mkHrsToStart(cid,date)<6 && !confirm('呢堂 6 小時內開課，預約後唔可以取消。確定預約？')) return;
-  toast('預約中…');
-  let r; try{ r=await api('bookFreeJump',{name:child.name, toKey:cid, toDate:date}); }catch(e){ r=null; }
+  _fjBusy=true; toast('預約中…');
+  let r; try{ r=await api('bookFreeJump',{name:child.name, toKey:cid, toDate:date}); }catch(e){ r=null; } finally{ _fjBusy=false; }
   if(!r||!r.ok){ toast((r&&r.err)||'預約失敗，請再試'); return; }
   closeSheet(); toast(r.dup?'之前已經約咗呢堂':'已預約任跳 ✓'); await refresh();
 }

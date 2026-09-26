@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0F1A28">
@@ -617,7 +618,7 @@ function bodyForPanel(){
   return tHome();
 }
 function logoMark(){
-  return '<div style="display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0" onclick="go(\'home\')"><div style="background:#3ECFCF;color:#0F1A28;font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:15px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;'+chipSkew+'">'+skewIn('IS')+'</div><div style="white-space:nowrap"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:14px;letter-spacing:0.02em">INITIATE <span style="color:#3ECFCF">SPORTS</span></div><div style="font-family:Archivo,sans-serif;font-weight:700;font-size:8.5px;letter-spacing:0.32em;color:rgba(255,255,255,0.55);margin-top:1px">HONG KONG</div></div></div>';
+  return '<div style="display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0" onclick="go(\'home\')"><img src="img/is-mark-96.png" alt="INITIATE SPORTS" width="36" height="36" style="width:36px;height:36px;border-radius:8px;background:#fff;flex-shrink:0;display:block"><div style="white-space:nowrap"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:14px;letter-spacing:0.02em">INITIATE <span style="color:#3ECFCF">SPORTS</span></div><div style="font-family:Archivo,sans-serif;font-weight:700;font-size:8.5px;letter-spacing:0.32em;color:rgba(255,255,255,0.55);margin-top:1px">HONG KONG</div></div></div>';
 }
 function render(){
   var desk=isDesktop();
@@ -671,7 +672,7 @@ function cmsApply(settings){
     var d=order.map(function(t){return byT[t];});
     if(d.length) AWARDS=d;
   }
-  var ac=_cmsArr(map,'achievements'); if(ac&&ac.length) ACH=ac;
+  var ac=_cmsArr(map,'achievements'); if(ac&&ac.length>=ACH.length) ACH=ac;   // 🔒 2026-09-26 審計：CMS 舊版（5 組）唔好蓋過 HTML 較齊嘅 8 組（曾漏 UJR 世界系列賽等）；CMS 補齊先用
   // 知識分享（#11 knowledge_posts；欄位兼容 v3 POSTS，正規化後覆寫，有值先覆蓋）——老闆 2026-08-31 做法2
   var kp=_cmsArr(map,'knowledge_posts');
   if(kp&&kp.length){ POSTS=kp.filter(function(p){return p&&(p.title||p.body);}).map(function(p){
