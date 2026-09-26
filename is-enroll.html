@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-25-renew';
+const FRONTEND_VERSION='enroll-2026-09-26-domain';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -952,7 +952,7 @@ function renderGearDone(r){
   </div>`;
 }
 /* ════ 請假 / 補堂介紹（引導家長自助辦理，減少教練 WhatsApp 負擔）════ */
-const MAKEUP_URL='https://initiatesports.github.io/IS-APP/is-parent.html';
+const MAKEUP_URL='https://www.initiatesportshk.com/is-parent.html';
 function renderMakeupInfo(inFlow){ if(inFlow)flowStep("renderMakeupInfo");
   const nav = inFlow
     ? `<div class="navbtns" style="margin-top:10px"><button class="btn ghost sm" onclick="renderWeather()">‹ 返回</button><button class="btn" onclick="renderGearSelect()">下一步 →</button></div>`
