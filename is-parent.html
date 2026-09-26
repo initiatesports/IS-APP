@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-26-freejump';
+const FRONTEND_VERSION='parent-2026-09-26-freejump2';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1223,8 +1223,8 @@ function openFreeJump(ki){
   const dd=s=>{ const d=new Date(s+'T00:00:00'); return fmt(d)+dow(d); };
   openSheet(`<h2>預約任跳・${child.name}</h2><p class="sd">揀一堂恆常跳繩班（不限次數；開課前 6 小時內不可取消）。</p>
     <div style="max-height:52vh;overflow:auto">${Object.keys(byDate).sort().map(d=>`<div style="margin:8px 0 4px;font-weight:800">${dd(d)}</div>`+
-      byDate[d].map(o=>o.full?`<div class="sess"><span class="d">${o.label}　${o.time}</span><span class="pill">已滿</span></div>`
-        :`<div class="sess"><span class="d">${o.label}　${o.time}</span><button class="btn" style="padding:5px 12px;font-size:12.5px;width:auto" onclick="bookFreeJump(${ki},'${o.cid}','${o.date}')">預約</button></div>`).join('')).join('')}</div>
+      byDate[d].map(o=>{ const lb=o.label+(o.time&&String(o.label).indexOf(o.time)<0?'　⏰'+o.time:''); return o.full?`<div class="sess"><span class="d">${lb}</span><span class="pill">已滿</span></div>`
+        :`<div class="sess"><span class="d">${lb}</span><button class="btn" style="padding:5px 12px;font-size:12.5px;width:auto" onclick="bookFreeJump(${ki},'${o.cid}','${o.date}')">預約</button></div>`; }).join('')).join('')}</div>
     <button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">${t('close')}</button>`);
 }
 async function bookFreeJump(ki,cid,date){
