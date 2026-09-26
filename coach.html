@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-25-v7';
+const FRONTEND_VERSION = 'coach-2026-09-26-v8';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -822,6 +822,7 @@ function applyCoachLoadData(data){
   }
   XFER_JOIN_MAP = data.xferJoin || {};   // 姓名|cid → 生效日：此日之前唔喺該班點名清單
   TIMEADJ_MAP = data.timeAdj || {};      // 🔒 審計P3：特別時間 override {cid|date:time}
+  FREEJUMP_SET = new Set(data.freeJumps || []);   // 進階班任跳 "cid|date|name"（點名 badge）
   PERIOD_VOID_MAP = data.periodVoid || {};
   CLASS_END_MAP = data.classEnd || {};   // 停辦班 cid→最後日 → 班列表隱藏
   TRANSFERS_MAP = {};
@@ -875,7 +876,8 @@ function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
     absences:   [].concat(a.absences||[],   b.absences||[]),
     medNotes:   [].concat(a.medNotes||[],   b.medNotes||[]),
     xferJoin:      Object.assign({}, a.xferJoin||{},      b.xferJoin||{}),      // key=name|cid，唔撞
-    timeAdj:       Object.assign({}, a.timeAdj||{},       b.timeAdj||{}),       // 🔒 審計P3：特別時間 map {cid|date:time}，兩後端合併(cid 唔撞)
+    timeAdj:       Object.assign({}, a.timeAdj||{},       b.timeAdj||{}),
+    freeJumps:     (a.freeJumps||[]).concat(b.freeJumps||[]),       // 🔒 審計P3：特別時間 map {cid|date:time}，兩後端合併(cid 唔撞)
     periodVoid:    pv,
     transfers:  [].concat(a.transfers||[],  b.transfers||[]),
     studentLeave:  Object.assign({}, a.studentLeave||{},  b.studentLeave||{}),  // key=name|cid，唔撞
@@ -1754,6 +1756,7 @@ async function gfRun(dry){
   if(!dry){ toast(period+' 學費已生成 ✓','✓'); try{ await loadFromSheets(); }catch(e){} }
 }
 let VENUES_CACHE=[];
+let FREEJUMP_SET=new Set();   // 進階班任跳（由 load 帶入）
 let TIMEADJ_MAP={};   // 🔒 審計P3：特別時間 override {cid|date:time}（由 load 帶入，教練端顯示要套）
 function taTime_(cid,date){ try{ return TIMEADJ_MAP[cid+'|'+date] || ((anyClass(cid)||{}).time) || ''; }catch(e){ return (anyClass(cid)||{}).time||''; } }
 // 由時間字串（如「5–6pm」「11am–12」「10:00-11:00」「12–1pm」）抽開始分鐘，供排序用。老闆 2026-09-24：地點清單要按時間先後排。
@@ -2262,7 +2265,7 @@ function renderRollTable(){
     return `
     <div class="student-card ${cardCls}" id="sc-${name}">
       <div class="student-name-wrap">
-        <div class="student-name">${name}${isMakeupVisitor(currentClass,name)?` <span style="font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-dim);border-radius:6px;padding:1px 7px;margin-left:4px">↩ 補堂</span>`:''}</div>
+        <div class="student-name">${name}${isMakeupVisitor(currentClass,name)?` <span style="font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-dim);border-radius:6px;padding:1px 7px;margin-left:4px">${FREEJUMP_SET.has(currentClass+'|'+rollSelectedDate+'|'+name)?'🟣 任跳':'↩ 補堂'}</span>`:''}</div>
         ${subText ? `<div class="student-sub ${subCls}">${subText}</div>` : ''}
         ${makeupHint}
         ${renewBadge(name)}
