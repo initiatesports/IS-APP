@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-26-v9';
+const FRONTEND_VERSION = 'coach-2026-09-26-v10';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -3278,7 +3278,7 @@ function cancelText(date){
   const wd = '日一二三四五六'[d.getDay()];
   return `【INITIATE SPORTS．停課通知】
 各位家長 🙏
-因應天文台發出黑色暴雨警告／八號或以上風球，今日（${d.getMonth()+1}/${d.getDate()}・星期${wd}）課堂取消。
+因應天文台發出黑色暴雨警告／八號或以上風球，今日（${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}・星期${wd}）課堂取消。
 按報名須知之天氣安排，是次取消將計算一堂學費，不設補堂，敬請留意。
 不便之處，敬請見諒；如有查詢歡迎 WhatsApp 6331 7403。
 INITIATE SPORTS`;
@@ -3287,7 +3287,7 @@ function weatherCancel(){
   const date = document.getElementById('today-date').value;
   const d = new Date(date + 'T00:00:00');
   const wd = '日一二三四五六'[d.getDay()];
-  if (!confirm(`確定將 ${d.getMonth()+1}/${d.getDate()}（星期${wd}）所有課堂標記為「停課」，並產生家長通知文案？`)) return;
+  if (!confirm(`確定將 ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}（星期${wd}）所有課堂標記為「停課」，並產生家長通知文案？`)) return;
   doWeatherCancel(date);
 }
 async function doWeatherCancel(date){
@@ -3307,7 +3307,7 @@ async function freeCancel(){
   const date = document.getElementById('today-date').value;
   const d = new Date(date + 'T00:00:00');
   const wd = '日一二三四五六'[d.getDay()];
-  if (!confirm(`確定將 ${d.getMonth()+1}/${d.getDate()}（星期${wd}）所有課堂標記為「停課・不收費」？\n\n• 該堂會從學費中扣減（少計一堂）\n• 已繳費家長自動順延做下一期折扣\n• 此堂不設補堂`)) return;
+  if (!confirm(`確定將 ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}（星期${wd}）所有課堂標記為「停課・不收費」？\n\n• 該堂會從學費中扣減（少計一堂）\n• 已繳費家長自動順延做下一期折扣\n• 此堂不設補堂`)) return;
   toast('處理中…', '🚫');
   let r, rSA;
   try { [r, rSA] = await Promise.all([ apiPost({ action:'cancelDayFree', date, coachPass:cpass() }), apiPostUrl_(SA_API_URL, { action:'cancelDayFree', date }) ]); }   // 🔀 審計#4：跳繩+運動班一齊停課(不收費)

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0F1A28">
-<title>INITIATE SPORTS 運動治療＋痛症處理・預約看診</title>
+<title>INITIATE SPORTS 運動治療＋痛症處理・預約</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Archivo:ital,wght@1,800;1,900&display=swap" rel="stylesheet">
 <style>
@@ -70,12 +70,12 @@
 </style>
 </head>
 <body>
-<div class="top"><div class="b">INITIATE <i>SPORTS</i></div><div class="t">運動治療＋痛症處理・預約看診<span id="pvtag"></span></div></div>
+<div class="top"><div class="b">INITIATE <i>SPORTS</i></div><div class="t">運動治療＋痛症處理・預約<span id="pvtag"></span></div></div>
 <div class="wrap"><div id="app"><div class="card"><div class="msg">載入中…⏳</div></div></div>
 <div class="ver" id="ver"></div></div>
 <script>
 const API='https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec';
-const FRONTEND_VERSION='therapy-2026-09-25-v4';
+const FRONTEND_VERSION='therapy-2026-09-26-v5';
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const WA='https://wa.me/85263317403?text='+encodeURIComponent('我想查詢運動治療／痛症處理');
 const $=s=>document.querySelector(s);
@@ -145,10 +145,10 @@ function renderIntro(){
   <div class="card">
     <h2>收費</h2>
     <div class="fee">
-      <div class="fx"><b>${money(CFG.firstFee||600)}</b><span>首次看診（含詳細評估）</span></div>
+      <div class="fx"><b>${money(CFG.firstFee||600)}</b><span>首次到訪（含詳細評估）</span></div>
       <div class="fx"><b>${money(CFG.followupFee||700)}</b><span>其後每次</span></div>
     </div>
-    <button class="btn" style="margin-top:14px" onclick="renderForm()">開始預約看診 →</button>
+    <button class="btn" style="margin-top:14px" onclick="renderForm()">開始預約 →</button>
     <div style="text-align:center;margin-top:10px"><a class="wa" href="${WA}" target="_blank">或 WhatsApp 6331 7403 查詢</a></div>
     <div class="mut" style="text-align:center;margin-top:10px;font-size:12px">＊運動治療不能取代醫療診斷；如涉嚴重痛症或病理，請先求醫。</div>
   </div>`;
@@ -159,10 +159,10 @@ function renderForm(){
   <div class="card">
     ${steps(1)}
     <h2>預約資料</h2>
-    <div class="fld"><label class="lb">看診類型 <span class="req">*</span></label>
+    <div class="fld"><label class="lb">預約類型 <span class="req">*</span></label>
       <div class="vt">
-        <div class="v ${S.visitType==='首次'?'on':''}" data-v="首次" onclick="pickVt('首次')"><b>首次看診</b><span>${money(CFG.firstFee||600)}</span><div class="hint">含詳細評估</div></div>
-        <div class="v ${S.visitType==='覆診'?'on':''}" data-v="覆診" onclick="pickVt('覆診')"><b>覆診</b><span>${money(CFG.followupFee||700)}</span><div class="hint">其後每次</div></div>
+        <div class="v ${S.visitType==='首次'?'on':''}" data-v="首次" onclick="pickVt('首次')"><b>首次到訪</b><span>${money(CFG.firstFee||600)}</span><div class="hint">含詳細評估</div></div>
+        <div class="v ${S.visitType==='覆診'?'on':''}" data-v="覆診" onclick="pickVt('覆診')"><b>跟進節</b><span>${money(CFG.followupFee||700)}</span><div class="hint">其後每次</div></div>
       </div></div>
     <div class="fld"><label class="lb">姓名 <span class="req">*</span></label><input id="f_name" type="text" placeholder="你的中文或英文全名" value="${esc(S.name||'')}"></div>
     <div class="fld"><label class="lb">聯絡電話 <span class="req">*</span></label><input id="f_phone" type="tel" inputmode="numeric" placeholder="8 位數字" value="${esc(S.phone||'')}"></div>
@@ -186,6 +186,7 @@ function renderForm(){
     <div class="nav"><button class="btn g" onclick="renderIntro()">‹ 返回</button><button class="btn" onclick="toTerms()">下一步（條款）→</button></div>
   </div>`;
 }
+function vtLabel_(v){ return v==='覆診' ? '跟進節' : (v==='首次' ? '首次到訪' : v); }  // 2026-09-26 審計：對外唔用「看診／覆診」醫療用字；送後端嘅值唔變
 function pickVt(v){ S.visitType=v; document.querySelectorAll('.vt .v').forEach(el=>el.classList.toggle('on',el.dataset.v===v)); }
 function pickSleep(n){ S.sleep=n; document.querySelectorAll('#f_sleep .chip').forEach(el=>el.classList.toggle('on',String(el.dataset.v)===String(n))); }
 function pickYN(k,v){ S.med[k].yn=v; const box=document.getElementById('yn_'+k); if(box) box.querySelectorAll('.chip').forEach(el=>el.classList.toggle('on',el.dataset.v===v)); const ta=document.getElementById('mq_'+k); if(ta) ta.style.display=(v==='有'?'block':'none'); }
@@ -256,7 +257,7 @@ async function renderPay(){
     ${steps(3)}
     <h2>付款</h2>
     <div class="sum"><span>姓名</span><span>${esc(S.name)}</span></div>
-    <div class="sum"><span>看診類型</span><span>${esc(S.visitType)}</span></div>
+    <div class="sum"><span>預約類型</span><span>${esc(vtLabel_(S.visitType))}</span></div>
     <div class="sum"><span><b>應繳費用</b></span><span><b class="big">${money(fee)}</b></span></div>
     <p class="mut" style="margin-top:10px">請以 <b>FPS 或 PayMe</b> 轉數後上載轉賬截圖；提交後即有記錄編號。教練核實付款後會 WhatsApp 你落實睇診時間及地點。</p>
     <div class="sum"><span>FPS／PayMe 號碼</span><span><b>${esc(fps)}</b> <button class="btn g" style="width:auto;padding:3px 10px;font-size:12px" onclick="copyFps('${esc(fps).replace(/\\s/g,'')}',this)">複製</button></span></div>
@@ -292,7 +293,7 @@ function renderDone(res){
     <div style="font-size:44px">🩺</div>
     <h1>預約已收到！</h1>
     <p class="mut">記錄編號 <b>${esc(res.id||'')}</b></p>
-    <div class="sum" style="justify-content:center;border:0"><span>看診類型：<b>${esc(S.visitType)}</b>　·　費用：<b>${money(res.fee||fee_())}</b></span></div>
+    <div class="sum" style="justify-content:center;border:0"><span>預約類型：<b>${esc(vtLabel_(S.visitType))}</b>　·　費用：<b>${money(res.fee||fee_())}</b></span></div>
     <p style="margin-top:10px">我哋已收到你嘅付款截圖，正核實中。<br><b>核實後教練會 WhatsApp 你確認睇診時間及地點。</b></p>
     <p class="mut" style="margin-top:8px">確認信已寄到 ${esc(S.email)}。查詢：<a class="wa" href="${WA}" target="_blank">WhatsApp 6331 7403</a></p>
   </div>`;
