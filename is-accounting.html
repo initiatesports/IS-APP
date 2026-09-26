@@ -202,7 +202,7 @@ async function doLogin(){
 function renderSetup(firstTime){
   $('app').innerHTML=`<div class="login"><div class="logo">🔑</div><h2>${firstTime?'首次設定財務密碼':'設定 / 修改財務密碼'}</h2>
     <p>用教練密碼授權，設定一個獨立嘅財務密碼</p>
-    <input id="cpw" type="password" inputmode="numeric" placeholder="教練密碼（授權用）" autocomplete="off" style="margin-bottom:10px">
+    <input id="cpw" type="password" placeholder="教練密碼（授權用）" autocomplete="off" style="margin-bottom:10px">
     <input id="npw" type="password" inputmode="numeric" placeholder="新財務密碼（至少 4 位）" autocomplete="off">
     <button onclick="doSetup()" id="stbtn">設定</button><div class="err" id="sterr"></div>
     <div style="margin-top:12px"><a href="#" onclick="renderLogin('');return false" style="font-size:12.5px;color:var(--muted)">← 返回登入</a></div></div>`;
@@ -335,11 +335,11 @@ function yearView(L, months){
 }
 
 /* ── 記一筆（收入：Drop-in 私訓／運動治療／器材／其他；支出：場地／其他）── */
-function openAdd(kind){ ADD={kind, cat:kind==='in'?'Drop-in 私訓':'場地租金', amt:'', name:'', date:todayISO(), note:''}; renderAdd(); }
+function openAdd(kind){ ADD={kind, cat:kind==='in'?'Drop-in 私訓':'其他支出', amt:'', name:'', date:todayISO(), note:''}; renderAdd(); }
 function scrim(){ let s=$('scrim'); if(!s){ s=document.createElement('div'); s.id='scrim'; s.onclick=e=>{ if(e.target===s) closeSheet(); }; document.body.appendChild(s); } return s; }
 function closeSheet(){ const s=$('scrim'); if(s) s.classList.remove('on'); }
 function renderAdd(){
-  const s=scrim(), cats=ADD.kind==='in'?IN_CATS:['場地租金','其他支出'];
+  const s=scrim(), cats=ADD.kind==='in'?IN_CATS:['其他支出','場地租金'];   // 審計 H2：預設「其他支出」，免誤記場地租金蓋走成期自動場租
   s.innerHTML=`<div class="sheet"><h3>${ADD.kind==='in'?'💰 記一筆收入':'🧾 記一筆支出'}</h3>
     <div class="fld"><div class="opts"><button class="${ADD.kind==='in'?'on':''}" onclick="openAdd('in')">收入</button><button class="${ADD.kind==='ex'?'on':''}" onclick="openAdd('ex')">支出</button></div></div>
     <div class="fld"><label>類別</label><div class="opts">${cats.map(c=>`<button class="${ADD.cat===c?'on':''}" onclick="ADD.cat='${c}';renderAdd()">${esc(c)}</button>`).join('')}</div>
