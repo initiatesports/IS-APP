@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-26-freejump3';
+const FRONTEND_VERSION='parent-2026-09-26-renewbill';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -714,7 +714,7 @@ function applyLoginResp(r, name, last4){
   const kids=(r.children&&r.children.length)?r.children:[{name:(r.student&&r.student.name)||name,classes:r.classes||[]}];
   S.family={authName:name,last4,children:kids,childTokens:(r.childTokens||{})}; S.session={name,last4};
   S.payNumber=r.payNumber||'請 WhatsApp 6331 7403 查詢收款'; S.notices=r.notices||[]; S.summerBridge=!!r.summerBridge; S.enrollPeriodLabel=r.enrollPeriodLabel||'9-10月';
-  S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
+  S.renewBills=r.renewBills||{}; S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ═══ 運動班(#SA)合併：登入後額外拉 #SA，把仔女嘅運動班合併入 S.family.children（純附加，失敗＝當冇運動班）═══ */
 async function fetchSALogin(name,last4){
@@ -971,6 +971,7 @@ function renderParent(){
   html+=famSummary(showIdx.map(i=>kids[i]).filter(Boolean));   // 🧭 概覽（下一堂／待補堂／本期待繳）——只計顯示緊嗰個小朋友，同下面班卡一致（老闆 2026-08-31：多孩家庭 KPI 跟選中嗰個，唔好因兄弟姊妹未報名而誤報未激活）
   // 💳 付款功能區：緊貼月份／小朋友選擇器下面（退出可回歸學生唔顯示，改用回歸面板）
   showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable && !child.ptOnly) html+=paymentCard(child,ki); });
+  showIdx.forEach(ki=>{ const child=kids[ki]; const rb=child&&(S.renewBills||{})[child.name]; if(rb) html+=renewBillCard(child.name,rb); });   // 💵 11-12月續期現金帳單（2026-09-26）
   showIdx.forEach(ki=>{
     const child=kids[ki]; if(!child) return;
     // ⭐ 私人訓練「學生」：只顯示私訓卡（無班別/繳費/請假補堂）
@@ -1345,6 +1346,27 @@ function owedSummary(child){
   return {owed:h.makeupable.length, deadline:soon, expired:h.expired.length};
 }
 // 💳 付款功能區（緊貼月份選擇器下面）；教練端確認已繳／豁免 → 功能區消失
+/* 💵 11-12月起自動續期現金帳單（2026-09-26 專家審計：之前只喺報名頁「查詢報名狀態」見到）。
+   資料＝#4 login renewBills（老闆喺教練頁公開後先有）。唔續＝WhatsApp 教練（由教練頁「下期唔續」處理，唔自動改名單）。*/
+function renewBillCard(name,rb){
+  const h=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const en=LANG==='en', d=rb.detail||{}, L=d.lines||[];
+  const dm=x=>{ const m=String(x||'').match(/(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}`:x; };
+  const money=v=>'$'+Math.abs(Number(v)||0).toLocaleString();
+  const ln=(k,v,neg)=>v?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0"><span>${k}</span><span>${neg?'−':''}${money(v)}</span></div>`:'';
+  const msg=encodeURIComponent(`你好，我係 ${name} 家長，${rb.period} 暫時唔打算續讀，麻煩教練處理，多謝！`);
+  return `<div class="card" style="border:2px solid ${rb.paid?'#3aa17e':'#e0a93a'}">
+    <div class="topline"><span class="dot" style="background:${rb.paid?'#3aa17e':'var(--amber)'}"></span><h3>${h(name)} · ${h(rb.period)} ${en?'fees':'學費'}</h3></div>
+    <div style="font-size:13px;line-height:1.6;margin:4px 0 8px">${rb.paid
+      ? (en?'✅ Paid — thank you!':'✅ 已收，多謝！')+(rb.pay?`（${h(String(rb.pay).replace(/｜/g,' · '))}）`:'')
+      : (en?'No need to re-enrol — your child continues in the same class. <b>Please pay in cash at class</b>; the coach will issue a receipt.':'唔使再報名，系統已自動續返同班。<b>請於上堂時以現金交學費</b>，教練收款後會發收據。')}</div>
+    ${L.map(l=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0"><span>${h(String(l.label).replace('|',' '))}<br><span style="font-size:11.5px;color:var(--muted)">${l.sessions} ${en?'sessions':'堂'}：${(l.dates||[]).map(dm).join('、')}</span></span><span>${money(l.fee)}</span></div>`).join('')}
+    ${ln(en?'Multi-class discount':'多堂優惠',d.multi,1)}${ln(en?'Voucher':'代金券',d.voucher,1)}${ln(en?'Referral':'推薦獎賞',d.referral,1)}${ln(en?'Scholarship':'獎學金',d.scholarship,1)}
+    ${d.adjust?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0"><span>${en?'Adjustment':'調整'}${d.adjustReason?`<br><span style="font-size:11.5px;color:var(--muted)">${h(d.adjustReason)}</span>`:''}</span><span>${d.adjust<0?'−':'+'}${money(d.adjust)}</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;font-weight:900;font-size:16px;border-top:2px solid var(--line,#e3e8ea);margin-top:6px;padding-top:8px"><span>${rb.paid?(en?'Paid':'已繳'):(en?'Due (cash)':'應交（現金）')}</span><span>$${Number(rb.net||0).toLocaleString()}</span></div>
+    ${rb.paid?'':`<a class="btn ghost" style="display:block;text-align:center;margin-top:10px;text-decoration:none;font-size:13px" href="https://wa.me/85263317403?text=${msg}" target="_blank" rel="noopener">${en?'Not continuing? Tell the coach on WhatsApp':'唔打算續讀？WhatsApp 通知教練'}</a>`}
+  </div>`;
+}
 function paymentCard(child,ki){
   const L=(zh,en)=>LANG==='en'?en:zh;
   const lbl=periodLabel(S.period);
