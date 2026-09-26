@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-26-domain';
+const FRONTEND_VERSION='enroll-2026-09-27-notennis';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -306,9 +306,6 @@ var COURSE_ITEMS=[
    contact:'WhatsApp: 6331 7403',image:''},
   {id:'basketball',name:'籃球班',age:'小一或以上',tag:'球類・籃球',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
    desc:'最受歡迎嘅團隊運動 —— 練技術，更練團隊合作同比賽意識。按能力因材施教，由基本功到對抗實戰全面提升。\n\n課程重點：\n• 運球、傳球、投籃與防守基本動作\n• 小組練習 × 對抗訓練，培養團隊精神與比賽意識\n• 融入體能與敏捷訓練，強化速度與爆發力\n\n🔹 師生比例 1:10',
-   contact:'WhatsApp: 6331 7403',image:''},
-  {id:'tennis',name:'網球班',age:'小一或以上',tag:'球類・網球',schedule:'可自組班・時間歡迎查詢',duration:'每節 120 分鐘',hidePrice:true,
-   desc:'優雅又講技術嘅球類運動 —— 訓練全身協調、步法同專注力。按能力因材施教，由握拍基礎到底線對拉，循序漸進打好根基。\n\n課程重點：\n• 握拍、正反手擊球、發球與截擊技巧\n• 步法移動、落點控制與對拉練習\n• 融入敏捷與體能訓練，全面提升運動表現\n\n🔹 小班教學（詳情歡迎查詢）',
    contact:'WhatsApp: 6331 7403',image:''},
   {id:'c4',name:'私人訓練 — 兒童及青少年',age:'兒童及青少年',tag:'1對1',schedule:'時間歡迎查詢',duration:'每節60分鐘',hidePrice:true,
    desc:'一對一個別化指導，完全按學員能力、興趣同目標度身設計，進步最快、最有針對性 —— 特別適合想集中改善某項能力，或在小組課堂中未夠投入嘅孩子。\n\n訓練方向：跳繩、體能、田徑、體操、球類運動嘅敏捷反應、肌力與協調性，全方位提升。\n\n🌟 獨家賣點：教練同時具備 NKT 神經動能療法 與 SCS 拮抗鬆弛術 資格 —— 一般私人教練罕有嘅組合，可即場評估及處理姿勢不良、動作代償或簡單痛症，令訓練更安全、更見效。\n\n🔹 可選 1 對 2 小組訓練；如需 3 人或以上小組歡迎查詢',
@@ -1088,7 +1085,7 @@ function renderAdultTerms(){
   app.innerHTML=`
   <div class="card">
     <h2>課程條款及簽署</h2>
-    <div class="banner"><b>身體狀況聲明</b><br>本人聲明本人健康及體能良好、適合參加課程；如有長期病患、受傷、懷孕或身體不適，會先諮詢醫生並主動通知教練。若因隱瞞健康狀況而於活動時傷亡，主辦機構概不負責。</div>
+    <div class="banner"><b>身體狀況聲明</b><br>本人聲明本人健康及體能良好、適合參加課程；如有長期病患、受傷、懷孕或身體不適，會先諮詢醫生並主動通知教練。如因隱瞞或未有告知健康狀況而引致受傷，本機構毋須就該等後果負責；惟本聲明並不免除本機構因疏忽而須承擔之法律責任。</div>
     <div class="fld" style="margin-top:8px"><label>課程條款</label>
       <div class="terms">${ops.map((s,i)=>`<p><b>${i+1}.</b> ${esc(s)}</p>`).join('')}</div></div>
     <div class="banner" style="background:#fdecea;border-color:var(--err);color:var(--err);margin-top:6px">⚠️ <b>必須填寫真實資料</b>：請填本人<b>真實英文全名</b>同<b>證件號碼首 4 位</b>。如填寫虛假或亂填資料，本人於課堂發生任何意外，<b>本機構概不負責</b>。</div>
@@ -1397,7 +1394,7 @@ async function lookupMine(){
       ${d.multi?ln('多堂優惠',d.multi,1):''}${d.voucher?ln('代金券',d.voucher,1):''}${d.referral?ln('推薦獎賞',d.referral,1):''}${d.scholarship?ln('獎學金',d.scholarship,1):''}
       ${d.adjust?`<div class="sumline"><span class="k">調整${d.adjustReason?`<br><span style="font-size:12px;color:#8a979c">${esc(d.adjustReason)}</span>`:''}</span><span>${d.adjust<0?'−':'+'}$${Math.abs(d.adjust).toLocaleString()}</span></div>`:''}
       <div class="sumline" style="font-weight:900;font-size:17px;border-top:2px solid #e3e8ea;padding-top:8px"><span class="k">${rb.paid?'已繳':'應交（現金）'}</span><span>$${Number(rb.net).toLocaleString()}</span></div>
-      <p class="hint" style="font-size:12px">如有任何疑問或唔打算續讀，請 WhatsApp 6331 7403。</p></div>`; })() : '';
+      <p class="hint" style="font-size:12px">如有任何疑問，歡迎 WhatsApp 6331 7403。</p></div>`; })() : '';
   app.innerHTML=`${renewHtml}<div class="card">${steps(1)}<h2>${esc(name)} 嘅報名狀態</h2>${rows}
     <button class="btn ghost" style="margin-top:14px" onclick="renderLogin()">返回</button></div>`;
 }

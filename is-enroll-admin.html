@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const APISA='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-26-therapy';
+const FRONTEND_VERSION='admin-2026-09-27-therapyappt';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -99,7 +99,8 @@ const DEMO={
     {id:'PP-DEMO-1',ts:'2026-08-29 10:00',name:'陳大文',phone4:'1234',mode:'1對2',startDate:'2026-09-08',priceMode:'自訂',priceNote:'1 對 2 每人 $450/堂（10 節 $4,500）',note:'同陳小明一齊',status:'生效',used:''},
     {id:'PP-DEMO-2',ts:'2026-08-28 09:00',name:'李樂晴',phone4:'5678',mode:'1對1',startDate:'2026-09-05',priceMode:'標準',priceNote:'',note:'',status:'已用',used:'PT2609001'}]},
   therapyList:{ok:true,rows:[
-    {id:'TH-DEMO-1',ts:'2026-09-25 20:10',name:'陳大文',phone:'61234567',email:'chan@email.com',visitType:'首次',fee:'600',complaint:'久坐後下背繃緊',parq:'全部否',health:'以上不適用',sleep:'3',times:'平日晚上',signEn:'CHAN TAI MAN',signId:'A123',oldpain:'無',scar:'無',surgery:'無',signLink:'',payLink:'',pdfUrl:'',status:'待核實',note:''}]},
+    {id:'TH-DEMO-1',ts:'2026-09-25 20:10',name:'陳大文',phone:'61234567',email:'chan@email.com',visitType:'首次',fee:'600',complaint:'久坐後下背繃緊',parq:'全部否',health:'以上不適用',sleep:'3',times:'平日晚上',signEn:'CHAN TAI MAN',signId:'A123',oldpain:'無',scar:'無',surgery:'無',signLink:'',payLink:'',pdfUrl:'',status:'待核實',note:'',appt:'',venue:'',reminded:''}]},
+  therapyEmailPreview:{ok:true,confirm:{subject:'運動治療預約已確認',htmlBody:'<p>（預覽模式：示範）</p>'},reminder:{subject:'明天見！運動治療預約提醒',htmlBody:'<p>（預覽模式：示範）</p>'}},
   ptEnrollList:{ok:true,rows:[
     {id:'PT2608001',ts:'2026-08-28 20:00',name:'陳大文',birthYear:'2016',parent:'陳媽媽',phone:'61234567',email:'chan@email.com',parq:'全部否（適合運動）',health:'以上不適用',goals:'全面體能提升、敏捷／協調',goalNote:'想改善跑姿',times:'平日晚上、週末上午',freq:'每週 1 次',packSize:'10 節（$5,000）',who:'兒童 / 青少年',referrer:'',signEn:'Chan Tai Man',signId:'A123',signLink:'',photo:'同意',status:'待跟進',note:'',startDate:'2026-09-10',mode:'1對1',priceNote:''}]},
   trialList:{ok:true,stat:{total:3,pending:2,verified:1,cancelled:0},records:[
@@ -530,9 +531,22 @@ function drawTherapy(){
       r.signLink?`<a class="lnk" onclick="viewSecureFile('${esc(r.signLink)}')">✍️ 簽名</a>`:'',
       r.pdfUrl?`<a class="lnk" onclick="viewSecureFile('${esc(r.pdfUrl)}')">📄 確認 PDF</a>`:''].filter(Boolean).join('　');
     const parqWarn=String(r.parq||'').indexOf('是')>=0?`<span class="tag warn">PAR-Q 有「是」</span>`:'';
+    // 📅 預約時間＋地點（老闆 2026-09-27）：揀好先可以核實 → 即時寄確認信，預約前 24 小時自動寄溫馨提醒
+    const eid=esc(r.id).replace(/[^A-Za-z0-9_-]/g,'_');
+    const [ad,at]=String(r.appt||'').split(' ');
+    const apptTxt=r.appt?(()=>{ const d=new Date(ad+'T'+at+':00'); return `${ad.slice(8,10)}/${ad.slice(5,7)}/${ad.slice(0,4)}（星期${'日一二三四五六'[d.getDay()]}）${at}`; })():'';
+    const remTxt=r.reminded?esc(r.reminded):(r.appt?'預約前 24 小時自動寄出':'');
+    const venList=[...new Set((ST.therapy.rows||[]).map(x=>x.venue).filter(Boolean).concat(lsGet_('th_venue')?[lsGet_('th_venue')]:[]))];
+    const form=`<div id="thf-${eid}" style="display:${(stt==='已核實'&&r.appt)?'none':'flex'};gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px">
+        <input type="date" id="thd-${eid}" value="${esc(ad||'')}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px">
+        <input type="time" id="tht-${eid}" value="${esc(at||'')}" step="900" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px">
+        <input type="text" id="thv-${eid}" value="${esc(r.venue||lsGet_('th_venue')||'')}" placeholder="地點（例：青衣體育館 活動室）" list="thvl" style="flex:1;min-width:160px;padding:6px 8px;border:1px solid var(--line);border-radius:8px">
+        <button class="btn ok sm" onclick="verifyTherapy('${esc(r.id)}','${eid}')">${stt==='已核實'?'更新時間':'核實＋確認預約'}</button>
+        <button class="btn sm" onclick="previewTherapyMail('${esc(r.id)}','${eid}')">👀 預覽電郵</button>
+      </div><datalist id="thvl">${venList.map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
+    const apptLine=r.appt?`<div style="font-size:13.5px;margin-top:4px;color:var(--ok,#1f7a5a)"><b>📅 ${apptTxt}</b>　📍 ${esc(r.venue||'')}　<span class="mut" style="font-size:12px">提醒：${remTxt}</span></div>`:'';
     let act='';
-    if(stt!=='已核實'&&stt!=='已完成') act+=`<button class="btn ok sm" onclick="setTherapyStatus('${esc(r.id)}','已核實')">核實</button>`;
-    if(stt==='已核實') act+=`<button class="btn sm" onclick="setTherapyStatus('${esc(r.id)}','已完成')">已完成</button>`;
+    if(stt==='已核實') act+=`<button class="btn sm" onclick="document.getElementById('thf-${eid}').style.display='flex'">改時間</button><button class="btn sm" onclick="setTherapyStatus('${esc(r.id)}','已完成')">已完成</button>`;
     if(stt!=='取消') act+=`<button class="btn err sm" onclick="setTherapyStatus('${esc(r.id)}','取消')">取消</button>`;
     return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
@@ -543,10 +557,12 @@ function drawTherapy(){
           <div style="font-size:12.5px;margin-top:4px">主訴：${esc(r.complaint||'—')}</div>
           <div class="mut" style="font-size:12px;margin-top:2px">健康：${esc(r.health||'—')}　|　PAR-Q：${esc(r.parq||'—')}　|　睡眠：${esc(r.sleep||'—')}/5　|　舊患：${esc(r.oldpain||'—')}　|　手術：${esc(r.surgery||'—')}</div>
           ${r.note?`<div class="mut" style="font-size:12px;margin-top:2px">備註：${esc(r.note)}</div>`:''}
+          ${apptLine}
           <div style="margin-top:5px">${files}　<span class="mut" style="font-size:11.5px">${esc(r.id)} · ${esc(r.ts||'')}</span></div>
         </div>
         <div class="rowact" style="flex-shrink:0">${act}</div>
       </div>
+      ${(stt==='取消'||stt==='已完成')?'':form}
     </div>`;
   }).join('') || '<div class="mut">未有運動治療預約</div>';
   tc().innerHTML=`
@@ -558,10 +574,34 @@ function drawTherapy(){
       <div class="stat"><div class="n">${cnt('已核實')}</div><div class="l">已核實</div></div>
       <div class="stat"><div class="n">${cnt('已完成')}</div><div class="l">已完成</div></div>
     </div>
-    <div class="mut" style="margin-top:8px;font-size:12.5px">核實 = 已核對付款截圖 → 系統自動 email 客人確認，之後用 WhatsApp 約時間及地點。PAR-Q 有「是」或者有急性受傷，請先建議求醫。</div>
+    <div class="mut" style="margin-top:8px;font-size:12.5px">核對付款截圖 → 揀預約日期、時間、地點 → 撳「核實＋確認預約」：系統即時 email 客人確認，並喺預約前 24 小時自動寄溫馨提醒（時間、地點、注意事項）。改時間會重新提醒。PAR-Q 有「是」或者有急性受傷，請先建議求醫。</div>
+    <div id="thmail"></div>
     <div class="msg" id="msg"></div>
   </div>
   <div class="card"><h2>逐筆預約</h2>${cards}</div>`;
+}
+function lsGet_(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+function thVals_(eid){ const g=x=>(document.getElementById(x+eid)||{}).value||''; return {d:g('thd-'),t:g('tht-'),v:g('thv-').trim()}; }
+async function verifyTherapy(id,eid){
+  const x=thVals_(eid), msg=document.getElementById('msg');
+  if(!x.d||!x.t||!x.v){ if(msg){ msg.className='msg err'; msg.textContent='請先揀預約日期、時間同地點'; } return; }
+  if(x.d+' '+x.t < new Date(Date.now()-3600000).toISOString().slice(0,16).replace('T',' ') && !confirm('預約時間早過而家，確定？')) return;
+  try{ localStorage.setItem('th_venue',x.v); }catch(e){}
+  try{
+    const r=await apiPost(API4,{action:'therapySetStatus',id,status:'已核實',appt:x.d+' '+x.t,venue:x.v});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=`${id} 已確認預約 ${x.d.slice(8,10)}/${x.d.slice(5,7)} ${x.t} @ ${x.v}`+(r.mailed?`（${r.mailed}）`:''); } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+  ST.therapy=null; renderTherapy();
+}
+async function previewTherapyMail(id,eid){
+  const x=thVals_(eid), row=(ST.therapy.rows||[]).find(r=>r.id===id)||{}, box=document.getElementById('thmail');
+  box.innerHTML='<div class="card"><div class="load">載入電郵預覽…</div></div>'; box.scrollIntoView({behavior:'smooth'});
+  try{
+    const r=await apiPost(API4,{action:'therapyEmailPreview',id,name:row.name||'',visitType:row.visitType||'',appt:(x.d&&x.t)?x.d+' '+x.t:'',venue:x.v});
+    if(!r||!r.ok) throw new Error((r&&r.err)||'預覽失敗');
+    const fr=(t,m)=>`<div style="margin:10px 0 4px;font-weight:700">${t}｜主旨：${esc(m.subject)}</div><iframe sandbox style="width:100%;height:560px;border:1px solid var(--line);border-radius:10px;background:#fff" srcdoc="${esc('<meta charset=utf-8>'+m.htmlBody)}"></iframe>`;
+    box.innerHTML=`<div class="card"><h2>👀 電郵預覽（未寄出）</h2>${fr('① 撳核實即時寄',r.confirm)}${fr('② 預約前 24 小時自動寄',r.reminder)}<button class="btn sm" style="margin-top:8px" onclick="document.getElementById('thmail').innerHTML=''">收起</button></div>`;
+  }catch(e){ box.innerHTML=errBox(e.message); }
 }
 async function setTherapyStatus(id,status){
   if(status==='取消' && !confirm('確認取消呢個運動治療預約（'+id+'）？')) return;
