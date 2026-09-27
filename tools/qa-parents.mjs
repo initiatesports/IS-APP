@@ -418,7 +418,9 @@ async function sweep(label, exec, rows, withPin) {
           // 「owed=N 但乾跑所有時段都約唔到補堂」＝數冇計錯，但學生**真係約唔到位**（補堂限期已過／
           // 冇剩餘時段）→ 家長實質蝕咗一堂，屬營運決定（放寬 MK_DEADLINE_EXT9 或補償），唔係登入問題。
           // 以前跌落 else→ERR，會被當「後端/網絡故障」誤報（>5 就會叫老闆查部署），故獨立成 MKSTUCK。
-          else if (f.indexOf("約唔到補堂") >= 0) add("MKSTUCK", sys, who, f);
+          // 老闆政策（2026-09-27 重申）：補堂過限期係家長責任，系統唔理 → 因「限期」約唔到唔報；
+          // 只報限期內都冇時段（可能係閘/時段 bug）。見 [[no-coach-makeup-deadline-reminders]]。
+          else if (f.indexOf("約唔到補堂") >= 0) { if (f.indexOf("限期") < 0) add("MKSTUCK", sys, who, f); }
           else add("ERR", sys, who, f);
         }
       }
