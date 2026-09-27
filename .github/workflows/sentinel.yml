@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           E4="https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec"
-          ESA="https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec"
+          ESA="https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec"
           fail=0
 
           # 重試（避免 Apps Script 冷啟動假警報）：4 次、每次隔 15s，任何一次見 ok:true 即當生存

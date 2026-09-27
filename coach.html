@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-26-v11';
+const FRONTEND_VERSION = 'coach-2026-09-26-v11-sa2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -638,7 +638,7 @@ const CLASS_DOW = { c1:1, c2:1, c3:3, c4:3, c5:5, c6:6, c7:6, c8:4, c9:5, c10:6 
    coach.html 而家同時管跳繩(#4)＋運動班(#SA)。cid 唔會撞（c1..c9 vs found-tue2 等）。
    逐 operation 按 isSA(cid) 路由去正確 backend。⚠️ 送陣列/blob 嘅寫入(save_roll 等)一定要按
    backend filter，否則跨系統污染出席。SA_CLASSES / SA_CLASS_DOW 同 coach-sports.html 一致，改班兩處一齊改。 */
-const SA_API_URL = 'https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';
+const SA_API_URL = 'https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';
 const SA_CLASSES = {
   "found-tue2":    { label:'幼兒全方位運動啟蒙 · 星期二 2–3pm', day:'Tue', dayZh:'星期二', time:'2–3pm', sport:'幼兒全方位運動啟蒙', venue:'青衣', students:[] },
   "found-tue5":    { label:'幼兒全方位運動啟蒙 · 星期二 5–6pm', day:'Tue', dayZh:'星期二', time:'5–6pm', sport:'幼兒全方位運動啟蒙', venue:'青衣', students:[] },
