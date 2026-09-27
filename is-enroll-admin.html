@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const APISA='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-27-therapyappt-sa2';
+const FRONTEND_VERSION='admin-2026-09-27-thsilent';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -543,6 +543,7 @@ function drawTherapy(){
         <input type="text" id="thv-${eid}" value="${esc(r.venue||lsGet_('th_venue')||'')}" placeholder="地點（例：青衣體育館 活動室）" list="thvl" style="flex:1;min-width:160px;padding:6px 8px;border:1px solid var(--line);border-radius:8px">
         <button class="btn ok sm" onclick="verifyTherapy('${esc(r.id)}','${eid}')">${stt==='已核實'?'更新時間':'核實＋確認預約'}</button>
         <button class="btn sm" onclick="previewTherapyMail('${esc(r.id)}','${eid}')">👀 預覽電郵</button>
+        <label style="font-size:12.5px;display:flex;align-items:center;gap:4px;width:100%"><input type="checkbox" id="ths-${eid}"> 今次唔寄電郵（已人手通知客人；確認信同前一日提醒都唔寄）</label>
       </div><datalist id="thvl">${venList.map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
     const apptLine=r.appt?`<div style="font-size:13.5px;margin-top:4px;color:var(--ok,#1f7a5a)"><b>📅 ${apptTxt}</b>　📍 ${esc(r.venue||'')}　<span class="mut" style="font-size:12px">提醒：${remTxt}</span></div>`:'';
     let act='';
@@ -584,12 +585,13 @@ function lsGet_(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return '
 function thVals_(eid){ const g=x=>(document.getElementById(x+eid)||{}).value||''; return {d:g('thd-'),t:g('tht-'),v:g('thv-').trim()}; }
 async function verifyTherapy(id,eid){
   const x=thVals_(eid), msg=document.getElementById('msg');
-  if(!x.d||!x.t||!x.v){ if(msg){ msg.className='msg err'; msg.textContent='請先揀預約日期、時間同地點'; } return; }
+  const silent=!!(document.getElementById('ths-'+eid)||{}).checked;
+  if(!silent && (!x.d||!x.t||!x.v)){ if(msg){ msg.className='msg err'; msg.textContent='請先揀預約日期、時間同地點（或剔「今次唔寄電郵」）'; } return; }
   if(x.d+' '+x.t < new Date(Date.now()-3600000).toISOString().slice(0,16).replace('T',' ') && !confirm('預約時間早過而家，確定？')) return;
   try{ localStorage.setItem('th_venue',x.v); }catch(e){}
   try{
-    const r=await apiPost(API4,{action:'therapySetStatus',id,status:'已核實',appt:x.d+' '+x.t,venue:x.v});
-    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=`${id} 已確認預約 ${x.d.slice(8,10)}/${x.d.slice(5,7)} ${x.t} @ ${x.v}`+(r.mailed?`（${r.mailed}）`:''); } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+    const r=await apiPost(API4,{action:'therapySetStatus',id,status:'已核實',appt:(x.d&&x.t)?x.d+' '+x.t:'',venue:x.v,silent:silent?'1':''});
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=`${id} 已確認預約`+(x.d?` ${x.d.slice(8,10)}/${x.d.slice(5,7)} ${x.t}`:'')+(x.v?` @ ${x.v}`:'')+(r.mailed?`（${r.mailed}）`:''); } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
   }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
   ST.therapy=null; renderTherapy();
 }
