@@ -418,7 +418,9 @@ async function sweep(label, exec, rows, withPin) {
           // 「owed=N 但乾跑所有時段都約唔到補堂」＝數冇計錯，但學生**真係約唔到位**（補堂限期已過／
           // 冇剩餘時段）→ 家長實質蝕咗一堂，屬營運決定（放寬 MK_DEADLINE_EXT9 或補償），唔係登入問題。
           // 以前跌落 else→ERR，會被當「後端/網絡故障」誤報（>5 就會叫老闆查部署），故獨立成 MKSTUCK。
-          else if (f.indexOf("約唔到補堂") >= 0) add("MKSTUCK", sys, who, f);
+          // 老闆政策（2026-09-27 重申）：補堂過限期係家長責任，系統唔理 → 因「限期」約唔到唔報；
+          // 只報限期內都冇時段（可能係閘/時段 bug）。見 [[no-coach-makeup-deadline-reminders]]。
+          else if (f.indexOf("約唔到補堂") >= 0) { if (f.indexOf("限期") < 0) add("MKSTUCK", sys, who, f); }
           else add("ERR", sys, who, f);
         }
       }
@@ -428,7 +430,7 @@ async function sweep(label, exec, rows, withPin) {
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
   const order = ["LEAK", "OWED", "REPORT", "MKSTUCK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", REPORT: "🟠 成長報告後端異常（token 密鑰/route）", MKSTUCK: "🟠 有待補堂但約唔到位（限期已過／冇時段，需老闆決定）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
+  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", REPORT: "🟠 成長報告後端異常（token 密鑰/route）", MKSTUCK: "🟠 限期內有待補堂但冇時段約（查補堂閘／時段）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   // 🩺 第一 call 健康度：真家長冇 harness 嘅重試，第一 call 中招就直接見「網絡連線失敗」。
   if (FIRSTCALL.total) {
