@@ -428,7 +428,7 @@ async function sweep(label, exec, rows, withPin) {
   const bySev = {};
   for (const a of anomalies) (bySev[a.sev] = bySev[a.sev] || []).push(a);
   const order = ["LEAK", "OWED", "REPORT", "MKSTUCK", "FUTURE", "FEE", "HISTGAP", "UNPOINTED", "MKMADEUP", "PT", "ERR"];
-  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", REPORT: "🟠 成長報告後端異常（token 密鑰/route）", MKSTUCK: "🟠 有待補堂但約唔到位（限期已過／冇時段，需老闆決定）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
+  const names = { LEAK: "🔴 資料洩漏", OWED: "🔴 待補數計錯（補堂閘可能亮/唔亮錯）", REPORT: "🟠 成長報告後端異常（token 密鑰/route）", MKSTUCK: "🟠 限期內有待補堂但冇時段約（查補堂閘／時段）", MKMADEUP: "🟡 未來請假顯示已補堂（核對提前補堂）", FUTURE: "🟠 未來堂誤標", FEE: "🟡 學費異常", HISTGAP: "🟣 歷史補完遺漏", UNPOINTED: "🔵 整班漏點名", PT: "🟤 私訓異常", ERR: "⚪ 登入/請求問題" };
   if (!anomalies.length) console.log("✅ 冇偵測到異常。");
   // 🩺 第一 call 健康度：真家長冇 harness 嘅重試，第一 call 中招就直接見「網絡連線失敗」。
   if (FIRSTCALL.total) {
