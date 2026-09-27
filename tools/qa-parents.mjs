@@ -15,7 +15,7 @@
 const EXEC4 = "https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec";
 const EXEC9 = "https://script.google.com/macros/s/AKfycby9Ln3kZUubqRIuGdCF5cJ5tk4KuPITMQDuOFFuee1OwrId5gUa_sP_W5CuHga9y6i8/exec";
 // #SA sports-attendance /exec（運動班：體操/羽毛球/田徑等；2026-09 統一 is-parent 後家長經呢個後端睇非跳繩班）。
-const EXEC_SA = "https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec";
+const EXEC_SA = "https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec";
 // #11 parent-portal /exec（成長中心 is-performance API；成長報告 homeReport route）。
 // ⚠️ 必須同 IS-APP/is-performance.html 個 API 一致；切 /exec 要一齊改。
 const EXEC11 = "https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec";

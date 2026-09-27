@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-27-norenewcard';
+const FRONTEND_VERSION='parent-2026-09-27-norenewcard-sa2';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -274,7 +274,7 @@ const CLASS_IDS = Object.keys(CLASSES);
    老闆 2026-09-01：家長一個登入睇晒仔女跳繩＋運動班（體操/羽毛球/田徑/綜合體能等）。
    純附加：跳繩(#4)路徑完全零改動；#SA 班以 _sa:true 標記，操作路由去 SA_API，補堂/session 用 SA 版 helper。
    ⚠️ SA_CLASSES / SA_CLASS_START_HH 同 parent-sports.html 一致，改班設定要兩處一齊改。 */
-const SA_API_URL='https://script.google.com/macros/s/AKfycbxDppkHErUG5qTob1oQmfLeCl7R9dZogGGYJA8dYQRU6H3spRZjDWMRUXc8V2dH7NA/exec';
+const SA_API_URL='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';
 /* 🏅 花式跳繩章別等級（#11 student_grades）：家長頁顯示仔女證書/考試等級。14 級 L1-7 彩虹章 + L8-14 行星章。 */
 const API_11='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 function badgeLbl11(n){ n=Number(n)||0; if(n<1||n>14) return ''; return 'Level '+n; }   // 老闆 2026-09-17：直接顯示 Level 幾
