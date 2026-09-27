@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-26-v11-sa2';
+const FRONTEND_VERSION = 'coach-2026-09-27-ptnv';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1153,12 +1153,12 @@ async function renderPt(){
     // 📍 逐節場地＋豁免（老闆 2026-09-25：會計按場地計場租；豁免＝呢節唔收錢）
     const sByDate = {}; (s.sessions||[]).forEach(x=>{ sByDate[x.date]=x; });
     const rows = cur.map(x => { const d = new Date(x.date + 'T00:00:00'), full = sByDate[x.date]||x, v = full.venue||'', ex = !!full.exempt, key = i+'|'+x.date;
-      const vTxt = v ? '📍 '+ptVenueLabel(v) : '<span style="color:#c66">⚠ 未填場地</span>';
+      const vTxt = v ? '📍 '+ptVenueLabel(v) : (s.noVenue ? '' : '<span style="color:#c66">⚠ 未填場地</span>');   // noVenue（鄧可澄）：唔使場地
       return `<div style="padding:9px 2px;border-top:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${fmtPtDate(d)}</span><span style="font-weight:800;color:${ex?'var(--muted)':'#e0a93a'};${ex?'text-decoration:line-through':''}">第 ${x.no} 堂</span></div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:5px;font-size:12px;color:var(--muted)">
           <span style="flex:1;min-width:0">${vTxt}${ex?' · <b style="color:#e0a93a">豁免（唔收錢）</b>':''}</span>
-          <button onclick="ptVenueEdit('${key}')" style="padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;cursor:pointer;font-family:inherit">${v?'改場地':'填場地'}</button>
+          ${s.noVenue && !v ? '' : `<button onclick="ptVenueEdit('${key}')" style="padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;cursor:pointer;font-family:inherit">${v?'改場地':'填場地'}</button>`}
           <button onclick="ptToggleExempt('${nm}','${x.date}',${ex?0:1})" style="padding:6px 9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:${ex?'#e0a93a':'var(--muted)'};font-size:12px;cursor:pointer;font-family:inherit">${ex?'取消豁免':'豁免'}</button>
         </div>
         ${PT_VEDIT===key?`<div style="margin-top:8px;padding:10px;border-radius:10px;background:var(--surface2)">${ptVenueFields('pte-'+i+'-'+x.date, v||s.lastVenue||'')}
@@ -1240,7 +1240,7 @@ async function renderPt(){
         <div style="flex:1;height:10px;border-radius:6px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
         <div style="font-weight:800;color:#e0a93a;white-space:nowrap">${progLabel}</div>
       </div>
-      <div style="margin-bottom:8px">${ptVenueFields('ptv-'+i, s.lastVenue||'')}</div>
+      ${s.noVenue ? '' : `<div style="margin-bottom:8px">${ptVenueFields('ptv-'+i, s.lastVenue||'')}</div>`}
       <div style="display:flex;gap:8px;align-items:center">
         <input type="date" id="ptd-${i}" value="${today}" max="${today}" style="flex:0 0 auto;padding:13px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px">
         <button onclick="ptMark('${nm}', ${i})" style="flex:1;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff">✅ 標記呢日上咗堂</button>
@@ -1258,7 +1258,8 @@ async function ptMark(name, i){
   const date = di ? di.value : '';
   if (!date) { toast('請揀日期', '⚠'); return; }
   const venue = ptVenueRead('ptv-' + i);
-  if (!venue && !confirm('未揀上課場地，會計就計唔到呢節場租。照記錄？（之後可以喺堂數列表「填場地」）')) return;
+  const _st = ((_readCache['pt']||{}).students||[]).find(x=>x&&x.name===name) || null;
+  if (!venue && !(_st && _st.noVenue) && !confirm('未揀上課場地，會計就計唔到呢節場租。照記錄？（之後可以喺堂數列表「填場地」）')) return;
   let r; try { r = await apiPost({ action:'pt_mark', name, date, venue }); } catch(e) { r=null; }
   if (!r) { toast('網絡問題，請重試', '⚠'); return; }
   if (!r.ok) { toast(r.err || '記錄失敗', '⚠'); renderPt(); return; }
