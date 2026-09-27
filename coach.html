@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-27-ptnv';
+const FRONTEND_VERSION = 'coach-2026-09-27-ptpkg';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1139,7 +1139,8 @@ async function renderPt(){
       curSrc = (s.sessions||[]);
       done = pkg.used||0; capN = pkg.sessions||cap;
       periodLabel = `套票 ${pkg.sessions} 節`;
-      progLabel = `${done} / ${capN} 堂（剩 ${pkg.remaining}）`;
+      const _totRem = (s.packages||[]).reduce((a,p)=>a+Math.max(0,Number(p.remaining)||0),0);
+      progLabel = `${done} / ${capN} 堂（剩 ${pkg.remaining}）` + (_totRem>Math.max(0,pkg.remaining) ? ` · 所有套票共剩 ${_totRem} 節` : (_totRem<=0 ? ' · ⚠ 套票已用完' : ''));
     } else {
       curSrc = (s.curSessions||[]);
       done = s.done||0; capN = cap;
@@ -1249,9 +1250,35 @@ async function renderPt(){
       ${hasRec ? `<button onclick="ptUndo('${nm}')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit">↩ 撤銷最近一堂</button>` : ''}
       <div style="margin-top:12px">${rows}</div>
       ${s.wallet ? walletHtml : (s.bill ? billHtml : '')}
+      ${(!s.wallet && s.packages && s.packages.length) ? ptPkgNewHtml(s, i) : ''}
     </div>`;
   });
   box.innerHTML = h;
+}
+/* ➕ 開新套票（老闆 2026-09-27：Keith & Elaine 10 堂用完要開新一期，之前冇掣）。預設沿用上一張付費套票嘅節數／金額；
+   記入「私訓套票」分頁（ptPackageAdd），之後每節按購買日先後 FIFO 扣（免費贈送堂會先用）。 */
+function ptPkgNewHtml(s, i){
+  const paid=(s.packages||[]).filter(p=>Number(p.amount)>0).sort((a,b)=>String(a.buyDate).localeCompare(String(b.buyDate))).pop()||{};
+  const totRem=(s.packages||[]).reduce((a,p)=>a+Math.max(0,Number(p.remaining)||0),0);
+  const open=PT_PKGNEW===i, today=new Date(Date.now()+8*3600e3).toISOString().slice(0,10);
+  const btn=`<button onclick="PT_PKGNEW=(PT_PKGNEW===${i}?-1:${i});renderPt()" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:${totRem<=1?'none':'1px solid var(--border)'};font-weight:800;background:${totRem<=1?'linear-gradient(135deg,#e0a93a,#a06a10)':'transparent'};color:${totRem<=1?'#fff':'var(--text)'};cursor:pointer;font-family:inherit">➕ 開新套票（新一期）</button>`;
+  if(!open) return btn;
+  const f=(id,lab,val,type)=>`<label style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);flex:1;min-width:110px">${lab}<input id="${id}" type="${type||'text'}" value="${val}" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit"></label>`;
+  return btn+`<div style="margin-top:8px;padding:10px;border-radius:10px;background:var(--surface2)">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${f('ppn-s-'+i,'節數',paid.sessions||10,'number')}${f('ppn-a-'+i,'金額（$）',paid.amount||'','number')}${f('ppn-d-'+i,'購買日',today,'date')}</div>
+    <div style="display:flex;gap:8px;margin-top:8px">${f('ppn-n-'+i,'備註（可留空）','')}</div>
+    <button onclick="ptPkgNew('${String(s.name).replace(/'/g,"\\'")}',${i})" style="width:100%;margin-top:8px;padding:11px;border-radius:10px;border:none;font-weight:800;background:linear-gradient(135deg,#e0a93a,#a06a10);color:#fff;cursor:pointer;font-family:inherit">確認開新套票</button>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:6px">到期日自動設為購買日後 6 個月。之後每節會先扣最早買、仲有剩嘅套票（贈送堂會先用）。</div></div>`;
+}
+var PT_PKGNEW=-1;
+async function ptPkgNew(name, i){
+  const g=id=>{ const el=document.getElementById(id+'-'+i); return el?String(el.value||'').trim():''; };
+  const sess=Number(g('ppn-s')), amt=Number(g('ppn-a')), buy=g('ppn-d'), note=g('ppn-n');
+  if(!(sess>0)){ toast('請填節數','⚠'); return; }
+  if(!confirm(`為 ${name} 開新套票：${sess} 節${amt>0?'・$'+amt.toLocaleString():'（免費）'}・購買日 ${buy.split('-').reverse().join('/')}？`)) return;
+  let r; try{ r=await apiPost({ action:'ptPackageAdd', name, sessions:sess, amount:amt||'', buyDate:buy, note }); }catch(e){ r=null; }
+  if(!r||!r.ok){ toast('失敗'+(r&&r.err?'：'+r.err:''),'⚠'); return; }
+  PT_PKGNEW=-1; toast(`已開新套票 ${sess} 節（到期 ${String(r.expiry||'').split('-').reverse().join('/')}）`,'✓'); renderPt();
 }
 async function ptMark(name, i){
   const di = document.getElementById('ptd-' + i);
