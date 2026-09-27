@@ -60,8 +60,6 @@ var COURSE_DETAIL = {"cf":{"summary":"把握 3–6 歲動作發展黃金期，�
 
 /* ── 全站狀態 ── */
 var S = { panel:'home', menuOpen:false, ptTab:'kid', post:null, course:null, courseFilter:'全部', certQ:'', certResult:undefined };
-/* 🔒 2026-09-27 老闆：官網公開位置學生姓名一律遮字（陳曉瑩→陳○瑩）；CMS 覆蓋嘅資料都會經呢度。 */
-function maskName_(n){ n=String(n==null?'':n).trim(); if(!n||n.indexOf('○')>=0) return n; if(/^[A-Za-z]/.test(n)) return n.split(/\s+/)[0]; return n.length<=2 ? n.charAt(0)+'○' : n.charAt(0)+Array(n.length-1).join('○')+n.charAt(n.length-1); }
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
 function isDesktop(){return window.matchMedia('(min-width:1024px)').matches;}
 function setState(patch){Object.assign(S,patch);render();}
@@ -244,46 +242,45 @@ var BADGE_FLOW=[
 /* ── 成就 ── */
 var ACH=[
   {comp:'無限盃跳繩比賽 2026',sub:'小學組・F4 組',items:[
-    {names:['孔○盈'],group:'',event:'30秒單車步',medal:2},{names:['孔○盈'],group:'',event:'30秒提放跳',medal:3},{names:['孔○盈'],group:'',event:'30秒二重跳',medal:3},{names:['孔○盈'],group:'',event:'30秒交叉繩開合跳',medal:4}]},
+    {names:['孔善盈'],group:'',event:'30秒單車步',medal:2},{names:['孔善盈'],group:'',event:'30秒提放跳',medal:3},{names:['孔善盈'],group:'',event:'30秒二重跳',medal:3},{names:['孔善盈'],group:'',event:'30秒交叉繩開合跳',medal:4}]},
   {comp:'UJR 2026 世界跳繩系列賽（中國香港站）',sub:'',items:[
-    {names:['鄧○澄'],group:'7歲或以下女子組',event:'30秒二重速度賽',medal:1},{names:['梁○宇'],group:'8歲男子組',event:'30秒前繩速度賽',medal:2},{names:['鄧○恩'],group:'8歲女子組',event:'30秒交叉跳速度賽',medal:3}]},
+    {names:['鄧可澄'],group:'7歲或以下女子組',event:'30秒二重速度賽',medal:1},{names:['梁正宇'],group:'8歲男子組',event:'30秒前繩速度賽',medal:2},{names:['鄧幗恩'],group:'8歲女子組',event:'30秒交叉跳速度賽',medal:3}]},
   {comp:'第八屆全港學界跳繩比賽',sub:'',items:[
-    {names:['羅○信'],group:'南區小學男子初級組',event:'30秒前繩速度賽',medal:3},{names:['周○晶'],group:'葵青區小學女子初級組',event:'30秒前繩速度賽',medal:4}]},
+    {names:['羅君信'],group:'南區小學男子初級組',event:'30秒前繩速度賽',medal:3},{names:['周莉晶'],group:'葵青區小學女子初級組',event:'30秒前繩速度賽',medal:4}]},
   {comp:'獅子會盃全港跳繩挑戰賽 2026',sub:'新界區初賽',items:[
-    {names:['陳○瑩'],group:'11歲女子組',event:'30秒前繩速度賽',medal:1},{names:['陳○瑩'],group:'11歲女子組',event:'30秒二重跳速度賽',medal:3}]},
+    {names:['陳曉瑩'],group:'11歲女子組',event:'30秒前繩速度賽',medal:1},{names:['陳曉瑩'],group:'11歲女子組',event:'30秒二重跳速度賽',medal:3}]},
   {comp:'葵青區跳繩錦標賽 2026',sub:'個人・30秒前繩速度挑戰賽',items:[
-    {names:['陳○瑩'],group:'11歲女子組',event:'',medal:1},{names:['鄧○澄'],group:'07歲女子組',event:'',medal:1},{names:['文○升'],group:'06歲或以下男子組',event:'',medal:1},{names:['梁○宇'],group:'8歲男子組',event:'電子速度賽',medal:1},{names:['古○謙'],group:'06歲或以下男子組',event:'',medal:2},{names:['吳○軒'],group:'11歲男子組',event:'',medal:2},{names:['郭○昕'],group:'10歲女子組',event:'',medal:2},{names:['黃○晴'],group:'07歲女子組',event:'',medal:2},{names:['張○堯'],group:'06歲或以下女子組',event:'',medal:2},{names:['黎○言'],group:'07歲男子組',event:'',medal:3},{names:['黎○希'],group:'10歲男子組',event:'',medal:3},{names:['許○溢'],group:'11歲男子組',event:'',medal:3},{names:['陳○睎'],group:'06歲或以下男子組',event:'',medal:3},{names:['孔○盈'],group:'09歲女子組',event:'',medal:3},{names:['梁○瑜'],group:'06歲或以下女子組',event:'',medal:3}]},
+    {names:['陳曉瑩'],group:'11歲女子組',event:'',medal:1},{names:['鄧可澄'],group:'07歲女子組',event:'',medal:1},{names:['文柏升'],group:'06歲或以下男子組',event:'',medal:1},{names:['梁正宇'],group:'8歲男子組',event:'電子速度賽',medal:1},{names:['古卓謙'],group:'06歲或以下男子組',event:'',medal:2},{names:['吳瑋軒'],group:'11歲男子組',event:'',medal:2},{names:['郭可昕'],group:'10歲女子組',event:'',medal:2},{names:['黃玥晴'],group:'07歲女子組',event:'',medal:2},{names:['張雅堯'],group:'06歲或以下女子組',event:'',medal:2},{names:['黎柏言'],group:'07歲男子組',event:'',medal:3},{names:['黎柏希'],group:'10歲男子組',event:'',medal:3},{names:['許思溢'],group:'11歲男子組',event:'',medal:3},{names:['陳柏睎'],group:'06歲或以下男子組',event:'',medal:3},{names:['孔善盈'],group:'09歲女子組',event:'',medal:3},{names:['梁德瑜'],group:'06歲或以下女子組',event:'',medal:3}]},
   {comp:'葵青區跳繩錦標賽 2026',sub:'雙人・30秒單側迴旋速度賽',items:[
-    {names:['黎○希','吳○軒'],group:'09-11歲男子組',event:'',medal:1},{names:['梁○宇','黎○言'],group:'08歲或以下男子組',event:'',medal:1},{names:['許○溢','郭○澄'],group:'09-11歲混合組',event:'',medal:1},{names:['梁○朗','鄭○喬'],group:'09-11歲混合組',event:'',medal:3},{names:['黃○程','黃○晴'],group:'08歲或以下混合組',event:'',medal:3},{names:['古○謙','文○升'],group:'08歲或以下男子組',event:'',medal:3},{names:['羅○誼','顧○然'],group:'08歲或以下女子組',event:'',medal:3}]},
+    {names:['黎柏希','吳瑋軒'],group:'09-11歲男子組',event:'',medal:1},{names:['梁正宇','黎柏言'],group:'08歲或以下男子組',event:'',medal:1},{names:['許思溢','郭栩澄'],group:'09-11歲混合組',event:'',medal:1},{names:['梁心朗','鄭宇喬'],group:'09-11歲混合組',event:'',medal:3},{names:['黃朗程','黃玥晴'],group:'08歲或以下混合組',event:'',medal:3},{names:['古卓謙','文柏升'],group:'08歲或以下男子組',event:'',medal:3},{names:['羅靖誼','顧舒然'],group:'08歲或以下女子組',event:'',medal:3}]},
   {comp:'葵青區跳繩錦標賽 2026',sub:'團體・4×30 單車接力速度賽',items:[
-    {names:['陳○瑩','郭○昕','黎○希','吳○軒'],group:'09-11歲混合組',event:'',medal:1},{names:['羅○誼','顧○然','梁○宇','黎○言'],group:'08歲或以下混合組',event:'',medal:1},{names:['鄧○澄','鄧○恩','周○晶','黃○晴'],group:'8歲或以下女子組',event:'',medal:1},{names:['孔○盈','蔡○彤','許○溢','古○詠'],group:'09-11歲混合組',event:'',medal:2},{names:['張○淳','黃○昕','陳○棋','張○堯'],group:'8歲或以下女子組',event:'',medal:2}]},
+    {names:['陳曉瑩','郭可昕','黎柏希','吳瑋軒'],group:'09-11歲混合組',event:'',medal:1},{names:['羅靖誼','顧舒然','梁正宇','黎柏言'],group:'08歲或以下混合組',event:'',medal:1},{names:['鄧可澄','鄧幗恩','周莉晶','黃玥晴'],group:'8歲或以下女子組',event:'',medal:1},{names:['孔善盈','蔡芷彤','許思溢','古詩詠'],group:'09-11歲混合組',event:'',medal:2},{names:['張爾淳','黃梓昕','陳焯棋','張雅堯'],group:'8歲或以下女子組',event:'',medal:2}]},
   {comp:'南區跳繩比賽 2025/26',sub:'',items:[
-    {names:['陳○瑩'],group:'11歲女子青少年組',event:'30秒前繩跳',medal:1},{names:['陳○瑩'],group:'11歲女子青少年組',event:'30秒二重跳',medal:2},{names:['陳○瑩'],group:'11歲女子青少年組',event:'30秒單車步',medal:4},{names:['梁○宇'],group:'8歲男子兒童組',event:'30秒二重跳',medal:2}]}];
+    {names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒前繩跳',medal:1},{names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒二重跳',medal:2},{names:['陳曉瑩'],group:'11歲女子青少年組',event:'30秒單車步',medal:4},{names:['梁正宇'],group:'8歲男子兒童組',event:'30秒二重跳',medal:2}]}];
 var MEDAL_NAME={1:'冠軍',2:'亞軍',3:'季軍',4:'殿軍'};
 var MEDAL_COLOR={1:'#F2C233',2:'#C7CFDA',3:'#C98A4B',4:'#8B97A8'};
 var AWARDS=[
-  {en:'ATHLETE OF THE YEAR',title:'年度躍卓大獎',names:['陳○瑩','孔○盈']},
-  {en:'MOST IMPROVED AWARD',title:'飛躍進步獎',names:['余○','郭○澄','黃○昕','曾○斯','何○蕾']},
-  {en:'EXCELLENCE AWARD',title:'躍動優異獎',names:['陳○允','周○晶','胡○晨','鄧○澄','羅○誼','梁○宇','方○浩','吳○軒','劉○碩','郭○昕']}];
-/* 🔒 2026-09-27 老闆：學生全名唔放喺官網原始碼 → 證書驗證時先由後端 certGrade（要有證書編號）攞姓名。 */
+  {en:'ATHLETE OF THE YEAR',title:'年度躍卓大獎',names:['陳曉瑩','孔善盈']},
+  {en:'MOST IMPROVED AWARD',title:'飛躍進步獎',names:['余悅','郭栩澄','黃梓昕','曾愛斯','何芯蕾']},
+  {en:'EXCELLENCE AWARD',title:'躍動優異獎',names:['陳思允','周莉晶','胡苡晨','鄧可澄','羅靖誼','梁正宇','方鎮浩','吳瑋軒','劉鎮碩','郭可昕']}];
 var CERTS=[
-  {no:'IS-MSLC3',title:'年度躍卓大獎',titleEn:'Athlete of the Year',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-DMX7Y',title:'年度躍卓大獎',titleEn:'Athlete of the Year',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-ERUZN',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-Q3TRE',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-E823Q',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-4396C',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-YGHJT',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-RSY9H',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-MTAYE',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-9Z5FY',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-W72XQ',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-3CTT3',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-N33QU',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-5S2FJ',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-A7GQ2',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-HH8J8',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
-  {no:'IS-AT6TG',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'}];
+  {no:'IS-MSLC3',name:'陳曉瑩',nameEn:'Chan Hiu Ying',title:'年度躍卓大獎',titleEn:'Athlete of the Year',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-DMX7Y',name:'孔善盈',nameEn:'Hung Sin Ying',title:'年度躍卓大獎',titleEn:'Athlete of the Year',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-ERUZN',name:'余悅',nameEn:'Yu Yuet',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-Q3TRE',name:'郭栩澄',nameEn:'Kwok Hui Ching',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-E823Q',name:'黃梓昕',nameEn:'Wong Tsz Yan',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-4396C',name:'曾愛斯',nameEn:'Tsang Oi Sze',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-YGHJT',name:'何芯蕾',nameEn:'Ho Sum Lui',title:'飛躍進步獎',titleEn:'Most Improved Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-RSY9H',name:'陳思允',nameEn:'Chan Sze Wan',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-MTAYE',name:'周莉晶',nameEn:'Chau Li Jing',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-9Z5FY',name:'胡苡晨',nameEn:'Wu Yee Sun',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-W72XQ',name:'鄧可澄',nameEn:'Tang Ho Ching',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-3CTT3',name:'羅靖誼',nameEn:'Law Ching Yi',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-N33QU',name:'梁正宇',nameEn:'Leung Ching Yu',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-5S2FJ',name:'方鎮浩',nameEn:'Fong Chun Ho',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-A7GQ2',name:'吳瑋軒',nameEn:'Ng Wai Hin',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-HH8J8',name:'劉鎮碩',nameEn:'Lau Chun Shek',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'},
+  {no:'IS-AT6TG',name:'郭可昕',nameEn:'Kwok Ho Yan',title:'躍動優異獎',titleEn:'Excellence Award',program:'2025-2026 年度獎學金計劃',year:'2026'}];
 
 /* ═══════════════════ RENDER HELPERS ═══════════════════ */
 var C={bg:'#0F1A28',teal:'#3ECFCF',gold:'#C9A15C'};
@@ -474,8 +471,8 @@ function tFeatures(){
 }
 
 function tAch(){
-  var awards=AWARDS.map(function(a){return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-top:3px solid #3ECFCF;padding:18px 18px"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:11.5px;color:#3ECFCF;letter-spacing:0.06em">'+a.en+'</div><div style="font-size:17px;font-weight:900;margin-top:4px">'+a.title+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">'+a.names.map(function(n){return '<span style="border:1px solid rgba(255,255,255,0.15);font-size:12.5px;font-weight:700;padding:4px 11px">'+esc(maskName_(n))+'</span>';}).join('')+'</div></div>';}).join('');
-  var comps=ACH.map(function(b){var items=b.items.map(function(it){var detail=[it.group,it.event].filter(Boolean).join(' · ');return '<div style="display:flex;gap:10px;align-items:baseline;border:1px solid rgba(255,255,255,0.07);padding:9px 12px;flex-wrap:wrap"><span style="font-size:11.5px;font-weight:900;color:'+MEDAL_COLOR[it.medal]+';flex-shrink:0;min-width:30px">'+MEDAL_NAME[it.medal]+'</span><span style="font-size:12.5px;font-weight:700">'+esc(it.names.map(maskName_).join('、'))+'</span><span style="font-size:11.5px;color:rgba(255,255,255,0.5)">'+detail+'</span></div>';}).join('');
+  var awards=AWARDS.map(function(a){return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-top:3px solid #3ECFCF;padding:18px 18px"><div style="font-family:Archivo,sans-serif;font-weight:900;font-style:italic;font-size:11.5px;color:#3ECFCF;letter-spacing:0.06em">'+a.en+'</div><div style="font-size:17px;font-weight:900;margin-top:4px">'+a.title+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">'+a.names.map(function(n){return '<span style="border:1px solid rgba(255,255,255,0.15);font-size:12.5px;font-weight:700;padding:4px 11px">'+n+'</span>';}).join('')+'</div></div>';}).join('');
+  var comps=ACH.map(function(b){var items=b.items.map(function(it){var detail=[it.group,it.event].filter(Boolean).join(' · ');return '<div style="display:flex;gap:10px;align-items:baseline;border:1px solid rgba(255,255,255,0.07);padding:9px 12px;flex-wrap:wrap"><span style="font-size:11.5px;font-weight:900;color:'+MEDAL_COLOR[it.medal]+';flex-shrink:0;min-width:30px">'+MEDAL_NAME[it.medal]+'</span><span style="font-size:12.5px;font-weight:700">'+it.names.join('、')+'</span><span style="font-size:11.5px;color:rgba(255,255,255,0.5)">'+detail+'</span></div>';}).join('');
     return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)"><div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span><span style="display:block;font-size:15px;font-weight:900">'+b.comp+'</span>'+(b.sub?'<span style="display:block;font-size:11.5px;font-weight:700;color:#3ECFCF;margin-top:2px">'+b.sub+'</span>':'')+'</span><span style="flex-shrink:0;font-size:11.5px;font-weight:900;color:rgba(255,255,255,0.5)">'+b.items.length+' 項</span></div><div style="display:flex;flex-direction:column;gap:6px;padding:0 18px 16px">'+items+'</div></div>';}).join('');
   return '<div style="padding:40px 24px 8px">'+eyebrow('ACHIEVEMENTS')+h1('學生成就')
     +'<p style="font-size:15px;color:rgba(255,255,255,0.6);margin:14px 0 0;line-height:2;max-width:720px">恭喜各位學員在比賽中屢創佳績 · AIM HIGH JUMP HIGH</p>'
@@ -570,13 +567,7 @@ function doVerify(){
   // 🔒 2026-09-14 審計：qk 至少要有 IS 之外嘅字元(length>2)先比對，兼跳過 no 為空嘅 entry →
   //   防日後 CMS cert_registry 出現空 no 時，certKey_('')='IS' 同短查詢誤配到空 entry 顯示錯學生。
   var local=(qk.length>2) ? CERTS.find(function(c){var cn=String(c.no||'').trim(); return cn && (cn===q || certKey_(cn)===qk);}) : null;
-  if(local){   // 本地只有證書資料（冇姓名）→ 向後端攞姓名（gated by 證書編號）；攞唔到就只顯示證書有效
-    S.certResult=Object.assign({},local,{name:'…'}); render();
-    fetch(CMS_API+'?action=certGrade&no='+encodeURIComponent(q)+'&_='+Date.now(),{cache:'no-store'})
-      .then(function(r){return r.json();})
-      .then(function(d){ S.certResult=Object.assign({},local,{name:(d&&d.ok&&d.name)?d.name:''}); render(); })
-      .catch(function(){ S.certResult=Object.assign({},local,{name:''}); render(); });
-    return; }
+  if(local){ S.certResult=local; render(); return; }
   // 🔒 2026-09-13 審計#30/#31：本地(含 CMS cert_registry)冇 → 問後端 certGrade，令日後發出／註冊嘅證書
   //   都查到，唔會永遠凍結喺硬編 17 張。certGrade 唯讀、gated by 證書編號本身、只回該生。
   S.certResult='loading'; render();
