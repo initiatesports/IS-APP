@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-27-ptpkg';
+const FRONTEND_VERSION = 'coach-2026-09-28-trial';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -716,7 +716,7 @@ const _readCache = {};
    （已逐個 grep 後端 function body 確認零 setValue/appendRow/MailApp），但一直冇入呢個名單 → 拎唔到
    重試，令 09-16 啱啱加嘅「封鎖面板載入失敗警示」會因為一次短暫 404 就誤報，而同一刻 load 自己康復
    ＝訊號互相矛盾。補返入嚟。*/
-const _READ_ACT = { load:1, dailyList:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1,
+const _READ_ACT = { load:1, dailyList:1, trialToday:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1,
                     mkBlocks:1, rosterList:1, transfersList:1, returnsAll:1, pendingMedNotes:1, renewStatus:1, renewPreview:1 };
 async function _apiPostOnce_(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
@@ -3184,6 +3184,7 @@ async function loadDaily(){
   coachDailyData = r;
   if (!saBad) saveCoachDaily(coachDate, r);                  // 背景 fetch 成功 → 更新快取 + 重新渲染最新
   renderDailyList(r, box);
+  showTrialToday_(coachDate, box);                           // 🎟️ 今日試堂（老闆 2026-09-28）：背景攞，失敗唔影響點名
   if (saBad) {
     toast('⚠ 運動班今日點名攞唔到（' + ((rSA && rSA.err) || '連線失敗') + '）——下面只有跳繩班，請再試一次', '⚠');
     const w = document.createElement('div');
@@ -3197,6 +3198,22 @@ async function loadDaily(){
 function rolledToday_(id){ const log=ATT_LOG[id+'|'+todayStr()]; if(!log) return 0;
   const roster=new Set((anyClass(id)||{}).students||[]); return Object.keys(log).some(n=>roster.has(n)&&(log[n]==='present'||log[n]==='noshow'))?1:0; }
 function rolledGrp_(g){ return (g.rows||[]).some(x=>!x.makeup&&!x.summer&&!x.saGuest&&(x.status==='出席'||x.status==='缺席'))?1:0; }
+/* 🎟️ 今日試堂卡：試堂學生唔喺名冊，之前教練點名頁完全見唔到。只顯示已核實／待核實（唔計取消）。 */
+async function showTrialToday_(date, box){
+  let t; try{ t=await apiPost({ action:'trialToday', date, coachPass:cpass() }); }catch(e){ return; }
+  if(!t || !t.ok || !Array.isArray(t.trials) || !t.trials.length || coachDate!==date) return;
+  const old=document.getElementById('trial-today'); if(old) old.remove();
+  const esc2=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const d=document.createElement('div'); d.id='trial-today';
+  d.style.cssText='margin:8px 16px 4px;padding:12px 14px;border-radius:12px;background:rgba(224,169,58,.12);border:1px solid rgba(224,169,58,.5)';
+  d.innerHTML=`<div style="font-weight:800;color:#e0a93a;margin-bottom:6px">🎟️ 今日試堂（${t.trials.length} 位）</div>`+t.trials.map(x=>{
+    const warn=[(String(x.parq||'').indexOf('是')>=0?'PAR-Q 有「是」':''),(x.special&&!/^(沒有|冇)$/.test(String(x.special))?'特殊需要：'+x.special:''),(x.health&&!/以上不適用|沒有|冇/.test(String(x.health))?'健康：'+x.health:'')].filter(Boolean);
+    return `<div style="padding:6px 0;border-top:1px solid rgba(224,169,58,.25);font-size:13px"><b>${esc2(x.name)}</b>　${esc2(String(x.cls||'').replace('｜',' '))}${x.status!=='已核實'?' <span style="color:#e0a93a">（未核實付款）</span>':''}
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">家長：${esc2(x.parent||'')}・${esc2(x.phone||'')}</div>
+      ${warn.length?`<div style="font-size:12px;color:#e05050;margin-top:2px">⚠ ${esc2(warn.join('・'))}</div>`:''}</div>`; }).join('')+
+    `<div style="font-size:11.5px;color:var(--muted);margin-top:6px">試堂學生唔使喺點名表點名；試堂後喺報名管理頁「🎟️ 試堂＋跟進」跟進。</div>`;
+  box.prepend(d);
+}
 function renderDailyList(r, box){
   if (r && Array.isArray(r.list)) r = Object.assign({}, r, { list: r.list.map((g,i)=>[g,i]).sort((a,b)=>(rolledGrp_(a[0])-rolledGrp_(b[0]))||(a[1]-b[1])).map(x=>x[0]) });   // 穩定排序：未點名在上、已點名在下
   if (!r.list || !r.list.length) {
