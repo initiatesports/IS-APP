@@ -68,7 +68,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const APISA='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-27-thsilent';
+const FRONTEND_VERSION='admin-2026-09-28-trialfollow';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -103,10 +103,10 @@ const DEMO={
   therapyEmailPreview:{ok:true,confirm:{subject:'運動治療預約已確認',htmlBody:'<p>（預覽模式：示範）</p>'},reminder:{subject:'明天見！運動治療預約提醒',htmlBody:'<p>（預覽模式：示範）</p>'}},
   ptEnrollList:{ok:true,rows:[
     {id:'PT2608001',ts:'2026-08-28 20:00',name:'陳大文',birthYear:'2016',parent:'陳媽媽',phone:'61234567',email:'chan@email.com',parq:'全部否（適合運動）',health:'以上不適用',goals:'全面體能提升、敏捷／協調',goalNote:'想改善跑姿',times:'平日晚上、週末上午',freq:'每週 1 次',packSize:'10 節（$5,000）',who:'兒童 / 青少年',referrer:'',signEn:'Chan Tai Man',signId:'A123',signLink:'',photo:'同意',status:'待跟進',note:'',startDate:'2026-09-10',mode:'1對1',priceNote:''}]},
-  trialList:{ok:true,stat:{total:3,pending:2,verified:1,cancelled:0},records:[
-    {'記錄編號':'TR260908110000','時間戳':'2026-09-08 11:00','學生姓名':'陳小樂','性別':'男','出生年':'2018','出生月':'5','就讀學校':'青衣XX小學','就讀年級':'一年級','家長姓名':'陳小姐','家長電話':'91234567','家長電郵':'a@email.com','緊急聯絡人':'陳先生','緊急電話':'92223333','緊急關係':'父','試堂班別':'花式跳繩｜星期一 5–6pm','試堂日期':'15/09/2026','試堂費':'150','健康狀況':'以上不適用','PAR-Q':'全部否・適合','特殊需要':'沒有','身體狀況聲明':'同意','聲明英文全名':'CHAN SIU LOK','認識途徑':'朋友／家長介紹','付款截圖':'','狀態':'待核實'},
+  trialList:{ok:true,today:'2026-09-28',stat:{total:3,pending:1,verified:2,cancelled:0,followDue:1,enrolled:1,attended:2},records:[
+    {'記錄編號':'TR260908110000','時間戳':'2026-09-08 11:00','學生姓名':'陳小樂','性別':'男','出生年':'2018','出生月':'5','就讀學校':'青衣XX小學','就讀年級':'一年級','家長姓名':'陳小姐','家長電話':'91234567','家長電郵':'a@email.com','緊急聯絡人':'陳先生','緊急電話':'92223333','緊急關係':'父','試堂班別':'花式跳繩｜星期一 5–6pm','試堂日期':'15/09/2026','試堂費':'150','健康狀況':'以上不適用','PAR-Q':'全部否・適合','特殊需要':'沒有','身體狀況聲明':'同意','聲明英文全名':'CHAN SIU LOK','認識途徑':'朋友／家長介紹','付款截圖':'','狀態':'待核實','狀態':'已核實','followDue':true},
     {'記錄編號':'TR260908103000','時間戳':'2026-09-08 10:30','學生姓名':'林小晴','性別':'女','出生年':'2017','出生月':'9','就讀學校':'荃灣YY小學','就讀年級':'二年級','家長姓名':'林太','家長電話':'98887777','家長電郵':'','緊急聯絡人':'林先生','緊急電話':'96665555','緊急關係':'父','試堂班別':'體操｜星期六 4–5pm','試堂日期':'13/09/2026','試堂費':'160','健康狀況':'氣喘或呼吸相關疾病','PAR-Q':'有『是』：曾有哮喘','特殊需要':'運動時需注意氣喘','身體狀況聲明':'同意','聲明英文全名':'LAM SIU CHING','認識途徑':'Instagram','付款截圖':'','狀態':'待核實'},
-    {'記錄編號':'TR260907200000','時間戳':'2026-09-07 20:00','學生姓名':'黃小圖','性別':'男','出生年':'2016','出生月':'2','就讀學校':'X小學','就讀年級':'三年級','家長姓名':'黃生','家長電話':'95554444','家長電郵':'wong@email.com','緊急聯絡人':'黃太','緊急電話':'93332222','緊急關係':'母','試堂班別':'綜合運動體能＋田徑｜星期六 5–6pm','試堂日期':'13/09/2026','試堂費':'130','健康狀況':'以上不適用','PAR-Q':'全部否・適合','特殊需要':'沒有','身體狀況聲明':'同意','聲明英文全名':'WONG SIU TO','認識途徑':'Google 搜尋','付款截圖':'','狀態':'已核實'}]}
+    {'記錄編號':'TR260907200000','時間戳':'2026-09-07 20:00','學生姓名':'黃小圖','性別':'男','出生年':'2016','出生月':'2','就讀學校':'X小學','就讀年級':'三年級','家長姓名':'黃生','家長電話':'95554444','家長電郵':'wong@email.com','緊急聯絡人':'黃太','緊急電話':'93332222','緊急關係':'母','試堂班別':'綜合運動體能＋田徑｜星期六 5–6pm','試堂日期':'13/09/2026','試堂費':'130','健康狀況':'以上不適用','PAR-Q':'全部否・適合','特殊需要':'沒有','身體狀況聲明':'同意','聲明英文全名':'WONG SIU TO','認識途徑':'Google 搜尋','付款截圖':'','狀態':'已核實','跟進狀態':'已報名','enrolled':true,'enrolledCourses':'綜合運動體能＋田徑｜星期六 5–6pm'}]}
 };
 
 /* ── 共用 fetch：45s timeout + 2 次重試（Apps Script 偶爾 cold start / 回 HTML 非 JSON）── */
@@ -198,7 +198,7 @@ function renderLogin(err){
 /* ══════════ 主框架（tab bar + 內容區）══════════ */
 const TABS=[
   ['enroll','📋 報名審核'],
-  ['trial','🎟️ 試堂核實'],
+  ['trial','🎟️ 試堂＋跟進'],
   ['adv','🏆 進階班'],
   ['transfer','🔁 調班／轉班'],
   ['gear','🎒 器材派發'],
@@ -457,11 +457,26 @@ async function renderTrial(){
   }catch(e){ tc().innerHTML=errBox(e.message); return; }
   drawTrial();
 }
+/* 🎟️ 試堂跟進（老闆 2026-09-28）：試堂後逐個跟進 → 已聯絡／考慮中／已報名／唔報＋備註＋下次跟進日；
+   報名系統有同名報名會自動認「已報名」。WhatsApp 一撳開預填訊息（家長電話 8 位 → +852）。 */
+function tIso_(d){ d=String(d||'').trim(); let m=d.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[0]; m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?`${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`:''; }
+function tDmy_(d){ const i=tIso_(d); return i?`${i.slice(8,10)}/${i.slice(5,7)}/${i.slice(0,4)}`:(d||''); }
+function trialWa_(r){
+  const ph=String(r['家長電話']||'').replace(/\D/g,''); if(!ph) return '';
+  const cls=String(r['試堂班別']||'').replace('｜',' ');
+  const msg=`你好${r['家長姓名']?r['家長姓名']:''}！多謝${r['學生姓名']}${tDmy_(r['試堂日期'])?' '+tDmy_(r['試堂日期']).slice(0,5):''}嚟試堂 😊 想問下${r['學生姓名']}覺得點？如果有興趣繼續上${cls}，可以經呢度報名：https://www.initiatesportshk.com/is-enroll.html\n有任何問題都歡迎直接回覆我哋。INITIATE SPORTS`;
+  return `https://wa.me/${ph.length===8?'852'+ph:ph}?text=${encodeURIComponent(msg)}`;
+}
 function drawTrial(){
-  const t=ST.trial, st=t.stat||{};
-  const recs=(t.records||[]).filter(r=>String(r['學生姓名']||'').trim()!=='示範學員');
+  const t=ST.trial, st=t.stat||{}, today=t.today||todayIso();
+  const all=(t.records||[]).filter(r=>String(r['學生姓名']||'').trim()!=='示範學員');
+  const flt=ST.trialFilter||'due';
+  const upcoming=r=>String(r['狀態']||'')!=='取消' && tIso_(r['試堂日期'])>=today;
+  const recs=all.filter(r=> flt==='due' ? r.followDue : flt==='up' ? upcoming(r) : true)
+    .sort((a,b)=> flt==='up' ? tIso_(a['試堂日期']).localeCompare(tIso_(b['試堂日期'])) : 0);
+  const conv=(st.attended>0)?Math.round((st.enrolled||0)/st.attended*100):null;
   const cards=recs.map(r=>{
-    const id=r['記錄編號'], stt=String(r['狀態']||'待核實');
+    const id=r['記錄編號'], stt=String(r['狀態']||'待核實'), eid=String(id).replace(/[^A-Za-z0-9_-]/g,'_');
     const stCls=stt==='已核實'?'ok':(stt==='取消'?'err':'warn');
     const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" onclick="viewSecureFile('${esc(r['付款截圖'])}')">📷 付款截圖</a>`:'<span class="mut">無截圖</span>';
     const parq=String(r['PAR-Q']||''); const parqWarn=parq.indexOf('是')>=0?`<span class="tag warn">PAR-Q 有「是」</span>`:'';
@@ -469,7 +484,25 @@ function drawTrial(){
     let act='';
     if(stt!=='已核實') act+=`<button class="btn ok sm" onclick="setTrialStatus('${esc(id)}','已核實')">核實</button>`;
     if(stt!=='取消') act+=`<button class="btn err sm" onclick="setTrialStatus('${esc(id)}','取消')">取消</button>`;
-    return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+    const fs=r.enrolled?'已報名':String(r['跟進狀態']||'未跟進');
+    const fsCls=fs==='已報名'?'ok':(fs==='唔報'?'err':(r.followDue?'warn':''));
+    const past=stt==='已核實' && tIso_(r['試堂日期']) && tIso_(r['試堂日期'])<today;
+    const wa=trialWa_(r);
+    const follow = past ? `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#f6fafb;border:1px solid var(--line)">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">跟進：</b><span class="st ${fsCls}">${esc(fs)}</span>
+          ${r.enrolled?`<span class="mut" style="font-size:12px">報名系統已有記錄：${esc(r.enrolledCourses||'')}</span>`:''}
+          ${r['下次跟進日']?`<span class="mut" style="font-size:12px">下次跟進：${tDmy_(r['下次跟進日'])}</span>`:''}
+          ${r['跟進更新']?`<span class="mut" style="font-size:11.5px">（${esc(String(r['跟進更新']).slice(0,16))} 更新）</span>`:''}</div>
+        ${r['跟進備註']?`<div style="font-size:12.5px;margin-top:4px">📝 ${esc(r['跟進備註'])}</div>`:''}
+        ${r.enrolled?'':`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          ${wa?`<a class="btn ok sm" href="${wa}" target="_blank" rel="noopener" onclick="trialFollow('${esc(id)}','已聯絡',null,null,true)">💬 WhatsApp 跟進</a>`:''}
+          ${['已聯絡','考慮中','已報名','唔報'].map(x=>`<button class="btn sm" onclick="trialFollow('${esc(id)}','${x}')">${x}</button>`).join('')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
+          <input id="tfn-${eid}" placeholder="備註（例：想試多一堂／下期先報）" value="${esc(r['跟進備註']||'')}" style="flex:1;min-width:180px;padding:6px 8px;border:1px solid var(--line);border-radius:8px">
+          <label class="mut" style="font-size:12px">下次跟進 <input type="date" id="tfd-${eid}" value="${esc(tIso_(r['下次跟進日']))}" style="padding:5px 6px;border:1px solid var(--line);border-radius:8px"></label>
+          <button class="btn sm" onclick="trialFollow('${esc(id)}','',document.getElementById('tfn-${eid}').value,document.getElementById('tfd-${eid}').value)">儲存</button></div>`}
+      </div>` : '';
+    return `<div style="border:1px solid ${r.followDue?'var(--warn)':'var(--line)'};border-radius:10px;padding:10px 12px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
@@ -477,7 +510,7 @@ function drawTrial(){
             <span class="mut" style="font-size:12px">${esc(r['性別']||'')}・${esc(r['出生年']||'')}/${esc(r['出生月']||'')}</span>
             <span class="st ${stCls}">${esc(stt)}</span>${parqWarn}
           </div>
-          <div style="font-size:13.5px;margin-top:3px"><b>${esc(r['試堂班別'])}</b> · ${esc(r['試堂日期'])} · 試堂費 ${money(r['試堂費'])}</div>
+          <div style="font-size:13.5px;margin-top:3px"><b>${esc(r['試堂班別'])}</b> · ${esc(tDmy_(r['試堂日期']))} · 試堂費 ${money(r['試堂費'])}</div>
           <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(r['家長姓名']||'')}・${esc(r['家長電話']||'')}${r['家長電郵']?'・'+esc(r['家長電郵']):''}　|　緊急：${esc(r['緊急聯絡人']||'')}（${esc(r['緊急關係']||'')}）${esc(r['緊急電話']||'')}</div>
           <div class="mut" style="font-size:12px;margin-top:2px">學校：${esc(r['就讀學校']||'—')}・${esc(r['就讀年級']||'')}　|　健康：${esc(r['健康狀況']||'—')}　|　PAR-Q：${esc(parq||'—')}　|　途徑：${esc(r['認識途徑']||'—')}</div>
           ${specialShow}
@@ -485,21 +518,34 @@ function drawTrial(){
         </div>
         <div class="rowact" style="flex-shrink:0">${act}</div>
       </div>
+      ${follow}
     </div>`;
-  }).join('') || '<div class="mut">未有試堂報名記錄</div>';
+  }).join('') || `<div class="mut">${flt==='due'?'冇試堂要跟進 👍':(flt==='up'?'未有即將試堂':'未有試堂報名記錄')}</div>`;
+  const tab=(k,l,n)=>`<button class="btn sm${flt===k?' ok':''}" onclick="ST.trialFilter='${k}';drawTrial()">${l}${n!=null?'（'+n+'）':''}</button>`;
   tc().innerHTML=`
   <div class="card">
-    <h2>🎟️ 試堂報名核實</h2>
+    <h2>🎟️ 試堂核實＋跟進</h2>
     <div class="stats">
-      <div class="stat"><div class="n">${st.total||0}</div><div class="l">總試堂</div></div>
       <div class="stat"><div class="n">${st.pending||0}</div><div class="l">待核實</div></div>
-      <div class="stat"><div class="n">${st.verified||0}</div><div class="l">已核實</div></div>
-      <div class="stat"><div class="n">${st.cancelled||0}</div><div class="l">取消</div></div>
+      <div class="stat"><div class="n">${st.followDue||0}</div><div class="l">待跟進</div></div>
+      <div class="stat"><div class="n">${st.attended||0}</div><div class="l">已試堂</div></div>
+      <div class="stat"><div class="n">${st.enrolled||0}${conv!=null?`<span style="font-size:13px"> · ${conv}%</span>`:''}</div><div class="l">已報名（轉報名率）</div></div>
     </div>
-    <div class="mut" style="margin-top:8px;font-size:12.5px">核實 = 已收到並核對付款截圖 → 系統會 email 家長確認試堂。試堂後家長正式報名，輸入同一電話 + 中文全名即帶回資料。</div>
+    <div class="mut" style="margin-top:8px;font-size:12.5px">核實 = 已核對付款截圖 → 系統 email 家長確認試堂。試堂翌日起，未報名嘅學生會出現喺「待跟進」：撳 WhatsApp 一鍵開預填訊息，再揀跟進結果。報名系統有同名報名會自動標「已報名」。每朝秘書早報會提你待跟進。</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tab('due','🔔 待跟進',st.followDue||0)}${tab('up','📅 即將試堂',all.filter(upcoming).length)}${tab('all','全部',all.length)}</div>
     <div class="msg" id="msg"></div>
   </div>
-  <div class="card"><h2>逐筆試堂報名</h2>${cards}</div>`;
+  <div class="card">${cards}</div>`;
+}
+async function trialFollow(id,status,note,next,silent){
+  const msg=document.getElementById('msg'), body={action:'trialFollowUp',id};
+  if(status) body.status=status; if(note!=null) body.note=note; if(next!=null) body.next=next;
+  try{
+    const r=await apiPost(API4,body);
+    if(msg){ if(r&&r.ok){ msg.className='msg ok'; msg.textContent=id+' 跟進已更新'+(status?'：'+status:''); } else { msg.className='msg err'; msg.textContent=(r&&r.err)||'失敗'; } }
+  }catch(e){ if(msg){ msg.className='msg err'; msg.textContent='連線失敗'; } }
+  if(silent) { ST.trial=null; setTimeout(renderTrial,1500); return; }
+  ST.trial=null; renderTrial();
 }
 async function setTrialStatus(id,status){
   if(status==='取消' && !confirm('確認取消呢筆試堂報名（'+id+'）？')) return;
