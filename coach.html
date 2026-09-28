@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-28-trial';
+const FRONTEND_VERSION = 'coach-2026-09-28-inbox';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -716,7 +716,7 @@ const _readCache = {};
    （已逐個 grep 後端 function body 確認零 setValue/appendRow/MailApp），但一直冇入呢個名單 → 拎唔到
    重試，令 09-16 啱啱加嘅「封鎖面板載入失敗警示」會因為一次短暫 404 就誤報，而同一刻 load 自己康復
    ＝訊號互相矛盾。補返入嚟。*/
-const _READ_ACT = { load:1, dailyList:1, trialToday:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1,
+const _READ_ACT = { load:1, dailyList:1, trialToday:1, coachInbox:1, feesAll:1, addonsAll:1, referralsAll:1, notices:1, venuesAdmin:1, pt_coach_load:1, weeklyText:1, ping:1,
                     mkBlocks:1, rosterList:1, transfersList:1, returnsAll:1, pendingMedNotes:1, renewStatus:1, renewPreview:1 };
 async function _apiPostOnce_(body){
   // 單一出入口：所有寫入請求自動附帶教練密碼（後端逐個寫入端點驗證）
@@ -1420,6 +1420,13 @@ function classRowHTML(id, cls){
 /* 📌 今日待辦指揮中心：聚合可行動項目（未點名／今日補堂／快到期／待核實），一撳跳去處理。
    純讀已載入資料（ATT_LOG/ABSENCES/RETURNS_CACHE/CLASSES）+ 跳轉，零寫入。*/
 function addDaysStr_(s,n){ const p=String(s).split('-').map(Number); const d=new Date(p[0],p[1]-1,p[2]+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+let COACH_INBOX=null, _inboxBusy=false, _inboxAt=0;
+async function loadInbox_(force){
+  if(_inboxBusy) return; _inboxBusy=true;
+  try{ const r=await apiPost({ action:'coachInbox', coachPass:cpass() }); COACH_INBOX=(r&&r.ok)?r:{items:[]}; }catch(e){ COACH_INBOX={items:[]}; }
+  _inboxAt=Date.now();
+  _inboxBusy=false; try{ renderTodo(); }catch(e){}
+}
 function renderTodo(){
   const host=document.getElementById('home-todo'); if(!host) return;
   if(typeof CLASSES==='undefined'||!Object.keys(CLASSES).length){ host.innerHTML=''; return; }
@@ -1440,7 +1447,16 @@ function renderTodo(){
   // 5. 回歸申請待核實
   const ret=(typeof RETURNS_CACHE!=='undefined'?RETURNS_CACHE:[]).filter(x=>x&&x.status!=='已核實');
   if(ret.length) items.push({ic:'🔍',t:`${ret.length} 個回歸申請待核實`,sub:'家長已交付款，等你核實',cls:'info',onclick:`var e=document.getElementById('home-returns');if(e)e.scrollIntoView({behavior:'smooth'})`});
-  if(!items.length){ host.innerHTML=`<div class="todo-empty">✓ 今日冇待辦，一切妥當</div>`; return; }
+  // 6. 醫生紙待核實（已載入 MNV_LIST）
+  const mnv=(typeof MNV_LIST!=='undefined'?MNV_LIST:[]).filter(x=>x&&!/示範|測試/.test(x.name||''));
+  if(mnv.length) items.push({ic:'🩹',t:`${mnv.length} 張醫生紙待核實`,sub:mnv.slice(0,5).map(x=>x.name).join('、'),cls:'warn',onclick:`var e=document.getElementById('home-mednote');if(e)e.scrollIntoView({behavior:'smooth'})`});
+  // 7. 📥 統一待辦箱（老闆 2026-09-28）：報名管理各分頁嘅待處理＋私訓套票續購（後端 coachInbox，背景攞）
+  if(COACH_INBOX===null || Date.now()-_inboxAt>5*60*1000) loadInbox_();   // 每 5 分鐘內重用，返首頁時自動更新
+  ((COACH_INBOX&&COACH_INBOX.items)||[]).forEach(x=>{
+    const go = x.tab==='coach:pt' ? `showScreen('pt')` : `location.href='is-enroll-admin.html#${x.tab}'`;
+    items.push({ic:x.ic, t:x.title, sub:(x.names||[]).join('、')+(x.count>(x.names||[]).length?' 等':''), cls:(x.level==='urgent'?'urgent':(x.level==='warn'?'warn':'info')), onclick:go});
+  });
+  if(!items.length){ host.innerHTML=`<div class="todo-empty">✓ ${COACH_INBOX===null?'今日暫時冇待辦（載入緊其他待處理事項…）':'今日冇待辦，一切妥當'}</div>`; return; }
   host.innerHTML=`<div class="todo-card"><div class="todo-h">📌 今日待辦<span>${items.length}</span></div>`+
     items.map(it=>`<div class="todo-row ${it.cls}" onclick="${it.onclick.replace(/"/g,'&quot;')}"><span class="todo-ic">${it.ic}</span><div class="todo-body"><div class="todo-t">${it.t}</div><div class="todo-sub">${it.sub}</div></div><span class="todo-arr">›</span></div>`).join('')+`</div>`;
 }
