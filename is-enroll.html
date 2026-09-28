@@ -183,10 +183,16 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-27-advtbd';
+const FRONTEND_VERSION='enroll-2026-09-28-reflink';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
+/* 🎁 推薦連結（2026-09-28）：is-enroll.html?ref=碼 → 記住 30 日（朋友可能遲啲先報），報名時送 refCode；後端精確對返推薦人 */
+const REF_CODE_=(()=>{ try{ const q=new URLSearchParams(location.search).get('ref'); if(q){ const c=q.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); if(c.length===6){ localStorage.setItem('is_ref',JSON.stringify({c,ts:Date.now()})); return c; } }
+  const j=JSON.parse(localStorage.getItem('is_ref')||'null'); if(j && j.c && Date.now()-j.ts<30*864e5) return j.c; }catch(e){} return ''; })();
+let REF_VALID_=null;
+async function checkRefBanner_(){ if(!REF_CODE_) return; if(REF_VALID_===null){ try{ const r=await apiGet({action:'refInfo', code:REF_CODE_}); REF_VALID_=!!(r&&r.ok&&r.valid); }catch(e){ REF_VALID_=false; } }
+  const b=document.getElementById('refBanner'); if(b && REF_VALID_) b.innerHTML=`<div class="banner" style="background:#fdf6e8;border-color:#e0a93a;color:#8a6a2f">🎁 你正使用朋友嘅推薦連結報名。新生完成報名並付款後，推薦你嘅朋友會獲得學費優惠。</div>`; }
 const S={ cfg:null, family:null, profile:null, courses:[], quote:null, agree:false, signEn:'', signId:'', payImg:'', gear:{} };
 // 預覽模式（?preview=1）：唔使填資料就可以逐頁揭落去睇 layout；一律唔會真提交/寫入。老闆 2026-08-15
 const PREVIEW = (function(){ try{ return new URLSearchParams(location.search).get('preview')==='1'; }catch(e){ return false; } })();
@@ -527,6 +533,7 @@ function renderHome(){
     </div>`;
   }).join('');
   app.innerHTML=`
+  <div id="refBanner"></div>
   <div class="card">
     <h2>INITIATE SPORTS 課程</h2>
     ${PREVIEW?('<div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">👁 <b>預覽模式（'+((new URLSearchParams(location.search).get("tier")||"").toLowerCase().match(/old|舊/)?"舊學員價":"新生價")+'）</b>：唔使填資料，每頁撳「下一步」即可逐頁揭；<b>唔會真提交</b>。<br>睇舊生版：連結加 <b>&tier=old</b>。</div>'):''}
@@ -551,6 +558,7 @@ function renderHome(){
   document.getElementById('hm_pt').onclick=()=>renderPtInfo();
   document.getElementById('hm_therapy').onclick=()=>{ location.href='is-therapy-enroll.html'; };
   document.getElementById('hm_look').onclick=renderLogin;
+  checkRefBanner_();   // 🎁 推薦連結提示（非同步，唔阻首頁）
 }
 // 📅 課程時間表（2026–2027 學年）。老闆 2026-08-26：喺報名系統加掣，一撳睇晒每週課堂。
 // slot 格式：[時間, 課堂, 狀態]。狀態可為 '未夠人成班' / '已滿' / ''（空）。「私訓」= 私人訓練/痛症處理（可預約）或自組任何班別（4人成班）。
@@ -1930,7 +1938,7 @@ async function submitEnroll(){
   const coursesTxt=(q.courses||[]).map(c=>esc(c.sport)+(c.day&&c.day!=='待定'?('|'+c.day+' '+c.time):'')).join('、');
   let res;
   try{
-    res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4,
+    res=await apiPost({ action:'enrollConfirm', name:S.family.name, last4:S.family.last4, refCode:REF_CODE_,
       courses:coursesTxt, courseIds:S.courses.join(','), period:q.period||S.cfg.period,
       phone:(S.profile&&S.profile['聯絡電話'])||'', clientToken:S.clientToken,
       feeBase:q.base||0, voucher:q.credit||0, referral:0, promo:0, feeNet:q.net||0,

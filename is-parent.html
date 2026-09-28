@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-27-norenewcard-sa2';
+const FRONTEND_VERSION='parent-2026-09-28-referral';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -949,6 +949,7 @@ function renderParent(){
   const promoActive=false;   // 冇任何限時推廣按鈕；下面 if(promoActive) 嘅底部 featureLinks 唔會再 render（避免重複）
   html+=featureLinks();
   html+=socialCard();
+  html+=referralCard();   // 🎁 家長專屬推薦連結（2026-09-28）
   if(kids.length>1) html+=`<div class="fam-head">${t('famHead',kids.length)}</div>`;
   html+=`<div style="display:flex;justify-content:flex-end;margin:2px 0 6px"><button class="btn ghost" style="width:auto;padding:7px 14px;font-size:13px" onclick="openPin()">${t('pinBtn')}</button></div>`;
   // 📣 通知（同文案去重，防重複轟炸）
@@ -1310,6 +1311,36 @@ function sessRow(s,cid,madeUp){
   const tLine=_sTime?`<div class="vn" style="color:#0E8A96;font-weight:800">⏰ ${LANG==='en'?'Special time':'特別時間'}：${_sTime}</div>`:'';
   return `<div class="sess" style="align-items:flex-start"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span>${tLine}${vLine}</span>${pill}</div>`;
 }
+/* 🎁 推薦朋友（老闆 2026-09-28）：每個學生有專屬推薦碼 → 朋友用連結報名團體班、付款核實後，推薦人自動記 $100 學費優惠
+   （每期最多扣 $200，用唔晒順延）。連結由 #4 refCode 產生（家長登入碼驗證），唔使再手打推薦人名／電話。 */
+let REF_LINKS={}, REF_WHO='';
+function referralCard(){
+  const kids=((S.family&&S.family.children)||[]).map(c=>c.name).filter(n=>n&&!/示範|測試/.test(n));
+  if(!kids.length) return '';
+  if(!REF_WHO || kids.indexOf(REF_WHO)<0) REF_WHO=kids[0];
+  const r=REF_LINKS[REF_WHO], en=LANG==='en';
+  const h=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const pick=kids.length>1?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">${kids.map(n=>`<button onclick="REF_WHO='${h(n).replace(/'/g,"\\'")}';renderParent()" style="padding:6px 12px;border-radius:999px;border:1.5px solid ${n===REF_WHO?'#e0a93a':'var(--line,#e3e8ea)'};background:${n===REF_WHO?'rgba(224,169,58,.12)':'transparent'};font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit">${h(n)}</button>`).join('')}</div>`:'';
+  const body = r&&r.link
+    ? `<div style="font-size:12.5px;background:var(--bg2,#f6f8f9);border:1px dashed #e0a93a;border-radius:10px;padding:9px 11px;word-break:break-all;user-select:all">${h(r.link)}</div>
+       <div style="display:flex;gap:8px;margin-top:10px">
+         <a class="btn" style="flex:1;text-align:center;text-decoration:none;background:#25D366;color:#fff" href="https://wa.me/?text=${encodeURIComponent((en?'We train with INITIATE SPORTS and love it! Sign up with my link: ':'我哋喺 INITIATE SPORTS 上堂，覺得好唔錯！有興趣可以用我呢個連結報名：')+r.link)}" target="_blank" rel="noopener">${en?'Share on WhatsApp':'📲 WhatsApp 分享'}</a>
+         <button class="btn ghost" style="flex:1" onclick="copyRefLink()">${en?'Copy link':'複製連結'}</button></div>`
+    : `<button class="btn" style="width:100%" onclick="loadRefLink()">${r&&r.loading?(en?'Loading…':'載入中…'):(en?'Get my referral link':'攞我嘅專屬推薦連結')}</button>${r&&r.err?`<div style="color:#c0392b;font-size:12px;margin-top:6px">${h(r.err)}</div>`:''}`;
+  return `<div class="card" style="border:1.5px solid rgba(224,169,58,.55)">
+    <div class="topline"><span class="dot" style="background:#e0a93a"></span><h3>${en?'🎁 Refer a friend':'🎁 推薦朋友，一齊運動'}</h3></div>
+    <div style="font-size:13px;line-height:1.6;margin:4px 0 10px">${en?`When a new friend signs up for a group class with your link and their payment is confirmed, <b>${h(REF_WHO)}</b> gets a $100 fee credit (up to $200 per term; the rest carries over).`:`新朋友用你嘅專屬連結報名團體班、付款核實後，<b>${h(REF_WHO)}</b> 可獲 <b>$100 學費優惠</b>（每期最多扣 $200，用唔晒順延下期）。`}</div>
+    ${pick}${body}
+  </div>`;
+}
+async function loadRefLink(){
+  const nm=REF_WHO; REF_LINKS[nm]={loading:true}; renderParent();
+  let r=null; try{ r=await api('refCode',{name:nm}); }catch(e){}
+  REF_LINKS[nm]=(r&&r.ok)?{link:r.link, code:r.code}:{err:(r&&r.err)||(LANG==='en'?'Could not load, please try again':'攞唔到，請再試')};
+  renderParent();
+}
+function copyRefLink(){ const r=REF_LINKS[REF_WHO]; if(!r||!r.link) return;
+  try{ navigator.clipboard.writeText(r.link).then(()=>toast(LANG==='en'?'Copied':'已複製')).catch(()=>toast(r.link)); }catch(e){ toast(r.link); } }
 function socialCard(){
   const ig='https://www.instagram.com/initiate_sports.2023';
   const fb='https://www.facebook.com/InitiateSport';
