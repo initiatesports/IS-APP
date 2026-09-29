@@ -30,9 +30,9 @@ button{cursor:pointer}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;color:var(--mut);white-space:nowrap}
 .chip.on{background:var(--teal);border-color:var(--teal);color:#062426;font-weight:800}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin:0 -2px}   /* 8 個分頁 4×2，唔使橫掃 */
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin:0 -2px}   /* 8 個分頁 4×2，唔使橫掃 */
 .tabs::-webkit-scrollbar{display:none}
-.tabs button{flex:1 0 auto;background:none;border:none;border-bottom:3px solid transparent;color:var(--mut);padding:9px 6px 8px;font-weight:700;font-size:13.5px}
+.tabs button{flex:1 0 auto;background:none;border:none;border-bottom:3px solid transparent;color:var(--mut);padding:9px 2px 8px;font-weight:700;font-size:12.5px;white-space:nowrap}
 .tabs button.on{color:var(--teal);border-bottom-color:var(--teal)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
 .h2{font-size:18px;font-weight:900;margin:16px 2px 6px}
@@ -100,7 +100,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-30-f';
+const FRONTEND_VERSION = 'ptc-2026-09-30-h';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -128,7 +128,7 @@ function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){}
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 
 /* 教練密碼：同 coach.html 共用 sessionStorage is_cpass（只存本分頁，唔持久）*/
-let PASS = (()=>{ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
+let PASS = (()=>{ try{ return sessionStorage.getItem('isptc_pass')||sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();   // 分家後私訓 App 密碼可以同恆常班唔同（isptc_pass）
 async function api(action, p, write, rid){
   const body=Object.assign({action, coachPass:PASS}, p||{});
   if(write) body.rid=rid||(Date.now().toString(36)+Math.random().toString(36).slice(2,10));   // 冪等：重試沿用同一 rid，後端唔會重複寫
@@ -149,7 +149,7 @@ async function api(action, p, write, rid){
 /* ───────── 狀態 ───────── */
 let L=null;            // cLoad
 let G=null;            // cGroup
-const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null, dietMem:'', dDate:'', dietEdit:false, foodEdit:null, foodQ:'', slotForm:{}, habEdit:null };
+const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null, dietMem:'', dDate:'', dietEdit:false, foodEdit:null, foodQ:'', slotForm:{}, habEdit:null, attEdit:null, pkgEdit:null };
 const EXM=()=>{ const m={}; (L&&L.exercises||[]).forEach(e=>m[e.id]=e); return m; };
 const exName=id=>{ const e=EXM()[id]; return e?e.zh:'（已刪動作）'; };
 const exEn=id=>{ const e=EXM()[id]; return e?e.en||'':''; };
@@ -164,7 +164,7 @@ async function boot(){
   if(!PASS){ renderLogin(); return; }
   $('#app').innerHTML='<div class="spin"></div>';
   const r=await api('cLoad');
-  if(!r.ok){ if(/密碼/.test(r.err||'')){ PASS=''; try{ sessionStorage.removeItem('is_cpass'); }catch(e){} renderLogin(r.err); } else $('#app').innerHTML=`<div class="empty" style="padding-top:30vh">${esc(r.err)}<br><br><button class="btn sm" onclick="boot()">↻ 重試</button></div>`; return; }
+  if(!r.ok){ if(/密碼/.test(r.err||'')){ PASS=''; try{ sessionStorage.removeItem('isptc_pass'); }catch(e){} renderLogin(r.err); } else $('#app').innerHTML=`<div class="empty" style="padding-top:30vh">${esc(r.err)}<br><br><button class="btn sm" onclick="boot()">↻ 重試</button></div>`; return; }
   L=r;
   if(!C.group || !L.groups.includes(C.group)) C.group=L.groups[0]||'';
   if(!C.group) C.tab='set';
@@ -178,7 +178,7 @@ function renderLogin(err){
     <button class="btn block">登入</button></form>
     <p class="small muted" style="margin-top:14px">由恆常班教練頁「⭐ 私訓」撳入嚟就唔使再輸入。</p></div>`;
 }
-async function doLogin(e){ e.preventDefault(); PASS=$('#pw').value.trim(); if(!PASS) return; try{ sessionStorage.setItem('is_cpass',PASS); }catch(x){} boot(); }
+async function doLogin(e){ e.preventDefault(); PASS=$('#pw').value.trim(); if(!PASS) return; try{ sessionStorage.setItem('isptc_pass',PASS); }catch(x){} boot(); }
 async function checkVersion(){
   try{ const r=await fetch(location.pathname+'?_ck='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
     const m=(await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
@@ -200,7 +200,7 @@ async function reloadAll(){ const r=await api('cLoad'); if(r.ok){ L=r; } await l
 function pickGroup(g){ C.group=g; C.hwEdit=null; C.recOpen=null; C.dietEdit=false; C.habEdit=null; C.dietMem=''; C.dDate=''; C.bodyMem=''; loadGroup(); }
 
 /* ───────── 外殼 ───────── */
-const TABS=[['log','📝 今堂'],['book','📅 預約'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['diet','🍽 飲食'],['cm','📥 總覽'],['set','⚙️ 設定']];
+const TABS=[['log','📝 今堂'],['book','📅 預約'],['att','🎫 出席'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['diet','🍽 飲食'],['cm','📥 總覽'],['set','⚙️ 設定']];
 function render(){
   if(!L){ return; }
   const unread=(L.recentComments||[]).length;
@@ -213,10 +213,10 @@ function render(){
     <div class="tabs">${TABS.map(t=>`<button class="${C.tab===t[0]?'on':''}" onclick="C.tab='${t[0]}';render();window.scrollTo(0,0)">${t[1]}${t[0]==='cm'&&unread?` <span class="badge gold">${unread}</span>`:''}</button>`).join('')}</div>
   </div></header>
   <main class="wrap" id="main"></main>`;
-  const needG = ['log','rec','hw','body','diet'].includes(C.tab);
+  const needG = ['log','att','rec','hw','body','diet'].includes(C.tab);
   if(needG && !C.group){ $('#main').innerHTML='<div class="empty">未有學員帳戶。去「⚙️ 設定」開帳戶先（私訓名要同 #4 私訓記錄一樣，出席／套票先會自動連上）。</div>'; return; }
   if(needG && !G){ $('#main').innerHTML='<div class="spin"></div>'; return; }
-  $('#main').innerHTML=({log:vLog, book:vBook, rec:vRec, hw:()=>vHw()+(C.hwEdit?'':vPlanC()), body:vBody, diet:vDiet, cm:vCm, set:vSet}[C.tab])();
+  $('#main').innerHTML=({log:vLog, book:vBook, att:vAtt, rec:vRec, hw:()=>vHw()+(C.hwEdit?'':vPlanC()), body:vBody, diet:vDiet, cm:vCm, set:vSet}[C.tab])();
   Object.keys(keep).forEach(id=>{ const el=document.getElementById(id); if(el && !el.value) el.value=keep[id]; });
   if(focusId){ const el=document.getElementById(focusId); if(el) try{ el.focus({preventScroll:true}); }catch(e){} }
   window.scrollTo(0,y);
@@ -742,6 +742,100 @@ async function saveHab(){ const f=C.habEdit; $('#hbsv').disabled=true;
   const r=await api('cHabitSave',{acct:f.acct, items:JSON.stringify(f.items)}, true); if(!r.ok){ $('#hbsv').disabled=false; toast(r.err); return; }
   C.habEdit=null; toast('已儲存，學員即刻睇到'); loadPlanC(C.group, true); }
 
+/* ───────── 🎫 出席＋套票（2026-09-30 由 #4 抽離：成人私訓喺度記，唔再喺恆常班教練頁）───────── */
+const LG={};            // group → cLedger
+let LGALL=null;         // 全部（每月小結）
+async function loadLG(g, force){ if(LG[g] && !force) return; return once('lg'+g, async()=>{ const r=await api('cLedger',{group:g}); if(!r.ok){ toast(r.err); return; } LG[g]=r; if(C.tab==='att') render(); }); }
+async function loadLGAll(force){ if(LGALL && !force) return; return once('lgall', async()=>{ const r=await api('cLedger',{}); if(!r.ok) return; LGALL=r; if(C.tab==='att') render(); }); }
+const money=n=>'$'+Math.round(Number(n)||0).toLocaleString();
+function vAtt(){
+  const g=C.group, D=LG[g]; if(!D){ loadLG(g); return groupHeader()+'<div class="spin"></div>'; }
+  let h=groupHeader();
+  if(!D.on) h+=`<div class="card" style="border-color:rgba(201,161,92,.5)"><b style="color:var(--gold)">未切換：出席／套票仲係讀恆常班系統（#4）</b>
+    <div class="small muted" style="margin:6px 0 10px">步驟：① 由 #4 匯入（先預覽）→ ② 核對剩餘節數一致 → ③ 切換。切換之後成人私訓喺呢度記出席；#4 只留鄧可澄、甘卓熹。</div>
+    <div class="row" style="flex-wrap:wrap"><button class="btn sm" onclick="import4()">① 由 #4 匯入（預覽）</button>${D.packages.length?`<button class="btn sm" onclick="ledgerSwitch()">③ 切換</button>`:''}</div></div>`;
+  // 今日／過去預約 → 一撳記出席
+  const bkT=(SL&&SL.bookings||[]).filter(b=>b.status==='已約' && b.group===g), sl={}; (SL&&SL.slots||[]).forEach(s=>sl[s.id]=s);
+  const done=new Set(D.sessions.map(s=>s.booking).filter(Boolean)), nowKey=isoToday()+' '+pad(new Date().getHours())+':'+pad(new Date().getMinutes());
+  const due=bkT.map(b=>({b, s:sl[b.slot]})).filter(x=>x.s && (x.s.date+' '+x.s.start)<=nowKey && x.s.date>=addDays(isoToday(),-7) && !done.has(x.b.id));
+  if(!SL) loadSlots();
+  if(due.length) h+=`<div class="card"><div class="small muted" style="margin-bottom:6px">📅 已上堂嘅預約（未記出席）</div>${due.map(x=>`<div class="li"><div style="flex:1"><b>${fmtD(x.s.date)} ${x.s.start}</b> <span class="small muted">${esc(x.s.venue||'')}</span></div><button class="btn sm" onclick="attFromBk('${x.b.id}')">✓ 記出席</button></div>`).join('')}</div>`;
+  // 套票
+  const act=D.packages.filter(p=>p.remaining>0 && !(p.daysToExp<0)), left=act.reduce((a,p)=>a+p.remaining,0);
+  h+=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">🎫 套票（剩 ${left} 節）</div><span class="sp"></span><button class="btn sm" onclick="C.pkgEdit={id:'',sessions:'10',amount:'',buyDate:isoToday(),expiry:addMonthsI(isoToday(),6),pay:'',note:'',preUsed:'0'};render()">＋ 新套票</button></div>`;
+  if(C.pkgEdit) h+=pkgForm();
+  h+=`<div class="card">${D.packages.length?D.packages.slice().reverse().map(p=>`<div class="li"><div style="flex:1;min-width:0"><b>${p.sessions} 節 ${p.free?'<span class="badge grey">免費</span>':money(p.amount)}</b>
+      <div class="small muted">買 ${fmtD(p.buyDate)}${p.expiry?` · 到期 ${fmtD(p.expiry)}`:''}${p.pay?' · '+esc(p.pay):''}${p.note?' · '+esc(p.note):''}${p.preUsed?` · 人手已用 ${p.preUsed}`:''}</div></div>
+      <div style="text-align:right"><b class="num">${p.used}/${p.sessions}</b><div class="small ${p.remaining<=0?'muted':p.daysToExp!=null&&p.daysToExp<0?'':'" style="color:var(--teal)'}">${p.daysToExp!=null&&p.daysToExp<0?'已過期':'剩 '+p.remaining}</div></div>
+      <button class="btn ghost xs" style="margin-left:6px" onclick="editPkg('${p.id}')">✎</button></div>`).join(''):'<div class="small muted">未有套票</div>'}</div>`;
+  // 記出席
+  h+=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">✓ 出席（${D.sessions.length} 節）</div><span class="sp"></span><button class="btn sm" onclick="newAtt()">＋ 記出席</button></div>`;
+  if(C.attEdit) h+=attForm(D);
+  h+=`<div class="card">${D.sessions.length?D.sessions.slice(0,40).map(s=>`<div class="li"><div style="width:62px"><b class="num">${fmtDM(s.date)}</b><div class="small muted">${WK[parseISO(s.date).getDay()]} ${esc(String(s.time||'').slice(0,5))}</div></div>
+      <div style="flex:1;min-width:0"><div class="small">${s.exempt?'<span class="badge grey">豁免</span> ':''}${s.pkgId?`<span class="badge">套票 ${s.no}/${s.of}</span>`:(s.exempt?'':'<span class="badge gold">冇套票</span>')} ${s.src==='預約'?'<span class="badge grey">預約</span>':''}</div>
+        <div class="small muted" style="margin-top:2px">${s.venue?esc(s.venue.split('｜').filter(Boolean).join(' · ')):'<span style="color:var(--gold)">⚠️ 未填場地</span>'} · 收入 ${money(s.income)} · 場租 ${money(s.rent)}${s.rentUnsure?' <span style="color:var(--gold)">(價錢未確認)</span>':''}</div></div>
+      <button class="btn ghost xs" onclick="editAtt('${s.id}')">✎</button><button class="btn warn xs" style="margin-left:4px" onclick="delAtt('${s.id}')">刪</button></div>`).join(''):'<div class="small muted">未有出席記錄</div>'}</div>`;
+  // 每月小結（全部學員）
+  if(!LGALL) loadLGAll();
+  else if((LGALL.monthly||[]).length) h+=`<div class="h2">📊 每月小結（全部成人私訓）</div><div class="card"><div class="small muted" style="margin-bottom:6px">收入＝逐節確認（套票金額÷節數）；收款＝當月買嘅套票；場租按場地規則（同恆常班會計一樣）。${LGALL.on?'':'（未切換：只計已匯入嘅記錄）'}</div>
+    ${LGALL.monthly.map(m=>`<div class="li"><div style="width:70px"><b class="num">${m.month.slice(5)}/${m.month.slice(0,4)}</b><div class="small muted">${m.sessions} 節</div></div>
+      <div style="flex:1" class="small num">收入 <b>${money(m.income)}</b> · 收款 ${money(m.cash)} · 場租 ${money(m.rent)}${m.missingVenue?` <span style="color:var(--gold)">(${m.missingVenue} 節未填場地)</span>`:''}${m.noPkg?` <span style="color:var(--gold)">(${m.noPkg} 節冇套票冇費用)</span>`:''}</div><b class="num" style="color:var(--teal)">${money(m.profit)}</b></div>`).join('')}
+    <div class="small muted" style="margin-top:6px">右邊＝收入減場租（毛利）</div></div>`;
+  return h;
+}
+function addMonthsI(iso, n){ const d=parseISO(iso); d.setMonth(d.getMonth()+n); return isoOf(d); }
+function newAtt(){ const D=LG[C.group], last=(D.sessions[0]||{}); const pr=String(last.venue||'').split('｜');
+  C.attEdit={id:'', date:isoToday(), centre:pr[0]||'', room:pr[1]||'', time:pr[2]||last.time||'', exempt:false, fee:'', note:''}; render(); }
+function editAtt(id){ const s=LG[C.group].sessions.find(x=>x.id===id); if(!s) return; const pr=String(s.venue||'').split('｜');
+  C.attEdit={id:s.id, date:s.date, centre:pr[0]||'', room:pr[1]||'', time:pr[2]||s.time||'', exempt:s.exempt, fee:s.fee||'', note:s.note||''}; render(); window.scrollTo(0,0); }
+function attForm(D){ const f=C.attEdit, cs=[...new Set((D.venues||[]).map(v=>v.split('｜')[0]).filter(Boolean))], rs=[...new Set((D.venues||[]).map(v=>v.split('｜')[1]).filter(Boolean))];
+  return `<div class="card"><div class="fgrid"><div><label class="lb">日期</label><input class="in" type="date" max="${isoToday()}" value="${esc(f.date)}" oninput="C.attEdit.date=this.value"></div>
+    <div><label class="lb">時間（例 10:00-11:00）</label><input class="in num" value="${esc(f.time)}" oninput="C.attEdit.time=this.value" placeholder="10:00-11:00"></div>
+    <div><label class="lb">體育館／地點</label><input class="in" list="att-c" value="${esc(f.centre)}" oninput="C.attEdit.centre=this.value" placeholder="翠怡花園會所"><datalist id="att-c">${cs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
+    <div><label class="lb">場地</label><input class="in" list="att-r" value="${esc(f.room)}" oninput="C.attEdit.room=this.value" placeholder="GYM"><datalist id="att-r">${rs.map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
+    <div><label class="lb">費用（冇套票先填）</label><input class="in num" inputmode="decimal" value="${esc(f.fee)}" oninput="C.attEdit.fee=this.value"></div>
+    <div><label class="lb">備註</label><input class="in" value="${esc(f.note)}" oninput="C.attEdit.note=this.value"></div></div>
+    <label class="row small" style="margin-top:10px;gap:8px"><input type="checkbox" ${f.exempt?'checked':''} onchange="C.attEdit.exempt=this.checked" style="width:22px;height:22px"> 豁免（呢節唔收錢、唔扣套票；場租照計）</label>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" onclick="C.attEdit=null;render()">取消</button><span class="sp"></span><button class="btn" id="att-sv" onclick="saveAtt()">${f.id?'儲存修改':'記出席'}</button></div></div>`; }
+async function saveAtt(){ const f=C.attEdit, b=$('#att-sv'); if(b.disabled) return; b.disabled=true;
+  const venue=(f.centre||f.room||f.time)?[f.centre.trim(), f.room.trim(), f.time.trim()].join('｜'):'';
+  const r=await api('cAttSave',{id:f.id, group:C.group, date:f.date, time:f.time.trim(), venue, exempt:f.exempt?'1':'', fee:f.fee, note:f.note}, true);
+  if(!r.ok){ b.disabled=false; toast(r.err); return; } C.attEdit=null; toast('✓ 已記出席'); LGALL=null; await loadLG(C.group, true); }
+async function delAtt(id){ if(!confirm('刪除呢節出席？（套票會返還；8 秒內可復原）')) return;
+  const r=await api('cAttDel',{id}, true); if(!r.ok){ toast(r.err); return; } LGALL=null; await loadLG(C.group, true);
+  toastUndo('已刪除出席', async()=>{ const u=await api('cAttRestore',{id}, true); if(!u.ok){ toast(u.err); return; } toast('已復原'); await loadLG(C.group, true); }); }
+async function attFromBk(id){ const r=await api('cAttFromBooking',{id}, true); if(!r.ok){ toast(r.err); return; } toast('✓ 已記出席（場地時間跟預約）'); LGALL=null; await loadLG(C.group, true); }
+function editPkg(id){ const p=LG[C.group].packages.find(x=>x.id===id); C.pkgEdit={id:p.id, sessions:String(p.sessions), amount:String(p.amount||''), buyDate:p.buyDate, expiry:p.expiry||'', pay:p.pay||'', note:p.note||'', preUsed:String(p.preUsed||0)}; render(); }
+function pkgForm(){ const f=C.pkgEdit;
+  return `<div class="card"><div class="fgrid"><div><label class="lb">節數</label><input class="in num" inputmode="numeric" value="${esc(f.sessions)}" oninput="C.pkgEdit.sessions=this.value"></div>
+    <div><label class="lb">金額（$，免費填 0）</label><input class="in num" inputmode="decimal" value="${esc(f.amount)}" oninput="C.pkgEdit.amount=this.value"></div>
+    <div><label class="lb">購買日</label><input class="in" type="date" value="${esc(f.buyDate)}" oninput="C.pkgEdit.buyDate=this.value"></div>
+    <div><label class="lb">到期日</label><input class="in" type="date" value="${esc(f.expiry)}" oninput="C.pkgEdit.expiry=this.value"></div>
+    <div><label class="lb">付款方式</label><input class="in" list="pay-l" value="${esc(f.pay)}" oninput="C.pkgEdit.pay=this.value"><datalist id="pay-l"><option value="FPS"><option value="PayMe"><option value="現金"><option value="轉帳"><option value="推薦贈送"></datalist></div>
+    <div><label class="lb">人手已用節數（上咗但冇記日期）</label><input class="in num" inputmode="numeric" value="${esc(f.preUsed)}" oninput="C.pkgEdit.preUsed=this.value"></div></div>
+    <div class="fld" style="margin-top:10px"><label class="lb">備註</label><input class="in" value="${esc(f.note)}" oninput="C.pkgEdit.note=this.value"></div>
+    <div class="row"><button class="btn ghost" onclick="C.pkgEdit=null;render()">取消</button>${f.id?`<button class="btn warn sm" onclick="delPkg()">刪除</button>`:''}<span class="sp"></span><button class="btn" id="pkg-sv" onclick="savePkg()">${f.id?'儲存修改':'新增套票'}</button></div></div>`; }
+async function savePkg(){ const f=C.pkgEdit;
+  if(!confirm(`${f.id?'修改':'新增'}套票：${C.group} ${f.sessions} 節 ${money(f.amount)}（${fmtD(f.buyDate)} 買${f.expiry?'，'+fmtD(f.expiry)+' 到期':''}）？`)) return;   // 金錢：確認先送
+  const b=$('#pkg-sv'); b.disabled=true;
+  const r=await api('cPkgSave',Object.assign({group:C.group}, f), true); if(!r.ok){ b.disabled=false; toast(r.err); return; }
+  C.pkgEdit=null; toast('已儲存套票'); LGALL=null; await loadLG(C.group, true); }
+async function delPkg(){ const f=C.pkgEdit; if(!confirm('刪除呢張套票？（已記嘅出席會重新分配）')) return;
+  const r=await api('cPkgSave',Object.assign({group:C.group, del:'1'}, f), true); if(!r.ok){ toast(r.err); return; } C.pkgEdit=null; LGALL=null; toast('已刪除'); await loadLG(C.group, true); }
+async function import4(){
+  toast('由 #4 讀緊…'); const r=await api('cImport4',{}); if(!r.ok){ toast(r.err); return; }
+  const lines=r.plan.map(g=>`${g.group}：${g.sessions.length} 節出席、${g.packages.length} 張套票（#4 剩 ${g.packages.reduce((a,k)=>a+(Number(k.remaining4)||0),0)} 節）`).join('\n');
+  if(!confirm(`匯入以下成人私訓記錄？\n\n${lines||'（冇）'}\n\n唔會匯入：${(r.skipped||[]).join('、')||'—'}\n（重複嘅會自動略過）`)) return;
+  const c=await api('cImport4',{commit:'1'}, true); if(!c.ok){ toast(c.err); return; }
+  alert(`已匯入 ${c.imported.addA} 節出席、${c.imported.addK} 張套票。\n核對：${Array.isArray(c.check)?'⚠️ '+c.check.join('；'):'✓ 剩餘節數同 #4 一致'}`);
+  Object.keys(LG).forEach(k=>delete LG[k]); LGALL=null; render(); }
+async function ledgerSwitch(){
+  if(!confirm('切換之後：\n• 成人私訓出席／套票喺私訓教練頁記（唔再喺恆常班教練頁點）\n• 學員 app 套票數由私訓 App 計，唔再問 #4\n• 教練密碼唔再跟 #4（可喺設定改）\n\n確定切換？')) return;
+  const r=await api('cLedgerSwitch',{}, true); if(!r.ok){ toast(r.err); return; } toast('✓ 已切換'); Object.keys(LG).forEach(k=>delete LG[k]); LGALL=null; const l=await api('cLoad'); if(l.ok) L=l; render(); }
+async function setCoachPass(){ const a=prompt('新教練密碼（最少 6 個字；之後恆常班教練頁同私訓教練頁可以用唔同密碼）'); if(!a) return; if(a.length<6){ toast('最少 6 個字'); return; }
+  if(prompt('再輸入一次新密碼')!==a){ toast('兩次唔一樣'); return; }
+  const r=await api('cSetPass',{newPass:a}, true); if(!r.ok){ toast(r.err); return; } PASS=a; try{ sessionStorage.setItem('isptc_pass',a); }catch(e){} toast('已改密碼'); }   // 唔寫 is_cpass（嗰個係恆常班 #4 密碼）
+
 /* ───────── 留言（全部組）───────── */
 /* 總覽：全部學員一眼睇（近 7 日飲食、今日熱量、今週回顧、習慣、未回覆、套票、下一堂、提醒）；撳一行直達 */
 let OV=null;
@@ -749,12 +843,12 @@ async function loadOV(force){ if(OV && !force) return; return once('ov', async()
 function openStu(i){ const x=OV.rows[i]; C.group=x.group; C.tab=x.checkin&&x.checkin.pain?'hw':'diet'; C.dietMem=x.id; C.dDate=''; delete DIETC[x.id]; delete PLC[x.group]; loadGroup(); window.scrollTo(0,0); }
 function vOverview(){
   if(!OV){ loadOV(); return '<div class="spin"></div>'; }
-  const rows=OV.rows.slice().sort((a,b)=>(a.test?1:0)-(b.test?1:0) || ((b.weightDrop?4:0)-(a.weightDrop?4:0)) || ((b.lowIntake?4:0)+(b.checkin&&b.checkin.pain?4:0)+b.unanswered*2+(b.pkgLeft!=null&&b.pkgLeft<=1?1:0))-((a.lowIntake?4:0)+(a.checkin&&a.checkin.pain?4:0)+a.unanswered*2+(a.pkgLeft!=null&&a.pkgLeft<=1?1:0)));
+  const rows=OV.rows.slice().sort((a,b)=>(a.test?1:0)-(b.test?1:0) || ((b.weightDrop?4:0)-(a.weightDrop?4:0)) || ((b.lowIntake?4:0)+(b.checkin&&b.checkin.pain?4:0)+b.unanswered*2)-((a.lowIntake?4:0)+(a.checkin&&a.checkin.pain?4:0)+a.unanswered*2));
   let h=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">📊 學員總覽（週 ${fmtD(OV.week)}）</div><span class="sp"></span><button class="btn ghost xs" onclick="OV=null;render()">↻</button></div>
     <div class="small muted" style="margin:4px 2px 0">要跟進嘅排頭；撳一行開佢嘅飲食（有關節痛就開功課／回顧）。</div><div class="card">`;
   h+= rows.length ? rows.map(x=>{ const i=OV.rows.indexOf(x), fl=[];
     if(x.checkin&&x.checkin.pain) fl.push('<span class="badge red">🩹 關節痛</span>'); if(x.lowIntake) fl.push(`<span class="badge red">食得太少 ${x.lowIntake}</span>`); if(x.weightDrop) fl.push(`<span class="badge red">📉 每週 −${x.weightDrop}%</span>`);
-    if(x.unanswered) fl.push(`<span class="badge gold">💬 ${x.unanswered}</span>`); if(x.pkgLeft!=null&&x.pkgLeft<=1) fl.push(`<span class="badge gold">🎫 剩 ${x.pkgLeft}</span>`);
+    if(x.unanswered) fl.push(`<span class="badge gold">💬 ${x.unanswered}</span>`); 
     return `<div class="li" style="cursor:pointer;align-items:flex-start" onclick="openStu(${i})"><div style="flex:1;min-width:0"><div class="row" style="flex-wrap:wrap;gap:6px"><b>${esc(x.name)}</b>${x.group!==x.name?`<span class="small muted">${esc(x.group)}</span>`:''}${x.test?'<span class="badge grey">測試</span>':''}${fl.join('')}</div>
       <div class="small muted num" style="margin-top:3px">🍽 ${x.foodDays}/7 日${x.photos?` · 📷${x.photos}`:''}${x.todayPct!=null?` · 今日 ${x.todayPct}%`:(x.hasTarget?'':' · 未設目標')} · 📝 ${x.checkin?'已交':'未交'} · ✅ ${x.habitPct!=null?x.habitPct+'%':'—'} · 📅 ${x.next?fmtDM(x.next.date)+' '+x.next.start:'未約'}</div></div><span class="muted">›</span></div>`; }).join('')
     : '<div class="small muted">未有學員</div>';
@@ -779,7 +873,8 @@ function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id
 
 /* ───────── 設定：帳戶＋動作庫 ───────── */
 function vSet(){
-  let h=`<div class="h2">學員帳戶</div><div class="small muted" style="margin:0 2px 8px">「私訓名」要同 #4 私訓記錄一樣（例：Keith & Elaine），出席同套票先會自動顯示。1 對 2 就開兩個帳戶，私訓名填同一個。</div>`;
+  let h=`<div class="card row"><div style="flex:1"><b>🔑 私訓 App 教練密碼</b><div class="small muted">${L.ledgerOn?'已同恆常班分家：呢個密碼只用喺私訓 App':'切換前跟恆常班密碼'}</div></div><button class="btn ghost sm" onclick="setCoachPass()">改密碼</button></div>`;
+  h+=`<div class="h2">學員帳戶</div><div class="small muted" style="margin:0 2px 8px">「私訓名」要同 #4 私訓記錄一樣（例：Keith & Elaine），出席同套票先會自動顯示。1 對 2 就開兩個帳戶，私訓名填同一個。</div>`;
   if(C.acctEdit) h+=acctForm();
   else h+=`<button class="btn sm" onclick="C.acctEdit={id:'',name:'',en:'',last4:'',group:C.group||'',goal:'',status:'啟用'};render()">＋ 新帳戶</button>`;
   h+=`<div class="card">${(L.accounts||[]).map(a=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> ${a.en?`<span class="muted small">${esc(a.en)}</span>`:''} ${a.status==='停用'?'<span class="badge red">停用</span>':''}<div class="small muted">${esc(a.group)} · 電話尾 ${esc(a.last4)}${a.goal?' · 🎯 '+esc(a.goal):''}</div></div><button class="btn ghost xs" onclick="editAcct('${a.id}')">✎</button></div>`).join('')||'<div class="small muted">未有帳戶</div>'}</div>`;

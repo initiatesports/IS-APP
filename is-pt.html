@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-30-f';
+const FRONTEND_VERSION = 'pt-2026-09-30-g';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -191,7 +191,6 @@ const TX = {
     servings:'份數', orGrams:'或者輸入克數', addTo:'加入', added:'已加入', barcode:'條碼', notFoundHint:'資料庫未有，入一次之後就記得', foodName:'食物名稱', portion:'份量', portionPh:'例：1 碗、1 包',
     saveToLib:'儲存入食物庫，下次直接揀', customHint:'包裝食物可以睇背面營養標籤（每份）。唔知數字可以淨係影相，教練會幫你睇。', needNameKcal:'要填名稱同卡路里',
     scanHint:'將條碼對準中間條線', typeCode:'或者手動輸入條碼數字', find:'搵', camErr:'開唔到相機（可能未俾權限）——可以手動輸入條碼', searching:'搵緊…',
-    pkgLow:'套票剩 {n} 節', pkgOut:'套票已用完', pkgRenew:'想繼續上堂，請聯絡教練續票', pkgExp:'套票 {d} 日後到期（仲有 {n} 節）', pkgUse:'記得喺到期前約堂用晒',
     nextSes:'下一堂', manage:'管理', bookNext:'預約下一堂', slotsAvail:'教練有 {n} 個時段可以約', noSlots:'暫時未有開放時段，教練開咗就會喺度見到', book:'預約',
     ckDue:'交今週回顧', ckDueHint:'用 1 分鐘話俾教練知你今週狀態', booking:'預約上堂', bookRules:'開課前 {c} 小時截止預約；開課前 {x} 小時之前可以自己取消。',
     pkgLeftN:'套票剩 {n} 節', bookedN:'已約 {n} 堂', myBookings:'我嘅預約', cancel:'取消', cantCancel:'{x} 小時內要取消請搵教練', noBooking:'未有預約',
@@ -239,7 +238,6 @@ const TX = {
     servings:'Servings', orGrams:'or enter grams', addTo:'Add', added:'Added', barcode:'Barcode', notFoundHint:'not in the database yet — enter it once and we will remember', foodName:'Food name', portion:'Portion', portionPh:'e.g. 1 bowl, 1 pack',
     saveToLib:'Save to food library for next time', customHint:'For packaged food, use the nutrition label (per serving). Not sure? Just snap a photo and your coach will take a look.', needNameKcal:'Name and calories are required',
     scanHint:'Line the barcode up with the centre line', typeCode:'or type the barcode number', find:'Find', camErr:"Can't open the camera (permission?) — type the barcode instead", searching:'Searching…',
-    pkgLow:'{n} session(s) left in your package', pkgOut:'Your package is used up', pkgRenew:'Contact your coach to renew and keep training', pkgExp:'Package expires in {d} days ({n} left)', pkgUse:'Book your sessions before it expires',
     nextSes:'Next session', manage:'Manage', bookNext:'Book your next session', slotsAvail:'{n} open slots available', noSlots:'No open slots yet — they will appear here once your coach adds them', book:'Book',
     ckDue:'Weekly check-in due', ckDueHint:'Take 1 minute to tell your coach how your week went', booking:'Book a session', bookRules:'Booking closes {c} hours before class; you can cancel yourself up to {x} hours before.',
     pkgLeftN:'{n} sessions left', bookedN:'{n} booked', myBookings:'My bookings', cancel:'Cancel', cantCancel:'Within {x}h — contact your coach', noBooking:'No bookings yet',
@@ -1019,12 +1017,7 @@ function mondayISO(s){ const d=parseISO(s), w=(d.getDay()+6)%7; d.setDate(d.getD
 /* 首頁提醒：套票快用完／快到期、未有下一堂、每週回顧 */
 function vReminders(){
   let h='';
-  const ps=pkgSummary();
-  if(ps && !ps.err){
-    const left=ps.none?0:ps.totalLeft, cur=ps.cur, dte=cur?Number(cur.daysToExp):NaN;
-    if(!ps.none && left<=2) h+=`<div class="card" style="border-color:rgba(201,161,92,.45);background:rgba(201,161,92,.08)"><b style="color:var(--gold)">🎫 ${left>0?t('pkgLow').replace('{n}',left):t('pkgOut')}</b><div class="small muted" style="margin-top:3px">${t('pkgRenew')}</div></div>`;
-    else if(cur && dte>=0 && dte<=14) h+=`<div class="card" style="border-color:rgba(201,161,92,.45);background:rgba(201,161,92,.08)"><b style="color:var(--gold)">⏳ ${t('pkgExp').replace('{d}',dte).replace('{n}',left)}</b><div class="small muted" style="margin-top:3px">${t('expire')} ${fmtD(cur.expiry)} · ${t('pkgUse')}</div></div>`;
-  }
+  // 老闆 2026-09-30：唔好主動提醒續購／套票快用完——已刪（套票卡照顯示剩餘節數同到期日）
   if(!PL) return h;
   const nx=upcomingBk()[0];
   if(nx) h+=`<div class="card tap hero" onclick="go('book')"><div class="small muted" style="letter-spacing:.08em">📅 ${t('nextSes').toUpperCase()}</div><div style="font-weight:900;font-size:18px;margin-top:4px">${slotWhen(nx.slotInfo)}</div><div class="row small muted" style="margin-top:2px"><span>${esc(nx.slotInfo.venue||'')}</span><span class="sp"></span><span style="color:var(--teal);font-weight:700">${t('manage')} ›</span></div></div>`;
