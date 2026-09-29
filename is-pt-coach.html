@@ -99,7 +99,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-29-c';
+const FRONTEND_VERSION = 'ptc-2026-09-30-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -140,7 +140,7 @@ async function api(action, p, write){
 /* ───────── 狀態 ───────── */
 let L=null;            // cLoad
 let G=null;            // cGroup
-const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null };
+const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null, dietMem:'', dDate:'', dietEdit:false, foodEdit:null, foodQ:'' };
 const EXM=()=>{ const m={}; (L&&L.exercises||[]).forEach(e=>m[e.id]=e); return m; };
 const exName=id=>{ const e=EXM()[id]; return e?e.zh:'（已刪動作）'; };
 const exEn=id=>{ const e=EXM()[id]; return e?e.en||'':''; };
@@ -187,7 +187,7 @@ async function reloadAll(){ const r=await api('cLoad'); if(r.ok){ L=r; } await l
 function pickGroup(g){ C.group=g; C.hwEdit=null; C.recOpen=null; loadGroup(); }
 
 /* ───────── 外殼 ───────── */
-const TABS=[['log','📝 今堂'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['cm','💬 留言'],['set','⚙️ 設定']];
+const TABS=[['log','📝 今堂'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['diet','🍽 飲食'],['cm','💬 留言'],['set','⚙️ 設定']];
 function render(){
   if(!L){ return; }
   const unread=(L.recentComments||[]).length;
@@ -199,10 +199,10 @@ function render(){
     <div class="tabs">${TABS.map(t=>`<button class="${C.tab===t[0]?'on':''}" onclick="C.tab='${t[0]}';render();window.scrollTo(0,0)">${t[1]}${t[0]==='cm'&&unread?` <span class="badge gold">${unread}</span>`:''}</button>`).join('')}</div>
   </div></header>
   <main class="wrap" id="main"></main>`;
-  const needG = ['log','rec','hw','body'].includes(C.tab);
+  const needG = ['log','rec','hw','body','diet'].includes(C.tab);
   if(needG && !C.group){ $('#main').innerHTML='<div class="empty">未有學員帳戶。去「⚙️ 設定」開帳戶先（私訓名要同 #4 私訓記錄一樣，出席／套票先會自動連上）。</div>'; return; }
   if(needG && !G){ $('#main').innerHTML='<div class="spin"></div>'; return; }
-  $('#main').innerHTML=({log:vLog, rec:vRec, hw:vHw, body:vBody, cm:vCm, set:vSet}[C.tab])();
+  $('#main').innerHTML=({log:vLog, rec:vRec, hw:vHw, body:vBody, diet:vDiet, cm:vCm, set:vSet}[C.tab])();
   window.scrollTo(0,y);
   if(C.tab==='log') bindDraftInputs();
 }
@@ -431,15 +431,141 @@ async function coachBody(acct){
 }
 async function coachBodyDel(id){ if(!confirm('刪除呢筆身體數據？')) return; const r=await api('cBodyDel',{id},true); if(!r.ok){ toast(r.err); return; } loadGroup(); }
 
+/* ───────── 飲食（第二階段）：睇記錄＋相片、調目標、每日評語 ───────── */
+const DIETC={};           // acct → cDiet 回應
+const PHC={};             // entry id → dataURL
+const GOAL_LIST=['減脂','慢減','維持','增肌'];
+const nz=v=>{ const n=Number(v); return isFinite(n)&&String(v)!==''?n:0; };
+const rnd=v=>(v===''||v==null)?'—':Math.round(v);
+const dSum=list=>list.reduce((a,e)=>({kcal:a.kcal+nz(e.kcal), p:a.p+nz(e.p), c:a.c+nz(e.c), f:a.f+nz(e.f)}),{kcal:0,p:0,c:0,f:0});
+async function loadDietC(acct, force){
+  if(DIETC[acct] && !force) return DIETC[acct];
+  const r=await api('cDiet',{acct}); if(!r.ok){ toast(r.err); return null; }
+  DIETC[acct]=r; if(C.tab==='diet') render(); return r;
+}
+function vDiet(){
+  const ms=members(); if(!ms.length) return groupHeader()+'<div class="empty">未有學員</div>';
+  if(!C.dietMem || !ms.some(m=>m.id===C.dietMem)) C.dietMem=ms[0].id;
+  const m=ms.find(x=>x.id===C.dietMem), D=DIETC[m.id];
+  let h=groupHeader()+`<div class="chips">${ms.map(x=>`<button class="chip ${x.id===m.id?'on':''}" onclick="C.dietMem='${x.id}';C.dietEdit=false;render()">${esc(x.name)}</button>`).join('')}<span class="sp"></span><button class="btn ghost xs" onclick="loadDietC('${m.id}',true)">↻</button></div>`;
+  if(!D){ loadDietC(m.id); return h+'<div class="spin"></div>'; }
+  const T=D.targets||{}, tg=T.target, pf=T.profile||{}, sys=T.sys, today=isoToday();
+  if(!C.dDate || C.dDate>today) C.dDate=today; if(C.dDate<D.since) C.dDate=D.since;
+  // 目標
+  h+=`<div class="card"><div class="row"><b>🎯 目標</b>${T.coachSet?'<span class="badge gold">教練已覆寫</span>':''}<span class="sp"></span><button class="btn ghost xs" onclick="C.dietEdit=!C.dietEdit;render()">${C.dietEdit?'收起':'✎ 調整'}</button></div>
+    ${tg?`<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:14px"><div><span class="num" style="font-size:24px;font-weight:900">${Math.round(tg.kcal)}</span> <span class="muted small">kcal</span></div><div class="small num">蛋白 <b>${rnd(tg.p)}</b>g · 碳水 <b>${rnd(tg.c)}</b>g · 脂肪 <b>${rnd(tg.f)}</b>g</div></div>`
+      :'<div class="small muted" style="margin-top:6px">學員未填基本資料（或者資料唔齊）→ 可以喺「調整」代填，或直接覆寫數字。</div>'}
+    ${sys?`<div class="small muted" style="margin-top:4px">系統計：${sys.kcal} kcal（BMR ${sys.bmr} · TDEE ${sys.tdee} · ${esc(pf.goal||'')} · ${sys.age} 歲 · ${fmtN(sys.weight)}kg）</div>`:''}
+    ${C.dietEdit?dietEditForm(m.id, T):''}</div>`;
+  // 日期
+  const list=D.entries.filter(e=>e.date===C.dDate), s=dSum(list);
+  h+=`<div class="card row" style="padding:8px 10px"><button class="btn ghost xs" ${C.dDate<=D.since?'disabled':''} onclick="C.dDate=addDays(C.dDate,-1);render()">‹</button><span class="sp"></span>
+    <div style="text-align:center"><b>${C.dDate===today?'今日':'星期'+WK[parseISO(C.dDate).getDay()]}</b><div class="small muted num">${fmtD(C.dDate)}</div></div><span class="sp"></span>
+    <button class="btn ghost xs" ${C.dDate>=today?'disabled':''} onclick="C.dDate=addDays(C.dDate,1);render()">›</button></div>`;
+  h+=`<div class="card"><div class="row"><span class="num" style="font-size:26px;font-weight:900;${tg&&s.kcal>tg.kcal*1.05?'color:var(--gold)':''}">${Math.round(s.kcal)}</span><span class="muted">${tg?' / '+Math.round(tg.kcal):''} kcal</span><span class="sp"></span>
+      <span class="small num">P <b>${Math.round(s.p)}</b>${tg?'/'+rnd(tg.p):''} · C <b>${Math.round(s.c)}</b>${tg?'/'+rnd(tg.c):''} · F <b>${Math.round(s.f)}</b>${tg?'/'+rnd(tg.f):''}</span></div>`;
+  (D.meals||[]).forEach(ml=>{ const es=list.filter(e=>e.meal===ml); if(!es.length) return;
+    h+=`<div style="margin-top:10px"><div class="small" style="color:var(--teal);font-weight:800">${ml} · ${Math.round(dSum(es).kcal)} kcal</div>${es.map(e=>e.photo
+      ?`<div class="li"><img data-phc="${e.id}" onclick="viewPhotoC('${e.id}')" style="width:88px;height:88px;border-radius:10px;object-fit:cover;background:var(--panel2);flex:none;cursor:zoom-in" alt=""><div style="flex:1;min-width:0"><b>📷 相片</b>${e.note?`<div class="small">${esc(e.note)}</div>`:''}<div class="small muted">${esc(String(e.at).slice(11,16))}</div></div><button class="lnk" style="color:var(--mut)" onclick="delMealC('${m.id}','${e.id}')">✕</button></div>`
+      :`<div class="li"><div style="flex:1;min-width:0"><b>${esc(e.name)}</b>${nz(e.qty)&&nz(e.qty)!==1?` <span class="small muted">× ${fmtN(e.qty)}</span>`:''}<div class="small muted num">P ${fmtN(e.p)||'—'} · C ${fmtN(e.c)||'—'} · F ${fmtN(e.f)||'—'}${e.note?' · '+esc(e.note):''}</div></div><b class="num">${fmtN(e.kcal)}</b><button class="lnk" style="color:var(--mut);margin-left:6px" onclick="delMealC('${m.id}','${e.id}')">✕</button></div>`).join('')}</div>`; });
+  if(!list.length) h+='<div class="small muted" style="margin-top:8px">呢日未有記錄</div>';
+  h+=dietThreadC(m.id, C.dDate)+`</div>`;
+  // 近 14 日
+  const days=Array.from({length:14},(_,i)=>addDays(today,-i)).filter(d=>d>=D.since);
+  h+=`<div class="h2">近 14 日</div><div class="card">${days.map(d=>{ const es=D.entries.filter(e=>e.date===d), x=dSum(es), ph=es.filter(e=>e.photo).length, cm=(D.comments||[]).filter(c=>c.target===d), stuQ=cm.length&&cm[cm.length-1].by==='student';
+    return `<div class="li" style="cursor:pointer" onclick="C.dDate='${d}';render();window.scrollTo(0,0)"><div style="width:74px"><b class="num">${fmtDM(d)}</b> <span class="small muted">${WK[parseISO(d).getDay()]}</span></div>
+      <div style="flex:1" class="small num">${es.length?`<b>${Math.round(x.kcal)}</b> kcal · P ${Math.round(x.p)}${ph?` · 📷${ph}`:''}`:'<span class="muted">—</span>'}</div>
+      ${tg&&es.some(e=>!e.photo)?`<span class="badge ${x.kcal>tg.kcal*1.05?'gold':x.kcal<tg.kcal*0.8?'grey':''}">${Math.round(x.kcal/tg.kcal*100)}%</span>`:''}${cm.length?`<span class="badge ${stuQ?'red':'grey'}">💬${cm.length}</span>`:''}</div>`; }).join('')}</div>`;
+  setTimeout(loadPhotosC, 0);
+  return h;
+}
+function dietEditForm(acct, T){
+  const pf=T.profile||{}, act=(DIETC[acct]||{}).activity||{};
+  return `<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line2)">
+    <div class="small muted" style="margin-bottom:8px">基本資料（學員自己填，教練可代改）：</div>
+    <div class="fgrid"><div><label class="lb">性別</label><select class="in" id="de-sex"><option value="">—</option>${['男','女'].map(x=>`<option ${pf.sex===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div><label class="lb">出生年</label><input class="in num" id="de-yr" inputmode="numeric" value="${esc(pf.birthYear||'')}"></div>
+      <div><label class="lb">身高 cm</label><input class="in num" id="de-h" inputmode="decimal" value="${esc(pf.height||'')}"></div>
+      <div><label class="lb">體重 kg（最新）</label><input class="in num" id="de-w" inputmode="decimal" value="${esc(T.weight||'')}"></div>
+      <div><label class="lb">活動量</label><select class="in" id="de-act"><option value="">—</option>${Object.keys(act).map(k=>`<option value="${k}" ${String(pf.activity)===k?'selected':''}>${esc(act[k])}</option>`).join('')}</select></div>
+      <div><label class="lb">目標</label><select class="in" id="de-goal"><option value="">—</option>${GOAL_LIST.map(g=>`<option ${pf.goal===g?'selected':''}>${g}</option>`).join('')}</select></div></div>
+    <div class="small muted" style="margin:12px 0 8px">教練覆寫（留空＝跟系統計）：</div>
+    <div class="fgrid" style="grid-template-columns:repeat(4,1fr)"><div><label class="lb">kcal</label><input class="in num" id="de-k" inputmode="numeric" value="${esc(pf.ck||'')}" placeholder="${T.sys?T.sys.kcal:''}"></div>
+      <div><label class="lb">蛋白 g</label><input class="in num" id="de-p" inputmode="numeric" value="${esc(pf.cp||'')}" placeholder="${T.sys?T.sys.p:''}"></div>
+      <div><label class="lb">碳水 g</label><input class="in num" id="de-c" inputmode="numeric" value="${esc(pf.cc||'')}" placeholder="${T.sys?T.sys.c:''}"></div>
+      <div><label class="lb">脂肪 g</label><input class="in num" id="de-f" inputmode="numeric" value="${esc(pf.cf||'')}" placeholder="${T.sys?T.sys.f:''}"></div></div>
+    <div class="small muted" id="de-chk" style="margin-top:6px"></div>
+    <div class="fld" style="margin-top:10px"><label class="lb">教練備註（學員飲食頁頂睇到）</label><input class="in" id="de-note" maxlength="300" value="${esc(pf.coachNote||'')}" placeholder="例：每餐先食蛋白質，晚餐飯減半"></div>
+    <button class="btn block" id="de-sv" onclick="saveDietTarget('${acct}')">儲存目標</button></div>`;
+}
+async function saveDietTarget(acct){
+  const v=id=>$(id).value.trim();
+  const p={acct, sex:v('#de-sex'), birthYear:v('#de-yr'), height:v('#de-h'), weight:v('#de-w'), activity:v('#de-act'), goal:v('#de-goal'), ck:v('#de-k'), cp:v('#de-p'), cc:v('#de-c'), cf:v('#de-f'), coachNote:v('#de-note')};
+  if(p.ck && (p.cp||p.cc||p.cf)){ const k=nz(p.cp)*4+nz(p.cc)*4+nz(p.cf)*9; if(p.cp&&p.cc&&p.cf && Math.abs(k-nz(p.ck))>nz(p.ck)*0.1 && !confirm(`三大營養素加埋 ≈ ${Math.round(k)} kcal，同 ${p.ck} kcal 差超過 10%。照樣儲存？`)) return; }
+  $('#de-sv').disabled=true;
+  const r=await api('cDietProfile', p, true);
+  if(!r.ok){ $('#de-sv').disabled=false; toast(r.err); return; }
+  DIETC[acct].targets=r.targets; C.dietEdit=false; toast('已儲存，學員即刻睇到'); render();
+}
+function dietThreadC(acct, date){
+  const cms=((DIETC[acct]||{}).comments||[]).filter(c=>c.target===date).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  return `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line2)"><div class="small muted" style="font-weight:700">💬 當日評語</div>${cms.map(c=>`<div class="msg ${c.by==='coach'?'co':'st'}"><div class="bub"><span class="who">${c.by==='coach'?'教練':esc(memName(c.acct)||'學員')} · ${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span>${esc(c.text)}</div></div>`).join('')}
+    <div class="tin"><input class="in" id="dr-in" placeholder="例：蛋白質夠晒👍 晚餐少啲汁" maxlength="500"><button class="btn sm" onclick="replyDiet('${acct}','${date}')">送出</button></div></div>`;
+}
+async function replyDiet(acct, date){
+  const el=$('#dr-in'), text=(el.value||'').trim(); if(!text) return; el.disabled=true;
+  const r=await api('cComment',{type:'diet', target:date, acct, text}, true); el.disabled=false;
+  if(!r.ok){ toast(r.err); return; }
+  DIETC[acct].comments=(DIETC[acct].comments||[]).concat([r.comment]);
+  if(L.recentComments) L.recentComments=L.recentComments.filter(c=>!(c.type==='diet'&&c.target===date&&c.acct===acct));
+  toast('已送出'); render();
+}
+async function delMealC(acct, id){
+  if(!confirm('刪除學員呢筆飲食記錄？')) return;
+  const r=await api('cMealDel',{id}, true); if(!r.ok && !/搵唔到/.test(r.err||'')){ toast(r.err); return; }
+  DIETC[acct].entries=DIETC[acct].entries.filter(e=>e.id!==id); render();
+}
+async function loadPhotosC(){
+  for(const el of document.querySelectorAll('img[data-phc]')){
+    const id=el.dataset.phc; if(PHC[id]){ el.src=PHC[id]; continue; } if(PHC['_'+id]) continue; PHC['_'+id]=1;
+    const r=await api('cPhoto',{id}); delete PHC['_'+id];
+    if(r.ok){ PHC[id]=r.data; document.querySelectorAll(`img[data-phc="${id}"]`).forEach(x=>x.src=r.data); }
+  }
+}
+function viewPhotoC(id){ if(!PHC[id]) return; const ov=document.createElement('div'); ov.className='ov'; ov.style.alignItems='center'; ov.onclick=()=>ov.remove();
+  ov.innerHTML=`<img src="${PHC[id]}" style="max-width:96vw;max-height:90vh;border-radius:14px" alt="">`; document.body.appendChild(ov); }
+
+/* 食物庫管理（設定分頁）*/
+let FOODS=null;
+async function loadFoods(){ const r=await api('cFoods'); if(r.ok){ FOODS=r.foods; drawFoodList(); } else toast(r.err); }
+function vFoodLib(){
+  setTimeout(FOODS?drawFoodList:loadFoods,0);
+  let h=`<div class="h2" style="margin-top:24px">食物庫（${FOODS?FOODS.length:'…'}）</div><div class="small muted" style="margin:0 2px 8px">預設香港食物數值係參考（來源欄：CFS／USDA／估算）；條碼掃到嘅（OFF）同學員自訂嘅都會自動入庫。可以逐樣改正。</div>`;
+  if(C.foodEdit) return h+foodForm();
+  return h+`<div class="row"><input class="in" placeholder="🔍 搜尋食物" value="${esc(C.foodQ||'')}" oninput="C.foodQ=this.value;drawFoodList()"><button class="btn sm" onclick="C.foodEdit={id:'',zh:'',en:'',cat:'',unit:'',g:'',kcal:'',p:'',c:'',f:'',code:''};render()">＋</button></div><div class="card" id="fdl">${FOODS?'':'<div class="spin"></div>'}</div>`;
+}
+function drawFoodList(){ const el=$('#fdl'); if(!el||!FOODS) return; const q=(C.foodQ||'').trim().toLowerCase();
+  const list=FOODS.filter(f=>!q||(f.zh+' '+f.en+' '+f.cat+' '+f.code+' '+f.src).toLowerCase().includes(q));
+  el.innerHTML=list.slice(0,q?200:40).map(f=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(f.zh)}</b> <span class="small muted">${esc(f.unit)}</span><div class="small muted num">${fmtN(f.kcal)} kcal · P ${fmtN(f.p)||'—'} C ${fmtN(f.c)||'—'} F ${fmtN(f.f)||'—'} · ${esc(f.cat)} · <span style="color:${f.src==='估算'||f.src==='學員'?'var(--gold)':'var(--mut)'}">${esc(f.src)}</span></div></div><button class="btn ghost xs" onclick="editFood('${f.id}')">✎</button></div>`).join('')
+    +(list.length>(q?200:40)?`<div class="small muted" style="padding-top:8px">仲有 ${list.length-(q?200:40)} 樣，用搜尋收窄</div>`:'')||'<div class="small muted">冇</div>'; }
+function editFood(id){ C.foodEdit=Object.assign({}, FOODS.find(f=>f.id===id)); render(); }
+function foodForm(){ const f=C.foodEdit, fld=(k,lb,im)=>`<div><label class="lb">${lb}</label><input class="in ${im?'num':''}" ${im?`inputmode="${im}"`:''} value="${esc(f[k]==null?'':f[k])}" oninput="C.foodEdit.${k}=this.value"></div>`;
+  return `<div class="card"><div class="fgrid">${fld('zh','中文名')}${fld('en','英文名')}${fld('cat','類別')}${fld('unit','份量描述（例：1 碗）')}${fld('g','份量克','decimal')}${fld('kcal','kcal','decimal')}${fld('p','蛋白 g','decimal')}${fld('c','碳水 g','decimal')}${fld('f','脂肪 g','decimal')}${fld('code','條碼','numeric')}</div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" onclick="C.foodEdit=null;render()">取消</button>${f.id?`<button class="btn warn sm" onclick="delFood()">刪除</button>`:''}<span class="sp"></span><button class="btn" id="fdsv" onclick="saveFood()">儲存</button></div></div>`; }
+async function saveFood(){ const f=C.foodEdit; $('#fdsv').disabled=true; const r=await api('cFoodSave', f, true); if(!r.ok){ $('#fdsv').disabled=false; toast(r.err); return; }
+  C.foodEdit=null; toast(r.dup?'已有同名同份量嘅食物':'已儲存'); FOODS=null; Object.keys(DIETC).forEach(k=>delete DIETC[k]); render(); }
+async function delFood(){ if(!confirm('喺食物庫隱藏呢樣？（舊記錄唔受影響）')) return; const r=await api('cFoodSave', Object.assign({}, C.foodEdit, {del:'1'}), true); if(!r.ok){ toast(r.err); return; }
+  C.foodEdit=null; toast('已刪除'); FOODS=null; render(); }
+
 /* ───────── 留言（全部組）───────── */
 function vCm(){
   const list=L.recentComments||[], acc={}; (L.accounts||[]).forEach(a=>acc[a.id]=a);
   let h=`<div class="h2">學員留言（最近 30 條）</div>`;
   if(!list.length) return h+'<div class="empty">暫時冇新留言</div>';
-  const TY={session:'訓練記錄', homework:'功課', body:'身體數據'};
+  const TY={session:'訓練記錄', homework:'功課', body:'身體數據', diet:'飲食'};
   list.forEach((c,i)=>{ const a=acc[c.acct]||{};
     h+=`<div class="card"><div class="row"><b>${esc(a.name||'學員')}</b><span class="badge grey">${esc(a.group||'')}</span><span class="badge">${TY[c.type]||c.type}</span><span class="sp"></span><span class="small muted">${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span></div>
-      <div style="margin:8px 0;white-space:pre-wrap">${esc(c.text)}</div>
+      <div style="margin:8px 0;white-space:pre-wrap">${c.type==='diet'?`<span class="small muted">${fmtD(c.target)}：</span>`:''}${esc(c.text)}</div>
       <div class="tin"><input class="in" id="rc-${i}" placeholder="回覆…" maxlength="500"><button class="btn sm" onclick="replyFromList(${i})">送出</button></div>
       ${a.group?`<button class="lnk" style="margin-top:8px" onclick="gotoCm(${i})">開啟 ${esc(a.group)} ›</button>`:''}</div>`; });
   return h;
@@ -447,7 +573,7 @@ function vCm(){
 async function replyFromList(i){ const c=L.recentComments[i], el=$('#rc-'+i), text=el.value.trim(); if(!text) return; el.disabled=true;
   const r=await api('cComment',{type:c.type, target:c.target, acct:c.acct, text}, true); el.disabled=false; if(!r.ok){ toast(r.err); return; }
   L.recentComments.splice(i,1); if(G) G.comments=(G.comments||[]).concat([r.comment]); toast('已回覆'); render(); }
-function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id===c.acct); if(!a) return; C.group=a.group; C.tab=c.type==='session'?'rec':c.type==='homework'?'hw':'body'; if(c.type==='session') C.recOpen=c.target; if(c.type==='body') C.bodyMem=a.id; loadGroup(); }
+function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id===c.acct); if(!a) return; C.group=a.group; C.tab=c.type==='session'?'rec':c.type==='homework'?'hw':c.type==='diet'?'diet':'body'; if(c.type==='session') C.recOpen=c.target; if(c.type==='body') C.bodyMem=a.id; if(c.type==='diet'){ C.dietMem=a.id; C.dDate=c.target; delete DIETC[a.id]; } loadGroup(); }
 
 /* ───────── 設定：帳戶＋動作庫 ───────── */
 function vSet(){
@@ -462,6 +588,7 @@ function vSet(){
   if(C.exEdit) h+=exForm();
   else h+=`<div class="row"><input class="in" placeholder="🔍 搜尋" value="${esc(C.exQ)}" oninput="C.exQ=this.value;drawExList()"><button class="btn sm" onclick="C.exEdit={id:'',zh:'',en:'',cat:'',eq:'',cue:'',cueEn:'',video:''};render()">＋</button></div><div class="card" id="exl"></div>`;
   setTimeout(drawExList,0);
+  if(!C.exEdit) h+=vFoodLib();
   return h;
 }
 function drawExList(){ const el=$('#exl'); if(!el) return; const q=C.exQ.trim().toLowerCase();

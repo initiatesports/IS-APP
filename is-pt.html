@@ -79,7 +79,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .empty .ic{font-size:34px;margin-bottom:6px;opacity:.8}
 /* nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,22,34,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + var(--safe-b))}
-.nav-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 .nav button{background:none;border:none;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:700}
 .nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .nav button.on{color:var(--teal)}
@@ -150,7 +150,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-29-b';
+const FRONTEND_VERSION = 'pt-2026-09-30-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -178,7 +178,18 @@ const TX = {
     settings:'設定', lang:'語言', pin:'改登入密碼', pinHint:'設一個 4 位數字，之後可以用佢代替電話後 4 位', newPin:'新 4 位密碼', pinOk:'已更新密碼', logout:'登出', logoutQ:'確定登出？',
     install:'加到主畫面：iPhone 用 Safari「分享」→「加至主畫面」；Android 用 Chrome 選單「安裝應用程式」。',
     saved:'已儲存', sent:'已送出', updated:'已更新', newVer:'🔄 有新版本，正在更新…',
-    wk:['日','一','二','三','四','五','六'], tip:'小貼士'
+    wk:['日','一','二','三','四','五','六'], tip:'小貼士',
+    diet:'飲食', todayDiet:'今日飲食', kcalLeft:'仲可以食', kcalOver:'超出', protein:'蛋白質', carbs:'碳水', fat:'脂肪',
+    setTarget:'設定你嘅飲食目標', setTargetHint:'填身高、體重、活動量同目標，系統即刻計每日卡路里同三大營養素', items:'項', noLogToday:'今日未有記錄',
+    myTarget:'我的目標', today:'今日', start:'開始', addFood:'加食物', photo:'相片', coachReview:'教練評語', noReview:'教練會喺度俾評語；你都可以問問題',
+    last7:'近 7 日', avgKcal:'平均每日', avgProtein:'平均蛋白質', photoErr:'相片讀取唔到，試另一張', photoNote:'備註（例：公司午餐、半碗飯）', upload:'上載', uploading:'上載中…',
+    dailyKcal:'每日目標', coachAdjusted:'教練已調整', profileHint:'系統用 Mifflin-St Jeor 公式計基礎代謝，再按活動量同目標計每日目標；教練可以再按你情況調整。',
+    sex:'性別', male:'男', female:'女', birthYear:'出生年份', height:'身高', activity:'日常活動量', goal:'目標', calcSave:'計算並儲存',
+    formulaNote:'數字係起步參考。跟 2–3 星期睇體重變化，教練會再微調。有醫療狀況（例如糖尿病、腎病）請先問醫生。', fillAll:'請填晒所有資料', checkInput:'資料好似唔啱，請檢查年份／身高／體重',
+    searchFood:'搜尋食物（中／英）', scan:'掃條碼', frequent:'常用', noFav:'未有常用食物，去「全部」揀或者搜尋', noFood:'搵唔到，可以自訂', customFood:'自訂食物', estimate:'參考估算值',
+    servings:'份數', orGrams:'或者輸入克數', addTo:'加入', added:'已加入', barcode:'條碼', notFoundHint:'資料庫未有，入一次之後就記得', foodName:'食物名稱', portion:'份量', portionPh:'例：1 碗、1 包',
+    saveToLib:'儲存入食物庫，下次直接揀', customHint:'包裝食物可以睇背面營養標籤（每份）。唔知數字可以淨係影相，教練會幫你睇。', needNameKcal:'要填名稱同卡路里',
+    scanHint:'將條碼對準中間條線', typeCode:'或者手動輸入條碼數字', find:'搵', camErr:'開唔到相機（可能未俾權限）——可以手動輸入條碼', searching:'搵緊…'
   },
   en:{
     appName:'Personal Training', login:'Log in', name:'Name (Chinese or English)', last4:'Last 4 digits of phone (or your PIN)', loginHint:'Use the name and phone number you registered with.',
@@ -202,7 +213,18 @@ const TX = {
     settings:'Settings', lang:'Language', pin:'Change login PIN', pinHint:'Set a 4-digit PIN to use instead of your phone digits', newPin:'New 4-digit PIN', pinOk:'PIN updated', logout:'Log out', logoutQ:'Log out now?',
     install:'Add to Home Screen: on iPhone use Safari Share → "Add to Home Screen"; on Android use the Chrome menu → "Install app".',
     saved:'Saved', sent:'Sent', updated:'Updated', newVer:'🔄 New version — updating…',
-    wk:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], tip:'Tip'
+    wk:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], tip:'Tip',
+    diet:'Nutrition', todayDiet:"Today's nutrition", kcalLeft:'Remaining', kcalOver:'Over by', protein:'Protein', carbs:'Carbs', fat:'Fat',
+    setTarget:'Set your nutrition target', setTargetHint:'Enter height, weight, activity and goal — we calculate your daily calories and macros', items:'items', noLogToday:'Nothing logged today',
+    myTarget:'My target', today:'Today', start:'Start', addFood:'Add food', photo:'Photo', coachReview:'Coach feedback', noReview:'Your coach leaves feedback here — ask anything too',
+    last7:'Last 7 days', avgKcal:'Daily average', avgProtein:'Avg protein', photoErr:"Couldn't read that photo — try another", photoNote:'Note (e.g. office lunch, half rice)', upload:'Upload', uploading:'Uploading…',
+    dailyKcal:'Daily target', coachAdjusted:'Adjusted by coach', profileHint:'We estimate your BMR with the Mifflin-St Jeor equation, then apply your activity level and goal. Your coach can fine-tune it.',
+    sex:'Sex', male:'Male', female:'Female', birthYear:'Birth year', height:'Height', activity:'Activity level', goal:'Goal', calcSave:'Calculate & save',
+    formulaNote:'These numbers are a starting point. Track your weight for 2–3 weeks and your coach will adjust. If you have a medical condition (e.g. diabetes, kidney disease) check with your doctor first.', fillAll:'Please fill in everything', checkInput:'Some values look off — check year / height / weight',
+    searchFood:'Search foods', scan:'Scan barcode', frequent:'Frequent', noFav:'No frequent foods yet — browse "All" or search', noFood:'Not found — add a custom food', customFood:'Custom food', estimate:'estimated value',
+    servings:'Servings', orGrams:'or enter grams', addTo:'Add', added:'Added', barcode:'Barcode', notFoundHint:'not in the database yet — enter it once and we will remember', foodName:'Food name', portion:'Portion', portionPh:'e.g. 1 bowl, 1 pack',
+    saveToLib:'Save to food library for next time', customHint:'For packaged food, use the nutrition label (per serving). Not sure? Just snap a photo and your coach will take a look.', needNameKcal:'Name and calories are required',
+    scanHint:'Line the barcode up with the centre line', typeCode:'or type the barcode number', find:'Find', camErr:"Can't open the camera (permission?) — type the barcode instead", searching:'Searching…'
   }
 };
 const t = k => (TX[LANG]&&TX[LANG][k]!=null) ? TX[LANG][k] : (TX.zh[k]!=null?TX.zh[k]:k);
@@ -247,7 +269,7 @@ async function api(action, p, write){
 
 /* ───────── 狀態 ───────── */
 let D = null;                      // apiMe 回應
-const S = { tab:'home', ses:null, bodyMetric:'weight', exCat:'', exQ:'', bodyForm:false, hwNote:null };
+const S = { tab:'home', ses:null, bodyMetric:'weight', exCat:'', exQ:'', bodyForm:false, hwNote:null, dDate:'' };
 const EXM = () => { const m={}; (D&&D.exercises||[]).forEach(e=>m[e.id]=e); return m; };
 function exName(id){ const e=EXM()[id]; if(!e) return '—'; return LANG==='en' ? (e.en||e.zh) : e.zh; }
 function exSub(id){ const e=EXM()[id]; if(!e) return ''; return LANG==='en' ? e.zh : (e.en||''); }
@@ -269,11 +291,12 @@ async function boot(){
   if(cached && cached.me){ D = cached; render(); }
   else renderShell(true);
   await refresh(!cached);
+  if(AUTH) loadDiet();
 }
 async function refresh(showErr){
   const r = await api('me');
   if(r.ok){ D = r; lsSet('ispt_cache', r); render(); return true; }
-  if(/唔啱|試太多/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); D=null; renderLogin(r.err); return false; }
+  if(/唔啱|試太多/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); D=null; DT=null; renderLogin(r.err); return false; }
   if(showErr || !D){ if(!D){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(r.err||t('net'))}<br><br><button class="btn sm" onclick="boot()">↻</button></div></div>`; } else toast(r.err||t('net')); }
   return false;
 }
@@ -315,10 +338,10 @@ async function doLogin(ev){
   const b=$('#lg-btn'); b.disabled=true; b.innerHTML=`<span>${t('loading')}</span>`;
   AUTH={name, code};
   const r=await api('me');
-  if(r.ok){ lsSet('ispt_auth', AUTH); D=r; lsSet('ispt_cache', r); S.tab='home'; render(); window.scrollTo(0,0); return; }
+  if(r.ok){ lsSet('ispt_auth', AUTH); D=r; lsSet('ispt_cache', r); DT=null; lsDel('ispt_diet'); S.tab='home'; render(); window.scrollTo(0,0); loadDiet(); return; }
   AUTH=null; b.disabled=false; b.innerHTML=`<span>${t('login')} →</span>`; $('#lg-err').textContent=r.err||t('net');
 }
-function logout(){ if(!confirm(t('logoutQ'))) return; AUTH=null; D=null; lsDel('ispt_auth'); lsDel('ispt_cache'); renderLogin(); }
+function logout(){ if(!confirm(t('logoutQ'))) return; AUTH=null; D=null; DT=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); renderLogin(); }
 
 /* ───────── 外殼 ───────── */
 const ICONS = {
@@ -326,10 +349,11 @@ const ICONS = {
   train:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
   hw:'<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="m8.5 12 2.3 2.3 4.7-4.8"/>',
   body:'<path d="M3.5 17 9 11.5l3.5 3.5 8-8"/><path d="M15 7h5.5v5.5"/>',
+  diet:'<path d="M7 3.5v7.5M4.5 3.5v5a2.5 2.5 0 0 0 5 0v-5M7 11v9.5"/><path d="M17 20.5V3.5c-2.2 1-3.5 3.6-3.5 7.2V13H17"/>',
   more:'<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>'
 };
 function renderShell(loading){
-  const tabs=['home','train','hw','body','more'];
+  const tabs=['home','train','diet','hw','body','more'];
   $('#app').innerHTML = `
   <header class="top"><div class="top-in">
     <div class="brand"><img src="img/is-mark-96.png" alt="">INITIATE <span class="tag">PT</span></div><span class="sp"></span>
@@ -344,7 +368,7 @@ function render(){
   if(!D){ renderShell(true); return; }
   const y=window.scrollY; renderShell(false);
   const m=$('#main');
-  m.innerHTML = ({home:vHome, train:vTrain, hw:vHw, body:vBody, more:vMore}[S.tab]||vHome)();
+  m.innerHTML = ({home:vHome, train:vTrain, diet:vDiet, hw:vHw, body:vBody, more:vMore}[S.tab]||vHome)();
   window.scrollTo(0,y);
 }
 
@@ -398,6 +422,7 @@ function vHome(){
     h += `<div class="card tap" onclick="go('hw')"><div class="row"><div style="font-weight:800">${esc(hw.title||t('hw'))}</div><span class="sp"></span><span class="badge">${pr.done}/${pr.total} ${t('done')}</span></div>
       <div class="bar"><i style="width:${pr.total?Math.round(pr.done/pr.total*100):0}%"></i></div></div>`;
   } else h += `<div class="card"><div class="muted small">${t('noHw')}</div></div>`;
+  h += vDietHomeCard();
   // 個人最佳＋體重
   const rec=(D.prs&&D.prs.recent||[]).slice(0,3);
   if(rec.length){ h += `<div class="sec">🏆 ${t('prs')}</div><div class="card">${rec.map(r=>`<div class="li"><div class="d"><b>${fmtDM(r.date).split('/')[0]}</b><span>${fmtDM(r.date).split('/')[1]}月</span></div><div style="flex:1"><div style="font-weight:700">${esc(exName(r.ex))}</div><div class="small muted num">${fmtN(r.kg)} kg × ${r.reps}</div></div><span class="badge gold">PR</span></div>`).join('')}</div>`; }
@@ -572,6 +597,301 @@ async function bodyDel(id){
   const r=await api('bodyDel',{id}, true);
   if(!r.ok){ toast(r.err||t('net')); return; }
   D.body=(D.body||[]).filter(b=>b.id!==id); lsSet('ispt_cache', D); render();
+}
+
+/* ───────── 飲食（第二階段）─────────
+   DT＝diet 回應（目標／記錄／食物庫／評語）；獨立 cache（ispt_diet），唔阻首頁載入。
+   營養數字以後端為準（揀食物庫時後端按份數計）；前端只做預覽同加總。 */
+const ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+let DT = lsGet('ispt_diet');
+if(DT && (!AUTH || DT._who!==AUTH.name)) DT = null;
+let dietLoading = null;
+const PH = {};                                   // 相片 base64（entry id → dataURL），只存記憶體
+const MEAL_EN = {'早餐':'Breakfast','午餐':'Lunch','晚餐':'Dinner','小食':'Snacks'};
+const GOAL_EN = {'減脂':'Fat loss','慢減':'Slow cut','維持':'Maintain','增肌':'Muscle gain'};
+const ACT_EN = {'1.2':'Sedentary (little exercise)','1.375':'Light (1–3×/week)','1.55':'Moderate (3–5×/week)','1.725':'High (6–7×/week)','1.9':'Very high (physical job + training)'};
+const mealName = m => LANG==='en' ? (MEAL_EN[m]||m) : m;
+const goalName = g => LANG==='en' ? (GOAL_EN[g]||g) : g;
+const foodName = f => !f ? '' : (LANG==='en' ? (f.en||f.zh) : f.zh);
+const nz = v => { const n=Number(v); return isFinite(n)&&String(v)!=='' ? n : 0; };
+const rnd = v => (v===''||v==null) ? '—' : Math.round(v);
+function loadDiet(){
+  if(dietLoading) return dietLoading;
+  dietLoading = api('diet').then(r=>{ dietLoading=null;
+    if(r.ok){ r._who = AUTH&&AUTH.name; DT=r; lsSet('ispt_diet', r); if(S.tab==='diet'||S.tab==='home') render(); }
+    else if(S.tab==='diet' && !DT) toast(r.err||t('net'));
+    return r; });
+  return dietLoading;
+}
+function dayEntries(d){ return (DT&&DT.entries||[]).filter(e=>e.date===d); }
+function sumOf(list){ return list.reduce((a,e)=>({kcal:a.kcal+nz(e.kcal), p:a.p+nz(e.p), c:a.c+nz(e.c), f:a.f+nz(e.f)}), {kcal:0,p:0,c:0,f:0}); }
+function ring(val, tgt, size){
+  const R=size/2-9, C=2*Math.PI*R, pct=tgt?Math.min(1, val/tgt):0, over=tgt && val>tgt*1.05;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:none"><circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/>
+    ${pct>0?`<circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none" stroke="${over?'#c9a15c':'#3ecfcf'}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/>`:''}
+    <text x="50%" y="47%" text-anchor="middle" fill="#eaf1f8" font-family="Archivo" font-weight="900" font-size="${size*.2}">${Math.round(val)}</text>
+    <text x="50%" y="66%" text-anchor="middle" fill="#8fa3bb" font-size="${size*.095}">${tgt?'/ '+Math.round(tgt)+' kcal':'kcal'}</text></svg>`;
+}
+function macroBar(label, val, tgt, color){
+  const pct=tgt?Math.min(100, val/tgt*100):0;
+  return `<div style="margin-top:9px"><div class="row small"><span>${label}</span><span class="sp"></span><span class="num"><b>${Math.round(val)}</b><span class="muted">${tgt?' / '+Math.round(tgt):''} g</span></span></div>
+    <div class="bar" style="margin-top:4px;height:7px"><i style="width:${pct}%;background:${color}"></i></div></div>`;
+}
+function vDietHomeCard(){
+  if(!DT) return '';
+  const tg=DT.targets&&DT.targets.target, s=sumOf(dayEntries(isoToday())), n=dayEntries(isoToday()).length;
+  return `<div class="sec">🍽 ${t('todayDiet')}</div><div class="card tap" onclick="go('diet')"><div class="row">${ring(s.kcal, tg&&tg.kcal, 76)}<div style="flex:1;min-width:0">
+    ${tg?`<div style="font-weight:800">${s.kcal<=tg.kcal?`${t('kcalLeft')} <span class="num">${Math.round(tg.kcal-s.kcal)}</span>`:`${t('kcalOver')} <span class="num" style="color:var(--gold)">${Math.round(s.kcal-tg.kcal)}</span>`} kcal</div>
+      <div class="small muted num">${t('protein')} ${Math.round(s.p)} / ${rnd(tg.p)} g</div>`
+      :`<div style="font-weight:800">${t('setTarget')}</div><div class="small muted">${t('setTargetHint')}</div>`}
+    <div class="small muted">${n?`${n} ${t('items')}`:t('noLogToday')}</div></div><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
+}
+function vDiet(){
+  if(!DT){ loadDiet(); return `<div class="h1">${t('diet')}</div><div class="skel"></div><div class="skel"></div>`; }
+  const today=isoToday(); if(!S.dDate || S.dDate>today) S.dDate=today;
+  if(S.dDate<DT.since) S.dDate=DT.since;
+  const T=DT.targets||{}, tg=T.target, list=dayEntries(S.dDate), s=sumOf(list);
+  let h=`<div class="row"><div class="h1">${t('diet')}</div><span class="sp"></span><button class="lnk" style="margin-top:14px" onclick="openProfile()">🎯 ${t('myTarget')}</button></div>`;
+  // 日期
+  h+=`<div class="card row" style="padding:8px 10px"><button class="pill" ${S.dDate<=DT.since?'disabled':''} onclick="S.dDate=addDays(S.dDate,-1);render()">‹</button><span class="sp"></span>
+    <div style="text-align:center"><b>${S.dDate===today?t('today'):wkName(S.dDate)}</b><div class="small muted num">${fmtD(S.dDate)}</div></div><span class="sp"></span>
+    <button class="pill" ${S.dDate>=today?'disabled':''} onclick="S.dDate=addDays(S.dDate,1);render()">›</button></div>`;
+  // 總結
+  if(!tg) h+=`<div class="card hero tap" onclick="openProfile()"><div style="font-weight:900;font-size:17px">🎯 ${t('setTarget')}</div><div class="small muted" style="margin-top:4px">${t('setTargetHint')}</div><div class="row" style="margin-top:10px"><span class="sp"></span><span class="btn sm skew"><span>${t('start')} →</span></span></div></div>`;
+  h+=`<div class="card"><div class="row" style="gap:14px">${ring(s.kcal, tg&&tg.kcal, 112)}<div style="flex:1;min-width:0">
+      ${tg?`<div class="small muted">${s.kcal<=tg.kcal?t('kcalLeft'):t('kcalOver')}</div><div class="num" style="font-size:24px;font-weight:900;${s.kcal>tg.kcal?'color:var(--gold)':''}">${Math.round(Math.abs(tg.kcal-s.kcal))} <span class="small muted">kcal</span></div>`:''}
+      ${macroBar(t('protein'), s.p, tg&&tg.p, '#3ecfcf')}${macroBar(t('carbs'), s.c, tg&&tg.c, '#6aa8ff')}${macroBar(t('fat'), s.f, tg&&tg.f, '#c9a15c')}</div></div>
+    ${T.profile&&T.profile.coachNote?`<div class="small" style="margin-top:12px;padding:9px 11px;border-radius:10px;background:rgba(201,161,92,.1);border-left:3px solid var(--gold)">💬 ${t('coach')}：${esc(T.profile.coachNote)}</div>`:''}</div>`;
+  // 各餐
+  (DT.meals||['早餐','午餐','晚餐','小食']).forEach(m=>{
+    const es=list.filter(e=>e.meal===m), ms=sumOf(es);
+    h+=`<div class="card"><div class="row"><b style="font-size:16px">${mealName(m)}</b><span class="small muted num">${es.length?Math.round(ms.kcal)+' kcal':''}</span><span class="sp"></span>
+        <button class="btn ghost sm" onclick="pickPhoto('${m}')" aria-label="photo">📷</button><button class="btn sm" onclick="openFoodPicker('${m}')">＋ ${t('addFood')}</button></div>
+      ${es.map(e=>e.photo?`<div class="li"><img data-ph="${e.id}" onclick="viewPhoto('${e.id}')" style="width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--panel2);flex:none" alt=""><div style="flex:1;min-width:0"><div style="font-weight:700">📷 ${t('photo')}</div>${e.note?`<div class="small muted">${esc(e.note)}</div>`:''}<div class="small muted">${esc(String(e.at).slice(11,16))}</div></div><button class="lnk" style="color:var(--mut)" onclick="mealDel('${e.id}')">✕</button></div>`
+        :`<div class="li"><div style="flex:1;min-width:0"><div style="font-weight:700">${esc(entryName(e))}</div><div class="small muted num">${entryQty(e)}${e.p!==''?` · P ${fmtN(e.p)}`:''}${e.c!==''?` · C ${fmtN(e.c)}`:''}${e.f!==''?` · F ${fmtN(e.f)}`:''}${e.note?` · ${esc(e.note)}`:''}</div></div><b class="num">${fmtN(e.kcal)}</b><span class="small muted">kcal</span><button class="lnk" style="color:var(--mut);margin-left:6px" onclick="mealDel('${e.id}')">✕</button></div>`).join('')}</div>`;
+  });
+  h+=`<div class="card">${dietThread(S.dDate)}</div>`;
+  // 7 日
+  h+=`<div class="sec">📊 ${t('last7')}</div><div class="card">${weekChart(S.dDate, tg)}</div>`;
+  setTimeout(loadPhotos, 0);
+  return h;
+}
+function entryName(e){ const f=(DT.foods||[]).find(x=>x.id===e.food); return f?foodName(f):e.name; }
+function entryQty(e){ const f=(DT.foods||[]).find(x=>x.id===e.food); const q=nz(e.qty)||1; return f ? `${q===1?'':fmtN(q)+' × '}${esc(f.unit||'')}` : (q!==1?`× ${fmtN(q)}`:''); }
+function weekChart(end, tg){
+  const days=Array.from({length:7},(_,i)=>addDays(end,i-6)), vals=days.map(d=>sumOf(dayEntries(d)).kcal);
+  const logged=days.filter((d,i)=>dayEntries(d).some(e=>!e.photo)).length, avg=logged?vals.reduce((a,v)=>a+v,0)/logged:0;
+  const pAvg=logged?days.reduce((a,d)=>a+sumOf(dayEntries(d)).p,0)/logged:0;
+  const W=340,H=150,B=22,T=12, mx=Math.max(tg?tg.kcal*1.25:0, ...vals, 500), bw=(W-20)/7;
+  const Y=v=>T+(1-v/mx)*(H-T-B);
+  let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  days.forEach((d,i)=>{ const v=vals[i], x=10+i*bw+bw*.18, w=bw*.64, y=Y(v), over=tg&&v>tg.kcal*1.05;
+    svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,H-B-y).toFixed(1)}" rx="5" fill="${d===end?(over?'#c9a15c':'#3ecfcf'):(over?'rgba(201,161,92,.55)':'rgba(62,207,207,.45)')}"/>
+      <text x="${(x+w/2).toFixed(1)}" y="${H-7}" text-anchor="middle" fill="#8fa3bb" font-size="10" font-family="Archivo">${wkName(d)}</text>`; });
+  if(tg) svg+=`<line x1="8" x2="${W-8}" y1="${Y(tg.kcal).toFixed(1)}" y2="${Y(tg.kcal).toFixed(1)}" stroke="#eaf1f8" stroke-opacity=".5" stroke-dasharray="4 4"/>`;
+  svg+='</svg>';
+  return svg+`<div class="grid2" style="margin-top:8px"><div><div class="small muted">${t('avgKcal')}</div><b class="num">${logged?Math.round(avg):'—'}</b><span class="small muted"> kcal</span></div><div><div class="small muted">${t('avgProtein')}</div><b class="num">${logged?Math.round(pAvg):'—'}</b><span class="small muted"> g${tg?' / '+rnd(tg.p):''}</span></div></div>`;
+}
+function dietThread(date){
+  const cms=(DT.comments||[]).filter(c=>c.target===date).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  return `<div class="small muted" style="font-weight:700;margin-bottom:4px">💬 ${t('coachReview')}</div>
+    ${cms.length?cms.map(c=>`<div class="msg ${c.by==='coach'?'co':'me'}"><div class="bub"><span class="who">${c.by==='coach'?t('coach'):t('you')} · ${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span>${esc(c.text)}</div></div>`).join(''):`<div class="small muted">${t('noReview')}</div>`}
+    <div class="tin"><input class="in" id="cm-diet" placeholder="${t('say')}" maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendDietCm()}"><button class="btn sm" onclick="sendDietCm()">${t('send')}</button></div>`;
+}
+async function sendDietCm(){
+  const el=$('#cm-diet'), text=(el.value||'').trim(); if(!text) return; el.disabled=true;
+  const r=await api('comment',{type:'diet', target:S.dDate, text}, true); el.disabled=false;
+  if(!r.ok){ toast(r.err||t('net')); return; }
+  DT.comments=(DT.comments||[]).concat([r.comment]); lsSet('ispt_diet', DT); toast(t('sent')); render();
+}
+async function mealDel(id){
+  if(!confirm(t('delQ'))) return;
+  const r=await api('mealDel',{id}, true);
+  if(!r.ok && !/搵唔到/.test(r.err||'')){ toast(r.err||t('net')); return; }
+  DT.entries=(DT.entries||[]).filter(e=>e.id!==id); lsSet('ispt_diet', DT); render();
+}
+function addEntry(e){ DT.entries=(DT.entries||[]).concat([e]); lsSet('ispt_diet', DT); render(); }
+
+/* 相片：客戶端壓縮（最長邊 1080px JPEG），存私密 Drive；縮圖經 route 讀 */
+async function loadPhotos(){
+  for(const el of document.querySelectorAll('img[data-ph]')){
+    const id=el.dataset.ph; if(PH[id]){ el.src=PH[id]; continue; } if(PH['_'+id]) continue; PH['_'+id]=1;
+    const r=await api('photo',{id}); delete PH['_'+id];
+    if(r.ok){ PH[id]=r.data; document.querySelectorAll(`img[data-ph="${id}"]`).forEach(x=>x.src=r.data); }
+  }
+}
+function viewPhoto(id){ if(!PH[id]) return; const ov=document.createElement('div'); ov.className='ov'; ov.style.alignItems='center'; ov.onclick=()=>ov.remove();
+  ov.innerHTML=`<img src="${PH[id]}" style="max-width:96vw;max-height:88vh;border-radius:14px" alt="">`; document.body.appendChild(ov); }
+function compressImg(file){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file), img=new Image();
+  img.onload=()=>{ const M=1080, k=Math.min(1, M/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); let q=.72, d=c.toDataURL('image/jpeg',q); while(d.length>600000 && q>.35){ q-=.12; d=c.toDataURL('image/jpeg',q); } res(d); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('img')); }; img.src=url; }); }
+function pickPhoto(meal){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.setAttribute('capture','environment');
+  inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; let data; try{ data=await compressImg(f); }catch(e){ toast(t('photoErr')); return; }
+    const ov=sheet(`<div class="row"><b style="font-size:18px">📷 ${mealName(meal)} · ${fmtD(S.dDate)}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+      <img src="${data}" style="width:100%;border-radius:14px;margin:12px 0;max-height:46vh;object-fit:contain;background:#0c1622" alt="">
+      <input class="in" id="ph-note" maxlength="200" placeholder="${t('photoNote')}"><button class="btn skew block" style="margin-top:12px" id="ph-go"><span>${t('upload')}</span></button>`);
+    ov.querySelector('#ph-go').onclick=async()=>{ const b=ov.querySelector('#ph-go'); b.disabled=true; b.innerHTML=`<span>${t('uploading')}</span>`;
+      const r=await api('mealPhoto',{date:S.dDate, meal, data, note:ov.querySelector('#ph-note').value.trim()}, true);
+      if(!r.ok){ b.disabled=false; b.innerHTML=`<span>${t('upload')}</span>`; toast(r.err||t('net')); return; }
+      PH[r.entry.id]=data; ov.remove(); toast(t('saved')); addEntry(r.entry); };
+  };
+  inp.click();
+}
+function sheet(inner){ const ov=document.createElement('div'); ov.className='ov'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML=`<div class="sheet"><div class="grab"></div>${inner}</div>`; document.body.appendChild(ov);
+  ov.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>ov.remove()); return ov; }
+
+/* 目標設定（學員自己填基本資料；教練可覆寫）*/
+function openProfile(){
+  const T=DT.targets||{}, pf=T.profile||{}, sys=T.sys, tg=T.target;
+  let sex=pf.sex||'', goal=pf.goal||'';
+  const ov=sheet(`<div class="row"><b style="font-size:19px">🎯 ${t('myTarget')}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    ${tg?`<div class="card" style="background:var(--panel2);margin-top:12px"><div class="row"><div><div class="small muted">${t('dailyKcal')}</div><span class="big num" style="font-size:28px">${Math.round(tg.kcal)}</span> <span class="muted">kcal</span></div><span class="sp"></span>${T.coachSet?`<span class="badge gold">${t('coachAdjusted')}</span>`:''}</div>
+      <div class="grid3" style="margin-top:10px"><div><div class="small muted">${t('protein')}</div><b class="num">${rnd(tg.p)}g</b></div><div><div class="small muted">${t('carbs')}</div><b class="num">${rnd(tg.c)}g</b></div><div><div class="small muted">${t('fat')}</div><b class="num">${rnd(tg.f)}g</b></div></div>
+      ${sys?`<div class="small muted" style="margin-top:8px">BMR ${sys.bmr} · TDEE ${sys.tdee} kcal</div>`:''}</div>`:''}
+    <div class="small muted" style="margin:12px 2px">${t('profileHint')}</div>
+    <label class="lb">${t('sex')}</label><div class="row" id="pf-sex" style="margin-bottom:12px">${['男','女'].map(x=>`<button class="chip" data-v="${x}">${x==='男'?t('male'):t('female')}</button>`).join('')}</div>
+    <div class="fgrid"><div><label class="lb">${t('birthYear')}</label><input class="in num" id="pf-yr" inputmode="numeric" maxlength="4" value="${esc(pf.birthYear||'')}" placeholder="1990"></div>
+      <div><label class="lb">${t('height')} (cm)</label><input class="in num" id="pf-h" inputmode="decimal" value="${esc(pf.height||'')}"></div>
+      <div><label class="lb">${t('weight')} (kg)</label><input class="in num" id="pf-w" inputmode="decimal" value="${esc(T.weight||'')}"></div></div>
+    <label class="lb" style="margin-top:12px">${t('activity')}</label><select class="in" id="pf-act"><option value="">—</option>${Object.keys(DT.activity||{}).map(k=>`<option value="${k}" ${String(pf.activity)===k?'selected':''}>${esc(LANG==='en'?(ACT_EN[k]||k):DT.activity[k])}</option>`).join('')}</select>
+    <label class="lb" style="margin-top:12px">${t('goal')}</label><div class="row" id="pf-goal" style="flex-wrap:wrap">${(DT.goals||[]).map(g=>`<button class="chip" data-v="${g}">${goalName(g)}</button>`).join('')}</div>
+    <button class="btn skew block" style="margin-top:18px" id="pf-go"><span>${t('calcSave')}</span></button>
+    <div class="small muted" style="margin-top:10px;line-height:1.6">ℹ️ ${t('formulaNote')}</div>`);
+  const paint=()=>{ ov.querySelectorAll('#pf-sex .chip').forEach(b=>b.classList.toggle('on', b.dataset.v===sex)); ov.querySelectorAll('#pf-goal .chip').forEach(b=>b.classList.toggle('on', b.dataset.v===goal)); };
+  ov.querySelectorAll('#pf-sex .chip').forEach(b=>b.onclick=()=>{ sex=b.dataset.v; paint(); });
+  ov.querySelectorAll('#pf-goal .chip').forEach(b=>b.onclick=()=>{ goal=b.dataset.v; paint(); });
+  paint();
+  ov.querySelector('#pf-go').onclick=async()=>{
+    const p={sex, goal, birthYear:ov.querySelector('#pf-yr').value.trim(), height:ov.querySelector('#pf-h').value.trim(), weight:ov.querySelector('#pf-w').value.trim(), activity:ov.querySelector('#pf-act').value};
+    if(!p.sex||!p.goal||!p.birthYear||!p.height||!p.weight||!p.activity){ toast(t('fillAll')); return; }
+    const b=ov.querySelector('#pf-go'); b.disabled=true;
+    const r=await api('dietProfile', p, true); b.disabled=false;
+    if(!r.ok){ toast(r.err||t('net')); return; }
+    DT.targets=r.targets; lsSet('ispt_diet', DT); ov.remove(); toast(t('saved')); render();
+    if(!r.targets.target) toast(t('checkInput'));
+    refresh();   // 體重可能新增咗身體數據
+  };
+}
+
+/* 揀食物 → 份量 → 加入 */
+function openFoodPicker(meal){
+  let cat='__fav', q='';
+  const foods=DT.foods||[], freq=DT.freq||{}, cats=[...new Set(foods.map(f=>f.cat).filter(Boolean))];
+  const ov=sheet(`<div class="row"><b style="font-size:18px">${mealName(meal)} · ${t('addFood')}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    <div class="row" style="margin-top:12px"><input class="in" id="fp-q" placeholder="🔍 ${t('searchFood')}"><button class="btn ghost sm" id="fp-scan" style="flex:none;padding:10px 12px">▥ ${t('scan')}</button></div>
+    <div class="chips" id="fp-c" style="margin-top:10px"></div><div id="fp-l"></div>`);
+  const draw=()=>{
+    ov.querySelector('#fp-c').innerHTML=[['__fav','⭐ '+t('frequent')],['','📚 '+t('all')]].concat(cats.map(c=>[c,c])).map(c=>`<button class="chip ${cat===c[0]?'on':''}" data-c="${esc(c[0])}">${esc(c[1])}</button>`).join('');
+    ov.querySelectorAll('#fp-c .chip').forEach(b=>b.onclick=()=>{ cat=b.dataset.c; draw(); });
+    const ql=q.toLowerCase();
+    let list=foods.filter(f=>(ql ? (f.zh+' '+(f.en||'')+' '+(f.cat||'')+' '+(f.code||'')).toLowerCase().includes(ql) : (cat==='__fav'?freq[f.id]:(cat===''||f.cat===cat))));
+    if(cat==='__fav'&&!ql) list.sort((a,b)=>(freq[b.id]||0)-(freq[a.id]||0));
+    list=list.slice(0,80);
+    ov.querySelector('#fp-l').innerHTML=list.map(f=>`<div class="li" data-id="${f.id}" style="cursor:pointer"><div style="flex:1;min-width:0"><div style="font-weight:700">${esc(foodName(f))}</div><div class="small muted">${esc(f.unit||'')}${LANG==='en'?'':(f.en?' · '+esc(f.en):'')}</div></div><b class="num">${fmtN(f.kcal)}</b><span class="small muted">kcal</span></div>`).join('')
+      + (!list.length?`<div class="small muted" style="padding:14px 2px">${cat==='__fav'&&!ql?t('noFav'):t('noFood')}</div>`:'')
+      + `<button class="btn ghost block" style="margin-top:12px;border-style:dashed" id="fp-custom">✎ ${t('customFood')}${q?`「${esc(q)}」`:''}</button>`;
+    ov.querySelectorAll('#fp-l .li[data-id]').forEach(el=>el.onclick=()=>{ ov.remove(); openPortion(meal, foods.find(f=>f.id===el.dataset.id)); });
+    ov.querySelector('#fp-custom').onclick=()=>{ ov.remove(); openCustom(meal, {zh:q}); };
+  };
+  ov.querySelector('#fp-q').oninput=e=>{ q=e.target.value.trim(); draw(); };
+  ov.querySelector('#fp-scan').onclick=()=>{ ov.remove(); scanBarcode(code=>lookupBarcode(meal, code)); };
+  if(!Object.keys(freq).length) cat='';
+  draw();
+}
+function openPortion(meal, f){
+  if(!f) return; let qty=1, m=meal;
+  const g=nz(f.g);
+  const ov=sheet(`<div class="row"><div style="min-width:0"><b style="font-size:18px">${esc(foodName(f))}</b><div class="small muted">${esc(f.unit||'')}${g?` · ${fmtN(g)} g`:''}${f.src==='估算'?` · ${t('estimate')}`:''}</div></div><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    <div class="chips" id="pp-m" style="margin-top:10px">${(DT.meals||[]).map(x=>`<button class="chip" data-v="${x}">${mealName(x)}</button>`).join('')}</div>
+    <label class="lb" style="margin-top:10px">${t('servings')}</label>
+    <div class="row"><button class="btn ghost" id="pp-dn" style="width:52px">−</button><input class="in num" id="pp-q" inputmode="decimal" style="text-align:center;font-size:20px;font-weight:800" value="1"><button class="btn ghost" id="pp-up" style="width:52px">＋</button></div>
+    <div class="chips" style="margin-top:8px">${[0.5,1,1.5,2].map(v=>`<button class="chip" data-q="${v}">${v===0.5?'½':v===1.5?'1½':v}</button>`).join('')}</div>
+    ${g?`<div class="row" style="margin-top:6px"><span class="small muted">${t('orGrams')}</span><input class="in num" id="pp-g" inputmode="decimal" style="width:110px" placeholder="g"></div>`:''}
+    <div class="card" style="background:var(--panel2);margin:14px 0 4px" id="pp-sum"></div>
+    <button class="btn skew block" style="margin-top:10px" id="pp-go"><span>${t('addTo')}</span></button>`);
+  const paint=()=>{ const q=qty;
+    ov.querySelector('#pp-sum').innerHTML=`<div class="row"><span class="big num" style="font-size:28px">${Math.round(nz(f.kcal)*q)}</span><span class="muted">kcal</span><span class="sp"></span>
+      <span class="small num">P <b>${fmtN(nz(f.p)*q)}</b> · C <b>${fmtN(nz(f.c)*q)}</b> · F <b>${fmtN(nz(f.f)*q)}</b></span></div>`;
+    ov.querySelectorAll('#pp-m .chip').forEach(b=>b.classList.toggle('on', b.dataset.v===m));
+    ov.querySelectorAll('[data-q]').forEach(b=>b.classList.toggle('on', Number(b.dataset.q)===q)); };
+  const setQ=(v, from)=>{ v=Math.round(Math.max(0.1, Math.min(20, Number(v)||0))*100)/100; qty=v; if(from!=='in') ov.querySelector('#pp-q').value=v; if(g && from!=='g'){ const ge=ov.querySelector('#pp-g'); if(ge) ge.value=''; } paint(); };
+  ov.querySelectorAll('#pp-m .chip').forEach(b=>b.onclick=()=>{ m=b.dataset.v; paint(); });
+  ov.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>setQ(b.dataset.q));
+  ov.querySelector('#pp-dn').onclick=()=>setQ(qty>1?qty-0.5:Math.max(0.25, qty-0.25));
+  ov.querySelector('#pp-up').onclick=()=>setQ(qty<1?qty+0.25:qty+0.5);
+  ov.querySelector('#pp-q').oninput=e=>{ const v=Number(e.target.value); if(v>0) setQ(v,'in'); };
+  const ge=ov.querySelector('#pp-g'); if(ge) ge.oninput=e=>{ const v=Number(e.target.value); if(v>0){ setQ(v/g,'g'); } };
+  ov.querySelector('#pp-go').onclick=async()=>{ const b=ov.querySelector('#pp-go'); b.disabled=true;
+    const r=await api('mealAdd',{date:S.dDate, meal:m, foodId:f.id, qty}, true);
+    if(!r.ok){ b.disabled=false; toast(r.err||t('net')); return; }
+    ov.remove(); toast(t('added')); if(DT.freq) DT.freq[f.id]=(DT.freq[f.id]||0)+1; addEntry(r.entry); };
+  paint();
+}
+function openCustom(meal, pre){
+  pre=pre||{}; let m=meal;
+  const ov=sheet(`<div class="row"><b style="font-size:18px">✎ ${t('customFood')}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    ${pre.code?`<div class="small muted" style="margin-top:6px">${t('barcode')} ${esc(pre.code)} · ${t('notFoundHint')}</div>`:''}
+    <div class="chips" id="cf-m" style="margin-top:10px">${(DT.meals||[]).map(x=>`<button class="chip" data-v="${x}">${mealName(x)}</button>`).join('')}</div>
+    <div class="fld" style="margin-top:8px"><label class="lb">${t('foodName')}</label><input class="in" id="cf-n" maxlength="60" value="${esc(pre.zh||'')}"></div>
+    <div class="fgrid"><div><label class="lb">${t('portion')}</label><input class="in" id="cf-u" maxlength="40" placeholder="${t('portionPh')}"></div><div><label class="lb">kcal *</label><input class="in num" id="cf-k" inputmode="decimal"></div>
+      <div><label class="lb">${t('protein')} (g)</label><input class="in num" id="cf-p" inputmode="decimal"></div><div><label class="lb">${t('carbs')} (g)</label><input class="in num" id="cf-c" inputmode="decimal"></div>
+      <div><label class="lb">${t('fat')} (g)</label><input class="in num" id="cf-f" inputmode="decimal"></div></div>
+    <label class="row small" style="margin-top:12px;gap:8px"><input type="checkbox" id="cf-s" ${pre.code?'checked':''}> ${t('saveToLib')}</label>
+    <button class="btn skew block" style="margin-top:14px" id="cf-go"><span>${t('addTo')}</span></button>
+    <div class="small muted" style="margin-top:10px">💡 ${t('customHint')}</div>`);
+  const paint=()=>ov.querySelectorAll('#cf-m .chip').forEach(b=>b.classList.toggle('on', b.dataset.v===m));
+  ov.querySelectorAll('#cf-m .chip').forEach(b=>b.onclick=()=>{ m=b.dataset.v; paint(); }); paint();
+  ov.querySelector('#cf-go').onclick=async()=>{
+    const v=id=>ov.querySelector(id).value.trim();
+    const p={date:S.dDate, meal:m, fname:v('#cf-n'), unit:v('#cf-u')||'1 份', kcal:v('#cf-k'), p:v('#cf-p'), c:v('#cf-c'), f:v('#cf-f'), qty:1, saveFood:ov.querySelector('#cf-s').checked?'1':'', bcode:pre.code||''};   // fname/bcode：name/code 係登入欄
+    if(!p.fname||p.kcal===''){ toast(t('needNameKcal')); return; }
+    const b=ov.querySelector('#cf-go'); b.disabled=true;
+    const r=await api('mealAdd', p, true);
+    if(!r.ok){ b.disabled=false; toast(r.err||t('net')); return; }
+    ov.remove(); toast(t('added')); addEntry(r.entry); if(p.saveFood) loadDiet();
+  };
+}
+
+/* 條碼：有 BarcodeDetector（Android Chrome）就用原生，否則（iPhone Safari）載 ZXing；兩者都唔得就手動輸入 */
+function loadScript(src){ return new Promise((res,rej)=>{ if(document.querySelector(`script[src="${src}"]`) && window.ZXing) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+function scanBarcode(onCode){
+  const ov=sheet(`<div class="row"><b style="font-size:18px">▥ ${t('scan')}</b><span class="sp"></span><button class="pill" id="sc-x">✕</button></div>
+    <div style="position:relative;margin:12px 0;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3"><video id="sc-v" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover"></video>
+      <div style="position:absolute;left:10%;right:10%;top:50%;height:2px;background:var(--teal);box-shadow:0 0 12px var(--teal)"></div></div>
+    <div class="small muted" id="sc-msg">${t('scanHint')}</div>
+    <div class="tin"><input class="in num" id="sc-code" inputmode="numeric" maxlength="14" placeholder="${t('typeCode')}"><button class="btn sm" id="sc-go">${t('find')}</button></div>`);
+  let stream=null, stopped=false, zx=null;
+  const stop=()=>{ stopped=true; try{ zx&&zx.reset(); }catch(e){} if(stream) stream.getTracks().forEach(x=>x.stop()); };
+  const close=()=>{ stop(); ov.remove(); };
+  const done=code=>{ if(stopped) return; code=String(code||'').replace(/\D/g,''); if(code.length<6) return; if(navigator.vibrate) navigator.vibrate(60); close(); onCode(code); };
+  ov.querySelector('#sc-x').onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); };
+  ov.querySelector('#sc-go').onclick=()=>done(ov.querySelector('#sc-code').value);
+  const video=ov.querySelector('#sc-v'), msg=ov.querySelector('#sc-msg');
+  (async()=>{
+    try{
+      if('BarcodeDetector' in window){
+        const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
+        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false}); if(stopped){ stop(); return; }
+        video.srcObject=stream; await video.play();
+        const tick=async()=>{ if(stopped) return; try{ const r=await det.detect(video); if(r&&r[0]) return done(r[0].rawValue); }catch(e){} setTimeout(tick, 220); }; tick();
+      } else {
+        await loadScript(ZXING_URL); if(stopped) return;
+        const hints=new Map(); hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODE_128]);
+        zx=new ZXing.BrowserMultiFormatReader(hints, 250);
+        await zx.decodeFromConstraints({video:{facingMode:'environment'}, audio:false}, video, res=>{ if(res) done(res.getText()); });
+      }
+    }catch(e){ msg.textContent=t('camErr'); msg.style.color='var(--gold)'; }
+  })();
+}
+async function lookupBarcode(meal, code){
+  toast(t('searching'));
+  const r=await api('barcode',{bcode:code});
+  if(r.ok && r.food){ if(!(DT.foods||[]).some(f=>f.id===r.food.id)) DT.foods=(DT.foods||[]).concat([r.food]); openPortion(meal, r.food); return; }
+  if(r.notFound){ toast(r.err); openCustom(meal, {code}); return; }
+  toast(r.err||t('net'));
 }
 
 /* ───────── 更多 ───────── */
