@@ -99,7 +99,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-30-b';
+const FRONTEND_VERSION = 'ptc-2026-09-30-c';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -150,6 +150,8 @@ const members=()=>G&&G.members||[];
 /* ───────── 啟動／登入 ───────── */
 async function boot(){
   checkVersion();
+  // 教練頁待辦箱直達：is-pt-coach.html#分頁[/私訓名]（例：#book、#hw/Keith%20%26%20Elaine）
+  try{ const hs=decodeURIComponent(location.hash.slice(1)); if(hs){ const [tb,gp]=hs.split('/'); if(TABS.some(x=>x[0]===tb)) C.tab=tb; if(gp) C.group=gp; history.replaceState(null,'',location.pathname); } }catch(e){}
   if(!PASS){ renderLogin(); return; }
   $('#app').innerHTML='<div class="spin"></div>';
   const r=await api('cLoad');
