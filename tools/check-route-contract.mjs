@@ -12,6 +12,9 @@ import { homedir } from 'node:os';
 const FE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BE_DIR = process.env.IS_BACKENDS_DIR
   || [join(FE_DIR, '..', 'IS-BACKENDS'), join(homedir(), 'initiatesports', 'IS-BACKENDS')].find(existsSync);
+// 2026-09-29 起 pt-app（is-pt / is-pt-coach 後端）搬去私密 repo IS-PT → 一齊 union，否則 56 個 PT action 全部誤報
+const PT_DIR = process.env.IS_PT_DIR
+  || [join(FE_DIR, '..', 'IS-PT'), join(homedir(), 'initiatesports', 'IS-PT')].find(existsSync);
 
 // 前端 call 但唔經後端 route 嘅（demo/本地/特殊）→ 唔當 mismatch
 const ALLOW = new Set(['ping', '__routes', 'demo', 'preview']);
@@ -22,7 +25,9 @@ function backendRoutes() {
     process.exit(0);
   }
   const set = new Set();
-  const asDir = join(BE_DIR, 'apps-script');
+  for (const root of [BE_DIR, PT_DIR]) {
+  const asDir = root && join(root, 'apps-script');
+  if (!asDir || !existsSync(asDir)) continue;
   for (const proj of readdirSync(asDir, { withFileTypes: true })) {
     if (!proj.isDirectory()) continue;
     for (const f of readdirSync(join(asDir, proj.name))) {
@@ -32,6 +37,7 @@ function backendRoutes() {
       for (const m of src.matchAll(/case\s*['"]([a-zA-Z0-9_]+)['"]\s*:/g)) set.add(m[1]);
       for (const m of src.matchAll(/action\s*===?\s*['"]([a-zA-Z0-9_]+)['"]/g)) set.add(m[1]);
     }
+  }
   }
   return set;
 }
