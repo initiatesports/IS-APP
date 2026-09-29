@@ -99,7 +99,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-30-a';
+const FRONTEND_VERSION = 'ptc-2026-09-30-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -140,7 +140,7 @@ async function api(action, p, write){
 /* ───────── 狀態 ───────── */
 let L=null;            // cLoad
 let G=null;            // cGroup
-const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null, dietMem:'', dDate:'', dietEdit:false, foodEdit:null, foodQ:'' };
+const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null, dietMem:'', dDate:'', dietEdit:false, foodEdit:null, foodQ:'', slotForm:{}, habEdit:null };
 const EXM=()=>{ const m={}; (L&&L.exercises||[]).forEach(e=>m[e.id]=e); return m; };
 const exName=id=>{ const e=EXM()[id]; return e?e.zh:'（已刪動作）'; };
 const exEn=id=>{ const e=EXM()[id]; return e?e.en||'':''; };
@@ -187,7 +187,7 @@ async function reloadAll(){ const r=await api('cLoad'); if(r.ok){ L=r; } await l
 function pickGroup(g){ C.group=g; C.hwEdit=null; C.recOpen=null; loadGroup(); }
 
 /* ───────── 外殼 ───────── */
-const TABS=[['log','📝 今堂'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['diet','🍽 飲食'],['cm','💬 留言'],['set','⚙️ 設定']];
+const TABS=[['log','📝 今堂'],['book','📅 預約'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['diet','🍽 飲食'],['cm','💬 留言'],['set','⚙️ 設定']];
 function render(){
   if(!L){ return; }
   const unread=(L.recentComments||[]).length;
@@ -202,7 +202,7 @@ function render(){
   const needG = ['log','rec','hw','body','diet'].includes(C.tab);
   if(needG && !C.group){ $('#main').innerHTML='<div class="empty">未有學員帳戶。去「⚙️ 設定」開帳戶先（私訓名要同 #4 私訓記錄一樣，出席／套票先會自動連上）。</div>'; return; }
   if(needG && !G){ $('#main').innerHTML='<div class="spin"></div>'; return; }
-  $('#main').innerHTML=({log:vLog, rec:vRec, hw:vHw, body:vBody, diet:vDiet, cm:vCm, set:vSet}[C.tab])();
+  $('#main').innerHTML=({log:vLog, book:vBook, rec:vRec, hw:()=>vHw()+(C.hwEdit?'':vPlanC()), body:vBody, diet:vDiet, cm:vCm, set:vSet}[C.tab])();
   window.scrollTo(0,y);
   if(C.tab==='log') bindDraftInputs();
 }
@@ -557,12 +557,105 @@ async function saveFood(){ const f=C.foodEdit; $('#fdsv').disabled=true; const r
 async function delFood(){ if(!confirm('喺食物庫隱藏呢樣？（舊記錄唔受影響）')) return; const r=await api('cFoodSave', Object.assign({}, C.foodEdit, {del:'1'}), true); if(!r.ok){ toast(r.err); return; }
   C.foodEdit=null; toast('已刪除'); FOODS=null; render(); }
 
+/* ───────── 第三階段：預約時段管理 ───────── */
+let SL=null;   // cSlots
+async function loadSlots(){ const r=await api('cSlots'); if(!r.ok){ toast(r.err); return; } SL=r; if(C.tab==='book') render(); }
+function vBook(){
+  if(!SL){ loadSlots(); return '<div class="spin"></div>'; }
+  const today=isoToday(), f=C.slotForm, groups=(L.groups||[]);
+  const bkBy={}; (SL.bookings||[]).forEach(b=>{ (bkBy[b.slot]=bkBy[b.slot]||[]).push(b); });
+  const venues=[...new Set((SL.slots||[]).map(s=>s.venue).filter(Boolean))];
+  let h=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">預約時段</div><span class="sp"></span><button class="btn ghost xs" onclick="SL=null;render()">↻</button></div>
+    <div class="small muted" style="margin:4px 2px 0">學員開課前 ${SL.rules.cutoffH} 小時截止預約；${SL.rules.cancelH} 小時前可自己取消。預約只係預留，出席照舊喺教練頁私訓記錄。</div>`;
+  h+=`<div class="card"><b>＋ 開時段</b>
+    <div class="fgrid" style="margin-top:8px"><div><label class="lb">第一日</label><input class="in" type="date" id="sf-date" value="${esc(f.date||today)}" min="${today}"></div>
+      <div><label class="lb">重複（每週）</label><select class="in" id="sf-rep">${[1,2,3,4,6,8,12].map(n=>`<option value="${n}" ${Number(f.repeat)===n?'selected':''}>${n===1?'只呢日':n+' 週'}</option>`).join('')}</select></div>
+      <div><label class="lb">開始時間（逗號分隔）</label><input class="in num" id="sf-st" value="${esc(f.starts||'')}" placeholder="18:00, 19:00"></div>
+      <div><label class="lb">每堂</label><select class="in" id="sf-dur">${[45,60,75,90,120].map(n=>`<option value="${n}" ${Number(f.dur||60)===n?'selected':''}>${n} 分鐘</option>`).join('')}</select></div>
+      <div><label class="lb">地點</label><input class="in" id="sf-ven" list="venl" value="${esc(f.venue||'')}"><datalist id="venl">${venues.map(v=>`<option value="${esc(v)}">`).join('')}</datalist></div>
+      <div><label class="lb">只開俾（可留空＝所有學員）</label><select class="in" id="sf-only"><option value="">所有學員</option>${groups.map(g=>`<option ${f.only===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div></div>
+    <button class="btn block" style="margin-top:10px" id="sf-go" onclick="addSlots()">開時段</button></div>`;
+  const list=(SL.slots||[]).filter(s=>s.date>=today), byD={}; list.forEach(s=>(byD[s.date]=byD[s.date]||[]).push(s));
+  const ds=Object.keys(byD).sort();
+  if(!ds.length) h+='<div class="empty">未有將來時段</div>';
+  const nowKey=isoToday()+' '+pad(new Date().getHours())+':'+pad(new Date().getMinutes());
+  ds.forEach(d=>{ h+=`<div class="card"><b>${fmtD(d)}（${WK[parseISO(d).getDay()]}）</b>${byD[d].map(s=>{ const bs=bkBy[s.id]||[], act=bs.find(b=>b.status==='已約'), cx=bs.filter(b=>b.status!=='已約'), past=(s.date+' '+s.start)<=nowKey;
+      return `<div class="li"><div style="width:96px"><b class="num">${s.start}</b><span class="small muted">–${s.end}</span></div><div style="flex:1;min-width:0">
+        ${act?`<span class="badge">✓ ${esc(act.group)}</span>${act.note?` <span class="small muted">${esc(act.note)}</span>`:''}`:`<span class="small muted">空</span>`}
+        <div class="small muted">${esc(s.venue||'')}${s.only?' · 只開俾 '+esc(s.only):''}${cx.length?` · 曾取消 ${cx.map(b=>esc(b.group)+(b.status==='教練取消'?'(教練)':'')).join('、')}`:''}</div></div>
+        ${past?'<span class="small muted">已過</span>':act?`<button class="btn warn xs" onclick="coachCancelBk('${act.id}')">取消預約</button>`:`<button class="btn ghost xs" onclick="coachBook('${s.id}')">代約</button><button class="btn warn xs" style="margin-left:4px" onclick="delSlot('${s.id}')">刪</button>`}</div>`; }).join('')}</div>`; });
+  return h;
+}
+async function addSlots(){
+  const v=id=>$(id).value.trim(); C.slotForm={date:v('#sf-date'), repeat:v('#sf-rep'), starts:v('#sf-st'), dur:v('#sf-dur'), venue:v('#sf-ven'), only:v('#sf-only')};
+  if(!C.slotForm.starts){ toast('要填開始時間'); return; }
+  $('#sf-go').disabled=true;
+  const r=await api('cSlotAdd', C.slotForm, true);
+  if(!r.ok){ $('#sf-go').disabled=false; toast(r.err); return; }
+  toast(`已開 ${r.added} 個時段${r.skipped?`（${r.skipped} 個重複／過咗略過）`:''}`); C.slotForm.starts=''; SL=null; render();
+}
+async function coachBook(slotId){
+  const gs=(L.groups||[]); if(!gs.length) return;
+  const g=prompt('代邊位學員約？輸入私訓名：\n'+gs.map((x,i)=>(i+1)+'. '+x).join('\n'), C.group||gs[0]); if(!g) return;
+  const grp=gs[Number(g)-1]||g.trim(); if(!gs.includes(grp)){ toast('搵唔到呢個私訓名'); return; }
+  const r=await api('cBook',{slotId, group:grp}, true); if(!r.ok){ toast(r.err); return; } toast('已代約 '+grp); SL=null; render();
+}
+async function coachCancelBk(id){
+  const reason=prompt('取消原因（學員會睇到，可留空）：',''); if(reason===null) return;
+  const r=await api('cBookCancel',{id, reason}, true); if(!r.ok){ toast(r.err); return; } toast('已取消，時段重新開放'); SL=null; render();
+}
+async function delSlot(id){
+  if(!confirm('刪除呢個時段？')) return;
+  const r=await api('cSlotDel',{id}, true); if(!r.ok){ toast(r.err); return; } toast('已刪除'); SL=null; render();
+}
+
+/* ───────── 第三階段：習慣＋每週回顧（功課分頁下面）───────── */
+const PLC={};   // group → cPlan
+const CK_LB={'睡眠':'睡眠','精神':'精神','壓力':'壓力','酸痛':'酸痛','訓練':'跟訓練','飲食':'跟飲食'};
+async function loadPlanC(g, force){ if(PLC[g] && !force) return; const r=await api('cPlan',{group:g}); if(!r.ok){ toast(r.err); return; } PLC[g]=r; if(C.tab==='hw') render(); }
+function vPlanC(){
+  const P=PLC[C.group]; if(!P){ loadPlanC(C.group); return '<div class="spin"></div>'; }
+  const today=isoToday(), days=Array.from({length:7},(_,i)=>addDays(today,i-6));
+  let h=`<div class="h2" style="margin-top:24px">📝 每週回顧</div>`;
+  P.members.forEach(m=>{ const nm=memName(m.id)||'';
+    if(!m.checkins.length){ h+=`<div class="card small muted">${esc(nm)}：未交過回顧</div>`; return; }
+    m.checkins.slice(0,4).forEach(c=>{ const low=['睡眠','精神','訓練','飲食'].filter(k=>Number(c[k])&&Number(c[k])<=2), high=['壓力','酸痛'].filter(k=>Number(c[k])>=4);
+      h+=`<div class="card"><div class="row"><b>${esc(nm)}</b><span class="small muted">週 ${fmtD(c.week)}</span><span class="sp"></span>${low.concat(high).length?'<span class="badge red">要留意</span>':''}</div>
+        <div class="small" style="margin-top:6px">${P.keys.filter(k=>c[k]).map(k=>`${CK_LB[k]||k} <b class="num" style="color:${(low.includes(k)||high.includes(k))?'var(--red)':'var(--text)'}">${c[k]}</b>`).join(' · ')}${c.weight?` · 體重 <b class="num">${fmtN(c.weight)}</b>kg`:''}</div>
+        ${c.text?`<div style="white-space:pre-wrap;margin-top:6px">${esc(c.text)}</div>`:''}${threadCk(c.id, m.id)}</div>`; }); });
+  h+=`<div class="h2">✅ 每日習慣（近 7 日）</div>`;
+  P.members.forEach(m=>{ const nm=memName(m.id)||'', ed=C.habEdit&&C.habEdit.acct===m.id;
+    h+=`<div class="card"><div class="row"><b>${esc(nm)}</b>${m.custom?'':'<span class="badge grey">預設</span>'}<span class="sp"></span><button class="btn ghost xs" onclick="editHab('${m.id}')">${ed?'收起':'✎ 改項目'}</button></div>
+      ${ed?habForm():m.habits.map(hb=>`<div class="small" style="margin-top:5px">${esc(hb.zh)}：<span style="letter-spacing:2px">${days.map(d=>(m.habitLog[d]||[]).includes(hb.id)?'<span style="color:var(--teal)">●</span>':'<span class="muted">○</span>').join('')}</span> <b>${days.filter(d=>(m.habitLog[d]||[]).includes(hb.id)).length}</b>/7</div>`).join('')}</div>`; });
+  return h;
+}
+function threadCk(id, acct){
+  const cms=(PLC[C.group].comments||[]).filter(c=>c.target===id).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  return `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line2)">${cms.map(c=>`<div class="msg ${c.by==='coach'?'co':'st'}"><div class="bub"><span class="who">${c.by==='coach'?'教練':esc(memName(c.acct)||'學員')} · ${fmtDM(c.at)}</span>${esc(c.text)}</div></div>`).join('')}
+    <div class="tin"><input class="in" id="ckr-${id}" placeholder="回覆…" maxlength="500"><button class="btn sm" onclick="replyCk('${id}','${acct}')">送出</button></div></div>`;
+}
+async function replyCk(id, acct){
+  const el=document.getElementById('ckr-'+id), text=(el.value||'').trim(); if(!text) return; el.disabled=true;
+  const r=await api('cComment',{type:'checkin', target:id, acct, text}, true); el.disabled=false; if(!r.ok){ toast(r.err); return; }
+  PLC[C.group].comments=(PLC[C.group].comments||[]).concat([r.comment]);
+  if(L.recentComments) L.recentComments=L.recentComments.filter(c=>!(c.type==='checkin'&&c.target===id));
+  toast('已回覆'); render();
+}
+function editHab(acct){ if(C.habEdit&&C.habEdit.acct===acct){ C.habEdit=null; render(); return; } const m=PLC[C.group].members.find(x=>x.id===acct); C.habEdit={acct, items:JSON.parse(JSON.stringify(m.habits))}; render(); }
+function habForm(){ const f=C.habEdit;
+  return `<div style="margin-top:8px">${f.items.map((it,i)=>`<div class="row" style="margin-top:6px"><input class="in" value="${esc(it.zh)}" oninput="C.habEdit.items[${i}].zh=this.value" placeholder="中文"><input class="in" value="${esc(it.en||'')}" oninput="C.habEdit.items[${i}].en=this.value" placeholder="English"><button class="ib" onclick="C.habEdit.items.splice(${i},1);render()">✕</button></div>`).join('')}
+    <div class="row" style="margin-top:8px"><button class="btn ghost sm" onclick="C.habEdit.items.push({zh:'',en:''});render()" ${f.items.length>=8?'disabled':''}>＋ 項目</button><span class="sp"></span><button class="btn sm" id="hbsv" onclick="saveHab()">儲存</button></div>
+    <div class="small muted" style="margin-top:6px">最多 8 項；改名唔會影響舊打卡（同一項保留）。</div></div>`; }
+async function saveHab(){ const f=C.habEdit; $('#hbsv').disabled=true;
+  const r=await api('cHabitSave',{acct:f.acct, items:JSON.stringify(f.items)}, true); if(!r.ok){ $('#hbsv').disabled=false; toast(r.err); return; }
+  C.habEdit=null; toast('已儲存，學員即刻睇到'); loadPlanC(C.group, true); }
+
 /* ───────── 留言（全部組）───────── */
 function vCm(){
   const list=L.recentComments||[], acc={}; (L.accounts||[]).forEach(a=>acc[a.id]=a);
   let h=`<div class="h2">學員留言（最近 30 條）</div>`;
   if(!list.length) return h+'<div class="empty">暫時冇新留言</div>';
-  const TY={session:'訓練記錄', homework:'功課', body:'身體數據', diet:'飲食'};
+  const TY={session:'訓練記錄', homework:'功課', body:'身體數據', diet:'飲食', checkin:'每週回顧'};
   list.forEach((c,i)=>{ const a=acc[c.acct]||{};
     h+=`<div class="card"><div class="row"><b>${esc(a.name||'學員')}</b><span class="badge grey">${esc(a.group||'')}</span><span class="badge">${TY[c.type]||c.type}</span><span class="sp"></span><span class="small muted">${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span></div>
       <div style="margin:8px 0;white-space:pre-wrap">${c.type==='diet'?`<span class="small muted">${fmtD(c.target)}：</span>`:''}${esc(c.text)}</div>
@@ -573,7 +666,7 @@ function vCm(){
 async function replyFromList(i){ const c=L.recentComments[i], el=$('#rc-'+i), text=el.value.trim(); if(!text) return; el.disabled=true;
   const r=await api('cComment',{type:c.type, target:c.target, acct:c.acct, text}, true); el.disabled=false; if(!r.ok){ toast(r.err); return; }
   L.recentComments.splice(i,1); if(G) G.comments=(G.comments||[]).concat([r.comment]); toast('已回覆'); render(); }
-function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id===c.acct); if(!a) return; C.group=a.group; C.tab=c.type==='session'?'rec':c.type==='homework'?'hw':c.type==='diet'?'diet':'body'; if(c.type==='session') C.recOpen=c.target; if(c.type==='body') C.bodyMem=a.id; if(c.type==='diet'){ C.dietMem=a.id; C.dDate=c.target; delete DIETC[a.id]; } loadGroup(); }
+function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id===c.acct); if(!a) return; C.group=a.group; C.tab=c.type==='session'?'rec':(c.type==='homework'||c.type==='checkin')?'hw':c.type==='diet'?'diet':'body'; if(c.type==='checkin') delete PLC[a.group]; if(c.type==='session') C.recOpen=c.target; if(c.type==='body') C.bodyMem=a.id; if(c.type==='diet'){ C.dietMem=a.id; C.dDate=c.target; delete DIETC[a.id]; } loadGroup(); }
 
 /* ───────── 設定：帳戶＋動作庫 ───────── */
 function vSet(){
