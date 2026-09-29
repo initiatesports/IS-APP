@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-29-norenew';
+const FRONTEND_VERSION = 'coach-2026-09-30-ptsplit2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1124,7 +1124,10 @@ async function renderPt(){
   const cap = r.cap || 10, today = r.today || '';
   let h = `<a href="is-pt-coach.html" style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;padding:13px 14px;border-radius:12px;background:linear-gradient(135deg,#0f1a28,#16324a);border:1px solid rgba(62,207,207,.35);color:#eaf1f8;text-decoration:none"><span style="font-size:22px">🏋️</span><span style="flex:1"><b style="display:block">私訓 App：記錄今堂動作／重量、功課、身體數據</b><span style="font-size:12px;color:#8fa3bb">學員喺 is-pt.html 即時睇到</span></span><span style="color:#3ecfcf;font-weight:800">›</span></a>`;
   h += `<div style="font-size:13px;color:var(--muted);margin:12px 4px 16px;line-height:1.65">⭐ 私人訓練自成一格，與恆常班分開。每位學員各自 ${cap} 堂一個週期，夠數自動開新一期。上完堂即撳「今日上咗堂」。</div>`;
-  (r.students || []).forEach((s, i) => {
+  if(!PT_MOVED.length) ptAppInbox_().then(()=>{ if(PT_MOVED.length && (r.students||[]).some(s=>PT_MOVED.includes(s.name))) renderPt(); });
+  const movedHere=(r.students||[]).filter(s=>PT_MOVED.includes(s.name));
+  if(movedHere.length) h += `<a href="is-pt-coach.html#att/${encodeURIComponent(movedHere[0].name)}" style="display:block;margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px dashed rgba(62,207,207,.5);color:#eaf1f8;text-decoration:none;font-size:13.5px">🎫 <b>${movedHere.map(s=>esc(s.name)).join('、')}</b> 已搬去私訓 App：出席／套票喺<u>私訓教練頁「出席」</u>記（呢度唔再點，防重複）›</a>`;
+  (r.students || []).filter(s=>!PT_MOVED.includes(s.name)).forEach((s, i) => {
     // 私訓卡按學員類型顯示：wallet(預繳錢包,如鄧可澄)跟繳清週期 / package(套票,如甘卓熹20節)用套票節數 / default(10堂一期)照舊
     const wlt = s.wallet ? (s.walletState||{sessions:[],sessionCount:0,cycleCount:0}) : null;
     // 🔒 2026-09-13 審計(低)：remaining 永遠係 number(0都唔係null)→ find(remaining!=null) 恆中第一張，
@@ -1421,9 +1424,23 @@ function classRowHTML(id, cls){
    純讀已載入資料（ATT_LOG/ABSENCES/RETURNS_CACHE/CLASSES）+ 跳轉，零寫入。*/
 function addDaysStr_(s,n){ const p=String(s).split('-').map(Number); const d=new Date(p[0],p[1]-1,p[2]+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 let COACH_INBOX=null, _inboxBusy=false, _inboxAt=0;
+/* 成人私訓 App（2026-09-30 由 #4 抽離）：網頁直接問 pt-app 攞提醒，#4 後端唔經手；pt-app 壞咗都唔影響 #4。
+   同 #4 回嘅私訓項目按 key 去重（過渡期 #4 仲未拆走第 8 類時唔會雙重顯示）。 */
+const PT_API='https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
+let PT_MOVED=[];
+async function ptAppInbox_(){ try{ let pass=cpass(); try{ pass=sessionStorage.getItem('isptc_pass')||pass; }catch(e){}
+    const c=new AbortController(), tm=setTimeout(()=>c.abort(), 25000);
+    const r=await fetch(PT_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cInbox', coachPass:pass}),signal:c.signal}); clearTimeout(tm);
+    const j=await r.json(); if(!j||!j.ok) return [];
+    PT_MOVED=j.moved||[];
+    return (j.items||[]).map(x=>{ const names=(x.list||[]).filter(n=>!/示範|測試/.test(n)); return names.length?{key:x.key, ic:x.ic, title:String(x.title).replace('{n}',names.length), count:names.length, names:names.slice(0,5), level:x.level, tab:x.tab}:null; }).filter(Boolean);
+  }catch(e){ return []; } }
 async function loadInbox_(force){
   if(_inboxBusy) return; _inboxBusy=true;
+  const ptP=ptAppInbox_();
   try{ const r=await apiPost({ action:'coachInbox', coachPass:cpass() }); COACH_INBOX=(r&&r.ok)?r:{items:[]}; }catch(e){ COACH_INBOX={items:[]}; }
+  try{ const pt=await ptP, have=new Set((COACH_INBOX.items||[]).map(x=>x.key)); COACH_INBOX.items=(COACH_INBOX.items||[]).concat(pt.filter(x=>!have.has(x.key)));
+    if(PT_MOVED.length) COACH_INBOX.items=COACH_INBOX.items.filter(x=>!(x.key==='ptpkg' && (x.names||[]).every(n=>PT_MOVED.some(g=>String(n).startsWith(g))))); }catch(e){}
   _inboxAt=Date.now();
   _inboxBusy=false; try{ renderTodo(); }catch(e){}
 }

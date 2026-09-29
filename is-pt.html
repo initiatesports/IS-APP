@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-30-e';
+const FRONTEND_VERSION = 'pt-2026-09-30-g';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -191,7 +191,6 @@ const TX = {
     servings:'份數', orGrams:'或者輸入克數', addTo:'加入', added:'已加入', barcode:'條碼', notFoundHint:'資料庫未有，入一次之後就記得', foodName:'食物名稱', portion:'份量', portionPh:'例：1 碗、1 包',
     saveToLib:'儲存入食物庫，下次直接揀', customHint:'包裝食物可以睇背面營養標籤（每份）。唔知數字可以淨係影相，教練會幫你睇。', needNameKcal:'要填名稱同卡路里',
     scanHint:'將條碼對準中間條線', typeCode:'或者手動輸入條碼數字', find:'搵', camErr:'開唔到相機（可能未俾權限）——可以手動輸入條碼', searching:'搵緊…',
-    pkgLow:'套票剩 {n} 節', pkgOut:'套票已用完', pkgRenew:'想繼續上堂，請聯絡教練續票', pkgExp:'套票 {d} 日後到期（仲有 {n} 節）', pkgUse:'記得喺到期前約堂用晒',
     nextSes:'下一堂', manage:'管理', bookNext:'預約下一堂', slotsAvail:'教練有 {n} 個時段可以約', noSlots:'暫時未有開放時段，教練開咗就會喺度見到', book:'預約',
     ckDue:'交今週回顧', ckDueHint:'用 1 分鐘話俾教練知你今週狀態', booking:'預約上堂', bookRules:'開課前 {c} 小時截止預約；開課前 {x} 小時之前可以自己取消。',
     pkgLeftN:'套票剩 {n} 節', bookedN:'已約 {n} 堂', myBookings:'我嘅預約', cancel:'取消', cantCancel:'{x} 小時內要取消請搵教練', noBooking:'未有預約',
@@ -202,6 +201,7 @@ const TX = {
     streak:'連續記錄 {n} 日', yesterday:'昨日', sameAsYest:'同昨日一樣（{n} 項）', adding:'加緊…', editCustom:'自訂食物請刪除再加過', recent:'最近', noRecent:'記錄過嘅食物會喺度，下次一撳就加', saveChange:'儲存修改', saving:'儲存緊…',
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
+    undo:'復原', deleted:'已刪除', restored:'已復原',
     painQ:'今週有冇關節痛或者受傷？', painWhere:'邊度痛？（例：左膝落樓梯痛）', painHint:'酸痛同關節痛唔同——有痛請話教練知，唔好硬撐。', yes:'有', no:'冇'
   },
   en:{
@@ -238,7 +238,6 @@ const TX = {
     servings:'Servings', orGrams:'or enter grams', addTo:'Add', added:'Added', barcode:'Barcode', notFoundHint:'not in the database yet — enter it once and we will remember', foodName:'Food name', portion:'Portion', portionPh:'e.g. 1 bowl, 1 pack',
     saveToLib:'Save to food library for next time', customHint:'For packaged food, use the nutrition label (per serving). Not sure? Just snap a photo and your coach will take a look.', needNameKcal:'Name and calories are required',
     scanHint:'Line the barcode up with the centre line', typeCode:'or type the barcode number', find:'Find', camErr:"Can't open the camera (permission?) — type the barcode instead", searching:'Searching…',
-    pkgLow:'{n} session(s) left in your package', pkgOut:'Your package is used up', pkgRenew:'Contact your coach to renew and keep training', pkgExp:'Package expires in {d} days ({n} left)', pkgUse:'Book your sessions before it expires',
     nextSes:'Next session', manage:'Manage', bookNext:'Book your next session', slotsAvail:'{n} open slots available', noSlots:'No open slots yet — they will appear here once your coach adds them', book:'Book',
     ckDue:'Weekly check-in due', ckDueHint:'Take 1 minute to tell your coach how your week went', booking:'Book a session', bookRules:'Booking closes {c} hours before class; you can cancel yourself up to {x} hours before.',
     pkgLeftN:'{n} sessions left', bookedN:'{n} booked', myBookings:'My bookings', cancel:'Cancel', cantCancel:'Within {x}h — contact your coach', noBooking:'No bookings yet',
@@ -249,6 +248,7 @@ const TX = {
     streak:'{n}-day logging streak', yesterday:'Yesterday', sameAsYest:'Same as yesterday ({n} items)', adding:'Adding…', editCustom:'For custom foods, delete and add again', recent:'Recent', noRecent:'Foods you log appear here for one-tap adding', saveChange:'Save changes', saving:'Saving…',
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
+    undo:'Undo', deleted:'Deleted', restored:'Restored',
     painQ:'Any joint pain or injury this week?', painWhere:'Where does it hurt? (e.g. left knee on stairs)', painHint:'Soreness is not the same as joint pain — tell your coach about any pain, don\'t push through it.', yes:'Yes', no:'No'
   }
 };
@@ -268,6 +268,30 @@ function fmtDM(s){ const d=parseISO(s); return d?pad(d.getDate())+'/'+pad(d.getM
 function wkName(s){ const d=parseISO(s); return d?t('wk')[d.getDay()]:''; }
 function fmtN(v){ const n=Number(v); if(!isFinite(n)) return ''; return (Math.round(n*10)/10).toString(); }
 function toast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+/* 可還原刪除：提示＋「復原」掣（8 秒） */
+function toastUndo(msg, onUndo){ document.querySelectorAll('.toast.undo').forEach(x=>x.remove());
+  const el=document.createElement('div'); el.className='toast undo'; el.style.cssText+='display:flex;align-items:center;gap:12px;pointer-events:auto';
+  el.innerHTML=`<span>${esc(msg)}</span><button style="background:#082628;color:#e9f7f7;border:none;border-radius:9px;padding:7px 12px;font-weight:800;min-height:36px">${t('undo')}</button>`;
+  el.querySelector('button').onclick=async()=>{ el.remove(); await onUndo(); }; document.body.appendChild(el); setTimeout(()=>el.remove(),8000); }
+/* 後端錯誤訊息（廣東話）→ 英文版顯示（學員揀 English 時） */
+const ERR_EN={'上一次仲處理緊，請稍候':'Still processing the last request — please wait','上載太多相，請稍後再試':'Too many photo uploads — try again later','你呢個時間已經有預約':'You already have a booking at this time',
+  '只可以刪自己入嘅記錄':'You can only delete entries you added','呢個時段唔開放俾你':'This slot is not open to you','呢個時段啱啱俾人約咗，請揀過':'Someone just booked this slot — please pick another',
+  '呢個時段已經冇咗，請揀過':'This slot is no longer available — please pick another','呢堂已經開始咗':'This session has already started','唔可以填未來週':'You cannot fill in a future week',
+  '唔可以打卡未來日子':'You cannot check in for a future date','唔可以記錄未來日子':'You cannot log a future date','姓名或電話後 4 位唔啱':'Name or last 4 digits incorrect','性別唔啱':'Invalid sex',
+  '搵唔到':'Not found','搵唔到功課':'Homework not found','搵唔到呢個條碼，可以自己輸入營養資料':'Barcode not found — you can enter the nutrition yourself','搵唔到呢個習慣':'Habit not found',
+  '搵唔到呢個項目':'Item not found','搵唔到呢個預約':'Booking not found','搵唔到呢筆記錄':'Entry not found','搵唔到相片':'Photo not found','新密碼要 4 個數字':'New PIN must be 4 digits',
+  '日期唔啱':'Invalid date','時段已經過咗':'This slot has passed','查詢太多次，請稍後再試':'Too many lookups — try again later','條碼格式唔啱':'Invalid barcode','活動量唔啱':'Invalid activity level',
+  '營養數字唔啱（唔可以負數或者過大）':'Invalid nutrition values (no negatives or huge numbers)','留言太密，請稍後再試':'Too many messages — try again later','目標唔啱':'Invalid goal','相片太大':'Photo too large',
+  '相片格式唔啱':'Unsupported photo format','相片讀取失敗':'Could not load the photo','系統繁忙，請再試':'System busy — please try again','要填卡路里':'Calories are required',
+  '要填卡路里（唔知可以淨係影相）':'Calories are required (or just add a photo)','要填食物名稱':'Food name is required','試太多次，請 15 分鐘後再試':'Too many attempts — try again in 15 minutes',
+  '請最少填一項數據':'Please fill in at least one value','請最少揀一項分數':'Please rate at least one item','請輸入留言':'Please enter a message','類型唔啱':'Invalid type','食物庫搵唔到呢樣':'Food not found in library',
+  '體重數字唔啱':'Invalid weight','網上資料庫暫時連唔到':'Online food database unavailable right now','網上資料庫有呢件產品但冇營養資料，可以自己輸入':'Product found but has no nutrition data — please enter it yourself'};
+function errT(e){ if(LANG!=='en' || !e) return e; if(ERR_EN[e]) return ERR_EN[e];
+  let m=e.match(/^套票剩 (\d+) 節/); if(m) return `${m[1]} session(s) left and all booked — contact your coach to renew`;
+  if(/^套票已用完/.test(e)) return 'Package used up — contact your coach to renew';
+  m=e.match(/^開課前 (\d+) 小時截止預約/); if(m) return `Booking closes ${m[1]} hours before class — contact your coach directly`;
+  m=e.match(/^開課前 (\d+) 小時內唔可以喺 app 取消/); if(m) return `Can't cancel in the app within ${m[1]} hours of class — contact your coach`;
+  return e; }
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
@@ -288,6 +312,7 @@ async function api(action, p, write){
       clearTimeout(tm); txt = await r.text();
       if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; }
         if(j.err==='unknown action'){ await new Promise(r=>setTimeout(r,1500)); continue; }   // 慢請求（>30 秒）連線斷咗、瀏覽器改用冇參數 GET 再送 → 當網絡問題重試（2026-09-30 正式環境實測）
+        if(j.err) j.errZh=j.err, j.err=errT(j.err);   // 英文模式翻譯後端錯誤（程式判斷用 errZh）
         return j; }
     }catch(e){}
     // 寫入斷線：可能已經執行咗 → 用同一個 rid 再送（後端見到同一 rid 會回第一次嘅結果／話仲處理緊），唔會重複寫
@@ -330,8 +355,8 @@ async function boot(){
 async function refresh(showErr){
   const r = await api('me');
   if(r.ok){ D = r; S.meErr=''; lsSet('ispt_cache', r); render(); return true; }
-  if(/試太多/.test(r.err||'')){ if(!D) renderLogin(r.err); else toast(r.err); return false; }
-  if(/唔啱/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); D=null; DT=null; PL=null; renderLogin(r.err); return false; }
+  if(/試太多/.test(r.errZh||r.err||'')){ if(!D) renderLogin(r.err); else toast(r.err); return false; }
+  if(/唔啱/.test(r.errZh||r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); D=null; DT=null; PL=null; renderLogin(r.err); return false; }
   if(!D){ S.meErr=r.err||t('net'); render();   // 首次載入失敗：固定顯示重試（背景飲食／預約載完唔會蓋過），8 秒後自動再試一次
     if(!S.meRetried){ S.meRetried=true; setTimeout(()=>{ if(!D) refresh(false); }, 8000); } }
   else if(showErr) toast(r.err||t('net'));
@@ -640,6 +665,7 @@ async function bodyDel(id){
   const r=await api('bodyDel',{id}, true);
   if(!r.ok){ toast(r.err||t('net')); return; }
   D.body=(D.body||[]).filter(b=>b.id!==id); lsSet('ispt_cache', D); render();
+  toastUndo(t('deleted'), async()=>{ const u=await api('bodyRestore',{id}, true); if(!u.ok){ toast(u.err||t('net')); return; } toast(t('restored')); refresh(true); });
 }
 
 /* ───────── 飲食（第二階段）─────────
@@ -768,11 +794,11 @@ async function sendDietCm(){
   DT.comments=(DT.comments||[]).concat([r.comment]); lsSet('ispt_diet', DT); toast(t('sent')); render();
 }
 async function mealDel(id){
-  if(!confirm(t('delQ'))) return;
-  const old=(DT.entries||[]).slice(); DT.entries=old.filter(e=>e.id!==id); render();   // 即時消失
+  const old=(DT.entries||[]).slice(), gone=old.find(e=>e.id===id); DT.entries=old.filter(e=>e.id!==id); render();   // 即時消失；唔使 confirm，有「復原」
   const r=await api('mealDel',{id}, true);
-  if(!r.ok && !/搵唔到/.test(r.err||'')){ DT.entries=old; render(); toast(r.err||t('net')); return; }
+  if(!r.ok && !/搵唔到/.test(r.errZh||r.err||'')){ DT.entries=old; render(); toast(r.err||t('net')); return; }
   lsSet('ispt_diet', DT);
+  toastUndo(t('deleted'), async()=>{ const u=await api('mealRestore',{id}, true); if(!u.ok){ toast(u.err||t('net')); return; } if(gone && !DT.entries.some(e=>e.id===id)) DT.entries.push(gone); lsSet('ispt_diet', DT); render(); toast(t('restored')); });
 }
 function addEntry(e){ DT.entries=(DT.entries||[]).concat([e]); lsSet('ispt_diet', DT); render(); }
 
@@ -898,7 +924,7 @@ function openPortion(meal, f, edit){
   ov.querySelector('#pp-go').onclick=async()=>{ const b=ov.querySelector('#pp-go'); if(b.disabled) return; b.disabled=true; b.innerHTML=`<span>${t('saving')}</span>`;
     const r=await api('mealAdd',{date:S.dDate, meal:m, foodId:f.id, qty}, true);
     if(!r.ok){ b.disabled=false; b.innerHTML=`<span>${edit.replace?t('saveChange'):t('addTo')}</span>`; toast(r.err||t('net')); return; }
-    if(edit.replace){ const d=await api('mealDel',{id:edit.replace}, true); if(d.ok||/搵唔到/.test(d.err||'')) DT.entries=(DT.entries||[]).filter(e=>e.id!==edit.replace); }
+    if(edit.replace){ const d=await api('mealDel',{id:edit.replace}, true); if(d.ok||/搵唔到/.test(d.errZh||d.err||'')) DT.entries=(DT.entries||[]).filter(e=>e.id!==edit.replace); }
     ov.remove(); toast(edit.replace?t('updated'):t('added')); if(DT.freq && !edit.replace) DT.freq[f.id]=(DT.freq[f.id]||0)+1; addEntry(r.entry); };
   paint();
 }
@@ -991,12 +1017,7 @@ function mondayISO(s){ const d=parseISO(s), w=(d.getDay()+6)%7; d.setDate(d.getD
 /* 首頁提醒：套票快用完／快到期、未有下一堂、每週回顧 */
 function vReminders(){
   let h='';
-  const ps=pkgSummary();
-  if(ps && !ps.err){
-    const left=ps.none?0:ps.totalLeft, cur=ps.cur, dte=cur?Number(cur.daysToExp):NaN;
-    if(!ps.none && left<=2) h+=`<div class="card" style="border-color:rgba(201,161,92,.45);background:rgba(201,161,92,.08)"><b style="color:var(--gold)">🎫 ${left>0?t('pkgLow').replace('{n}',left):t('pkgOut')}</b><div class="small muted" style="margin-top:3px">${t('pkgRenew')}</div></div>`;
-    else if(cur && dte>=0 && dte<=14) h+=`<div class="card" style="border-color:rgba(201,161,92,.45);background:rgba(201,161,92,.08)"><b style="color:var(--gold)">⏳ ${t('pkgExp').replace('{d}',dte).replace('{n}',left)}</b><div class="small muted" style="margin-top:3px">${t('expire')} ${fmtD(cur.expiry)} · ${t('pkgUse')}</div></div>`;
-  }
+  // 老闆 2026-09-30：唔好主動提醒續購／套票快用完——已刪（套票卡照顯示剩餘節數同到期日）
   if(!PL) return h;
   const nx=upcomingBk()[0];
   if(nx) h+=`<div class="card tap hero" onclick="go('book')"><div class="small muted" style="letter-spacing:.08em">📅 ${t('nextSes').toUpperCase()}</div><div style="font-weight:900;font-size:18px;margin-top:4px">${slotWhen(nx.slotInfo)}</div><div class="row small muted" style="margin-top:2px"><span>${esc(nx.slotInfo.venue||'')}</span><span class="sp"></span><span style="color:var(--teal);font-weight:700">${t('manage')} ›</span></div></div>`;
