@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-30-d';
+const FRONTEND_VERSION = 'pt-2026-09-30-e';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -286,7 +286,9 @@ async function api(action, p, write){
       const c=new AbortController(), tm=setTimeout(()=>c.abort(), write?45000:40000);
       const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
       clearTimeout(tm); txt = await r.text();
-      if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; } return j; }
+      if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; }
+        if(j.err==='unknown action'){ await new Promise(r=>setTimeout(r,1500)); continue; }   // 慢請求（>30 秒）連線斷咗、瀏覽器改用冇參數 GET 再送 → 當網絡問題重試（2026-09-30 正式環境實測）
+        return j; }
     }catch(e){}
     // 寫入斷線：可能已經執行咗 → 用同一個 rid 再送（後端見到同一 rid 會回第一次嘅結果／話仲處理緊），唔會重複寫
     await new Promise(r=>setTimeout(r, 1000*(i+1)+(write?2000:0)));

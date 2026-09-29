@@ -100,7 +100,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-30-d';
+const FRONTEND_VERSION = 'ptc-2026-09-30-e';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -132,7 +132,9 @@ async function api(action, p, write, rid){
     try{ const c=new AbortController(), tm=setTimeout(()=>c.abort(), write?50000:30000);
       const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
       clearTimeout(tm); const txt=await r.text();
-      if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; } return j; }
+      if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; }
+        if(j.err==='unknown action'){ await new Promise(r=>setTimeout(r,1500)); continue; }   // 慢請求斷線後瀏覽器改用冇參數 GET → 當網絡問題重試
+        return j; }
     }catch(e){}
     await new Promise(r=>setTimeout(r,1000*(i+1)+(write?2000:0)));   // 寫入斷線：同一 rid 再送，後端只會執行一次
   }
