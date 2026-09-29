@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-30-c';
+const FRONTEND_VERSION = 'pt-2026-09-30-d';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -283,7 +283,7 @@ async function api(action, p, write){
   for(let i=0;i<tries;i++){
     let txt = null;
     try{
-      const c=new AbortController(), tm=setTimeout(()=>c.abort(), write?45000:25000);
+      const c=new AbortController(), tm=setTimeout(()=>c.abort(), write?45000:40000);
       const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
       clearTimeout(tm); txt = await r.text();
       if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; } return j; }
@@ -327,10 +327,12 @@ async function boot(){
 }
 async function refresh(showErr){
   const r = await api('me');
-  if(r.ok){ D = r; lsSet('ispt_cache', r); render(); return true; }
+  if(r.ok){ D = r; S.meErr=''; lsSet('ispt_cache', r); render(); return true; }
   if(/試太多/.test(r.err||'')){ if(!D) renderLogin(r.err); else toast(r.err); return false; }
   if(/唔啱/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); D=null; DT=null; PL=null; renderLogin(r.err); return false; }
-  if(showErr || !D){ if(!D){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(r.err||t('net'))}<br><br><button class="btn sm" onclick="boot()">↻</button></div></div>`; } else toast(r.err||t('net')); }
+  if(!D){ S.meErr=r.err||t('net'); render();   // 首次載入失敗：固定顯示重試（背景飲食／預約載完唔會蓋過），8 秒後自動再試一次
+    if(!S.meRetried){ S.meRetried=true; setTimeout(()=>{ if(!D) refresh(false); }, 8000); } }
+  else if(showErr) toast(r.err||t('net'));
   return false;
 }
 async function checkVersion(){
@@ -398,7 +400,7 @@ function renderShell(loading){
 function go(tab){ S.tab=tab; S.ses=null; render(); window.scrollTo(0,0); }
 function render(){
   if(!AUTH){ renderLogin(); return; }
-  if(!D){ renderShell(true); return; }
+  if(!D){ if(S.meErr){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(S.meErr)}<br><br><button class="btn sm" onclick="S.meErr='';renderShell(true);refresh(true)">↻ ${LANG==='en'?'Retry':'再試'}</button></div></div>`; return; } renderShell(true); return; }
   const y=window.scrollY, keep={}, ae=document.activeElement, focusId=ae&&ae.id&&ae.closest&&ae.closest('#main')?ae.id:'';
   document.querySelectorAll('#main input[id],#main textarea[id]').forEach(el=>{ if(el.type!=='checkbox' && el.value) keep[el.id]=el.value; });   // 背景重畫唔好洗走打緊嘅字
   renderShell(false);
