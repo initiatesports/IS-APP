@@ -150,7 +150,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-30-a';
+const FRONTEND_VERSION = 'pt-2026-09-30-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -189,7 +189,14 @@ const TX = {
     searchFood:'搜尋食物（中／英）', scan:'掃條碼', frequent:'常用', noFav:'未有常用食物，去「全部」揀或者搜尋', noFood:'搵唔到，可以自訂', customFood:'自訂食物', estimate:'參考估算值',
     servings:'份數', orGrams:'或者輸入克數', addTo:'加入', added:'已加入', barcode:'條碼', notFoundHint:'資料庫未有，入一次之後就記得', foodName:'食物名稱', portion:'份量', portionPh:'例：1 碗、1 包',
     saveToLib:'儲存入食物庫，下次直接揀', customHint:'包裝食物可以睇背面營養標籤（每份）。唔知數字可以淨係影相，教練會幫你睇。', needNameKcal:'要填名稱同卡路里',
-    scanHint:'將條碼對準中間條線', typeCode:'或者手動輸入條碼數字', find:'搵', camErr:'開唔到相機（可能未俾權限）——可以手動輸入條碼', searching:'搵緊…'
+    scanHint:'將條碼對準中間條線', typeCode:'或者手動輸入條碼數字', find:'搵', camErr:'開唔到相機（可能未俾權限）——可以手動輸入條碼', searching:'搵緊…',
+    pkgLow:'套票剩 {n} 節', pkgOut:'套票已用完', pkgRenew:'想繼續上堂，請聯絡教練續票', pkgExp:'套票 {d} 日後到期（仲有 {n} 節）', pkgUse:'記得喺到期前約堂用晒',
+    nextSes:'下一堂', manage:'管理', bookNext:'預約下一堂', slotsAvail:'教練有 {n} 個時段可以約', noSlots:'暫時未有開放時段，教練開咗就會喺度見到', book:'預約',
+    ckDue:'交今週回顧', ckDueHint:'用 1 分鐘話俾教練知你今週狀態', booking:'預約上堂', bookRules:'開課前 {c} 小時截止預約；開課前 {x} 小時之前可以自己取消。',
+    pkgLeftN:'套票剩 {n} 節', bookedN:'已約 {n} 堂', myBookings:'我的預約', cancel:'取消', cantCancel:'{x} 小時內要取消請搵教練', noBooking:'未有預約',
+    openSlots:'可預約時段', stDone:'已約', stCancelled:'已取消', stCoachCancel:'教練取消', confirmBook:'確認預約', bookPolicy:'開課前 {x} 小時之前可以喺 app 取消；之後請直接聯絡教練。',
+    booked:'預約成功', cancelQ:'確定取消呢個預約？', cancelled:'已取消預約', habits:'每日習慣', weekly:'每週回顧', ckDone:'今週已交，可以再改', edit:'修改', fillIn:'填寫',
+    ckIntro:'揀 1–5 分，冇感覺可以留空', ckText:'今週感受／想同教練講嘅嘢', submit:'提交', ckNeed:'請最少揀一項分數'
   },
   en:{
     appName:'Personal Training', login:'Log in', name:'Name (Chinese or English)', last4:'Last 4 digits of phone (or your PIN)', loginHint:'Use the name and phone number you registered with.',
@@ -224,7 +231,14 @@ const TX = {
     searchFood:'Search foods', scan:'Scan barcode', frequent:'Frequent', noFav:'No frequent foods yet — browse "All" or search', noFood:'Not found — add a custom food', customFood:'Custom food', estimate:'estimated value',
     servings:'Servings', orGrams:'or enter grams', addTo:'Add', added:'Added', barcode:'Barcode', notFoundHint:'not in the database yet — enter it once and we will remember', foodName:'Food name', portion:'Portion', portionPh:'e.g. 1 bowl, 1 pack',
     saveToLib:'Save to food library for next time', customHint:'For packaged food, use the nutrition label (per serving). Not sure? Just snap a photo and your coach will take a look.', needNameKcal:'Name and calories are required',
-    scanHint:'Line the barcode up with the centre line', typeCode:'or type the barcode number', find:'Find', camErr:"Can't open the camera (permission?) — type the barcode instead", searching:'Searching…'
+    scanHint:'Line the barcode up with the centre line', typeCode:'or type the barcode number', find:'Find', camErr:"Can't open the camera (permission?) — type the barcode instead", searching:'Searching…',
+    pkgLow:'{n} session(s) left in your package', pkgOut:'Your package is used up', pkgRenew:'Contact your coach to renew and keep training', pkgExp:'Package expires in {d} days ({n} left)', pkgUse:'Book your sessions before it expires',
+    nextSes:'Next session', manage:'Manage', bookNext:'Book your next session', slotsAvail:'{n} open slots available', noSlots:'No open slots yet — they will appear here once your coach adds them', book:'Book',
+    ckDue:'Weekly check-in due', ckDueHint:'Take 1 minute to tell your coach how your week went', booking:'Book a session', bookRules:'Booking closes {c} hours before class; you can cancel yourself up to {x} hours before.',
+    pkgLeftN:'{n} sessions left', bookedN:'{n} booked', myBookings:'My bookings', cancel:'Cancel', cantCancel:'Within {x}h — contact your coach', noBooking:'No bookings yet',
+    openSlots:'Open slots', stDone:'Booked', stCancelled:'Cancelled', stCoachCancel:'Cancelled by coach', confirmBook:'Confirm booking', bookPolicy:'You can cancel in the app up to {x} hours before; after that, contact your coach directly.',
+    booked:'Booked', cancelQ:'Cancel this booking?', cancelled:'Booking cancelled', habits:'Daily habits', weekly:'Weekly check-in', ckDone:'Submitted — you can still edit', edit:'Edit', fillIn:'Fill in',
+    ckIntro:'Rate 1–5, skip any you are unsure about', ckText:'How was your week? Anything to tell your coach?', submit:'Submit', ckNeed:'Please rate at least one item'
   }
 };
 const t = k => (TX[LANG]&&TX[LANG][k]!=null) ? TX[LANG][k] : (TX.zh[k]!=null?TX.zh[k]:k);
@@ -291,12 +305,12 @@ async function boot(){
   if(cached && cached.me){ D = cached; render(); }
   else renderShell(true);
   await refresh(!cached);
-  if(AUTH) loadDiet();
+  if(AUTH){ loadPlan(); loadDiet(); }
 }
 async function refresh(showErr){
   const r = await api('me');
   if(r.ok){ D = r; lsSet('ispt_cache', r); render(); return true; }
-  if(/唔啱|試太多/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); D=null; DT=null; renderLogin(r.err); return false; }
+  if(/唔啱|試太多/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); D=null; DT=null; PL=null; renderLogin(r.err); return false; }
   if(showErr || !D){ if(!D){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(r.err||t('net'))}<br><br><button class="btn sm" onclick="boot()">↻</button></div></div>`; } else toast(r.err||t('net')); }
   return false;
 }
@@ -338,10 +352,10 @@ async function doLogin(ev){
   const b=$('#lg-btn'); b.disabled=true; b.innerHTML=`<span>${t('loading')}</span>`;
   AUTH={name, code};
   const r=await api('me');
-  if(r.ok){ lsSet('ispt_auth', AUTH); D=r; lsSet('ispt_cache', r); DT=null; lsDel('ispt_diet'); S.tab='home'; render(); window.scrollTo(0,0); loadDiet(); return; }
+  if(r.ok){ lsSet('ispt_auth', AUTH); D=r; lsSet('ispt_cache', r); DT=null; PL=null; lsDel('ispt_diet'); lsDel('ispt_plan'); S.tab='home'; render(); window.scrollTo(0,0); loadPlan(); loadDiet(); return; }
   AUTH=null; b.disabled=false; b.innerHTML=`<span>${t('login')} →</span>`; $('#lg-err').textContent=r.err||t('net');
 }
-function logout(){ if(!confirm(t('logoutQ'))) return; AUTH=null; D=null; DT=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); renderLogin(); }
+function logout(){ if(!confirm(t('logoutQ'))) return; AUTH=null; D=null; DT=null; PL=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); renderLogin(); }
 
 /* ───────── 外殼 ───────── */
 const ICONS = {
@@ -368,7 +382,7 @@ function render(){
   if(!D){ renderShell(true); return; }
   const y=window.scrollY; renderShell(false);
   const m=$('#main');
-  m.innerHTML = ({home:vHome, train:vTrain, diet:vDiet, hw:vHw, body:vBody, more:vMore}[S.tab]||vHome)();
+  m.innerHTML = ({home:vHome, train:vTrain, diet:vDiet, hw:()=>vHw()+vHabits()+vCheckins(), body:vBody, more:vMore, book:vBook}[S.tab]||vHome)();
   window.scrollTo(0,y);
 }
 
@@ -403,6 +417,7 @@ function vHome(){
   const nm = LANG==='en' ? (me.en||me.name) : me.name;
   const mates=(D.mates||[]).map(m=>LANG==='en'?(m.en||m.name):m.name).join('、');
   let h = `<div class="h1">${t('hi')}，${esc(nm)} 👋</div><div class="sub">${mates?`${t('mates')} ${esc(mates)}`:esc(me.group||'')}${me.goal?` · 🎯 ${esc(me.goal)}`:''}</div>`;
+  h += vReminders();
   h += vPkgCard();
   h += `<div class="grid3">
     <div class="stat"><b class="num">${att.length}</b><span>${t('attended')}</span></div>
@@ -892,6 +907,149 @@ async function lookupBarcode(meal, code){
   if(r.ok && r.food){ if(!(DT.foods||[]).some(f=>f.id===r.food.id)) DT.foods=(DT.foods||[]).concat([r.food]); openPortion(meal, r.food); return; }
   if(r.notFound){ toast(r.err); openCustom(meal, {code}); return; }
   toast(r.err||t('net'));
+}
+
+/* ───────── 第三階段：預約＋習慣＋每週回顧＋套票提醒 ─────────
+   PL＝plan 回應；背景載入（ispt_plan cache），唔阻首頁。 */
+let PL = lsGet('ispt_plan');
+if(PL && (!AUTH || PL._who!==AUTH.name)) PL = null;
+let planLoading = null;
+const CK_KEYS = ['睡眠','精神','壓力','酸痛','訓練','飲食'];
+const CK_TX = {
+  zh:{'睡眠':['睡眠質素','好差','好好'], '精神':['精神／體力','好攰','充沛'], '壓力':['壓力','好輕鬆','好大'], '酸痛':['肌肉酸痛','冇','好痛'], '訓練':['跟訓練計劃','冇做','全做晒'], '飲食':['跟飲食計劃','好差','好好']},
+  en:{'睡眠':['Sleep quality','Poor','Great'], '精神':['Energy','Drained','Energised'], '壓力':['Stress','Relaxed','Very high'], '酸痛':['Muscle soreness','None','Very sore'], '訓練':['Stuck to training plan','Not at all','Fully'], '飲食':['Stuck to nutrition plan','Poor','Great']}
+};
+function loadPlan(){
+  if(planLoading) return planLoading;
+  planLoading = api('plan').then(r=>{ planLoading=null;
+    if(r.ok){ r._who=AUTH&&AUTH.name; PL=r; lsSet('ispt_plan', r); if(['home','book','hw'].includes(S.tab)) render(); }
+    else if(S.tab==='book' && !PL) toast(r.err||t('net'));
+    return r; });
+  return planLoading;
+}
+function slotWhen(s){ return `${LANG==='en'?'':'星期'}${wkName(s.date)} ${fmtD(s.date)} · ${s.start}–${s.end}`; }
+function upcomingBk(){ return (PL&&PL.bookings||[]).filter(b=>b.status==='已約' && b.hoursTo>0); }
+function mondayISO(s){ const d=parseISO(s), w=(d.getDay()+6)%7; d.setDate(d.getDate()-w); return isoOf(d); }
+/* 首頁提醒：套票快用完／快到期、未有下一堂、每週回顧 */
+function vReminders(){
+  let h='';
+  const ps=pkgSummary();
+  if(ps && !ps.err){
+    const left=ps.none?0:ps.totalLeft, cur=ps.cur, dte=cur?Number(cur.daysToExp):NaN;
+    if(ps.none || left<=2) h+=`<div class="card" style="border-color:rgba(201,161,92,.45);background:rgba(201,161,92,.08)"><b style="color:var(--gold)">🎫 ${left>0?t('pkgLow').replace('{n}',left):t('pkgOut')}</b><div class="small muted" style="margin-top:3px">${t('pkgRenew')}</div></div>`;
+    else if(cur && dte>=0 && dte<=14) h+=`<div class="card" style="border-color:rgba(201,161,92,.45);background:rgba(201,161,92,.08)"><b style="color:var(--gold)">⏳ ${t('pkgExp').replace('{d}',dte).replace('{n}',left)}</b><div class="small muted" style="margin-top:3px">${t('expire')} ${fmtD(cur.expiry)} · ${t('pkgUse')}</div></div>`;
+  }
+  if(!PL) return h;
+  const nx=upcomingBk()[0];
+  if(nx) h+=`<div class="card tap hero" onclick="go('book')"><div class="small muted" style="letter-spacing:.08em">📅 ${t('nextSes').toUpperCase()}</div><div style="font-weight:900;font-size:18px;margin-top:4px">${slotWhen(nx.slotInfo)}</div><div class="row small muted" style="margin-top:2px"><span>${esc(nx.slotInfo.venue||'')}</span><span class="sp"></span><span style="color:var(--teal);font-weight:700">${t('manage')} ›</span></div></div>`;
+  else h+=`<div class="card tap" onclick="go('book')"><div class="row"><div><b>📅 ${t('bookNext')}</b><div class="small muted">${(PL.slots||[]).length?t('slotsAvail').replace('{n}',PL.slots.length):t('noSlots')}</div></div><span class="sp"></span><span class="btn sm skew"><span>${t('book')} →</span></span></div></div>`;
+  const wk=mondayISO(isoToday()), dow=new Date().getDay();
+  if((dow===0||dow>=5) && !(PL.checkins||[]).some(c=>c.week===wk)) h+=`<div class="card tap" onclick="openCheckin()"><div class="row"><div><b>📝 ${t('ckDue')}</b><div class="small muted">${t('ckDueHint')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
+  return h;
+}
+
+/* 預約頁 */
+function vBook(){
+  if(!PL){ loadPlan(); return `<div class="h1">${t('booking')}</div><div class="skel"></div><div class="skel"></div>`; }
+  const up=upcomingBk(), R=PL.rules||{cutoffH:2,cancelH:24};
+  let h=`<button class="back" onclick="go('home')">‹ ${t('home')}</button><div class="row"><div class="h1">${t('booking')}</div><span class="sp"></span><button class="lnk" style="margin-top:14px" onclick="loadPlan()">↻</button></div>
+    <div class="sub">${t('bookRules').replace('{c}',R.cutoffH).replace('{x}',R.cancelH)}</div>`;
+  if(PL.pkgLeft!=null) h+=`<div class="card row" style="padding:12px 14px"><span>🎫 ${t('pkgLeftN').replace('{n}',PL.pkgLeft)}</span><span class="sp"></span><span class="small muted">${t('bookedN').replace('{n}',PL.futureBooked)}</span></div>`;
+  h+=`<div class="sec">${t('myBookings')}</div>`;
+  h+= up.length ? `<div class="card">${up.map(b=>`<div class="li"><div style="flex:1;min-width:0"><div style="font-weight:800">${slotWhen(b.slotInfo)}</div><div class="small muted">${esc(b.slotInfo.venue||'')}${b.note?' · '+esc(b.note):''}</div></div>
+      ${b.canCancel?`<button class="btn ghost sm" onclick="cancelBk('${b.id}')">${t('cancel')}</button>`:`<span class="small muted" style="max-width:110px;text-align:right">${t('cantCancel').replace('{x}',R.cancelH)}</span>`}</div>`).join('')}</div>`
+    : `<div class="card"><div class="small muted">${t('noBooking')}</div></div>`;
+  h+=`<div class="sec">${t('openSlots')}</div>`;
+  const byDate={}; (PL.slots||[]).forEach(s=>(byDate[s.date]=byDate[s.date]||[]).push(s));
+  const dates=Object.keys(byDate).sort();
+  h+= dates.length ? dates.map(d=>`<div class="card"><div style="font-weight:800">${LANG==='en'?'':'星期'}${wkName(d)} · ${fmtD(d)}</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${byDate[d].map(s=>`<button class="chip" style="padding:8px 14px;font-size:14px" onclick="confirmBook('${s.id}')"><b class="num">${s.start}</b>${s.venue?` <span class="small">${esc(s.venue)}</span>`:''}</button>`).join('')}</div></div>`).join('')
+    : `<div class="card empty"><div class="ic">📅</div>${t('noSlots')}</div>`;
+  const past=(PL.bookings||[]).filter(b=>!(b.status==='已約' && b.hoursTo>0)).reverse().slice(0,10);
+  if(past.length) h+=`<div class="sec">${t('history')}</div><div class="card">${past.map(b=>`<div class="li"><div style="flex:1"><div>${slotWhen(b.slotInfo)}</div>${b.note?`<div class="small muted">${esc(b.note)}</div>`:''}</div><span class="badge ${b.status==='已約'?'':b.status==='教練取消'?'red':'grey'}">${bkStatus(b.status)}</span></div>`).join('')}</div>`;
+  return h;
+}
+function bkStatus(s){ return ({'已約':t('stDone'),'已取消':t('stCancelled'),'教練取消':t('stCoachCancel')})[s]||s; }
+function confirmBook(id){
+  const s=(PL.slots||[]).find(x=>x.id===id); if(!s) return;
+  const ov=sheet(`<div class="row"><b style="font-size:18px">📅 ${t('confirmBook')}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    <div class="card" style="background:var(--panel2);margin-top:12px"><div style="font-weight:900;font-size:18px">${slotWhen(s)}</div>${s.venue?`<div class="muted">📍 ${esc(s.venue)}</div>`:''}${s.note?`<div class="small muted">${esc(s.note)}</div>`:''}</div>
+    <div class="small muted">${t('bookPolicy').replace('{x}',(PL.rules||{}).cancelH||24)}</div>
+    <button class="btn skew block" style="margin-top:14px" id="bk-go"><span>${t('book')}</span></button>`);
+  ov.querySelector('#bk-go').onclick=async()=>{ const b=ov.querySelector('#bk-go'); b.disabled=true;
+    const r=await api('book',{slotId:id}, true);
+    if(!r.ok){ b.disabled=false; toast(r.err||t('net')); if(!r.pkg){ ov.remove(); loadPlan(); } return; }
+    ov.remove(); toast('✓ '+t('booked')); await loadPlan(); };
+}
+async function cancelBk(id){
+  if(!confirm(t('cancelQ'))) return;
+  const r=await api('bookCancel',{id}, true);
+  if(!r.ok){ toast(r.err||t('net')); return; }
+  toast(t('cancelled')); await loadPlan();
+}
+
+/* 每日習慣（功課頁頂）*/
+function vHabits(){
+  if(!PL) return '';
+  const hs=PL.habits||[], log=PL.habitLog||{}, today=isoToday(), days=Array.from({length:7},(_,i)=>addDays(today,i-6));
+  if(!hs.length) return '';
+  const doneToday=(log[today]||[]).filter(x=>hs.some(h=>h.id===x)).length;
+  return `<div class="sec">✅ ${t('habits')}</div><div class="card"><div class="row"><span class="small muted">${t('today')}</span><span class="sp"></span><span class="badge ${doneToday===hs.length?'':'grey'}">${doneToday}/${hs.length}</span></div>
+    ${hs.map(hb=>`<div class="hwi"><div style="font-weight:800">${esc(LANG==='en'?(hb.en||hb.zh):hb.zh)}</div>
+      <div class="days">${days.map(d=>{ const on=(log[d]||[]).includes(hb.id); return `<button class="day ${on?'done':''} ${d===today?'today':''}" onclick="habitTick('${hb.id}','${d}',${on?0:1})"><span>${wkName(d)}</span><b>${parseISO(d).getDate()}</b></button>`; }).join('')}</div></div>`).join('')}</div>`;
+}
+async function habitTick(hid, date, done){
+  const log=PL.habitLog=PL.habitLog||{}, old=(log[date]||[]).slice();
+  log[date]=old.filter(x=>x!==hid); if(done) log[date].push(hid); render();
+  const r=await api('habitTick',{hid, date, done:done?'1':'0'}, true);
+  if(!r.ok){ log[date]=old; toast(r.err||t('net')); render(); return; }
+  log[date]=r.done; lsSet('ispt_plan', PL);
+}
+
+/* 每週回顧 */
+function vCheckins(){
+  if(!PL) return '';
+  const wk=mondayISO(isoToday()), cur=(PL.checkins||[]).find(c=>c.week===wk), list=PL.checkins||[];
+  let h=`<div class="sec">📝 ${t('weekly')}</div>`;
+  h+=`<div class="card"><div class="row"><div><b>${t('hwWeek')} ${fmtD(wk)}</b><div class="small muted">${cur?t('ckDone'):t('ckDueHint')}</div></div><span class="sp"></span><button class="btn sm ${cur?'ghost':''}" onclick="openCheckin()">${cur?t('edit'):t('fillIn')}</button></div></div>`;
+  list.forEach(c=>{
+    const tx=CK_TX[LANG]||CK_TX.zh, cms=(PL.checkinComments||[]).filter(x=>x.target===c.id).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+    h+=`<div class="card"><b>${t('hwWeek')} ${fmtD(c.week)}</b>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${CK_KEYS.filter(k=>c[k]).map(k=>`<span class="badge grey">${tx[k][0]} <b style="color:var(--text)">${c[k]}</b>/5</span>`).join('')}${c.weight?`<span class="badge grey">${t('weight')} <b style="color:var(--text)">${fmtN(c.weight)}</b>kg</span>`:''}</div>
+      ${c.text?`<div style="white-space:pre-wrap;margin-top:8px;font-size:14px">${esc(c.text)}</div>`:''}
+      <div class="thread"><div class="small muted" style="font-weight:700;margin-bottom:4px">💬 ${t('comments')}</div>${cms.map(m=>`<div class="msg ${m.by==='coach'?'co':'me'}"><div class="bub"><span class="who">${m.by==='coach'?t('coach'):t('you')} · ${fmtDM(m.at)}</span>${esc(m.text)}</div></div>`).join('')||`<div class="small muted">${t('noCm')}</div>`}
+        <div class="tin"><input class="in" id="cm-ck-${c.id}" placeholder="${t('say')}" maxlength="500"><button class="btn sm" onclick="sendCkCm('${c.id}')">${t('send')}</button></div></div></div>`;
+  });
+  return h;
+}
+async function sendCkCm(id){
+  const el=document.getElementById('cm-ck-'+id), text=(el.value||'').trim(); if(!text) return; el.disabled=true;
+  const r=await api('comment',{type:'checkin', target:id, text}, true); el.disabled=false;
+  if(!r.ok){ toast(r.err||t('net')); return; }
+  PL.checkinComments=(PL.checkinComments||[]).concat([r.comment]); lsSet('ispt_plan', PL); toast(t('sent')); render();
+}
+function openCheckin(){
+  if(!PL){ toast(t('loading')); loadPlan(); return; }
+  const wk=mondayISO(isoToday()), cur=(PL.checkins||[]).find(c=>c.week===wk)||{}, tx=CK_TX[LANG]||CK_TX.zh, val={};
+  CK_KEYS.forEach(k=>val[k]=Number(cur[k])||0);
+  const ov=sheet(`<div class="row"><b style="font-size:19px">📝 ${t('weekly')}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    <div class="small muted" style="margin:4px 0 10px">${t('hwWeek')} ${fmtD(wk)} · ${t('ckIntro')}</div>
+    ${CK_KEYS.map(k=>`<div style="margin:12px 0"><div class="row"><b>${tx[k][0]}</b><span class="sp"></span><span class="small muted">1 ${tx[k][1]} · 5 ${tx[k][2]}</span></div>
+      <div class="row" data-k="${k}" style="margin-top:6px;gap:6px">${[1,2,3,4,5].map(n=>`<button class="chip num" style="flex:1;justify-content:center;font-size:15px" data-v="${n}">${n}</button>`).join('')}</div></div>`).join('')}
+    <div class="fgrid" style="margin-top:6px"><div><label class="lb">${t('weight')} (kg)</label><input class="in num" id="ck-w" inputmode="decimal" value="${esc(cur.weight||'')}"></div></div>
+    <label class="lb" style="margin-top:12px">${t('ckText')}</label><textarea class="in" id="ck-t" rows="3" maxlength="800">${esc(cur.text||'')}</textarea>
+    <button class="btn skew block" style="margin-top:14px" id="ck-go"><span>${t('submit')}</span></button>`);
+  const paint=()=>ov.querySelectorAll('[data-k]').forEach(r=>r.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on', Number(b.dataset.v)===val[r.dataset.k])));
+  ov.querySelectorAll('[data-k] .chip').forEach(b=>b.onclick=()=>{ val[b.parentNode.dataset.k]=Number(b.dataset.v); paint(); });
+  paint();
+  ov.querySelector('#ck-go').onclick=async()=>{
+    if(!CK_KEYS.some(k=>val[k])){ toast(t('ckNeed')); return; }
+    const p={week:wk, weight:ov.querySelector('#ck-w').value.trim(), text:ov.querySelector('#ck-t').value.trim()}; CK_KEYS.forEach(k=>p[k]=val[k]||'');
+    const b=ov.querySelector('#ck-go'); b.disabled=true;
+    const r=await api('checkin', p, true);
+    if(!r.ok){ b.disabled=false; toast(r.err||t('net')); return; }
+    ov.remove(); toast(t('saved')); PL.checkins=[r.checkin].concat((PL.checkins||[]).filter(c=>c.week!==wk)); lsSet('ispt_plan', PL); render();
+    if(p.weight) refresh();
+  };
 }
 
 /* ───────── 更多 ───────── */
