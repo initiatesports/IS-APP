@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-29-ptapp';
+const FRONTEND_VERSION = 'coach-2026-09-30-ptinbox';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1454,7 +1454,7 @@ function renderTodo(){
   // 7. 📥 統一待辦箱（老闆 2026-09-28）：報名管理各分頁嘅待處理＋私訓套票續購（後端 coachInbox，背景攞）
   if(COACH_INBOX===null || Date.now()-_inboxAt>5*60*1000) loadInbox_();   // 每 5 分鐘內重用，返首頁時自動更新
   ((COACH_INBOX&&COACH_INBOX.items)||[]).forEach(x=>{
-    const go = x.tab==='coach:pt' ? `showScreen('pt')` : `location.href='is-enroll-admin.html#${x.tab}'`;
+    const go = x.tab==='coach:pt' ? `showScreen('pt')` : String(x.tab).startsWith('ptapp:') ? `location.href='is-pt-coach.html#${encodeURIComponent(String(x.tab).slice(6))}'` : `location.href='is-enroll-admin.html#${x.tab}'`;   // ptapp:分頁[/私訓名] → 成人私訓教練頁
     items.push({ic:x.ic, t:x.title, sub:(x.names||[]).join('、')+(x.count>(x.names||[]).length?' 等':''), cls:(x.level==='urgent'?'urgent':(x.level==='warn'?'warn':'info')), onclick:go});
   });
   if(!items.length){ host.innerHTML=`<div class="todo-empty">✓ ${COACH_INBOX===null?'今日暫時冇待辦（載入緊其他待處理事項…）':'今日冇待辦，一切妥當'}</div>`; return; }
