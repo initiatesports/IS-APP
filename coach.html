@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-30-ptsplit';
+const FRONTEND_VERSION = 'coach-2026-09-30-ptsplit2';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1263,9 +1263,8 @@ async function renderPt(){
    記入「私訓套票」分頁（ptPackageAdd），之後每節按購買日先後 FIFO 扣（免費贈送堂會先用）。 */
 function ptPkgNewHtml(s, i){
   const paid=(s.packages||[]).filter(p=>Number(p.amount)>0).sort((a,b)=>String(a.buyDate).localeCompare(String(b.buyDate))).pop()||{};
-  const totRem=(s.packages||[]).reduce((a,p)=>a+Math.max(0,Number(p.remaining)||0),0);
   const open=PT_PKGNEW===i, today=new Date(Date.now()+8*3600e3).toISOString().slice(0,10);
-  const btn=`<button onclick="PT_PKGNEW=(PT_PKGNEW===${i}?-1:${i});renderPt()" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:${totRem<=1?'none':'1px solid var(--border)'};font-weight:800;background:${totRem<=1?'linear-gradient(135deg,#e0a93a,#a06a10)':'transparent'};color:${totRem<=1?'#fff':'var(--text)'};cursor:pointer;font-family:inherit">➕ 開新套票（新一期）</button>`;
+  const btn=`<button onclick="PT_PKGNEW=(PT_PKGNEW===${i}?-1:${i});renderPt()" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:1px solid var(--border);font-weight:800;background:transparent;color:var(--text);cursor:pointer;font-family:inherit">➕ 開新套票（新一期）</button>`;
   if(!open) return btn;
   const f=(id,lab,val,type)=>`<label style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);flex:1;min-width:110px">${lab}<input id="${id}" type="${type||'text'}" value="${val}" style="padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit"></label>`;
   return btn+`<div style="margin-top:8px;padding:10px;border-radius:10px;background:var(--surface2)">
@@ -1468,7 +1467,7 @@ function renderTodo(){
   // 6. 醫生紙待核實（已載入 MNV_LIST）
   const mnv=(typeof MNV_LIST!=='undefined'?MNV_LIST:[]).filter(x=>x&&!/示範|測試/.test(x.name||''));
   if(mnv.length) items.push({ic:'🩹',t:`${mnv.length} 張醫生紙待核實`,sub:mnv.slice(0,5).map(x=>x.name).join('、'),cls:'warn',onclick:`var e=document.getElementById('home-mednote');if(e)e.scrollIntoView({behavior:'smooth'})`});
-  // 7. 📥 統一待辦箱（老闆 2026-09-28）：報名管理各分頁嘅待處理＋私訓套票續購（後端 coachInbox，背景攞）
+  // 7. 📥 統一待辦箱（老闆 2026-09-28）：報名管理各分頁嘅待處理（後端 coachInbox，背景攞；2026-09-29 已移除私訓套票續購提醒）
   if(COACH_INBOX===null || Date.now()-_inboxAt>5*60*1000) loadInbox_();   // 每 5 分鐘內重用，返首頁時自動更新
   ((COACH_INBOX&&COACH_INBOX.items)||[]).forEach(x=>{
     const go = x.tab==='coach:pt' ? `showScreen('pt')` : String(x.tab).startsWith('ptapp:') ? `location.href='is-pt-coach.html#${encodeURIComponent(String(x.tab).slice(6))}'` : `location.href='is-enroll-admin.html#${x.tab}'`;   // ptapp:分頁[/私訓名] → 成人私訓教練頁
