@@ -1,0 +1,14 @@
+{
+  "name": "INITIATE SPORTS 私人訓練",
+  "short_name": "IS 私訓",
+  "description": "INITIATE SPORTS 成人私人訓練：訓練記錄、功課、身體數據、套票",
+  "start_url": "is-pt.html",
+  "scope": "is-pt.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1a28",
+  "theme_color": "#0f1a28",
+  "icons": [
+    { "src": "img/is-mark-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

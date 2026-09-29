@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>IS 私訓教練記錄</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0f1a28">
+<link rel="icon" href="img/is-mark-96.png">
+<link rel="apple-touch-icon" href="img/is-mark-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Noto+Sans+HK:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1a28;--panel:#16243a;--panel2:#1c2e48;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.15);--text:#eaf1f8;--mut:#8fa3bb;--teal:#3ecfcf;--teal2:#24a9ad;--gold:#c9a15c;--red:#ff7a7a;--safe-b:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans HK',-apple-system,sans-serif;font-size:15px;line-height:1.5}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+.num{font-family:'Archivo','Noto Sans HK',sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px calc(110px + var(--safe-b))}
+.top{position:sticky;top:0;z-index:20;background:rgba(15,26,40,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 8px) 14px 0}
+.top-in{max-width:720px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.05em;font-size:14px}
+.brand img{width:24px;height:24px;border-radius:6px}
+.brand .tag{transform:skewX(-6deg);background:var(--gold);color:#241a08;padding:1px 7px;font-size:11px}
+.row{display:flex;align-items:center;gap:8px}
+.sp{flex:1}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;color:var(--mut);white-space:nowrap}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#062426;font-weight:800}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -2px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto;background:none;border:none;border-bottom:3px solid transparent;color:var(--mut);padding:9px 6px 8px;font-weight:700;font-size:13.5px}
+.tabs button.on{color:var(--teal);border-bottom-color:var(--teal)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+.h2{font-size:18px;font-weight:900;margin:16px 2px 6px}
+.muted{color:var(--mut)}
+.small{font-size:12.5px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(62,207,207,.14);color:var(--teal)}
+.badge.gold{background:rgba(201,161,92,.18);color:var(--gold)}
+.badge.red{background:rgba(255,122,122,.15);color:var(--red)}
+.badge.grey{background:rgba(255,255,255,.07);color:var(--mut)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:11px;padding:11px 15px;font-weight:800;background:var(--teal);color:#062426}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--text)}
+.btn.warn{background:transparent;border:1px solid rgba(255,122,122,.4);color:var(--red)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:9px}
+.btn.xs{padding:4px 9px;font-size:12px;border-radius:8px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.lnk{background:none;border:none;color:var(--teal);font-weight:700;padding:0;font-size:13px}
+.in{width:100%;background:#0c1622;border:1px solid var(--line2);border-radius:10px;padding:10px 11px;outline:none}
+.in:focus{border-color:var(--teal)}
+textarea.in{resize:vertical;min-height:70px}
+.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 4px 2px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{margin-bottom:10px}
+/* logger */
+.blk{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;margin:12px 0}
+.blk-h{display:flex;align-items:flex-start;gap:8px}
+.blk-h .nm{font-weight:900;font-size:16px;line-height:1.3}
+.last{font-size:12px;color:var(--gold);margin:4px 0 2px}
+.srow{display:grid;gap:6px;align-items:center;margin-top:7px}
+.srow .no{width:22px;text-align:center;font-family:Archivo;font-weight:800;color:var(--mut)}
+.srow input,.srow select{background:#0c1622;border:1px solid var(--line2);border-radius:9px;padding:9px 6px;text-align:center;width:100%;min-width:0;outline:none}
+.srow input:focus{border-color:var(--teal)}
+.srow .x{background:none;border:none;color:var(--mut);font-size:16px;padding:4px}
+.shead{display:grid;gap:6px;font-size:11px;color:var(--mut);text-align:center;margin-top:8px}
+.ib{background:none;border:1px solid var(--line2);border-radius:8px;color:var(--mut);padding:3px 8px;font-size:13px}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,22,34,.97);border-top:1px solid var(--line);padding:10px 14px calc(10px + var(--safe-b))}
+.savebar .in2{max-width:720px;margin:0 auto;display:flex;gap:8px;align-items:center}
+/* lists */
+.li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:none}
+.sline{font-size:13.5px;margin:3px 0}
+.sline b{font-weight:800}
+.msg{display:flex;margin:5px 0}
+.msg .bub{max-width:85%;padding:7px 10px;border-radius:13px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.msg.st .bub{background:var(--panel2);border-bottom-left-radius:4px}
+.msg.co{justify-content:flex-end}
+.msg.co .bub{background:rgba(201,161,92,.16);border-bottom-right-radius:4px}
+.msg .who{display:block;font-size:10.5px;color:var(--mut)}
+.tin{display:flex;gap:8px;margin-top:8px}
+.tin input{flex:1}
+.ov{position:fixed;inset:0;z-index:50;background:rgba(3,8,14,.7);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--panel);width:100%;max-width:720px;height:86vh;display:flex;flex-direction:column;border-radius:20px 20px 0 0;border:1px solid var(--line2);padding:14px 14px 0}
+.sheet .body{flex:1;overflow:auto;padding-bottom:calc(20px + var(--safe-b))}
+.pick{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
+.pick:hover{background:rgba(255,255,255,.03)}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translateX(-50%);background:#e9f7f7;color:#082628;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:90vw;text-align:center}
+.spin{width:22px;height:22px;border:3px solid rgba(62,207,207,.25);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.chart{width:100%;height:auto;display:block}
+.empty{text-align:center;color:var(--mut);padding:26px 10px}
+.mem{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border-radius:10px;padding:6px 10px;font-size:13px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const FRONTEND_VERSION = 'ptc-2026-09-29-b';
+const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
+const STUDENT_URL = 'https://initiatesports.github.io/IS-APP/is-pt.html';
+
+/* ───────── 工具 ───────── */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => ('0'+n).slice(-2);
+const isoOf = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const isoToday = () => isoOf(new Date());
+function parseISO(s){ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]):null; }
+function addDays(s,n){ const d=parseISO(s); d.setDate(d.getDate()+n); return isoOf(d); }
+function mondayOf(s){ const d=parseISO(s); const w=(d.getDay()+6)%7; d.setDate(d.getDate()-w); return isoOf(d); }
+function fmtD(s){ const d=parseISO(s); return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear():esc(s||''); }
+function fmtDM(s){ const d=parseISO(s); return d?pad(d.getDate())+'/'+pad(d.getMonth()+1):''; }
+const WK=['日','一','二','三','四','五','六'];
+function fmtN(v){ const n=Number(v); return isFinite(n)&&String(v)!==''?(Math.round(n*10)/10).toString():''; }
+function toast(m){ const e=document.createElement('div'); e.className='toast'; e.textContent=m; document.body.appendChild(e); setTimeout(()=>e.remove(),2600); }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+/* 教練密碼：同 coach.html 共用 sessionStorage is_cpass（只存本分頁，唔持久）*/
+let PASS = (()=>{ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
+async function api(action, p, write){
+  const body=Object.assign({action, coachPass:PASS}, p||{});
+  if(write) body.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);   // 冪等：重試沿用同一 rid，後端唔會重複寫
+  for(let i=0;i<3;i++){
+    let txt=null;
+    try{ const c=new AbortController(), tm=setTimeout(()=>c.abort(),50000);
+      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
+      clearTimeout(tm); txt=await r.text(); if(txt.charAt(0)==='{') return JSON.parse(txt);
+    }catch(e){ if(write && txt===null) return {ok:false, err:'連線中斷，未肯定儲存咗未——請睇返記錄先，唔好即刻重按', unsure:true}; }
+    await new Promise(r=>setTimeout(r,1000*(i+1)));
+  }
+  return {ok:false, err:'網絡唔穩定，請再試'};
+}
+
+/* ───────── 狀態 ───────── */
+let L=null;            // cLoad
+let G=null;            // cGroup
+const C={ group:lsGet('isptc_group')||'', tab:'log', bodyMem:'', bodyMetric:'weight', hwEdit:null, acctEdit:null, exEdit:null, exQ:'', recOpen:null };
+const EXM=()=>{ const m={}; (L&&L.exercises||[]).forEach(e=>m[e.id]=e); return m; };
+const exName=id=>{ const e=EXM()[id]; return e?e.zh:'（已刪動作）'; };
+const exEn=id=>{ const e=EXM()[id]; return e?e.en||'':''; };
+const memName=id=>{ const a=(L&&L.accounts||[]).find(x=>x.id===id); return a?(a.en||a.name):''; };
+const members=()=>G&&G.members||[];
+
+/* ───────── 啟動／登入 ───────── */
+async function boot(){
+  checkVersion();
+  if(!PASS){ renderLogin(); return; }
+  $('#app').innerHTML='<div class="spin"></div>';
+  const r=await api('cLoad');
+  if(!r.ok){ if(/密碼/.test(r.err||'')){ PASS=''; try{ sessionStorage.removeItem('is_cpass'); }catch(e){} renderLogin(r.err); } else $('#app').innerHTML=`<div class="empty" style="padding-top:30vh">${esc(r.err)}<br><br><button class="btn sm" onclick="boot()">↻ 重試</button></div>`; return; }
+  L=r;
+  if(!C.group || !L.groups.includes(C.group)) C.group=L.groups[0]||'';
+  if(!C.group) C.tab='set';
+  await loadGroup();
+}
+function renderLogin(err){
+  $('#app').innerHTML=`<div style="max-width:380px;margin:0 auto;padding:22vh 22px 0">
+    <div class="brand" style="font-size:18px;margin-bottom:18px"><img src="img/is-mark-96.png" style="width:36px;height:36px">INITIATE <span class="tag">PT 教練</span></div>
+    <form onsubmit="doLogin(event)"><label class="lb">教練密碼</label><input class="in" type="password" id="pw" autocomplete="current-password">
+    <div style="color:var(--red);font-size:13px;min-height:20px;margin:6px 2px">${esc(err||'')}</div>
+    <button class="btn block">登入</button></form>
+    <p class="small muted" style="margin-top:14px">由恆常班教練頁「⭐ 私訓」撳入嚟就唔使再輸入。</p></div>`;
+}
+async function doLogin(e){ e.preventDefault(); PASS=$('#pw').value.trim(); if(!PASS) return; try{ sessionStorage.setItem('is_cpass',PASS); }catch(x){} boot(); }
+async function checkVersion(){
+  try{ const r=await fetch(location.pathname+'?_ck='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
+    const m=(await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    if(m && m[1]!==FRONTEND_VERSION){ let tr=null; try{ tr=sessionStorage.getItem('isptc_upd'); }catch(e){} if(tr===m[1]) return; try{ sessionStorage.setItem('isptc_upd',m[1]); }catch(e){}
+      toast('🔄 有新版本，更新中…'); setTimeout(()=>location.replace(location.pathname+'?v='+encodeURIComponent(m[1])),900); } }catch(e){}
+}
+async function loadGroup(){
+  if(!C.group){ G=null; render(); return; }
+  lsSet('isptc_group', C.group);
+  if(!G || G.group!==C.group){ G=null; render(); }
+  const r=await api('cGroup',{group:C.group});
+  if(!r.ok){ toast(r.err); return; }
+  G=r; if(!C.bodyMem || !members().some(m=>m.id===C.bodyMem)) C.bodyMem=(members()[0]||{}).id||'';
+  render();
+}
+async function reloadAll(){ const r=await api('cLoad'); if(r.ok){ L=r; } await loadGroup(); }
+function pickGroup(g){ C.group=g; C.hwEdit=null; C.recOpen=null; loadGroup(); }
+
+/* ───────── 外殼 ───────── */
+const TABS=[['log','📝 今堂'],['rec','📚 記錄'],['hw','📋 功課'],['body','📈 身體'],['cm','💬 留言'],['set','⚙️ 設定']];
+function render(){
+  if(!L){ return; }
+  const unread=(L.recentComments||[]).length;
+  const y=window.scrollY;
+  $('#app').innerHTML=`<header class="top"><div class="top-in">
+    <div class="row"><div class="brand"><img src="img/is-mark-96.png">INITIATE <span class="tag">PT 教練</span></div><span class="sp"></span>
+      <a class="lnk" href="coach.html" style="text-decoration:none">‹ 教練頁</a></div>
+    <div class="chips">${L.groups.map(g=>`<button class="chip ${g===C.group?'on':''}" onclick="pickGroup('${esc(g).replace(/'/g,"\\'")}')">${esc(g)}</button>`).join('')||'<span class="small muted">未有學員帳戶 → 去「設定」開帳戶</span>'}</div>
+    <div class="tabs">${TABS.map(t=>`<button class="${C.tab===t[0]?'on':''}" onclick="C.tab='${t[0]}';render();window.scrollTo(0,0)">${t[1]}${t[0]==='cm'&&unread?` <span class="badge gold">${unread}</span>`:''}</button>`).join('')}</div>
+  </div></header>
+  <main class="wrap" id="main"></main>`;
+  const needG = ['log','rec','hw','body'].includes(C.tab);
+  if(needG && !C.group){ $('#main').innerHTML='<div class="empty">未有學員帳戶。去「⚙️ 設定」開帳戶先（私訓名要同 #4 私訓記錄一樣，出席／套票先會自動連上）。</div>'; return; }
+  if(needG && !G){ $('#main').innerHTML='<div class="spin"></div>'; return; }
+  $('#main').innerHTML=({log:vLog, rec:vRec, hw:vHw, body:vBody, cm:vCm, set:vSet}[C.tab])();
+  window.scrollTo(0,y);
+  if(C.tab==='log') bindDraftInputs();
+}
+function groupHeader(){
+  const pk=(G.pt&&G.pt.packages)||[], act=pk.filter(p=>Number(p.remaining)>0 && !(Number(p.daysToExp)<0)), left=act.reduce((a,p)=>a+Number(p.remaining||0),0);
+  const cur=act[0];
+  return `<div class="row" style="flex-wrap:wrap;margin-top:12px">${members().map(m=>`<span class="mem">👤 ${esc(m.name)}${m.en?` <span class="muted small">${esc(m.en)}</span>`:''}</span>`).join('')}<span class="sp"></span>
+    ${G.pt&&G.pt.ok?`<span class="badge ${left<=1?'red':''}">套票剩 ${left} 節${cur&&cur.expiry?` · 到期 ${fmtD(cur.expiry)}`:''}</span>`:'<span class="badge grey">#4 套票未連上</span>'}</div>`;
+}
+
+/* ───────── 記錄今堂（draft 自動存本機，上堂途中斷線唔會失）───────── */
+const dKey=()=>'isptc_draft_'+C.group;
+function getDraft(){ let d=lsGet(dKey()); if(!d) d={id:'', date:isoToday(), title:'', note:'', blocks:[]}; return d; }
+function putDraft(d){ lsSet(dKey(), d); }
+function lastSetsFor(ex, beforeDate, excludeId){
+  const s=(G.sessions||[]).filter(x=>x.id!==excludeId && (!beforeDate || x.date<=beforeDate)).find(x=>x.sets.some(y=>y.ex===ex));
+  if(!s) return null; return {date:s.date, sets:s.sets.filter(y=>y.ex===ex)};
+}
+function setTxt(x){ const kg=fmtN(x.kg), r=x.reps, sec=x.sec; let t=kg?kg+(r!==''&&r!=null?'×'+r:'kg'):(r!==''&&r!=null?r+'下':''); if(sec!==''&&sec!=null) t+=(t?' ':'')+sec+'s'; return t||'—'; }
+function vLog(){
+  const d=getDraft(), ms=members(), multi=ms.length>1;
+  const cols = b => '22px 1fr 1fr'+(b.timed?' 1fr':'')+(multi?' 1.2fr':'')+' 26px';
+  let h=groupHeader();
+  h+=`<div class="card">${d.id?`<div class="row" style="margin-bottom:8px"><span class="badge gold">✎ 修改緊 ${fmtD(d.date)} 嗰堂</span><span class="sp"></span><button class="lnk" onclick="newDraft()">改為開新一堂</button></div>`:''}
+    <div class="fgrid"><div><label class="lb">日期</label><input class="in" type="date" data-f="date" value="${esc(d.date)}"></div>
+    <div><label class="lb">標題（可留空）</label><input class="in" data-f="title" value="${esc(d.title)}" placeholder="例：下肢力量"></div></div>
+    <div style="margin-top:10px"><label class="lb">備註（學員睇到）</label><input class="in" data-f="note" value="${esc(d.note)}" placeholder="例：今日深蹲姿勢進步好多"></div>
+    ${!d.blocks.length && (G.sessions||[]).length ? `<button class="btn ghost sm" style="margin-top:10px" onclick="copyLast()">⎘ 用上一堂（${fmtD(G.sessions[0].date)}）做底</button>`:''}</div>`;
+  d.blocks.forEach((b,bi)=>{
+    const last=lastSetsFor(b.ex, d.date, d.id);
+    h+=`<div class="blk"><div class="blk-h"><div style="flex:1;min-width:0"><div class="nm">${bi+1}. ${esc(exName(b.ex))}</div><div class="small muted">${esc(exEn(b.ex))}</div></div>
+      <button class="ib" onclick="mvBlock(${bi},-1)" ${bi?'':'disabled'}>↑</button><button class="ib" onclick="mvBlock(${bi},1)" ${bi<d.blocks.length-1?'':'disabled'}>↓</button><button class="ib" onclick="rmBlock(${bi})">✕</button></div>
+      ${last?`<div class="last">上次 ${fmtDM(last.date)}：${last.sets.map(x=>setTxt(x)+(x.acct?`(${esc(memName(x.acct))})`:'')).join('、')}</div>`:''}
+      <div class="shead" style="grid-template-columns:${cols(b)}"><span>組</span><span>kg</span><span>次數</span>${b.timed?'<span>秒</span>':''}${multi?'<span>對象</span>':''}<span></span></div>
+      ${b.sets.map((x,si)=>`<div class="srow" style="grid-template-columns:${cols(b)}"><span class="no">${si+1}</span>
+        <input class="num" inputmode="decimal" data-b="${bi}" data-s="${si}" data-k="kg" value="${esc(x.kg)}" placeholder="—">
+        <input class="num" inputmode="numeric" data-b="${bi}" data-s="${si}" data-k="reps" value="${esc(x.reps)}" placeholder="—">
+        ${b.timed?`<input class="num" inputmode="numeric" data-b="${bi}" data-s="${si}" data-k="sec" value="${esc(x.sec)}" placeholder="—">`:''}
+        ${multi?`<select data-b="${bi}" data-s="${si}" data-k="acct"><option value="">全組</option>${ms.map(m=>`<option value="${m.id}" ${x.acct===m.id?'selected':''}>${esc(m.en||m.name)}</option>`).join('')}</select>`:''}
+        <button class="x" onclick="rmSet(${bi},${si})">✕</button></div>`).join('')}
+      <div class="row" style="margin-top:9px;flex-wrap:wrap"><button class="btn sm" onclick="addSet(${bi})">＋組</button>${last?`<button class="btn ghost sm" onclick="useLast(${bi})">帶入上次</button>`:''}
+        <button class="btn ghost sm" onclick="toggleTimed(${bi})">${b.timed?'隱藏秒數':'⏱ 加秒數'}</button>
+        ${multi?`<button class="btn ghost sm" onclick="splitSets(${bi})" title="每組複製一份俾每位學員">分開每人</button>`:''}</div></div>`;
+  });
+  h+=`<button class="btn ghost block" style="margin:6px 0 10px;border-style:dashed;padding:14px" onclick="openPicker(addBlock)">＋ 加動作</button>`;
+  if(multi) h+=`<div class="small muted" style="margin:0 4px 10px">💡 1 對 2：「全組」＝兩位做同一個重量（記一次就得）。重量唔同就喺「對象」揀人，或撳「分開每人」。</div>`;
+  h+=`<div class="savebar"><div class="in2"><button class="btn warn sm" onclick="clearDraft()">清除</button><span class="sp small muted" style="text-align:center">${d.blocks.length} 個動作 · ${d.blocks.reduce((a,b)=>a+b.sets.length,0)} 組 · 自動暫存</span><button class="btn" id="sv" onclick="saveSession()">💾 儲存${d.id?'修改':'今堂'}</button></div></div>`;
+  return h;
+}
+function bindDraftInputs(){
+  document.querySelectorAll('#main [data-f]').forEach(el=>el.addEventListener('input',()=>{ const d=getDraft(); d[el.dataset.f]=el.value; putDraft(d); }));
+  document.querySelectorAll('#main [data-b]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{ const d=getDraft(); const x=d.blocks[+el.dataset.b].sets[+el.dataset.s]; x[el.dataset.k]=el.value; putDraft(d); }));
+}
+function mutate(fn){ const d=getDraft(); fn(d); putDraft(d); render(); }
+function newDraft(){ if(!confirm('開一堂新記錄？（修改緊嘅內容唔會儲存）')) return; lsDel(dKey()); render(); }
+function clearDraft(){ if(!confirm('清除今堂未儲存嘅記錄？')) return; lsDel(dKey()); render(); }
+function addBlock(ex){ mutate(d=>{ const last=lastSetsFor(ex, d.date, d.id); const s0=last&&last.sets.filter(x=>!x.acct)[0]||last&&last.sets[0];
+  d.blocks.push({ex, timed:!!(last&&last.sets.some(x=>x.sec!=='')), sets:[{kg:s0?s0.kg:'', reps:s0?s0.reps:'', sec:s0?s0.sec:'', acct:''}]}); }); setTimeout(()=>window.scrollTo(0,document.body.scrollHeight),50); }
+function addSet(bi){ mutate(d=>{ const b=d.blocks[bi], p=b.sets[b.sets.length-1]||{}; b.sets.push({kg:p.kg||'', reps:p.reps||'', sec:p.sec||'', acct:p.acct||''}); }); }
+function rmSet(bi,si){ mutate(d=>{ d.blocks[bi].sets.splice(si,1); if(!d.blocks[bi].sets.length) d.blocks.splice(bi,1); }); }
+function rmBlock(bi){ if(!confirm('刪除「'+exName(getDraft().blocks[bi].ex)+'」？')) return; mutate(d=>d.blocks.splice(bi,1)); }
+function mvBlock(bi,dir){ mutate(d=>{ const j=bi+dir; if(j<0||j>=d.blocks.length) return; const t=d.blocks[bi]; d.blocks[bi]=d.blocks[j]; d.blocks[j]=t; }); }
+function toggleTimed(bi){ mutate(d=>{ d.blocks[bi].timed=!d.blocks[bi].timed; }); }
+function useLast(bi){ mutate(d=>{ const b=d.blocks[bi], last=lastSetsFor(b.ex, d.date, d.id); if(!last) return; b.sets=last.sets.map(x=>({kg:x.kg, reps:x.reps, sec:x.sec, acct:x.acct||''})); if(last.sets.some(x=>x.sec!=='')) b.timed=true; }); }
+function splitSets(bi){ mutate(d=>{ const b=d.blocks[bi], ms=members(); const out=[]; b.sets.forEach(x=>{ if(x.acct) out.push(x); else ms.forEach(m=>out.push(Object.assign({},x,{acct:m.id}))); }); b.sets=out; }); }
+function copyLast(){ const s=G.sessions[0]; if(!s) return; mutate(d=>{ const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, timed:false, sets:[]}; order.push(k); } by[k].sets.push({kg:x.kg, reps:x.reps, sec:x.sec, acct:x.acct||''}); if(x.sec!=='') by[k].timed=true; }); d.blocks=order.map(k=>by[k]); if(!d.title) d.title=s.title||''; }); }
+async function saveSession(){
+  const d=getDraft();
+  const sets=[]; d.blocks.forEach((b,bi)=>{ let n=0; b.sets.forEach(x=>{ if(String(x.kg).trim()===''&&String(x.reps).trim()===''&&String(x.sec||'').trim()==='') return; n++; sets.push({order:bi, ex:b.ex, set:n, kg:x.kg, reps:x.reps, sec:b.timed?x.sec:'', acct:x.acct||''}); }); });
+  if(!sets.length){ toast('未有任何組數'); return; }
+  const btn=$('#sv'); btn.disabled=true; btn.textContent='儲存中…';
+  const r=await api('cSessionSave',{id:d.id, group:C.group, date:d.date, title:d.title, note:d.note, sets:JSON.stringify(sets)}, true);
+  if(!r.ok){ btn.disabled=false; btn.textContent='💾 儲存'; toast(r.err); return; }
+  lsDel(dKey()); toast('✓ 已儲存，學員即刻睇到'); C.tab='rec'; C.recOpen=r.id; await loadGroup();
+}
+
+/* ───────── 動作揀選器 ───────── */
+function openPicker(cb){
+  const ov=document.createElement('div'); ov.className='ov'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  const cats=[...new Set((L.exercises||[]).map(e=>e.cat).filter(Boolean))];
+  let cat='', q='';
+  const used={}; (G&&G.sessions||[]).forEach(s=>s.sets.forEach(x=>used[x.ex]=(used[x.ex]||0)+1));
+  ov.innerHTML=`<div class="sheet"><div class="row"><b style="font-size:17px">揀動作</b><span class="sp"></span><button class="btn ghost xs" onclick="this.closest('.ov').remove()">✕</button></div>
+    <input class="in" id="pq" placeholder="🔍 搜尋（中／英）" style="margin-top:10px">
+    <div class="chips" id="pc"></div><div class="body" id="pl"></div></div>`;
+  document.body.appendChild(ov);
+  const draw=()=>{
+    ov.querySelector('#pc').innerHTML=[['','全部'],['__used','⭐ 常用']].concat(cats.map(c=>[c,c])).map(c=>`<button class="chip ${cat===c[0]?'on':''}" data-c="${esc(c[0])}">${esc(c[1])}</button>`).join('');
+    ov.querySelectorAll('#pc .chip').forEach(b=>b.onclick=()=>{ cat=b.dataset.c; draw(); });
+    const ql=q.toLowerCase();
+    let list=(L.exercises||[]).filter(e=>(cat===''||(cat==='__used'?used[e.id]:e.cat===cat)) && (!ql||(e.zh+' '+e.en+' '+e.cat+' '+e.eq).toLowerCase().includes(ql)));
+    if(cat==='__used') list.sort((a,b)=>(used[b.id]||0)-(used[a.id]||0));
+    ov.querySelector('#pl').innerHTML=list.map(e=>`<div class="pick" data-id="${e.id}"><div style="flex:1;min-width:0"><b>${esc(e.zh)}</b> <span class="small muted">${esc(e.en)}</span><div class="small muted">${esc(e.cat)}${e.eq?' · '+esc(e.eq):''}</div></div>${used[e.id]?`<span class="badge grey">${used[e.id]}</span>`:''}</div>`).join('')
+      + (q?`<div class="pick" id="pnew"><b style="color:var(--teal)">＋ 新增動作「${esc(q)}」</b></div>`:'')
+      + (!list.length&&!q?'<div class="empty">冇動作</div>':'');
+    ov.querySelectorAll('#pl .pick[data-id]').forEach(el=>el.onclick=()=>{ ov.remove(); cb(el.dataset.id); });
+    const pn=ov.querySelector('#pnew'); if(pn) pn.onclick=async()=>{ pn.innerHTML='新增中…'; const r=await api('cExerciseSave',{zh:q.trim()}, true); if(!r.ok){ toast(r.err); draw(); return; }
+      L.exercises.push({id:r.id, zh:q.trim(), en:'', cat:'', eq:'', cue:'', cueEn:'', video:''}); ov.remove(); cb(r.id); toast('已加入動作庫（之後可喺設定補英文名／片）'); };
+  };
+  ov.querySelector('#pq').oninput=e=>{ q=e.target.value.trim(); draw(); };
+  draw(); setTimeout(()=>ov.querySelector('#pq').focus(),60);
+}
+
+/* ───────── 訓練記錄 ───────── */
+function sesLines(s){
+  const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, sets:[]}; order.push(k); } by[k].sets.push(x); });
+  return order.map(k=>{ const b=by[k]; return `<div class="sline"><b>${esc(exName(b.ex))}</b> <span class="muted num">${b.sets.map(x=>setTxt(x)+(x.acct?`<span class="small">(${esc(memName(x.acct))})</span>`:'')).join(' · ')}</span></div>`; }).join('');
+}
+function vRec(){
+  const list=G.sessions||[];
+  let h=groupHeader()+`<div class="h2">訓練記錄（${list.length} 堂）</div>`;
+  const att=(G.pt&&G.pt.sessions||[]).map(x=>x.date), logged=new Set(list.map(s=>s.date));
+  const miss=att.filter(d=>!logged.has(d)).sort().reverse().slice(0,5);
+  if(miss.length) h+=`<div class="card" style="border-color:rgba(201,161,92,.35)"><div class="small" style="color:var(--gold);font-weight:700">#4 有出席但未記訓練內容：</div><div class="row" style="flex-wrap:wrap;margin-top:6px">${miss.map(d=>`<button class="chip" onclick="startFor('${d}')">${fmtD(d)} ＋記錄</button>`).join('')}</div></div>`;
+  if(!list.length) return h+'<div class="empty">未有記錄。去「📝 今堂」開始。</div>';
+  list.forEach(s=>{
+    const open=C.recOpen===s.id, cms=(G.comments||[]).filter(c=>c.type==='session'&&c.target===s.id);
+    h+=`<div class="card"><div class="row" style="cursor:pointer" onclick="C.recOpen=${open?'null':`'${s.id}'`};render()"><div><b>${fmtD(s.date)}（${WK[parseISO(s.date).getDay()]}）</b>${s.title?` · ${esc(s.title)}`:''}<div class="small muted">${new Set(s.sets.map(x=>x.order+'|'+x.ex)).size} 個動作 · ${s.sets.length} 組${cms.length?` · 💬 ${cms.length}`:''}</div></div><span class="sp"></span><span class="muted">${open?'▾':'▸'}</span></div>
+      ${open?`<div style="margin-top:10px">${sesLines(s)}</div>${s.note?`<div class="small muted" style="margin-top:6px">📝 ${esc(s.note)}</div>`:''}
+        <div class="row" style="margin-top:10px"><button class="btn ghost sm" onclick="editSes('${s.id}')">✎ 修改</button><button class="btn warn sm" onclick="delSes('${s.id}')">刪除</button></div>
+        ${thread('session', s.id, '')}`:''}</div>`;
+  });
+  return h;
+}
+function startFor(date){ const d=getDraft(); if(d.blocks.length && !confirm('記錄今堂有未儲存內容，要覆蓋？')) return; putDraft({id:'', date, title:'', note:'', blocks:[]}); C.tab='log'; render(); window.scrollTo(0,0); }
+function editSes(id){
+  const s=G.sessions.find(x=>x.id===id); if(!s) return;
+  const d=getDraft(); if(d.blocks.length && d.id!==id && !confirm('記錄今堂有未儲存內容，要覆蓋？')) return;
+  const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, timed:false, sets:[]}; order.push(k); } by[k].sets.push({kg:x.kg, reps:x.reps, sec:x.sec, acct:x.acct||''}); if(x.sec!=='') by[k].timed=true; });
+  putDraft({id:s.id, date:s.date, title:s.title||'', note:s.note||'', blocks:order.map(k=>by[k])}); C.tab='log'; render(); window.scrollTo(0,0);
+}
+async function delSes(id){ const s=G.sessions.find(x=>x.id===id); if(!confirm(`刪除 ${fmtD(s.date)} 嘅訓練記錄？學員會睇唔到。`)) return;
+  const r=await api('cSessionDelete',{id}, true); if(!r.ok){ toast(r.err); return; } toast('已刪除'); loadGroup(); }
+
+/* ───────── 留言串（教練回覆）───────── */
+function thread(type, target, acct){
+  const cms=(G.comments||[]).filter(c=>c.type===type && c.target===target).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  const id='r-'+type+'-'+target;
+  return `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2)">${cms.map(c=>`<div class="msg ${c.by==='coach'?'co':'st'}"><div class="bub"><span class="who">${c.by==='coach'?'教練':esc(memName(c.acct)||'學員')} · ${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span>${esc(c.text)}</div></div>`).join('')}
+    <div class="tin"><input class="in" id="${id}" placeholder="寫俾學員…" maxlength="500"><button class="btn sm" onclick="reply('${type}','${target}','${acct||''}','${id}')">送出</button></div></div>`;
+}
+async function reply(type, target, acct, inputId){
+  const el=document.getElementById(inputId), text=(el.value||'').trim(); if(!text) return; el.disabled=true;
+  const r=await api('cComment',{type, target, acct, text}, true); el.disabled=false;
+  if(!r.ok){ toast(r.err); return; }
+  if(G) G.comments=(G.comments||[]).concat([r.comment]);
+  if(L.recentComments) L.recentComments=L.recentComments.filter(c=>!(c.type===type&&c.target===target));
+  toast('已回覆'); render();
+}
+
+/* ───────── 功課 ───────── */
+function vHw(){
+  const list=G.homework||[], ms=members();
+  let h=groupHeader();
+  if(C.hwEdit) return h+hwForm();
+  h+=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">功課</div><span class="sp"></span><button class="btn sm" onclick="newHw()">＋ 新功課</button></div>`;
+  if(!list.length) return h+'<div class="empty">未有功課</div>';
+  list.forEach(hw=>{
+    const days=Array.from({length:7},(_,i)=>addDays(hw.week,i)), items=hw.items&&hw.items.length?hw.items:[{text:hw.title}];
+    const tgt=hw.acct?ms.filter(m=>m.id===hw.acct):ms;
+    h+=`<div class="card"><div class="row"><div><b>${esc(hw.title||'功課')}</b><div class="small muted">${fmtD(hw.week)} – ${fmtDM(days[6])} · ${hw.acct?'只限 '+esc(memName(hw.acct)):'全組'}</div></div><span class="sp"></span><button class="btn ghost xs" onclick="editHw('${hw.id}')">✎</button><button class="btn warn xs" onclick="delHw('${hw.id}')">刪</button></div>
+      ${hw.desc?`<div class="small" style="white-space:pre-wrap;margin-top:6px">${esc(hw.desc)}</div>`:''}
+      <div style="margin-top:8px">${items.map((it,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(it.ex?exName(it.ex):it.text)}</b>${it.ex&&it.text?` <span class="small">${esc(it.text)}</span>`:''}<div class="small muted">${[it.sets?it.sets+' 組':'', it.reps?'× '+esc(it.reps):'', esc(it.note||'')].filter(Boolean).join(' ')}</div>
+        ${tgt.map(m=>{ const lg=(hw.logs||[]).filter(l=>l.acct===m.id&&l.idx===i); const dn=days.filter(d=>lg.some(l=>l.date===d&&l.done)); const nt=lg.filter(l=>l.note).map(l=>fmtDM(l.date)+' '+l.note);
+          return `<div class="small" style="margin-top:3px">${esc(m.en||m.name)}：<span style="letter-spacing:2px">${days.map(d=>dn.includes(d)?'<span style="color:var(--teal)">●</span>':'<span class="muted">○</span>').join('')}</span> <b>${dn.length}</b>${nt.length?` <span class="muted">📝 ${esc(nt.join('；'))}</span>`:''}</div>`; }).join('')}</div></div>`).join('')}</div>
+      ${thread('homework', hw.id, hw.acct||'')}</div>`;
+  });
+  return h;
+}
+function newHw(){ C.hwEdit={id:'', week:mondayOf(isoToday()), title:'', desc:'', acct:'', items:[]}; render(); }
+function editHw(id){ const hw=G.homework.find(x=>x.id===id); C.hwEdit={id:hw.id, week:hw.week, title:hw.title||'', desc:hw.desc||'', acct:hw.acct||'', items:JSON.parse(JSON.stringify(hw.items||[]))}; render(); window.scrollTo(0,0); }
+function hwForm(){
+  const f=C.hwEdit, ms=members();
+  return `<div class="card"><div class="h2" style="margin-top:0">${f.id?'修改功課':'新功課'}</div>
+    <div class="fgrid"><div><label class="lb">週開始（星期一）</label><input class="in" type="date" value="${f.week}" oninput="C.hwEdit.week=this.value"></div>
+      <div><label class="lb">對象</label><select class="in" onchange="C.hwEdit.acct=this.value"><option value="">全組${ms.length>1?'（'+ms.map(m=>esc(m.en||m.name)).join('＋')+'）':''}</option>${ms.map(m=>`<option value="${m.id}" ${f.acct===m.id?'selected':''}>只限 ${esc(m.name)}</option>`).join('')}</select></div></div>
+    <div class="fld" style="margin-top:10px"><label class="lb">標題</label><input class="in" value="${esc(f.title)}" oninput="C.hwEdit.title=this.value" placeholder="例：本週家課：核心＋伸展"></div>
+    <div class="fld"><label class="lb">說明（學員睇到）</label><textarea class="in" oninput="C.hwEdit.desc=this.value" placeholder="例：一星期做 3 次，每次約 20 分鐘">${esc(f.desc)}</textarea></div>
+    <div class="lb" style="margin-top:6px">項目</div>
+    ${f.items.map((it,i)=>`<div class="blk" style="margin:8px 0;padding:10px"><div class="row"><b style="flex:1">${it.ex?esc(exName(it.ex)):'自訂項目'}</b><button class="ib" onclick="C.hwEdit.items.splice(${i},1);render()">✕</button></div>
+      ${it.ex?'':`<input class="in" style="margin-top:6px" value="${esc(it.text)}" oninput="C.hwEdit.items[${i}].text=this.value" placeholder="例：行路 30 分鐘">`}
+      <div class="fgrid" style="margin-top:6px;grid-template-columns:1fr 1fr 2fr"><input class="in num" inputmode="numeric" value="${esc(it.sets)}" oninput="C.hwEdit.items[${i}].sets=this.value" placeholder="組數"><input class="in num" value="${esc(it.reps)}" oninput="C.hwEdit.items[${i}].reps=this.value" placeholder="次數/秒"><input class="in" value="${esc(it.note)}" oninput="C.hwEdit.items[${i}].note=this.value" placeholder="提示（可留空）"></div></div>`).join('')}
+    <div class="row" style="margin-top:8px"><button class="btn ghost sm" onclick="openPicker(id=>{C.hwEdit.items.push({ex:id,text:'',sets:'3',reps:'',note:''});render();})">＋ 動作</button><button class="btn ghost sm" onclick="C.hwEdit.items.push({ex:'',text:'',sets:'',reps:'',note:''});render()">＋ 自訂項目</button></div>
+    <div class="row" style="margin-top:16px"><button class="btn ghost" onclick="C.hwEdit=null;render()">取消</button><span class="sp"></span><button class="btn" id="hwsv" onclick="saveHw()">儲存功課</button></div></div>`;
+}
+async function saveHw(){
+  const f=C.hwEdit; const b=$('#hwsv'); b.disabled=true;
+  const r=await api('cHomeworkSave',{id:f.id, group:C.group, week:f.week, acct:f.acct, title:f.title, desc:f.desc, items:JSON.stringify(f.items)}, true);
+  if(!r.ok){ b.disabled=false; toast(r.err); return; }
+  C.hwEdit=null; toast('✓ 功課已發佈，學員即刻睇到'); loadGroup();
+}
+async function delHw(id){ if(!confirm('刪除呢份功課？')) return; const r=await api('cHomeworkDelete',{id}, true); if(!r.ok){ toast(r.err); return; } toast('已刪除'); loadGroup(); }
+
+/* ───────── 身體數據 ───────── */
+const METRICS=[['weight','體重','kg'],['fat','體脂','%'],['muscle','肌肉量','kg'],['waist','腰圍','cm'],['hip','臀圍','cm'],['chest','胸圍','cm'],['arm','手臂','cm'],['thigh','大腿','cm']];
+function chartSVG(pts){
+  if(pts.length<2) return '';
+  const W=340,H=150,L0=34,R=10,T=12,B=22, vs=pts.map(p=>p.v), mn=Math.min(...vs), mx=Math.max(...vs), pd=(mx-mn)*.15||1, lo=mn-pd, hi=mx+pd;
+  const t0=parseISO(pts[0].d).getTime(), sp=(parseISO(pts[pts.length-1].d).getTime()-t0)||1;
+  const X=p=>L0+(parseISO(p.d).getTime()-t0)/sp*(W-L0-R), Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  const path=pts.map((p,i)=>(i?'L':'M')+X(p).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}">${[hi-pd,lo+pd].map(v=>`<line x1="${L0}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,.07)"/><text x="${L0-5}" y="${Y(v)+4}" fill="#8fa3bb" font-size="10" text-anchor="end">${fmtN(v)}</text>`).join('')}
+    <path d="${path}" fill="none" stroke="#3ecfcf" stroke-width="2.4"/>${pts.map(p=>`<circle cx="${X(p)}" cy="${Y(p.v)}" r="3" fill="#0f1a28" stroke="#3ecfcf" stroke-width="2"/>`).join('')}
+    <text x="${L0}" y="${H-5}" fill="#8fa3bb" font-size="10">${fmtDM(pts[0].d)}</text><text x="${W-R}" y="${H-5}" fill="#8fa3bb" font-size="10" text-anchor="end">${fmtDM(pts[pts.length-1].d)}</text></svg>`;
+}
+function vBody(){
+  const ms=members(), m=ms.find(x=>x.id===C.bodyMem)||ms[0]; if(!m) return groupHeader()+'<div class="empty">未有學員</div>';
+  const list=m.body||[], avail=METRICS.filter(k=>list.some(b=>b[k[0]]!==''&&b[k[0]]!=null));
+  if(avail.length && !avail.some(k=>k[0]===C.bodyMetric)) C.bodyMetric=avail[0][0];
+  const k=METRICS.find(x=>x[0]===C.bodyMetric)||METRICS[0], pts=list.filter(b=>b[k[0]]!==''&&b[k[0]]!=null).map(b=>({d:b.date, v:Number(b[k[0]])}));
+  let h=groupHeader()+`<div class="chips">${ms.map(x=>`<button class="chip ${x.id===m.id?'on':''}" onclick="C.bodyMem='${x.id}';render()">${esc(x.name)}</button>`).join('')}</div>`;
+  if(m.goal) h+=`<div class="small muted">🎯 ${esc(m.goal)}</div>`;
+  if(avail.length) h+=`<div class="chips">${avail.map(x=>`<button class="chip ${x[0]===k[0]?'on':''}" onclick="C.bodyMetric='${x[0]}';render()">${x[1]}</button>`).join('')}</div>
+    <div class="card"><div class="row"><b>${k[1]}</b><span class="sp"></span><span class="num" style="font-size:22px;font-weight:900">${pts.length?fmtN(pts[pts.length-1].v):'—'}</span><span class="muted">${k[2]}</span></div>${chartSVG(pts)}</div>`;
+  h+=`<div class="card"><b>＋ 教練記錄（例如上堂量度）</b><div class="fgrid" style="margin-top:8px"><div><label class="lb">日期</label><input class="in" type="date" id="cb-date" value="${isoToday()}"></div>${METRICS.map(x=>`<div><label class="lb">${x[1]} (${x[2]})</label><input class="in num" id="cb-${x[0]}" inputmode="decimal"></div>`).join('')}</div>
+    <input class="in" id="cb-note" placeholder="備註" style="margin-top:10px"><button class="btn block" style="margin-top:10px" id="cbsv" onclick="coachBody('${m.id}')">儲存</button></div>`;
+  h+=list.slice().reverse().map(b=>`<div class="card"><div class="row"><b>${fmtD(b.date)}</b> <span class="badge ${b.src==='教練'?'gold':'grey'}">${esc(b.src||'')}</span><span class="sp"></span><button class="lnk" style="color:var(--mut)" onclick="coachBodyDel('${b.id}')">刪除</button></div>
+    <div class="small" style="margin-top:6px">${METRICS.filter(x=>b[x[0]]!==''&&b[x[0]]!=null).map(x=>`${x[1]} <b class="num">${fmtN(b[x[0]])}</b>${x[2]}`).join(' · ')}</div>${b.note?`<div class="small muted">${esc(b.note)}</div>`:''}
+    ${thread('body', b.id, m.id)}</div>`).join('');
+  return h;
+}
+async function coachBody(acct){
+  const p={acct, date:$('#cb-date').value, note:$('#cb-note').value}; let any=false; METRICS.forEach(x=>{ const v=$('#cb-'+x[0]).value.trim(); if(v){ p[x[0]]=v; any=true; } });
+  if(!any){ toast('最少填一項'); return; } $('#cbsv').disabled=true;
+  const r=await api('cBodyAdd',p,true); if(!r.ok){ $('#cbsv').disabled=false; toast(r.err); return; } toast('已儲存'); loadGroup();
+}
+async function coachBodyDel(id){ if(!confirm('刪除呢筆身體數據？')) return; const r=await api('cBodyDel',{id},true); if(!r.ok){ toast(r.err); return; } loadGroup(); }
+
+/* ───────── 留言（全部組）───────── */
+function vCm(){
+  const list=L.recentComments||[], acc={}; (L.accounts||[]).forEach(a=>acc[a.id]=a);
+  let h=`<div class="h2">學員留言（最近 30 條）</div>`;
+  if(!list.length) return h+'<div class="empty">暫時冇新留言</div>';
+  const TY={session:'訓練記錄', homework:'功課', body:'身體數據'};
+  list.forEach((c,i)=>{ const a=acc[c.acct]||{};
+    h+=`<div class="card"><div class="row"><b>${esc(a.name||'學員')}</b><span class="badge grey">${esc(a.group||'')}</span><span class="badge">${TY[c.type]||c.type}</span><span class="sp"></span><span class="small muted">${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span></div>
+      <div style="margin:8px 0;white-space:pre-wrap">${esc(c.text)}</div>
+      <div class="tin"><input class="in" id="rc-${i}" placeholder="回覆…" maxlength="500"><button class="btn sm" onclick="replyFromList(${i})">送出</button></div>
+      ${a.group?`<button class="lnk" style="margin-top:8px" onclick="gotoCm(${i})">開啟 ${esc(a.group)} ›</button>`:''}</div>`; });
+  return h;
+}
+async function replyFromList(i){ const c=L.recentComments[i], el=$('#rc-'+i), text=el.value.trim(); if(!text) return; el.disabled=true;
+  const r=await api('cComment',{type:c.type, target:c.target, acct:c.acct, text}, true); el.disabled=false; if(!r.ok){ toast(r.err); return; }
+  L.recentComments.splice(i,1); if(G) G.comments=(G.comments||[]).concat([r.comment]); toast('已回覆'); render(); }
+function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id===c.acct); if(!a) return; C.group=a.group; C.tab=c.type==='session'?'rec':c.type==='homework'?'hw':'body'; if(c.type==='session') C.recOpen=c.target; if(c.type==='body') C.bodyMem=a.id; loadGroup(); }
+
+/* ───────── 設定：帳戶＋動作庫 ───────── */
+function vSet(){
+  let h=`<div class="h2">學員帳戶</div><div class="small muted" style="margin:0 2px 8px">「私訓名」要同 #4 私訓記錄一樣（例：Keith & Elaine），出席同套票先會自動顯示。1 對 2 就開兩個帳戶，私訓名填同一個。</div>`;
+  if(C.acctEdit) h+=acctForm();
+  else h+=`<button class="btn sm" onclick="C.acctEdit={id:'',name:'',en:'',last4:'',group:C.group||'',goal:'',status:'啟用'};render()">＋ 新帳戶</button>`;
+  h+=`<div class="card">${(L.accounts||[]).map(a=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> ${a.en?`<span class="muted small">${esc(a.en)}</span>`:''} ${a.status==='停用'?'<span class="badge red">停用</span>':''}<div class="small muted">${esc(a.group)} · 電話尾 ${esc(a.last4)}${a.goal?' · 🎯 '+esc(a.goal):''}</div></div><button class="btn ghost xs" onclick="editAcct('${a.id}')">✎</button></div>`).join('')||'<div class="small muted">未有帳戶</div>'}</div>`;
+  h+=`<div class="card"><b>📲 學員 app 網址</b><div class="small muted" style="margin:4px 0 8px;word-break:break-all">${STUDENT_URL}</div><div class="small muted">學員用登記姓名（中文或英文）＋電話後 4 位登入，可加到主畫面當 app 用。</div><button class="btn ghost sm" style="margin-top:8px" onclick="copyTxt('${STUDENT_URL}')">複製網址</button> <a class="btn ghost sm" style="text-decoration:none;margin-top:8px" href="is-pt.html" target="_blank">預覽</a></div>`;
+  h+=`<div class="small muted" style="margin:4px 4px 0">#4 私訓出席／套票連線：${L.ptOk?'<span style="color:var(--teal)">✓ 正常</span>':'<span style="color:var(--red)">未連上</span>'}</div>`;
+  // 動作庫
+  h+=`<div class="h2" style="margin-top:24px">動作庫（${(L.exercises||[]).length}）</div><div class="small muted" style="margin:0 2px 8px">示範片而家係 YouTube 搜尋連結；之後影咗自己條片，貼連結入「影片」就會換。</div>`;
+  if(C.exEdit) h+=exForm();
+  else h+=`<div class="row"><input class="in" placeholder="🔍 搜尋" value="${esc(C.exQ)}" oninput="C.exQ=this.value;drawExList()"><button class="btn sm" onclick="C.exEdit={id:'',zh:'',en:'',cat:'',eq:'',cue:'',cueEn:'',video:''};render()">＋</button></div><div class="card" id="exl"></div>`;
+  setTimeout(drawExList,0);
+  return h;
+}
+function drawExList(){ const el=$('#exl'); if(!el) return; const q=C.exQ.trim().toLowerCase();
+  el.innerHTML=(L.exercises||[]).filter(e=>!q||(e.zh+' '+e.en+' '+e.cat).toLowerCase().includes(q)).map(e=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(e.zh)}</b> <span class="small muted">${esc(e.en)}</span><div class="small muted">${esc(e.cat)}${e.video&&!/results\?search_query/.test(e.video)?' · 🎬 自家片':''}</div></div><button class="btn ghost xs" onclick="editEx('${e.id}')">✎</button></div>`).join(''); }
+function editAcct(id){ const a=L.accounts.find(x=>x.id===id); C.acctEdit=Object.assign({},a); render(); window.scrollTo(0,0); }
+function acctForm(){
+  const f=C.acctEdit, names=[...new Set((L.ptNames||[]).concat(L.groups||[]))];
+  return `<div class="card"><div class="fgrid"><div><label class="lb">中文姓名</label><input class="in" value="${esc(f.name)}" oninput="C.acctEdit.name=this.value"></div><div><label class="lb">英文名</label><input class="in" value="${esc(f.en)}" oninput="C.acctEdit.en=this.value"></div>
+    <div><label class="lb">電話後 4 位</label><input class="in num" inputmode="numeric" maxlength="4" value="${esc(f.last4)}" oninput="C.acctEdit.last4=this.value"></div>
+    <div><label class="lb">私訓名（#4）</label><input class="in" list="ptn" value="${esc(f.group)}" oninput="C.acctEdit.group=this.value"><datalist id="ptn">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div></div>
+    <div class="fld" style="margin-top:10px"><label class="lb">目標（學員睇到）</label><input class="in" value="${esc(f.goal)}" oninput="C.acctEdit.goal=this.value" placeholder="例：減脂 5kg、硬拉 100kg"></div>
+    <div class="fld"><label class="lb">狀態</label><select class="in" onchange="C.acctEdit.status=this.value"><option ${f.status!=='停用'?'selected':''}>啟用</option><option ${f.status==='停用'?'selected':''}>停用</option></select></div>
+    <div class="row"><button class="btn ghost" onclick="C.acctEdit=null;render()">取消</button><span class="sp"></span><button class="btn" id="acsv" onclick="saveAcct()">儲存帳戶</button></div></div>`;
+}
+async function saveAcct(){ const f=C.acctEdit; $('#acsv').disabled=true;
+  const r=await api('cAccountSave',{id:f.id, name:f.name, en:f.en, last4:f.last4, group:f.group, goal:f.goal, status:f.status}, true);
+  if(!r.ok){ $('#acsv').disabled=false; toast(r.err); return; }
+  if(!C.group) C.group=f.group.trim();
+  C.acctEdit=null; toast('已儲存帳戶'); reloadAll(); }
+function editEx(id){ C.exEdit=Object.assign({}, L.exercises.find(e=>e.id===id)); render(); }
+function exForm(){ const f=C.exEdit;
+  return `<div class="card"><div class="fgrid"><div><label class="lb">中文名</label><input class="in" value="${esc(f.zh)}" oninput="C.exEdit.zh=this.value"></div><div><label class="lb">英文名</label><input class="in" value="${esc(f.en)}" oninput="C.exEdit.en=this.value"></div>
+    <div><label class="lb">類別</label><input class="in" value="${esc(f.cat)}" oninput="C.exEdit.cat=this.value"></div><div><label class="lb">器材</label><input class="in" value="${esc(f.eq)}" oninput="C.exEdit.eq=this.value"></div></div>
+    <div class="fld" style="margin-top:10px"><label class="lb">要點（中）</label><textarea class="in" oninput="C.exEdit.cue=this.value">${esc(f.cue)}</textarea></div>
+    <div class="fld"><label class="lb">要點（英）</label><textarea class="in" oninput="C.exEdit.cueEn=this.value">${esc(f.cueEn)}</textarea></div>
+    <div class="fld"><label class="lb">示範片連結（https）</label><input class="in" value="${esc(f.video)}" oninput="C.exEdit.video=this.value"></div>
+    <div class="row"><button class="btn ghost" onclick="C.exEdit=null;render()">取消</button><span class="sp"></span><button class="btn" id="exsv" onclick="saveEx()">儲存</button></div></div>`; }
+async function saveEx(){ const f=C.exEdit; $('#exsv').disabled=true; const r=await api('cExerciseSave',f,true); if(!r.ok){ $('#exsv').disabled=false; toast(r.err); return; }
+  C.exEdit=null; toast('已儲存'); const r2=await api('cLoad'); if(r2.ok) L=r2; render(); }
+function copyTxt(t){ try{ navigator.clipboard.writeText(t); toast('已複製'); }catch(e){ prompt('複製：',t); } }
+
+boot();
+</script>
+</body>
+</html>
