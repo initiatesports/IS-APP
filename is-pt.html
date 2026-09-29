@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>IS 私人訓練 · Personal Training</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0f1a28">
+<link rel="manifest" href="is-pt.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IS 私訓">
+<link rel="apple-touch-icon" href="img/is-mark-512.png">
+<link rel="icon" href="img/is-mark-96.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Noto+Sans+HK:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1a28; --panel:#16243a; --panel2:#1c2e48; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+  --text:#eaf1f8; --mut:#8fa3bb; --teal:#3ecfcf; --teal2:#24a9ad; --gold:#c9a15c; --red:#ff7a7a; --green:#5fd39a;
+  --r:16px; --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans HK',-apple-system,BlinkMacSystemFont,sans-serif;font-size:15px;line-height:1.55}
+body{min-height:100vh;overflow-x:hidden}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+.num{font-family:'Archivo','Noto Sans HK',sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px calc(96px + var(--safe-b))}
+/* header */
+.top{position:sticky;top:0;z-index:20;background:rgba(15,26,40,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px}
+.top-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.brand{display:flex;align-items:center;gap:8px;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.06em;font-size:14px}
+.brand img{width:26px;height:26px;border-radius:7px}
+.brand .tag{display:inline-block;transform:skewX(-6deg);background:var(--teal);color:#062426;padding:1px 7px;font-size:11px;letter-spacing:.08em}
+.top .sp{flex:1}
+.pill{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:5px 11px;font-size:12px;color:var(--mut)}
+.pill.on{background:var(--teal);border-color:var(--teal);color:#062426;font-weight:700}
+/* cards */
+.h1{font-size:22px;font-weight:900;margin:18px 2px 4px;letter-spacing:.01em}
+.sub{color:var(--mut);font-size:13px;margin:0 2px 14px}
+.sec{font-size:13px;font-weight:700;color:var(--mut);letter-spacing:.08em;margin:22px 2px 10px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.sec::before{content:"";width:10px;height:3px;background:var(--teal);transform:skewX(-20deg)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card.tap{cursor:pointer;transition:transform .12s,border-color .12s}
+.card.tap:active{transform:scale(.985)}
+.card.tap:hover{border-color:var(--line2)}
+.row{display:flex;align-items:center;gap:10px}
+.row .sp{flex:1}
+.muted{color:var(--mut)}
+.small{font-size:12.5px}
+.big{font-size:34px;font-weight:900;line-height:1}
+.hero{background:linear-gradient(135deg,#17344a 0%,#123047 45%,#0f2436 100%);border:1px solid rgba(62,207,207,.25);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;top:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(62,207,207,.18),transparent 70%)}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal2),var(--teal));border-radius:99px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat b{display:block;font-size:22px;font-weight:900}
+.stat span{font-size:12px;color:var(--mut)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(62,207,207,.14);color:var(--teal)}
+.badge.gold{background:rgba(201,161,92,.18);color:var(--gold)}
+.badge.red{background:rgba(255,122,122,.15);color:var(--red)}
+.badge.grey{background:rgba(255,255,255,.07);color:var(--mut)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:12px;padding:12px 16px;font-weight:800;background:var(--teal);color:#062426}
+.btn.skew{transform:skewX(-6deg);border-radius:6px}
+.btn.skew>span{display:inline-block;transform:skewX(6deg)}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--text)}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:10px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.lnk{background:none;border:none;color:var(--teal);font-weight:700;padding:0;font-size:13px}
+input.in,select.in,textarea.in{width:100%;background:#0c1622;border:1px solid var(--line2);border-radius:11px;padding:11px 12px;outline:none;transition:border-color .15s}
+input.in:focus,select.in:focus,textarea.in:focus{border-color:var(--teal)}
+label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
+.empty{text-align:center;color:var(--mut);padding:30px 16px;font-size:14px}
+.empty .ic{font-size:34px;margin-bottom:6px;opacity:.8}
+/* nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,22,34,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + var(--safe-b))}
+.nav-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav button{background:none;border:none;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:700}
+.nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nav button.on{color:var(--teal)}
+/* sets table */
+.exb{padding:14px 0;border-top:1px solid var(--line)}
+.exb:first-child{border-top:none;padding-top:4px}
+.exname{font-weight:800;font-size:15.5px;background:none;border:none;padding:0;text-align:left;color:var(--text)}
+.exname:after{content:" ›";color:var(--teal)}
+.sets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.set{background:#0c1622;border:1px solid var(--line);border-radius:10px;padding:6px 9px;font-size:13px;min-width:74px}
+.set .k{font-weight:800;font-size:15px}
+.set.pr{border-color:rgba(201,161,92,.6);background:rgba(201,161,92,.08)}
+.set .n{font-size:10.5px;color:var(--mut);display:block}
+/* homework */
+.hwi{padding:12px 0;border-top:1px solid var(--line)}
+.hwi:first-of-type{border-top:none}
+.days{display:flex;gap:6px;margin-top:9px}
+.day{flex:1;min-width:0;border:1px solid var(--line2);background:transparent;border-radius:10px;padding:5px 0 4px;display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--mut)}
+.day b{font-size:13px;font-family:'Archivo',sans-serif;color:var(--text)}
+.day.done{background:var(--teal);border-color:var(--teal);color:#063033}
+.day.done b{color:#062426}
+.day.today{box-shadow:0 0 0 2px rgba(62,207,207,.45)}
+.day:disabled{opacity:.35}
+/* thread */
+.thread{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line2)}
+.msg{display:flex;margin:6px 0}
+.msg .bub{max-width:82%;padding:8px 11px;border-radius:14px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.msg.me{justify-content:flex-end}
+.msg.me .bub{background:rgba(62,207,207,.16);border-bottom-right-radius:4px}
+.msg.co .bub{background:var(--panel2);border-bottom-left-radius:4px}
+.msg .who{display:block;font-size:10.5px;color:var(--mut);margin-bottom:2px}
+.tin{display:flex;gap:8px;margin-top:8px}
+.tin input{flex:1}
+/* chips */
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--mut);white-space:nowrap}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#062426;font-weight:800}
+/* list rows */
+.li{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:none}
+.li .d{width:46px;text-align:center;flex:none}
+.li .d b{display:block;font-size:19px;font-weight:900;font-family:'Archivo',sans-serif;line-height:1.1}
+.li .d span{font-size:10.5px;color:var(--mut)}
+/* modal */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(3,8,14,.66);display:flex;align-items:flex-end;justify-content:center;animation:fi .15s}
+.sheet{background:var(--panel);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px calc(22px + var(--safe-b));border:1px solid var(--line2);animation:su .2s}
+.grab{width:40px;height:4px;border-radius:9px;background:var(--line2);margin:0 auto 12px}
+@keyframes fi{from{opacity:0}}
+@keyframes su{from{transform:translateY(30px);opacity:.4}}
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%);background:#e9f7f7;color:#082628;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:88vw;text-align:center}
+/* login */
+.login{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 22px;max-width:420px;margin:0 auto}
+.login .logo{width:62px;height:62px;border-radius:16px;margin-bottom:16px}
+.login h1{font-size:28px;font-weight:900;margin:0;line-height:1.2}
+.login h1 em{font-style:normal;color:var(--teal)}
+.login .en{font-family:'Archivo',sans-serif;font-weight:800;letter-spacing:.14em;font-size:12px;color:var(--gold);margin:6px 0 26px}
+.fld{margin-bottom:14px}
+.spin{width:22px;height:22px;border:3px solid rgba(62,207,207,.25);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.skel{height:92px;border-radius:var(--r);background:linear-gradient(90deg,var(--panel) 0%,var(--panel2) 50%,var(--panel) 100%);background-size:200% 100%;animation:sk 1.2s infinite;margin-bottom:12px}
+@keyframes sk{to{background-position:-200% 0}}
+.chart{width:100%;height:auto;display:block}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.back{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--teal);font-weight:700;padding:14px 0 0;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const FRONTEND_VERSION = 'pt-2026-09-29-a';
+const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
+
+/* ───────── 語言 ───────── */
+let LANG = (()=>{ try{ return localStorage.getItem('ispt_lang')||'zh'; }catch(e){ return 'zh'; } })();
+const TX = {
+  zh:{
+    appName:'私人訓練', login:'登入', name:'姓名（中文或英文）', last4:'電話後 4 位（或你自設嘅密碼）', loginHint:'用報名時登記嘅姓名同電話後 4 位登入。',
+    loginErr:'請輸入姓名同 4 位數字', net:'網絡唔穩定，請再試一次', loading:'載入中…',
+    home:'首頁', train:'訓練', hw:'功課', body:'身體', more:'更多',
+    hi:'你好', group:'組別', mates:'同組',
+    pkg:'套票', left:'剩餘', of:'／', sessionsU:'節', expire:'到期', expSoon:'快到期', expired:'已過期', noPkg:'暫時未有套票資料', ptErr:'套票資料暫時未能載入，稍後再試',
+    attended:'已上堂', thisMonth:'今個月', prs:'個人最佳',
+    latestSes:'最近一堂', noSes:'教練上堂時會喺度記錄你每個動作同重量', seeAll:'全部',
+    weekHw:'今週功課', noHw:'暫時未有功課', done:'完成',
+    latestW:'最新體重', kg:'公斤',
+    sessions:'訓練記錄', exercises:'動作', sets:'組', volume:'總負荷', back:'返回', sharedGroup:'全組', onlyYou:'只限你',
+    comments:'留言', say:'留言俾教練…', send:'送出', coach:'教練', you:'你', noCm:'有問題可以喺度問教練',
+    hwWeek:'週', hwTap:'撳日子打卡（今日或之前）', hwNote:'記錄（例：3 組 × 12，用 8kg）', save:'儲存', times:'次', thisWeek:'本週',
+    bodyTitle:'身體數據', addRec:'新增記錄', date:'日期', weight:'體重', fat:'體脂', muscle:'肌肉量', waist:'腰圍', hip:'臀圍', chest:'胸圍', arm:'手臂', thigh:'大腿', note:'備註',
+    unitKg:'kg', unitPct:'%', unitCm:'cm', noBody:'記錄第一筆數據，之後就睇到趨勢', del:'刪除', delQ:'刪除呢筆記錄？', byCoach:'教練記錄', fillOne:'請最少填一項數據',
+    trend:'趨勢', change:'變化', history:'記錄',
+    prTitle:'個人最佳', noPr:'上堂有重量記錄之後，系統會自動計你嘅個人最佳', e1rm:'估算 1RM',
+    lib:'動作庫', search:'搜尋動作', all:'全部', cue:'動作要點', video:'睇示範片', equip:'器材', yourBest:'你嘅最佳', yourHist:'你做過',
+    attend:'出席記錄', noAttend:'暫時未有出席記錄', exempt:'豁免', pkgHist:'套票記錄', bought:'購買', free:'贈送',
+    settings:'設定', lang:'語言', pin:'改登入密碼', pinHint:'設一個 4 位數字，之後可以用佢代替電話後 4 位', newPin:'新 4 位密碼', pinOk:'已更新密碼', logout:'登出', logoutQ:'確定登出？',
+    install:'加到主畫面：iPhone 用 Safari「分享」→「加至主畫面」；Android 用 Chrome 選單「安裝應用程式」。',
+    saved:'已儲存', sent:'已送出', updated:'已更新', newVer:'🔄 有新版本，正在更新…',
+    wk:['日','一','二','三','四','五','六'], tip:'小貼士'
+  },
+  en:{
+    appName:'Personal Training', login:'Log in', name:'Name (Chinese or English)', last4:'Last 4 digits of phone (or your PIN)', loginHint:'Use the name and phone number you registered with.',
+    loginErr:'Please enter your name and 4 digits', net:'Connection unstable — please try again', loading:'Loading…',
+    home:'Home', train:'Training', hw:'Homework', body:'Body', more:'More',
+    hi:'Hi', group:'Group', mates:'Training with',
+    pkg:'Package', left:'Left', of:' / ', sessionsU:'sessions', expire:'Expires', expSoon:'Expiring soon', expired:'Expired', noPkg:'No package yet', ptErr:'Package info unavailable right now',
+    attended:'Attended', thisMonth:'This month', prs:'PRs',
+    latestSes:'Latest session', noSes:'Your coach logs every exercise and weight here during class', seeAll:'All',
+    weekHw:"This week's homework", noHw:'No homework yet', done:'done',
+    latestW:'Latest weight', kg:'kg',
+    sessions:'Sessions', exercises:'exercises', sets:'sets', volume:'Volume', back:'Back', sharedGroup:'Group', onlyYou:'You only',
+    comments:'Comments', say:'Message your coach…', send:'Send', coach:'Coach', you:'You', noCm:'Ask your coach anything here',
+    hwWeek:'Week of', hwTap:'Tap a day to check in (today or earlier)', hwNote:'Log (e.g. 3 × 12 with 8kg)', save:'Save', times:'times', thisWeek:'This week',
+    bodyTitle:'Body stats', addRec:'Add entry', date:'Date', weight:'Weight', fat:'Body fat', muscle:'Muscle', waist:'Waist', hip:'Hip', chest:'Chest', arm:'Arm', thigh:'Thigh', note:'Note',
+    unitKg:'kg', unitPct:'%', unitCm:'cm', noBody:'Log your first entry to start seeing trends', del:'Delete', delQ:'Delete this entry?', byCoach:'Logged by coach', fillOne:'Please fill in at least one value',
+    trend:'Trend', change:'Change', history:'History',
+    prTitle:'Personal records', noPr:'Your PRs are calculated automatically once weights are logged', e1rm:'Est. 1RM',
+    lib:'Exercise library', search:'Search exercises', all:'All', cue:'Coaching cues', video:'Watch demo', equip:'Equipment', yourBest:'Your best', yourHist:'Your history',
+    attend:'Attendance', noAttend:'No attendance yet', exempt:'Exempt', pkgHist:'Packages', bought:'Bought', free:'Complimentary',
+    settings:'Settings', lang:'Language', pin:'Change login PIN', pinHint:'Set a 4-digit PIN to use instead of your phone digits', newPin:'New 4-digit PIN', pinOk:'PIN updated', logout:'Log out', logoutQ:'Log out now?',
+    install:'Add to Home Screen: on iPhone use Safari Share → "Add to Home Screen"; on Android use the Chrome menu → "Install app".',
+    saved:'Saved', sent:'Sent', updated:'Updated', newVer:'🔄 New version — updating…',
+    wk:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], tip:'Tip'
+  }
+};
+const t = k => (TX[LANG]&&TX[LANG][k]!=null) ? TX[LANG][k] : (TX.zh[k]!=null?TX.zh[k]:k);
+function setLang(l){ LANG=l; try{ localStorage.setItem('ispt_lang',l); }catch(e){} document.documentElement.lang = l==='en'?'en':'zh-HK'; render(); }
+
+/* ───────── 工具 ───────── */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => ('0'+n).slice(-2);
+function isoToday(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseISO(s){ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]):null; }
+function isoOf(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function addDays(s,n){ const d=parseISO(s); d.setDate(d.getDate()+n); return isoOf(d); }
+function fmtD(s){ const d=parseISO(s); return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear():esc(s||''); }   // 日/月/年
+function fmtDM(s){ const d=parseISO(s); return d?pad(d.getDate())+'/'+pad(d.getMonth()+1):''; }
+function wkName(s){ const d=parseISO(s); return d?t('wk')[d.getDay()]:''; }
+function fmtN(v){ const n=Number(v); if(!isFinite(n)) return ''; return (Math.round(n*10)/10).toString(); }
+function toast(msg){ const el=document.createElement('div'); el.className='toast'; el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+/* ───────── API（POST text/plain 免 CORS 預檢；個資唔入網址）─────────
+   讀取：任何失敗都重試；寫入：只喺回應唔係 JSON（/exec 偶發 404 頁＝未執行）先重試，防重複寫入。 */
+let AUTH = lsGet('ispt_auth');
+async function api(action, p, write){
+  const body = Object.assign({action}, p||{});
+  if(AUTH){ body.name = AUTH.name; body.code = AUTH.code; }
+  for(let i=0;i<3;i++){
+    let txt = null;
+    try{
+      const c=new AbortController(), tm=setTimeout(()=>c.abort(), 45000);
+      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
+      clearTimeout(tm); txt = await r.text();
+      if(txt.charAt(0)==='{') return JSON.parse(txt);
+    }catch(e){ if(write && txt===null) return {ok:false, err:t('net'), unsure:true}; }
+    await new Promise(r=>setTimeout(r, 1000*(i+1)));
+  }
+  return {ok:false, err:t('net')};
+}
+
+/* ───────── 狀態 ───────── */
+let D = null;                      // apiMe 回應
+const S = { tab:'home', ses:null, bodyMetric:'weight', exCat:'', exQ:'', bodyForm:false, hwNote:null };
+const EXM = () => { const m={}; (D&&D.exercises||[]).forEach(e=>m[e.id]=e); return m; };
+function exName(id){ const e=EXM()[id]; if(!e) return '—'; return LANG==='en' ? (e.en||e.zh) : e.zh; }
+function exSub(id){ const e=EXM()[id]; if(!e) return ''; return LANG==='en' ? e.zh : (e.en||''); }
+function mySets(s){ return (s.sets||[]).filter(x=>!x.acct || x.acct===D.me.id); }
+/* 破紀錄組：按日期順序，某組重量（同重量則次數）超越之前最佳先算 PR；第一次做嗰個動作唔算 */
+function prSets(){ const best={}, hit=new WeakSet();
+  (D.sessions||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(s=>mySets(s).forEach(x=>{ const kg=Number(x.kg)||0, r=Number(x.reps)||0; if(!(kg>0)) return;
+    const b=best[x.ex]; if(!b){ best[x.ex]={kg,r}; return; } if(kg>b.kg || (kg===b.kg && r>b.r)){ best[x.ex]={kg,r}; hit.add(x); } }));
+  return hit; }
+function groupSets(sets){ const out=[], idx={}; sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(idx[k]==null){ idx[k]=out.length; out.push({ex:x.ex, sets:[]}); } out[idx[k]].sets.push(x); }); return out; }
+function volOf(sets){ return sets.reduce((a,x)=>a+(Number(x.kg)||0)*(Number(x.reps)||0),0); }
+
+/* ───────── 啟動 ───────── */
+async function boot(){
+  document.documentElement.lang = LANG==='en'?'en':'zh-HK';
+  checkVersion();
+  if(!AUTH){ renderLogin(); return; }
+  const cached = lsGet('ispt_cache');
+  if(cached && cached.me){ D = cached; render(); }
+  else renderShell(true);
+  await refresh(!cached);
+}
+async function refresh(showErr){
+  const r = await api('me');
+  if(r.ok){ D = r; lsSet('ispt_cache', r); render(); return true; }
+  if(/唔啱|試太多/.test(r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); D=null; renderLogin(r.err); return false; }
+  if(showErr || !D){ if(!D){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(r.err||t('net'))}<br><br><button class="btn sm" onclick="boot()">↻</button></div></div>`; } else toast(r.err||t('net')); }
+  return false;
+}
+async function checkVersion(){
+  try{
+    const r = await fetch(location.pathname+'?_ck='+Date.now(), {cache:'no-store'}); if(!r.ok) return;
+    const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
+    if(m && m[1]!==FRONTEND_VERSION){
+      let tried=null; try{ tried=sessionStorage.getItem('ispt_upd'); }catch(e){}
+      if(tried===m[1]) return;
+      try{ sessionStorage.setItem('ispt_upd', m[1]); }catch(e){}
+      toast(t('newVer')); setTimeout(()=>location.replace(location.pathname+'?v='+encodeURIComponent(m[1])), 900);
+    }
+  }catch(e){}
+}
+
+/* ───────── 登入 ───────── */
+function renderLogin(err){
+  $('#app').innerHTML = `
+  <div class="login">
+    <div class="row" style="margin-bottom:24px"><img class="logo" src="img/is-mark-512.png" alt=""><span class="sp"></span>
+      <button class="pill ${LANG==='zh'?'on':''}" onclick="setLangLogin('zh')">中</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLangLogin('en')">EN</button></div>
+    <h1>INITIATE <em>${LANG==='en'?'PT':'私人訓練'}</em></h1>
+    <div class="en">PERSONAL TRAINING · INITIATE SPORTS</div>
+    <form onsubmit="doLogin(event)">
+      <div class="fld"><label class="lb">${t('name')}</label><input class="in" id="lg-name" autocomplete="name" autocapitalize="words"></div>
+      <div class="fld"><label class="lb">${t('last4')}</label><input class="in num" id="lg-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"></div>
+      <div id="lg-err" style="color:var(--red);font-size:13px;min-height:20px;margin:-4px 2px 8px">${esc(err||'')}</div>
+      <button class="btn skew block" id="lg-btn"><span>${t('login')} →</span></button>
+    </form>
+    <p class="muted small" style="margin-top:18px">${t('loginHint')}</p>
+  </div>`;
+}
+function setLangLogin(l){ LANG=l; try{ localStorage.setItem('ispt_lang',l); }catch(e){} renderLogin(); }
+async function doLogin(ev){
+  ev.preventDefault();
+  const name=$('#lg-name').value.trim(), code=$('#lg-code').value.replace(/\D/g,'');
+  if(!name || code.length!==4){ $('#lg-err').textContent=t('loginErr'); return; }
+  const b=$('#lg-btn'); b.disabled=true; b.innerHTML=`<span>${t('loading')}</span>`;
+  AUTH={name, code};
+  const r=await api('me');
+  if(r.ok){ lsSet('ispt_auth', AUTH); D=r; lsSet('ispt_cache', r); S.tab='home'; render(); window.scrollTo(0,0); return; }
+  AUTH=null; b.disabled=false; b.innerHTML=`<span>${t('login')} →</span>`; $('#lg-err').textContent=r.err||t('net');
+}
+function logout(){ if(!confirm(t('logoutQ'))) return; AUTH=null; D=null; lsDel('ispt_auth'); lsDel('ispt_cache'); renderLogin(); }
+
+/* ───────── 外殼 ───────── */
+const ICONS = {
+  home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',
+  train:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+  hw:'<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="m8.5 12 2.3 2.3 4.7-4.8"/>',
+  body:'<path d="M3.5 17 9 11.5l3.5 3.5 8-8"/><path d="M15 7h5.5v5.5"/>',
+  more:'<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>'
+};
+function renderShell(loading){
+  const tabs=['home','train','hw','body','more'];
+  $('#app').innerHTML = `
+  <header class="top"><div class="top-in">
+    <div class="brand"><img src="img/is-mark-96.png" alt="">INITIATE <span class="tag">PT</span></div><span class="sp"></span>
+    <button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh')">中</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en')">EN</button>
+  </div></header>
+  <main class="wrap" id="main">${loading?'<div style="height:18px"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>':''}</main>
+  <nav class="nav"><div class="nav-in">${tabs.map(k=>`<button class="${S.tab===k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${t(k)}</button>`).join('')}</div></nav>`;
+}
+function go(tab){ S.tab=tab; S.ses=null; render(); window.scrollTo(0,0); }
+function render(){
+  if(!AUTH){ renderLogin(); return; }
+  if(!D){ renderShell(true); return; }
+  const y=window.scrollY; renderShell(false);
+  const m=$('#main');
+  m.innerHTML = ({home:vHome, train:vTrain, hw:vHw, body:vBody, more:vMore}[S.tab]||vHome)();
+  window.scrollTo(0,y);
+}
+
+/* ───────── 首頁 ───────── */
+function pkgSummary(){
+  const pt=D.pt||{}; if(!pt.ok) return {err:true};
+  const pk=(pt.packages||[]).filter(p=>!p.free || Number(p.remaining)>0);
+  const active=pk.filter(p=>Number(p.remaining)>0 && !(Number(p.daysToExp)<0));
+  if(!pk.length) return {none:true};
+  const cur = active[0] || pk[pk.length-1];
+  const totalLeft = active.reduce((a,p)=>a+Number(p.remaining||0),0);
+  return {cur, totalLeft, active};
+}
+function vPkgCard(){
+  const s=pkgSummary();
+  if(s.err) return `<div class="card"><div class="muted small">${t('ptErr')}</div></div>`;
+  if(s.none) return `<div class="card"><div class="muted small">${t('noPkg')}</div></div>`;
+  const p=s.cur, used=Number(p.used)||0, tot=Number(p.sessions)||0, left=Number(p.remaining)||0, dte=Number(p.daysToExp);
+  const exp = p.expiry ? `${t('expire')} ${fmtD(p.expiry)}` : '';
+  const warn = dte<0 ? `<span class="badge red">${t('expired')}</span>` : (dte<=30 ? `<span class="badge gold">${t('expSoon')}</span>` : '');
+  const more = s.active.length>1 ? `<div class="small muted" style="margin-top:6px">+ ${s.totalLeft-left} ${t('sessionsU')}</div>` : '';
+  return `<div class="card hero">
+    <div class="row"><span class="small muted" style="letter-spacing:.08em">${t('pkg').toUpperCase()}</span><span class="sp"></span>${warn}</div>
+    <div class="row" style="align-items:flex-end;margin-top:8px"><div><span class="big num">${left}</span><span class="muted"> ${t('of')}${tot} ${t('sessionsU')}</span></div><span class="sp"></span><span class="small muted">${t('left')}</span></div>
+    <div class="bar"><i style="width:${tot?Math.min(100,Math.round(used/tot*100)):0}%"></i></div>
+    <div class="row small muted" style="margin-top:8px"><span>${used}/${tot}</span><span class="sp"></span><span>${exp}</span></div>${more}
+  </div>`;
+}
+function vHome(){
+  const me=D.me, pt=D.pt||{}, att=(pt.sessions||[]).filter(x=>!x.exempt);
+  const mon=isoToday().slice(0,7), thisMon=att.filter(x=>String(x.date).slice(0,7)===mon).length;
+  const nm = LANG==='en' ? (me.en||me.name) : me.name;
+  const mates=(D.mates||[]).map(m=>LANG==='en'?(m.en||m.name):m.name).join('、');
+  let h = `<div class="h1">${t('hi')}，${esc(nm)} 👋</div><div class="sub">${mates?`${t('mates')} ${esc(mates)}`:esc(me.group||'')}${me.goal?` · 🎯 ${esc(me.goal)}`:''}</div>`;
+  h += vPkgCard();
+  h += `<div class="grid3">
+    <div class="stat"><b class="num">${att.length}</b><span>${t('attended')}</span></div>
+    <div class="stat"><b class="num">${thisMon}</b><span>${t('thisMonth')}</span></div>
+    <div class="stat"><b class="num">${(D.prs&&D.prs.best||[]).length}</b><span>${t('prs')}</span></div></div>`;
+  // 最近一堂
+  const s=(D.sessions||[])[0];
+  h += `<div class="sec">${t('latestSes')}${s?`<span class="sp" style="flex:1"></span><button class="lnk" onclick="go('train')">${t('seeAll')} ›</button>`:''}</div>`;
+  if(s){ const ms=mySets(s), g=groupSets(ms);
+    h += `<div class="card tap" onclick="openSes('${s.id}')"><div class="row"><div><div style="font-weight:800">${esc(s.title||fmtD(s.date))}</div><div class="small muted">${fmtD(s.date)} · ${g.length} ${t('exercises')} · ${ms.length} ${t('sets')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div>
+      <div class="sets">${g.slice(0,4).map(b=>`<span class="badge grey">${esc(exName(b.ex))}</span>`).join('')}${g.length>4?`<span class="badge grey">+${g.length-4}</span>`:''}</div></div>`;
+  } else h += `<div class="card"><div class="muted small">${t('noSes')}</div></div>`;
+  // 今週功課
+  const hw=curHw();
+  h += `<div class="sec">${t('weekHw')}</div>`;
+  if(hw){ const pr=hwProgress(hw);
+    h += `<div class="card tap" onclick="go('hw')"><div class="row"><div style="font-weight:800">${esc(hw.title||t('hw'))}</div><span class="sp"></span><span class="badge">${pr.done}/${pr.total} ${t('done')}</span></div>
+      <div class="bar"><i style="width:${pr.total?Math.round(pr.done/pr.total*100):0}%"></i></div></div>`;
+  } else h += `<div class="card"><div class="muted small">${t('noHw')}</div></div>`;
+  // 個人最佳＋體重
+  const rec=(D.prs&&D.prs.recent||[]).slice(0,3);
+  if(rec.length){ h += `<div class="sec">🏆 ${t('prs')}</div><div class="card">${rec.map(r=>`<div class="li"><div class="d"><b>${fmtDM(r.date).split('/')[0]}</b><span>${fmtDM(r.date).split('/')[1]}月</span></div><div style="flex:1"><div style="font-weight:700">${esc(exName(r.ex))}</div><div class="small muted num">${fmtN(r.kg)} kg × ${r.reps}</div></div><span class="badge gold">PR</span></div>`).join('')}</div>`; }
+  const bw=(D.body||[]).filter(b=>b.weight!=='' && b.weight!=null);
+  if(bw.length){ const last=bw[bw.length-1], first=bw[0], diff=Number(last.weight)-Number(first.weight);
+    h += `<div class="sec">${t('latestW')}</div><div class="card tap" onclick="go('body')"><div class="row"><span class="big num" style="font-size:28px">${fmtN(last.weight)}</span><span class="muted">kg</span><span class="sp"></span>${bw.length>1?`<span class="badge ${diff<=0?'':'gold'}">${diff>0?'+':''}${fmtN(diff)} kg</span>`:''}</div><div class="small muted" style="margin-top:4px">${fmtD(last.date)}</div></div>`; }
+  return h;
+}
+
+/* ───────── 訓練 ───────── */
+function openSes(id){ S.tab='train'; S.ses=id; render(); window.scrollTo(0,0); }
+function vTrain(){
+  if(S.ses){ const s=(D.sessions||[]).find(x=>x.id===S.ses); if(s) return vSesDetail(s); S.ses=null; }
+  const list=D.sessions||[];
+  let h=`<div class="h1">${t('sessions')}</div><div class="sub">${list.length} ${LANG==='en'?'sessions logged':'堂已記錄'}</div>`;
+  if(!list.length) return h+`<div class="card empty"><div class="ic">🏋️</div>${t('noSes')}</div>`;
+  h+=`<div class="card">`+list.map(s=>{ const ms=mySets(s), g=groupSets(ms), v=volOf(ms);
+    return `<div class="li" style="cursor:pointer" onclick="openSes('${s.id}')"><div class="d"><b>${fmtDM(s.date).split('/')[0]}</b><span>${fmtDM(s.date).split('/')[1]}/${String(s.date).slice(2,4)}</span></div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title||g.map(b=>exName(b.ex)).slice(0,3).join('・')||'—')}</div>
+      <div class="small muted">${g.length} ${t('exercises')} · ${ms.length} ${t('sets')}${v?` · ${Math.round(v).toLocaleString()} kg`:''}</div></div><span style="color:var(--teal)">›</span></div>`; }).join('')+`</div>`;
+  return h;
+}
+function vSesDetail(s){
+  const ms=mySets(s), g=groupSets(ms), pk=prSets(), v=volOf(ms);
+  let h=`<button class="back" onclick="S.ses=null;render()">‹ ${t('back')}</button>
+    <div class="h1">${esc(s.title||fmtD(s.date))}</div><div class="sub">${wkName(s.date)} · ${fmtD(s.date)}</div>
+    <div class="grid3" style="margin-bottom:12px"><div class="stat"><b class="num">${g.length}</b><span>${t('exercises')}</span></div><div class="stat"><b class="num">${ms.length}</b><span>${t('sets')}</span></div><div class="stat"><b class="num">${v?Math.round(v).toLocaleString():'—'}</b><span>${t('volume')} kg</span></div></div>`;
+  if(s.note) h+=`<div class="card" style="border-left:3px solid var(--teal)"><div class="small muted">${t('note')}</div><div style="white-space:pre-wrap">${esc(s.note)}</div></div>`;
+  h+=`<div class="card">`+(g.length?g.map(b=>`<div class="exb"><div class="row"><button class="exname" onclick="showEx('${b.ex}')">${esc(exName(b.ex))}</button></div>
+      ${exSub(b.ex)?`<div class="small muted">${esc(exSub(b.ex))}</div>`:''}
+      <div class="sets">${b.sets.map((x,i)=>{ const isPr=pk.has(x);
+        const main = x.kg!=='' && x.kg!=null ? `${fmtN(x.kg)}<span class="small muted">kg</span>${x.reps!==''?` × ${esc(x.reps)}`:''}` : (x.reps!==''?`${esc(x.reps)} ${LANG==='en'?'reps':'下'}`:'') ;
+        const sec = x.sec!=='' && x.sec!=null ? `${esc(x.sec)}s` : '';
+        return `<div class="set ${isPr?'pr':''}"><span class="n">${LANG==='en'?'Set '+(i+1):'第'+(i+1)+'組'}${isPr?' 🏆':''}</span><span class="k num">${main||sec||'—'}</span>${main&&sec?` <span class="small muted">${sec}</span>`:''}${x.acct&&(D.mates||[]).length?`<span class="n" style="color:var(--teal)">${t('onlyYou')}</span>`:''}${x.rpe?`<span class="n">RPE ${esc(x.rpe)}</span>`:''}${x.note?`<span class="n">${esc(x.note)}</span>`:''}</div>`; }).join('')}</div></div>`).join('') : `<div class="muted small">—</div>`)+`</div>`;
+  h+=`<div class="card">${thread('session', s.id)}</div>`;
+  return h;
+}
+
+/* ───────── 留言串 ───────── */
+function thread(type, target){
+  const cms=(D.comments||[]).filter(c=>c.type===type && c.target===target).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  const tid='cm-'+type+'-'+target;
+  return `<div class="${type==='session'?'':'thread'}"><div class="small muted" style="font-weight:700;margin-bottom:4px">💬 ${t('comments')}</div>
+    ${cms.length?cms.map(c=>`<div class="msg ${c.by==='coach'?'co':'me'}"><div class="bub"><span class="who">${c.by==='coach'?t('coach'):t('you')} · ${fmtDM(c.at)} ${esc(String(c.at).slice(11,16))}</span>${esc(c.text)}</div></div>`).join(''):`<div class="small muted">${t('noCm')}</div>`}
+    <div class="tin"><input class="in" id="${tid}" placeholder="${t('say')}" maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();sendCm('${type}','${target}')}"><button class="btn sm" onclick="sendCm('${type}','${target}')">${t('send')}</button></div></div>`;
+}
+async function sendCm(type, target){
+  const el=document.getElementById('cm-'+type+'-'+target); const text=(el.value||'').trim(); if(!text) return;
+  el.disabled=true;
+  const r=await api('comment',{type, target, text}, true);
+  el.disabled=false;
+  if(!r.ok){ toast(r.err||t('net')); return; }
+  D.comments=(D.comments||[]).concat([r.comment]); lsSet('ispt_cache', D); toast(t('sent')); render();
+}
+
+/* ───────── 功課 ───────── */
+function curHw(){ const list=D.homework||[]; if(!list.length) return null; const today=isoToday();
+  return list.find(h=>h.week<=today && addDays(h.week,6)>=today) || list[0]; }
+function hwProgress(h){ const days=Array.from({length:7},(_,i)=>addDays(h.week,i)); let done=0; const total=(h.items||[]).length||1;
+  (h.items||[]).forEach((it,i)=>{ if((h.logs||[]).some(l=>l.idx===i && l.done && days.includes(l.date))) done++; });
+  if(!(h.items||[]).length) done=(h.logs||[]).some(l=>l.done)?1:0;
+  return {done, total}; }
+function vHw(){
+  const list=D.homework||[];
+  let h=`<div class="h1">${t('hw')}</div><div class="sub">${t('hwTap')}</div>`;
+  if(!list.length) return h+`<div class="card empty"><div class="ic">📋</div>${t('noHw')}</div>`;
+  const today=isoToday();
+  list.forEach(hw=>{
+    const days=Array.from({length:7},(_,i)=>addDays(hw.week,i));
+    const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}];
+    const isCur = hw.week<=today && days[6]>=today;
+    h+=`<div class="card"${isCur?' style="border-color:rgba(62,207,207,.35)"':''}>
+      <div class="row"><div><div style="font-weight:900;font-size:16.5px">${esc(hw.title||t('hw'))}</div><div class="small muted">${t('hwWeek')} ${fmtD(hw.week)} – ${fmtDM(days[6])}</div></div><span class="sp"></span>${isCur?`<span class="badge">${t('thisWeek')}</span>`:''}</div>
+      ${hw.desc?`<div style="white-space:pre-wrap;margin:10px 0 2px;font-size:14px">${esc(hw.desc)}</div>`:''}
+      <div style="margin-top:8px">${items.map((it,i)=>{
+        const logs=(hw.logs||[]).filter(l=>l.idx===i), doneDays=new Set(logs.filter(l=>l.done).map(l=>l.date)), cnt=days.filter(d=>doneDays.has(d)).length;
+        const lastNote=logs.filter(l=>l.note).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
+        const nm = it.ex ? exName(it.ex) : (it.text||'');
+        const presc=[it.sets?`${it.sets} ${LANG==='en'?'sets':'組'}`:'', it.reps?`× ${esc(it.reps)}`:''].filter(Boolean).join(' ');
+        const nkey=hw.id+'_'+i;
+        return `<div class="hwi"><div class="row"><div style="min-width:0">${it.ex?`<button class="exname" onclick="showEx('${it.ex}')">${esc(nm)}</button>`:`<div style="font-weight:800">${esc(nm)}</div>`}
+            ${it.ex&&it.text?`<div class="small">${esc(it.text)}</div>`:''}<div class="small muted">${presc}${it.note?`${presc?' · ':''}${esc(it.note)}`:''}</div></div><span class="sp"></span><span class="badge ${cnt?'':'grey'}">${cnt} ${t('times')}</span></div>
+          <div class="days">${days.map(d=>`<button class="day ${doneDays.has(d)?'done':''} ${d===today?'today':''}" ${d>today?'disabled':''} onclick="hwTick('${hw.id}',${i},'${d}',${doneDays.has(d)?0:1})"><span>${wkName(d)}</span><b>${parseISO(d).getDate()}</b></button>`).join('')}</div>
+          ${S.hwNote===nkey?`<div class="tin"><input class="in" id="hwn-${nkey}" placeholder="${t('hwNote')}" maxlength="200"><button class="btn sm" onclick="hwSaveNote('${hw.id}',${i})">${t('save')}</button></div>`
+            :`<div class="row small" style="margin-top:7px">${lastNote?`<span class="muted" style="flex:1;min-width:0">📝 ${fmtDM(lastNote.date)}：${esc(lastNote.note)}</span>`:'<span class="sp"></span>'}<button class="lnk" onclick="S.hwNote='${nkey}';render();setTimeout(()=>{const e=document.getElementById('hwn-${nkey}');e&&e.focus()},30)">📝 ${LANG==='en'?'Log':'記錄'}</button></div>`}
+        </div>`; }).join('')}</div>
+      ${thread('homework', hw.id)}
+    </div>`;
+  });
+  return h;
+}
+async function hwTick(hwId, idx, date, done){
+  const hw=(D.homework||[]).find(h=>h.id===hwId); if(!hw) return;
+  // 樂觀更新
+  const old=(hw.logs||[]).find(l=>l.idx===idx && l.date===date);
+  if(old) old.done=!!done; else (hw.logs=hw.logs||[]).push({acct:D.me.id, idx, date, done:!!done, note:'', at:new Date().toISOString()});
+  render();
+  const r=await api('hwLog',{hwId, idx, date, done:done?'1':'0', note:old?old.note:''}, true);
+  if(!r.ok){ toast(r.err||t('net')); if(old) old.done=!done; else hw.logs.pop(); render(); return; }
+  lsSet('ispt_cache', D);
+}
+async function hwSaveNote(hwId, idx){
+  const hw=(D.homework||[]).find(h=>h.id===hwId); const el=document.getElementById('hwn-'+hwId+'_'+idx); const note=(el.value||'').trim();
+  if(!note){ S.hwNote=null; render(); return; }
+  const date=isoToday(); el.disabled=true;
+  const r=await api('hwLog',{hwId, idx, date, done:'1', note}, true);
+  if(!r.ok){ el.disabled=false; toast(r.err||t('net')); return; }
+  const old=(hw.logs||[]).find(l=>l.idx===idx && l.date===date);
+  if(old){ old.done=true; old.note=note; old.at=new Date().toISOString(); } else (hw.logs=hw.logs||[]).push({acct:D.me.id, idx, date, done:true, note, at:new Date().toISOString()});
+  S.hwNote=null; lsSet('ispt_cache', D); toast(t('saved')); render();
+}
+
+/* ───────── 身體數據 ───────── */
+const METRICS = [['weight','unitKg'],['fat','unitPct'],['muscle','unitKg'],['waist','unitCm'],['hip','unitCm'],['chest','unitCm'],['arm','unitCm'],['thigh','unitCm']];
+function chartSVG(pts, unit){
+  if(pts.length<2) return `<div class="small muted" style="padding:18px 0;text-align:center">${pts.length?`${fmtN(pts[0].v)} ${unit} · ${fmtD(pts[0].d)}`:'—'}</div>`;
+  const W=340,H=170,L=34,R=12,T=16,B=26;
+  const vs=pts.map(p=>p.v), mn=Math.min(...vs), mx=Math.max(...vs), pad=(mx-mn)*0.15||1, lo=mn-pad, hi=mx+pad;
+  const t0=parseISO(pts[0].d).getTime(), t1=parseISO(pts[pts.length-1].d).getTime(), span=(t1-t0)||1;
+  const X=p=>L+(parseISO(p.d).getTime()-t0)/span*(W-L-R), Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  const path=pts.map((p,i)=>(i?'L':'M')+X(p).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+  const area=path+` L${X(pts[pts.length-1]).toFixed(1)} ${H-B} L${X(pts[0]).toFixed(1)} ${H-B} Z`;
+  const ticks=[hi-pad, (hi+lo)/2, lo+pad];
+  const last=pts[pts.length-1];
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
+    <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3ecfcf" stop-opacity=".35"/><stop offset="1" stop-color="#3ecfcf" stop-opacity="0"/></linearGradient></defs>
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="rgba(255,255,255,.07)"/><text x="${L-6}" y="${(Y(v)+4).toFixed(1)}" fill="#8fa3bb" font-size="10" text-anchor="end" font-family="Archivo">${fmtN(v)}</text>`).join('')}
+    <path d="${area}" fill="url(#ga)"/><path d="${path}" fill="none" stroke="#3ecfcf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map(p=>`<circle cx="${X(p).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="#0f1a28" stroke="#3ecfcf" stroke-width="2"/>`).join('')}
+    <text x="${L}" y="${H-7}" fill="#8fa3bb" font-size="10" font-family="Archivo">${fmtDM(pts[0].d)}</text>
+    <text x="${W-R}" y="${H-7}" fill="#8fa3bb" font-size="10" text-anchor="end" font-family="Archivo">${fmtDM(last.d)}</text>
+  </svg>`;
+}
+function vBody(){
+  const list=D.body||[];
+  const avail=METRICS.filter(m=>list.some(b=>b[m[0]]!=='' && b[m[0]]!=null));
+  if(avail.length && !avail.some(m=>m[0]===S.bodyMetric)) S.bodyMetric=avail[0][0];
+  let h=`<div class="row"><div class="h1">${t('bodyTitle')}</div><span class="sp"></span><button class="btn sm skew" style="margin-top:14px" onclick="S.bodyForm=!S.bodyForm;render()"><span>${S.bodyForm?'✕':'＋ '+t('addRec')}</span></button></div><div class="sub"></div>`;
+  if(S.bodyForm){
+    h+=`<div class="card"><div class="fld"><label class="lb">${t('date')}</label><input class="in" type="date" id="bf-date" value="${isoToday()}" max="${isoToday()}"></div>
+      <div class="fgrid">${METRICS.map(m=>`<div><label class="lb">${t(m[0])} (${t(m[1])})</label><input class="in num" id="bf-${m[0]}" inputmode="decimal"></div>`).join('')}</div>
+      <div class="fld" style="margin-top:10px"><label class="lb">${t('note')}</label><input class="in" id="bf-note" maxlength="200"></div>
+      <button class="btn block" id="bf-btn" onclick="bodySave()">${t('save')}</button></div>`;
+  }
+  if(!list.length) return h+(S.bodyForm?'':`<div class="card empty"><div class="ic">📈</div>${t('noBody')}</div>`);
+  if(avail.length){
+    const k=S.bodyMetric, unit=t((METRICS.find(m=>m[0]===k)||[])[1]);
+    const pts=list.filter(b=>b[k]!=='' && b[k]!=null && isFinite(Number(b[k]))).map(b=>({d:b.date, v:Number(b[k])}));
+    const diff=pts.length>1?pts[pts.length-1].v-pts[0].v:0;
+    h+=`<div class="chips" style="margin-bottom:10px">${avail.map(m=>`<button class="chip ${m[0]===k?'on':''}" onclick="S.bodyMetric='${m[0]}';render()">${t(m[0])}</button>`).join('')}</div>
+      <div class="card"><div class="row"><div><span class="small muted">${t(k)}</span><div><span class="big num" style="font-size:28px">${pts.length?fmtN(pts[pts.length-1].v):'—'}</span> <span class="muted">${unit}</span></div></div><span class="sp"></span>${pts.length>1?`<div style="text-align:right"><span class="small muted">${t('change')}</span><div class="num" style="font-weight:800;color:${diff<=0?'var(--teal)':'var(--gold)'}">${diff>0?'+':''}${fmtN(diff)} ${unit}</div></div>`:''}</div>${chartSVG(pts, unit)}</div>`;
+  }
+  h+=`<div class="sec">${t('history')}</div>`;
+  h+=list.slice().reverse().map(b=>{
+    const vals=METRICS.filter(m=>b[m[0]]!=='' && b[m[0]]!=null).map(m=>`<span class="badge grey">${t(m[0])} <b class="num" style="color:var(--text)">${fmtN(b[m[0]])}</b>${t(m[1])}</span>`).join(' ');
+    return `<div class="card"><div class="row"><b>${fmtD(b.date)}</b><span class="sp"></span>${b.src==='教練'?`<span class="badge">${t('byCoach')}</span>`:`<button class="lnk" style="color:var(--mut)" onclick="bodyDel('${b.id}')">${t('del')}</button>`}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${vals}</div>${b.note?`<div class="small muted" style="margin-top:6px">${esc(b.note)}</div>`:''}
+      ${(D.comments||[]).some(c=>c.type==='body'&&c.target===b.id)?thread('body', b.id):''}</div>`; }).join('');
+  return h;
+}
+async function bodySave(){
+  const p={date:$('#bf-date').value, note:$('#bf-note').value.trim()}; let any=false;
+  METRICS.forEach(m=>{ const v=$('#bf-'+m[0]).value.trim(); if(v){ p[m[0]]=v; any=true; } });
+  if(!any){ toast(t('fillOne')); return; }
+  const b=$('#bf-btn'); b.disabled=true;
+  const r=await api('bodyAdd', p, true);
+  if(!r.ok){ b.disabled=false; toast(r.err||t('net')); return; }
+  S.bodyForm=false; toast(t('saved')); await refresh(true);
+}
+async function bodyDel(id){
+  if(!confirm(t('delQ'))) return;
+  const r=await api('bodyDel',{id}, true);
+  if(!r.ok){ toast(r.err||t('net')); return; }
+  D.body=(D.body||[]).filter(b=>b.id!==id); lsSet('ispt_cache', D); render();
+}
+
+/* ───────── 更多 ───────── */
+function vMore(){
+  const p=D.prs||{}, best=(p.best||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  let h=`<div class="h1">${t('more')}</div><div class="sub"></div>`;
+  // 個人最佳
+  h+=`<div class="sec">🏆 ${t('prTitle')}</div>`;
+  h+= best.length ? `<div class="card">${best.map(b=>`<div class="li" style="cursor:pointer" onclick="showEx('${b.ex}')"><div style="flex:1;min-width:0"><div style="font-weight:700">${esc(exName(b.ex))}</div><div class="small muted">${fmtD(b.date)} · ${t('e1rm')} ${fmtN(b.e1rm)} kg</div></div><div class="num" style="font-weight:900;font-size:17px">${fmtN(b.kg)}<span class="small muted"> kg × ${b.reps}</span></div></div>`).join('')}</div>`
+    : `<div class="card"><div class="small muted">${t('noPr')}</div></div>`;
+  // 動作庫
+  const exs=D.exercises||[], cats=[...new Set(exs.map(e=>e.cat).filter(Boolean))];
+  const q=S.exQ.trim().toLowerCase();
+  const shown=exs.filter(e=>(!S.exCat||e.cat===S.exCat) && (!q || (e.zh+' '+e.en+' '+e.cat+' '+e.eq).toLowerCase().includes(q)));
+  h+=`<div class="sec">📚 ${t('lib')}</div>
+    <input class="in" id="exq" placeholder="🔍 ${t('search')}" value="${esc(S.exQ)}" oninput="S.exQ=this.value;renderLib()" style="margin-bottom:10px">
+    <div class="chips" style="margin-bottom:10px"><button class="chip ${!S.exCat?'on':''}" onclick="S.exCat='';renderLib()">${t('all')}</button>${cats.map(c=>`<button class="chip ${S.exCat===c?'on':''}" onclick="S.exCat='${esc(c)}';renderLib()">${esc(c)}</button>`).join('')}</div>
+    <div class="card" id="exlist">${libRows(shown)}</div>`;
+  // 出席
+  const pt=D.pt||{}, att=(pt.sessions||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  h+=`<div class="sec">📅 ${t('attend')}</div>`;
+  if(!pt.ok) h+=`<div class="card"><div class="small muted">${t('ptErr')}</div></div>`;
+  else h+= att.length ? `<div class="card">${att.map(a=>`<div class="li"><div class="d"><b>${fmtDM(a.date).split('/')[0]}</b><span>${fmtDM(a.date).split('/')[1]}/${String(a.date).slice(2,4)}</span></div><div style="flex:1;min-width:0"><div style="font-weight:700">${wkName(a.date)}${a.no?` · #${a.no}`:''}</div><div class="small muted">${esc(String(a.venue||'').split('｜').filter(Boolean).slice(0,2).join(' · '))}</div></div>${a.exempt?`<span class="badge grey">${t('exempt')}</span>`:''}</div>`).join('')}</div>`
+    : `<div class="card"><div class="small muted">${t('noAttend')}</div></div>`;
+  if(pt.ok && (pt.packages||[]).length){
+    h+=`<div class="sec">🎫 ${t('pkgHist')}</div><div class="card">${pt.packages.slice().reverse().map(pk=>`<div class="li"><div style="flex:1"><div style="font-weight:700">${pk.free?t('free'):`${pk.sessions} ${t('sessionsU')}`}</div><div class="small muted">${pk.buyDate?`${t('bought')} ${fmtD(pk.buyDate)}`:''}${pk.expiry?` · ${t('expire')} ${fmtD(pk.expiry)}`:''}</div></div><div class="num" style="font-weight:800">${pk.used}/${pk.sessions}</div></div>`).join('')}</div>`;
+  }
+  // 設定
+  h+=`<div class="sec">⚙️ ${t('settings')}</div><div class="card">
+    <div class="row"><span>${t('lang')}</span><span class="sp"></span><button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh')">中文</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en')">English</button></div>
+    <div style="margin-top:14px"><div>${t('pin')}</div><div class="small muted" style="margin:2px 0 8px">${t('pinHint')}</div>
+      <div class="tin" style="margin:0"><input class="in num" id="newpin" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="${t('newPin')}"><button class="btn sm" onclick="setPin()">${t('save')}</button></div></div>
+    <div class="small muted" style="margin-top:14px;line-height:1.6">📲 ${t('install')}</div>
+    <button class="btn ghost block" style="margin-top:14px" onclick="logout()">${t('logout')}</button></div>
+    <div class="small muted" style="text-align:center;margin:16px 0 4px;opacity:.6">INITIATE SPORTS · ${FRONTEND_VERSION}</div>`;
+  return h;
+}
+function libRows(list){ return list.length ? list.map(e=>`<div class="li" style="cursor:pointer" onclick="showEx('${e.id}')"><div style="flex:1;min-width:0"><div style="font-weight:700">${esc(LANG==='en'?(e.en||e.zh):e.zh)}</div><div class="small muted">${esc(LANG==='en'?e.zh:(e.en||''))}${e.eq?` · ${esc(e.eq)}`:''}</div></div><span class="badge grey">${esc(e.cat||'')}</span></div>`).join('') : `<div class="small muted">—</div>`; }
+function renderLib(){
+  const exs=D.exercises||[], q=S.exQ.trim().toLowerCase();
+  const shown=exs.filter(e=>(!S.exCat||e.cat===S.exCat) && (!q || (e.zh+' '+e.en+' '+e.cat+' '+e.eq).toLowerCase().includes(q)));
+  $('#exlist').innerHTML=libRows(shown);
+  document.querySelectorAll('.chips .chip').forEach(c=>{ const cat=c.getAttribute('onclick').match(/S\.exCat='([^']*)'/); if(cat) c.classList.toggle('on', cat[1]===S.exCat); });
+}
+async function setPin(){
+  const v=$('#newpin').value.replace(/\D/g,''); if(v.length!==4){ toast(t('newPin')); return; }
+  const r=await api('setPin',{newPin:v}, true);
+  if(!r.ok){ toast(r.err||t('net')); return; }
+  AUTH.code=v; lsSet('ispt_auth', AUTH); $('#newpin').value=''; toast(t('pinOk'));
+}
+
+/* ───────── 動作詳情 ───────── */
+function showEx(id){
+  const e=EXM()[id]; if(!e) return;
+  const best=(D.prs&&D.prs.best||[]).find(b=>b.ex===id);
+  const hist=[]; (D.sessions||[]).forEach(s=>{ const xs=mySets(s).filter(x=>x.ex===id); if(xs.length){ const top=xs.reduce((a,x)=>(Number(x.kg)||0)>(Number(a.kg)||0)?x:a, xs[0]); hist.push({d:s.date, n:xs.length, kg:top.kg, reps:top.reps}); } });
+  const cue = LANG==='en' ? (e.cueEn||e.cue) : e.cue;
+  const ov=document.createElement('div'); ov.className='ov'; ov.onclick=ev=>{ if(ev.target===ov) ov.remove(); };
+  const pts=hist.filter(x=>Number(x.kg)>0).map(x=>({d:x.d, v:Number(x.kg)})).reverse();
+  ov.innerHTML=`<div class="sheet"><div class="grab"></div>
+    <div class="row"><div><div style="font-weight:900;font-size:20px">${esc(LANG==='en'?(e.en||e.zh):e.zh)}</div><div class="small muted">${esc(LANG==='en'?e.zh:(e.en||''))}</div></div><span class="sp"></span><button class="pill" onclick="this.closest('.ov').remove()">✕</button></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">${e.cat?`<span class="badge">${esc(e.cat)}</span>`:''}${e.eq?`<span class="badge grey">${t('equip')}：${esc(e.eq)}</span>`:''}</div>
+    ${cue?`<div class="card" style="background:var(--panel2);margin:10px 0"><div class="small muted" style="margin-bottom:4px">${t('cue')}</div><div>${esc(cue)}</div></div>`:''}
+    ${e.video?`<a class="btn skew block" style="text-decoration:none;margin:6px 0 4px" href="${esc(e.video)}" target="_blank" rel="noopener"><span>▶ ${t('video')}</span></a>`:''}
+    ${best?`<div class="sec">🏆 ${t('yourBest')}</div><div class="card"><span class="big num" style="font-size:26px">${fmtN(best.kg)}</span><span class="muted"> kg × ${best.reps}</span><div class="small muted">${fmtD(best.date)} · ${t('e1rm')} ${fmtN(best.e1rm)} kg</div></div>`:''}
+    ${pts.length>1?`<div class="card">${chartSVG(pts,'kg')}</div>`:''}
+    ${hist.length?`<div class="sec">${t('yourHist')}</div><div class="card">${hist.slice(0,12).map(x=>`<div class="li"><div style="flex:1">${fmtD(x.d)}</div><div class="num small">${x.n} ${t('sets')}${Number(x.kg)>0?` · ${fmtN(x.kg)} kg × ${esc(x.reps)}`:''}</div></div>`).join('')}</div>`:''}
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+boot();
+</script>
+</body>
+</html>

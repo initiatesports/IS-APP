@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-28-inbox';
+const FRONTEND_VERSION = 'coach-2026-09-29-ptapp';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1122,7 +1122,8 @@ async function renderPt(){
     _readCache['pt']=r;   // 快取；任何寫入動作會自動清（見 apiPost）
   }
   const cap = r.cap || 10, today = r.today || '';
-  let h = `<div style="font-size:13px;color:var(--muted);margin:12px 4px 16px;line-height:1.65">⭐ 私人訓練自成一格，與恆常班分開。每位學員各自 ${cap} 堂一個週期，夠數自動開新一期。上完堂即撳「今日上咗堂」。</div>`;
+  let h = `<a href="is-pt-coach.html" style="display:flex;align-items:center;gap:10px;margin:12px 0 4px;padding:13px 14px;border-radius:12px;background:linear-gradient(135deg,#0f1a28,#16324a);border:1px solid rgba(62,207,207,.35);color:#eaf1f8;text-decoration:none"><span style="font-size:22px">🏋️</span><span style="flex:1"><b style="display:block">私訓 App：記錄今堂動作／重量、功課、身體數據</b><span style="font-size:12px;color:#8fa3bb">學員喺 is-pt.html 即時睇到</span></span><span style="color:#3ecfcf;font-weight:800">›</span></a>`;
+  h += `<div style="font-size:13px;color:var(--muted);margin:12px 4px 16px;line-height:1.65">⭐ 私人訓練自成一格，與恆常班分開。每位學員各自 ${cap} 堂一個週期，夠數自動開新一期。上完堂即撳「今日上咗堂」。</div>`;
   (r.students || []).forEach((s, i) => {
     // 私訓卡按學員類型顯示：wallet(預繳錢包,如鄧可澄)跟繳清週期 / package(套票,如甘卓熹20節)用套票節數 / default(10堂一期)照舊
     const wlt = s.wallet ? (s.walletState||{sessions:[],sessionCount:0,cycleCount:0}) : null;
