@@ -99,7 +99,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-29-a';
+const FRONTEND_VERSION = 'ptc-2026-09-29-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://initiatesports.github.io/IS-APP/is-pt.html';
 
@@ -125,6 +125,7 @@ function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 let PASS = (()=>{ try{ return sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();
 async function api(action, p, write){
   const body=Object.assign({action, coachPass:PASS}, p||{});
+  if(write) body.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);   // 冪等：重試沿用同一 rid，後端唔會重複寫
   for(let i=0;i<3;i++){
     let txt=null;
     try{ const c=new AbortController(), tm=setTimeout(()=>c.abort(),50000);

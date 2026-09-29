@@ -150,7 +150,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-29-a';
+const FRONTEND_VERSION = 'pt-2026-09-29-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -226,11 +226,12 @@ function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 
 /* ───────── API（POST text/plain 免 CORS 預檢；個資唔入網址）─────────
-   讀取：任何失敗都重試；寫入：只喺回應唔係 JSON（/exec 偶發 404 頁＝未執行）先重試，防重複寫入。 */
+   讀取：任何失敗都重試；寫入：回應唔係 JSON 先重試，並帶 rid（後端同一 rid 只執行一次——實測 POST 可能已執行但回應甩咗）。 */
 let AUTH = lsGet('ispt_auth');
 async function api(action, p, write){
   const body = Object.assign({action}, p||{});
   if(AUTH){ body.name = AUTH.name; body.code = AUTH.code; }
+  if(write) body.rid = Date.now().toString(36)+Math.random().toString(36).slice(2,10);   // 冪等：重試沿用同一 rid，後端唔會重複寫
   for(let i=0;i<3;i++){
     let txt = null;
     try{
