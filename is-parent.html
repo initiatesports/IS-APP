@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-09-28-referral';
+const FRONTEND_VERSION='parent-2026-10-01-renewactive';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -438,8 +438,8 @@ const T={
   sickAckBtn:{zh:'✅ 我知悉並完成',en:'✅ I understand & done'},
   blockedNote:{zh:d=>`註：${d} 為當日事假，未獲提交（當日不可請事假）。`,en:d=>`Note: ${d} is same-day personal leave and was not submitted (not allowed).`},
   none:{zh:'未揀任何堂',en:'None selected'},picked:{zh:n=>`已揀 ${n} 堂`,en:n=>`${n} selected`},
-  codePh:{zh:'輸入手機後 4 位確認',en:'Enter last 4 digits to confirm'},submitLeave:{zh:'提交請假',en:'Submit leave'},submitting:{zh:'提交中…',en:'Submitting…'},
-  codeWrong:{zh:'後 4 位數字唔啱',en:'Wrong last 4 digits'},
+  codePh:{zh:'輸入登入用嘅 4 位數字確認',en:'Enter your 4-digit login code to confirm'},submitLeave:{zh:'提交請假',en:'Submit leave'},submitting:{zh:'提交中…',en:'Submitting…'},
+  codeWrong:{zh:'4 位數字唔啱（請用登入嗰組數字）',en:'Wrong 4-digit code (use the one you log in with)'},
   rcLeave:{zh:'✅ 已提交請假',en:'✅ Leave submitted'},child:{zh:'小朋友',en:'Child'},klass:{zh:'班別',en:'Class'},dateK:{zh:'日期',en:'Date'},leaveTypeK:{zh:'假別',en:'Type'},
   mkPromptH:{zh:'要而家就約補堂嗎？',en:'Book a make-up now?'},
   mkPromptSd:{zh:'呢堂可以補返。你可以即刻揀時間，或者遲啲先約。',en:'This class can be made up — pick a time now, or book later.'},
@@ -1366,7 +1366,7 @@ function termActivated(child,idx){
   //    以「已核實報名」(child.enrolled9) 為激活準：報咗名核實＝已繳→active；未報名＝真・未繳→灰化。（老闆 2026-08-31）
   if(S.enrollPeriodLabel && periodLabel(idx)===S.enrollPeriodLabel) return child.enrolled9!==false;   // 只有明確「未報名核實」(false)先灰化；舊 cache(undefined) 當 active 免誤灰，refresh 後即準
   const f=feeForPeriod(child,idx);
-  if(!f) return idx <= currentPeriodIdx();                  // 其他期：冇費記錄→當前期 active、純未來期未激活
+  if(!f) return true;                                        // 冇費記錄→active（2026-10-01：9-10月起唔再寫學費列；11-12月起自動續期、上堂交現金，未來期唔應灰化／催繳）
   return f.status !== '未繳';                                 // 有費記錄：只有真・未繳先灰化
 }
 // 未補堂摘要：仲可補嘅堂數 + 最近限期 + 已過期數
