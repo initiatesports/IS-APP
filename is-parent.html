@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-01-renewactive';
+const FRONTEND_VERSION='parent-2026-10-04-certresubmit';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -421,21 +421,28 @@ const T={
   medLbl:{zh:'病假醫生證明（可選 · 影相或 PDF）',en:'Doctor’s note (optional · photo or PDF)'},
   medHint:{zh:'交咗醫生紙，教練端會直接見到，唔使另外 WhatsApp。',en:'Coaches see the note directly — no need to send via WhatsApp.'},
   payHint:{zh:'上傳付款截圖後，教練端會直接見到，唔使另外 WhatsApp。',en:'Once uploaded, coaches see the screenshot directly — no need to send via WhatsApp.'},
-  leaveNotice:{zh:'事假需提前 24 小時，否則該堂計缺席、不設補堂；病假需 48 小時內交醫生證明。',en:'Personal leave needs 24h notice or it counts as absent (no make-up). Sick leave needs a doctor’s note within 48h.'},
+  leaveNotice:{zh:'事假需提前 24 小時，否則該堂計缺席、不設補堂；病假須於病假後兩日內交醫生證明。',en:'Personal leave needs 24h notice or it counts as absent (no make-up). Sick leave needs a doctor’s note within 2 days.'},
   todayTag:{zh:'今日',en:'Today'},
   okBtn:{zh:'知道了',en:'OK'},
   noticeErr:{zh:'事假須最少提前一日。<b>當日不可請事假</b>；當日缺席照扣一節課、不設補堂。',en:'Personal leave needs at least 1 day notice. <b>Same-day personal leave is not allowed</b>; a same-day absence still deducts one session (no make-up).'},
   noticeSick:{zh:'病假只適用於<b>當日</b>身體不適，須於<b>病假後兩日內（例：星期一病假 → 星期四前）</b>上傳醫生證明，<b>教練核實後</b>先正式當請假、可補堂；逾期未交或未獲核實，改計缺席、扣一節課、不設補堂。<br>如為將來日期，系統會自動<b>按事假處理</b>（可補堂、不需醫生紙）。',en:'Sick leave is for being unwell <b>today</b>; upload a doctor’s note <b>within 2 days (e.g. Mon sick → before Thu)</b>. It counts as valid leave (make-up allowed) <b>only after the coach verifies it</b>; otherwise it counts as absent (deducts one session, no make-up).<br>For a future date it is automatically <b>treated as personal leave</b> (make-up allowed, no note needed).'},
   advSickNote:{zh:d=>`註：${d} 為將來日期，病假已按事假處理（可補堂、不需醫生紙）。`,en:d=>`Note: ${d} is a future date; sick leave was processed as personal leave (make-up allowed, no note needed).`},
   sameDayErrT:{zh:'當天不可請事假',en:'Same-day personal leave not allowed'},
-  sameDayErrM:{zh:'事假須最少提前一日。當日缺席將照常扣一節課、不設補堂。請改選其他日期；如當日身體不適，可改請<b>病假</b>（須 48 小時內交醫生證明）。',en:'Personal leave needs at least 1 day notice. A same-day absence still deducts one session (no make-up). Please pick another date; if your child is unwell today, choose <b>Sick leave</b> instead (doctor’s note within 48h).'},
-  sickCertReminder:{zh:'⚠️ 當日病假：請於 48 小時內上傳醫生證明，否則此堂改計缺席（扣一節課、不設補堂）。',en:'⚠️ Same-day sick leave: upload a doctor’s note within 48 hours, otherwise this session counts as absent (deducts one session, no make-up).'},
+  sameDayErrM:{zh:'事假須最少提前一日。當日缺席將照常扣一節課、不設補堂。請改選其他日期；如當日身體不適，可改請<b>病假</b>（須於病假後兩日內交醫生證明）。',en:'Personal leave needs at least 1 day notice. A same-day absence still deducts one session (no make-up). Please pick another date; if your child is unwell today, choose <b>Sick leave</b> instead (doctor’s note within 2 days).'},
+  sickCertReminder:{zh:'⚠️ 當日病假：請於病假後兩日內（例：星期一病假 → 星期四前）上傳醫生證明，否則此堂改計缺席（扣一節課、不設補堂）。',en:'⚠️ Same-day sick leave: upload a doctor’s note within 2 days (e.g. Mon sick → before Thu), otherwise this session counts as absent (deducts one session, no make-up).'},
   lateCancelBlock:{zh:'距離補堂開課少於 6 小時，無法取消。若屆時未能出席，將照常扣一節課。',en:'Less than 6 hours before the make-up class — it can no longer be cancelled. If your child cannot attend, one session will still be deducted.'},
   lateBookWarn:{zh:'你所揀嘅補堂距開課少於 6 小時，一經提交將不可取消；若屆時未能出席，會照扣一節課。確定提交？',en:'One of your make-up slots starts in under 6 hours; once booked it cannot be cancelled. If your child cannot attend, one session will still be deducted. Submit anyway?'},
   sickAckTitle:{zh:'🩺 當日病假已提交 · 重要提示',en:'🩺 Sick leave submitted · Important'},
-  sickAckWarn:{zh:d=>`請於<b>病假後兩日內${d?`（${d} 前）`:'（例：星期一病假 → 星期四前）'}</b>上傳醫生證明；<b>教練核實後</b>先正式當請假、可補堂。逾期未交或未獲核實，此堂將<b>改計缺席</b>（扣一節課、不設補堂）。<br><span style="color:var(--muted)">你可隨時返呢個請假頁補交醫生紙；上傳後狀態為「待核實」，教練核實後即可預約補堂。</span>`,en:d=>`Please upload a doctor’s note <b>within 2 days${d?` (before ${d})`:' (e.g. Mon sick → before Thu)'}</b>; it counts as valid leave (make-up allowed) <b>only after the coach verifies it</b>. If not submitted or not verified in time, this session counts as <b>absent</b> (deducts one session, no make-up).<br><span style="color:var(--muted)">You can upload the note here anytime; after uploading it shows “Pending verification”, and make-up can be booked once the coach verifies.</span>`},
+  sickAckWarn:{zh:d=>`請於<b>病假後兩日內${d?`（${d} 前）`:'（例：星期一病假 → 星期四前）'}</b>上傳醫生證明；<b>教練核實後</b>先正式當請假、可補堂。逾期未交或未獲核實，此堂將<b>改計缺席</b>（扣一節課、不設補堂）。<br><span style="color:var(--muted)">未有醫生紙都可以先提交，之後喺班別卡撳「🩺 補交醫生紙」上傳；上傳後狀態為「待核實」，教練核實後即可預約補堂。</span>`,en:d=>`Please upload a doctor’s note <b>within 2 days${d?` (before ${d})`:' (e.g. Mon sick → before Thu)'}</b>; it counts as valid leave (make-up allowed) <b>only after the coach verifies it</b>. If not submitted or not verified in time, this session counts as <b>absent</b> (deducts one session, no make-up).<br><span style="color:var(--muted)">No note yet? Submit first, then tap “🩺 Upload doctor’s note” on the class card; after uploading it shows “Pending verification”, and make-up can be booked once the coach verifies.</span>`},
   sickAckNoteOk:{zh:'✅ 已收到醫生證明，多謝！',en:'✅ Doctor’s note received, thank you!'},
   sickAckBtn:{zh:'✅ 我知悉並完成',en:'✅ I understand & done'},
+  certTodoMsg:{zh:(d,dl)=>`${d} 病假：請於 <b>${dl} 前</b>上傳醫生證明，教練核實後先可補堂；逾期作缺席（扣一節、不設補堂）。`,en:(d,dl)=>`Sick leave on ${d}: please upload a doctor’s note <b>before ${dl}</b>. Make-up opens after the coach verifies it; otherwise it counts as absent.`},
+  certUploadBtn:{zh:'🩺 補交醫生紙',en:'🩺 Upload doctor’s note'},
+  certPendingVerify:{zh:'病假醫生證明已收到，待教練核實；核實後即可預約補堂。',en:'doctor’s note received — pending coach verification; make-up opens once verified.'},
+  certSheetT:{zh:'🩺 補交醫生紙',en:'🩺 Upload doctor’s note'},
+  certLbl:{zh:'醫生證明（影相或 PDF，上限 6MB）',en:'Doctor’s note (photo or PDF, max 6MB)'},
+  certSubmit:{zh:'提交醫生紙',en:'Submit note'},
+  certDone:{zh:'✅ 已上傳醫生紙，待教練核實',en:'✅ Note uploaded — pending coach verification'},
   blockedNote:{zh:d=>`註：${d} 為當日事假，未獲提交（當日不可請事假）。`,en:d=>`Note: ${d} is same-day personal leave and was not submitted (not allowed).`},
   none:{zh:'未揀任何堂',en:'None selected'},picked:{zh:n=>`已揀 ${n} 堂`,en:n=>`${n} selected`},
   codePh:{zh:'輸入登入用嘅 4 位數字確認',en:'Enter your 4-digit login code to confirm'},submitLeave:{zh:'提交請假',en:'Submit leave'},submitting:{zh:'提交中…',en:'Submitting…'},
@@ -726,7 +733,7 @@ function mergeSAInto(sa){
   if(!sa||!sa.ok||!S.family) return false;
   // idempotent：先清走現有 #SA 狀態（loadSA 喺登入/refresh 會多次呼叫，唔清會疊出重複班）
   S.family.children=(S.family.children||[]).filter(k=>!k._saOnly);
-  S.family.children.forEach(k=>{ if(k.classes) k.classes=k.classes.filter(c=>!c._sa); });
+  S.family.children.forEach(k=>{ if(k.classes) k.classes=k.classes.filter(c=>!c._sa); k.certTodoSA=[]; });
   const kids=(sa.children&&sa.children.length)?sa.children:[]; if(!kids.length) return false;
   const byName={}; (S.family.children||[]).forEach(k=>byName[k.name]=k);
   // #SA 特別時間 map 併入（補堂/顯示用；key=cid|date，同 #4 唔會撞因 cid 唔同）
@@ -741,8 +748,8 @@ function mergeSAInto(sa){
   kids.forEach(sk=>{
     const cls=(sk.classes||[]).map(c=>Object.assign({},c,{_sa:true}));
     if(!cls.length) return;
-    if(byName[sk.name]){ byName[sk.name].classes=(byName[sk.name].classes||[]).concat(cls); }
-    else { const nk={name:sk.name,classes:cls,fees:(sk.fees||[]),addons:(sk.addons||[]),referralBalance:0,transfers:[],pt:null,_saOnly:true};
+    if(byName[sk.name]){ byName[sk.name].classes=(byName[sk.name].classes||[]).concat(cls); byName[sk.name].certTodoSA=sk.certTodo||[]; }
+    else { const nk={name:sk.name,classes:cls,fees:(sk.fees||[]),addons:(sk.addons||[]),referralBalance:0,transfers:[],pt:null,_saOnly:true,certTodoSA:(sk.certTodo||[])};
            S.family.children.push(nk); byName[sk.name]=nk; }
     changed=true;
   });
@@ -1128,6 +1135,7 @@ function classCard(child,ki,c,ci){
     </div>
     ${''/* 全期出席趨勢圖已移除（老闆 2026-08-31）：過期未補請假會拉低%，家長易誤會＝小朋友出席差，其實係佢哋自己冇補。attendanceViz() 保留備日後需要。*/}
     ${owed>0&&mkDl?`<div class="dlnote">${t('dlNote',owed,fmtDate(mkDl))}</div>`:''}
+    ${certTodoHtml(child,c,ki,ci)}
     ${(function(){
       const active=termActivated(child,S.period);
       const owed=c.owed||0;
@@ -1718,6 +1726,45 @@ function showSickAck(lines, deadline, hasNote){
 
 /* ═══════════ 請假 ═══════════ */
 let LF={};
+/* 🩺 補交醫生紙（老闆 2026-10-04）：當日病假提交後未交醫生紙（後端 certTodo：待證明且未過限期）→ 班別卡顯示上傳掣；
+   已上傳待核實 → 顯示狀態。上傳沿用 uploadMedNote（運動班 key 自動送 #SA）。 */
+function certTodoFor(child,c){ const k=classKey(c); return [...(child.certTodo||[]),...(child.certTodoSA||[])].filter(x=>x&&x.key===k); }
+function certTodoHtml(child,c,ki,ci){
+  const L=certTodoFor(child,c); if(!L.length) return '';
+  return L.map(x=> x.status==='待核實'
+    ? `<div class="notice" style="margin-top:8px;line-height:1.6">🩺 ${fmtDate(x.date)} ${t('certPendingVerify')}</div>`
+    : `<div class="notice warn" style="margin-top:8px;line-height:1.6">🩺 ${t('certTodoMsg',fmtDate(x.date),fmtDate(String(x.deadline||'').slice(0,10)))}<br><button class="btn sm" style="margin-top:8px" onclick="openCertUpload(${ki},${ci},'${x.date}')">${t('certUploadBtn')}</button></div>`).join('');
+}
+let CU={ki:0,ci:0,date:'',fileData:null};
+function openCertUpload(ki,ci,date){
+  const child=S.family.children[ki], c=child.classes[ci]; CU={ki,ci,date,fileData:null};
+  openSheet(`<h2>${t('certSheetT')} · ${classLabel(c.key||c.sport)}</h2>
+    <p class="sd">${child.name}　·　${fmtDate(date)}</p>
+    <label style="font-size:13px;font-weight:600;color:var(--ink2);display:block;margin-bottom:6px">${t('certLbl')}</label>
+    <input type="file" id="cu-file" accept="image/*,application/pdf" onchange="onCertFile(this)" style="width:100%;font-size:13px;color:var(--ink2)">
+    <div id="cu-status" style="font-size:12px;color:var(--muted);margin-top:5px">${t('medHint')}</div>
+    <div style="height:12px"></div>
+    <input id="cu-code" inputmode="numeric" maxlength="4" class="codein" placeholder="${t('codePh')}">
+    <div style="height:12px"></div><button class="btn" id="cu-go" onclick="submitCert()" disabled>${t('certSubmit')}</button>`);
+}
+function onCertFile(input){
+  const f=input.files&&input.files[0], st=$('cu-status');
+  if(!f){ CU.fileData=null; $('cu-go').disabled=true; return; }
+  if(f.size>6*1024*1024){ toast(t('medTooBig')); input.value=''; return; }
+  const rd=new FileReader();
+  rd.onload=()=>{ CU.fileData=rd.result; if(st){st.textContent=t('medChosen',f.name);st.style.color='var(--green)';} $('cu-go').disabled=false; };
+  rd.readAsDataURL(f);
+}
+async function submitCert(){
+  const child=S.family.children[CU.ki], c=child.classes[CU.ci];
+  const code=($('cu-code').value||'').trim();
+  if(code!==String(S.family.last4)){ toast(t('codeWrong')); return; }
+  if(!CU.fileData) return;
+  const b=$('cu-go'); b.disabled=true; b.textContent=t('submitting');
+  let ok=false; try{ const u=await api('uploadMedNote',{name:child.name,key:classKey(c),date:CU.date,dataUrl:CU.fileData}); ok=!!(u&&u.ok); }catch(e){}
+  if(!ok){ b.disabled=false; b.textContent=t('certSubmit'); toast(t('medFail').replace(/^[　·\s]+/,'')); return; }
+  closeSheet(); toast(t('certDone')); await refresh();
+}
 function openLeave(ki,ci){
   const child=S.family.children[ki], c=child.classes[ci];
   const today0=todayStr();
