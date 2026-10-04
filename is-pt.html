@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>IS 私人訓練 · Personal Training</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#0f1a28">
+<meta name="theme-color" content="#f4efe6">
 <link rel="manifest" href="is-pt.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,9 +16,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Noto+Sans+HK:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0f1a28; --panel:#16243a; --panel2:#1c2e48; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
-  --text:#eaf1f8; --mut:#8fa3bb; --teal:#3ecfcf; --teal2:#24a9ad; --gold:#c9a15c; --red:#ff7a7a; --green:#5fd39a;
+:root{color-scheme:light;
+  --bg:#f4efe6; --panel:#fbf8f2; --panel2:#efe8dc; --line:rgba(29,27,23,.08); --line2:rgba(29,27,23,.16);
+  --text:#1d1b17; --mut:#7a7368; --teal:#1f4d3a; --teal2:#2f6b52; --gold:#c96a3d; --red:#b3402a; --green:#2f7d4f;
   --r:16px; --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -29,20 +29,20 @@ button{cursor:pointer}
 .num{font-family:'Archivo','Noto Sans HK',sans-serif;font-variant-numeric:tabular-nums}
 .wrap{max-width:560px;margin:0 auto;padding:0 16px calc(96px + var(--safe-b))}
 /* header */
-.top{position:sticky;top:0;z-index:20;background:rgba(15,26,40,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px}
+.top{position:sticky;top:0;z-index:20;background:rgba(244,239,230,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px}
 .top-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px}
 .brand{display:flex;align-items:center;gap:8px;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.06em;font-size:14px}
 .brand img{width:26px;height:26px;border-radius:7px}
-.brand .tag{display:inline-block;transform:skewX(-6deg);background:var(--teal);color:#062426;padding:1px 7px;font-size:11px;letter-spacing:.08em}
+.brand .tag{display:inline-block;transform:skewX(-6deg);background:var(--teal);color:#fbf8f2;padding:1px 7px;font-size:11px;letter-spacing:.08em}
 .top .sp{flex:1}
 .pill{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:5px 11px;font-size:12px;color:var(--mut);min-height:36px;min-width:36px}
-.pill.on{background:var(--teal);border-color:var(--teal);color:#062426;font-weight:700}
+.pill.on{background:var(--teal);border-color:var(--teal);color:#fbf8f2;font-weight:700}
 /* cards */
 .h1{font-size:22px;font-weight:900;margin:18px 2px 4px;letter-spacing:.01em}
 .sub{color:var(--mut);font-size:13px;margin:0 2px 14px}
 .sec{font-size:13px;font-weight:700;color:var(--mut);letter-spacing:.08em;margin:22px 2px 10px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .sec::before{content:"";width:10px;height:3px;background:var(--teal);transform:skewX(-20deg)}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card{box-shadow:0 1px 2px rgba(29,27,23,.05);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .card.tap{cursor:pointer;transition:transform .12s,border-color .12s}
 .card.tap:active{transform:scale(.985)}
 .card.tap:hover{border-color:var(--line2)}
@@ -51,20 +51,20 @@ button{cursor:pointer}
 .muted{color:var(--mut)}
 .small{font-size:12.5px}
 .big{font-size:34px;font-weight:900;line-height:1}
-.hero{background:linear-gradient(135deg,#17344a 0%,#123047 45%,#0f2436 100%);border:1px solid rgba(62,207,207,.25);position:relative;overflow:hidden}
-.hero::after{content:"";position:absolute;right:-40px;top:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(62,207,207,.18),transparent 70%)}
-.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px}
+.hero{background:linear-gradient(135deg,#e7efe8 0%,#eef1e8 50%,#f6f1e7 100%);border:1px solid rgba(31,77,58,.25);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;top:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(31,77,58,.18),transparent 70%)}
+.bar{height:8px;border-radius:99px;background:rgba(29,27,23,.08);overflow:hidden;margin-top:10px}
 .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal2),var(--teal));border-radius:99px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
 .stat b{display:block;font-size:22px;font-weight:900}
 .stat span{font-size:12px;color:var(--mut)}
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(62,207,207,.14);color:var(--teal)}
-.badge.gold{background:rgba(201,161,92,.18);color:var(--gold)}
-.badge.red{background:rgba(255,122,122,.15);color:var(--red)}
-.badge.grey{background:rgba(255,255,255,.07);color:var(--mut)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:12px;padding:12px 16px;font-weight:800;background:var(--teal);color:#062426}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(31,77,58,.14);color:var(--teal)}
+.badge.gold{background:rgba(201,106,61,.18);color:var(--gold)}
+.badge.red{background:rgba(179,64,42,.15);color:var(--red)}
+.badge.grey{background:rgba(29,27,23,.06);color:var(--mut)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:12px;padding:12px 16px;font-weight:800;background:var(--teal);color:#fbf8f2}
 .btn.skew{transform:skewX(-6deg);border-radius:6px}
 .btn.skew>span{display:inline-block;transform:skewX(6deg)}
 .btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--text)}
@@ -72,13 +72,13 @@ button{cursor:pointer}
 .btn.block{width:100%}
 .btn:disabled{opacity:.5}
 .lnk{background:none;border:none;color:var(--teal);font-weight:700;padding:0;font-size:13px}
-input.in,select.in,textarea.in{width:100%;background:#0c1622;border:1px solid var(--line2);border-radius:11px;padding:11px 12px;outline:none;transition:border-color .15s;font-size:16px}   /* <16px iPhone 會自動放大 */
+input.in,select.in,textarea.in{width:100%;background:#ffffff;border:1px solid var(--line2);border-radius:11px;padding:11px 12px;outline:none;transition:border-color .15s;font-size:16px}   /* <16px iPhone 會自動放大 */
 input.in:focus,select.in:focus,textarea.in:focus{border-color:var(--teal)}
 label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .empty{text-align:center;color:var(--mut);padding:30px 16px;font-size:14px}
 .empty .ic{font-size:34px;margin-bottom:6px;opacity:.8}
 /* nav */
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,22,34,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + var(--safe-b))}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(251,248,242,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + var(--safe-b))}
 .nav-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 .nav button{background:none;border:none;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:700}
 .nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -89,9 +89,9 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .exname{font-weight:800;font-size:15.5px;background:none;border:none;padding:0;text-align:left;color:var(--text)}
 .exname:after{content:" ›";color:var(--teal)}
 .sets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.set{background:#0c1622;border:1px solid var(--line);border-radius:10px;padding:6px 9px;font-size:13px;min-width:74px}
+.set{background:#ffffff;border:1px solid var(--line);border-radius:10px;padding:6px 9px;font-size:13px;min-width:74px}
 .set .k{font-weight:800;font-size:15px}
-.set.pr{border-color:rgba(201,161,92,.6);background:rgba(201,161,92,.08)}
+.set.pr{border-color:rgba(201,106,61,.6);background:rgba(201,106,61,.08)}
 .set .n{font-size:11.5px;color:var(--mut);display:block}
 .xbtn{background:none;border:none;color:var(--mut);font-size:16px;padding:10px;margin:-6px -6px -6px 0;min-width:40px;min-height:40px}
 /* homework */
@@ -100,16 +100,16 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .days{display:flex;gap:6px;margin-top:9px}
 .day{flex:1;min-width:0;border:1px solid var(--line2);background:transparent;border-radius:10px;padding:5px 0 4px;display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--mut)}
 .day b{font-size:13px;font-family:'Archivo',sans-serif;color:var(--text)}
-.day.done{background:var(--teal);border-color:var(--teal);color:#063033}
-.day.done b{color:#062426}
-.day.today{box-shadow:0 0 0 2px rgba(62,207,207,.45)}
+.day.done{background:var(--teal);border-color:var(--teal);color:#fbf8f2}
+.day.done b{color:#fbf8f2}
+.day.today{box-shadow:0 0 0 2px rgba(31,77,58,.45)}
 .day:disabled{opacity:.35}
 /* thread */
 .thread{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line2)}
 .msg{display:flex;margin:6px 0}
 .msg .bub{max-width:82%;padding:8px 11px;border-radius:14px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
 .msg.me{justify-content:flex-end}
-.msg.me .bub{background:rgba(62,207,207,.16);border-bottom-right-radius:4px}
+.msg.me .bub{background:rgba(31,77,58,.16);border-bottom-right-radius:4px}
 .msg.co .bub{background:var(--panel2);border-bottom-left-radius:4px}
 .msg .who{display:block;font-size:10.5px;color:var(--mut);margin-bottom:2px}
 .tin{display:flex;gap:8px;margin-top:8px}
@@ -118,7 +118,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--mut);white-space:nowrap}
-.chip.on{background:var(--teal);border-color:var(--teal);color:#062426;font-weight:800}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fbf8f2;font-weight:800}
 /* list rows */
 .li{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
 .li:first-child{border-top:none}
@@ -126,12 +126,12 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .li .d b{display:block;font-size:19px;font-weight:900;font-family:'Archivo',sans-serif;line-height:1.1}
 .li .d span{font-size:10.5px;color:var(--mut)}
 /* modal */
-.ov{position:fixed;inset:0;z-index:50;background:rgba(3,8,14,.66);display:flex;align-items:flex-end;justify-content:center;animation:fi .15s}
+.ov{position:fixed;inset:0;z-index:50;background:rgba(29,27,23,.42);display:flex;align-items:flex-end;justify-content:center;animation:fi .15s}
 .sheet{background:var(--panel);width:100%;max-width:560px;max-height:88vh;max-height:88dvh;overscroll-behavior:contain;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px calc(22px + var(--safe-b));border:1px solid var(--line2);animation:su .2s}
 .grab{width:40px;height:4px;border-radius:9px;background:var(--line2);margin:0 auto 12px}
 @keyframes fi{from{opacity:0}}
 @keyframes su{from{transform:translateY(30px);opacity:.4}}
-.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%);background:#e9f7f7;color:#082628;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:88vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%);background:#1d1b17;color:#fbf8f2;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:60;box-shadow:0 8px 24px rgba(29,27,23,.16);max-width:88vw;text-align:center}
 /* login */
 .login{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 22px;max-width:420px;margin:0 auto}
 .login .logo{width:62px;height:62px;border-radius:16px;margin-bottom:16px}
@@ -139,7 +139,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .login h1 em{font-style:normal;color:var(--teal)}
 .login .en{font-family:'Archivo',sans-serif;font-weight:800;letter-spacing:.14em;font-size:12px;color:var(--gold);margin:6px 0 26px}
 .fld{margin-bottom:14px}
-.spin{width:22px;height:22px;border:3px solid rgba(62,207,207,.25);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}
+.spin{width:22px;height:22px;border:3px solid rgba(31,77,58,.25);border-top-color:var(--teal);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}
 @keyframes sp{to{transform:rotate(360deg)}}
 .skel{height:92px;border-radius:var(--r);background:linear-gradient(90deg,var(--panel) 0%,var(--panel2) 50%,var(--panel) 100%);background-size:200% 100%;animation:sk 1.2s infinite;margin-bottom:12px}
 @keyframes sk{to{background-position:-200% 0}}
@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-04-a';
+const FRONTEND_VERSION = 'pt-2026-10-04-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -201,7 +201,7 @@ const TX = {
     streak:'連續記錄 {n} 日', yesterday:'昨日', sameAsYest:'同昨日一樣（{n} 項）', adding:'加緊…', editCustom:'自訂食物請刪除再加過', recent:'最近', noRecent:'記錄過嘅食物會喺度，下次一撳就加', saveChange:'儲存修改', saving:'儲存緊…',
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
-    undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
+    undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', preUsedN:'另有 {n} 節冇記日期', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
     painQ:'今週有冇關節痛或者受傷？', painWhere:'邊度痛？（例：左膝落樓梯痛）', painHint:'酸痛同關節痛唔同——有痛請話教練知，唔好硬撐。', yes:'有', no:'冇'
   },
   en:{
@@ -248,7 +248,7 @@ const TX = {
     streak:'{n}-day logging streak', yesterday:'Yesterday', sameAsYest:'Same as yesterday ({n} items)', adding:'Adding…', editCustom:'For custom foods, delete and add again', recent:'Recent', noRecent:'Foods you log appear here for one-tap adding', saveChange:'Save changes', saving:'Saving…',
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
-    undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
+    undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', preUsedN:'+{n} session(s) without a date', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
     painQ:'Any joint pain or injury this week?', painWhere:'Where does it hurt? (e.g. left knee on stairs)', painHint:'Soreness is not the same as joint pain — tell your coach about any pain, don\'t push through it.', yes:'Yes', no:'No'
   }
 };
@@ -271,7 +271,7 @@ function toast(msg){ const el=document.createElement('div'); el.className='toast
 /* 可還原刪除：提示＋「復原」掣（8 秒） */
 function toastUndo(msg, onUndo){ document.querySelectorAll('.toast.undo').forEach(x=>x.remove());
   const el=document.createElement('div'); el.className='toast undo'; el.style.cssText+='display:flex;align-items:center;gap:12px;pointer-events:auto';
-  el.innerHTML=`<span>${esc(msg)}</span><button style="background:#082628;color:#e9f7f7;border:none;border-radius:9px;padding:7px 12px;font-weight:800;min-height:36px">${t('undo')}</button>`;
+  el.innerHTML=`<span>${esc(msg)}</span><button style="background:#fbf8f2;color:#1d1b17;border:none;border-radius:9px;padding:7px 12px;font-weight:800;min-height:36px">${t('undo')}</button>`;
   el.querySelector('button').onclick=async()=>{ el.remove(); await onUndo(); }; document.body.appendChild(el); setTimeout(()=>el.remove(),8000); }
 /* 後端錯誤訊息（廣東話）→ 英文版顯示（學員揀 English 時） */
 const ERR_EN={'上一次仲處理緊，請稍候':'Still processing the last request — please wait','上載太多相，請稍後再試':'Too many photo uploads — try again later','你呢個時間已經有預約':'You already have a booking at this time',
@@ -439,6 +439,9 @@ function render(){
 }
 
 /* ───────── 首頁 ───────── */
+/* 套票上課日期（老闆 2026-10-04）：第幾堂＋日期；人手已用（冇記日期）另外註明 */
+function pkgDates(pk){ const ds=pk.dates||[]; if(!ds.length && !pk.preUsed) return '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">${ds.map(d=>`<span class="badge grey"><b style="color:var(--text)">${d.no}</b>&nbsp;${fmtD(d.date)}</span>`).join('')}${pk.preUsed?`<span class="badge grey">${t('preUsedN').replace('{n}',pk.preUsed)}</span>`:''}</div>`; }
 function pkgSummary(){
   const pt=D.pt||{}; if(!pt.ok) return {err:true};
   const pk=(pt.packages||[]).filter(p=>!p.free || Number(p.remaining)>0);
@@ -460,7 +463,7 @@ function vPkgCard(){
     <div class="row"><span class="small muted" style="letter-spacing:.08em">${t('pkg').toUpperCase()}</span><span class="sp"></span>${warn}</div>
     <div class="row" style="align-items:flex-end;margin-top:8px"><div><span class="big num">${left}</span><span class="muted"> ${t('of')}${tot} ${t('sessionsU')}</span></div><span class="sp"></span><span class="small muted">${t('left')}</span></div>
     <div class="bar"><i style="width:${tot?Math.min(100,Math.round(used/tot*100)):0}%"></i></div>
-    <div class="row small muted" style="margin-top:8px"><span>${used}/${tot}</span><span class="sp"></span><span>${exp}</span></div>${more}
+    <div class="row small muted" style="margin-top:8px"><span>${used}/${tot}</span><span class="sp"></span><span>${exp}</span></div>${pkgDates(p)}${more}
   </div>`;
 }
 function vHome(){
@@ -562,7 +565,7 @@ function vHw(){
     const days=Array.from({length:7},(_,i)=>addDays(hw.week,i));
     const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}];
     const isCur = hw.week<=today && days[6]>=today;
-    h+=`<div class="card"${isCur?' style="border-color:rgba(62,207,207,.35)"':''}>
+    h+=`<div class="card"${isCur?' style="border-color:rgba(31,77,58,.35)"':''}>
       <div class="row"><div><div style="font-weight:900;font-size:16.5px">${esc(hw.title||t('hw'))}</div><div class="small muted">${t('hwWeek')} ${fmtD(hw.week)} – ${fmtDM(days[6])}</div></div><span class="sp"></span>${isCur?`<span class="badge">${t('thisWeek')}</span>`:''}</div>
       ${hw.desc?`<div style="white-space:pre-wrap;margin:10px 0 2px;font-size:14px">${esc(hw.desc)}</div>`:''}
       <div style="margin-top:8px">${items.map((it,i)=>{
@@ -616,12 +619,12 @@ function chartSVG(pts, unit){
   const ticks=[hi-pad, (hi+lo)/2, lo+pad];
   const last=pts[pts.length-1];
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">
-    <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3ecfcf" stop-opacity=".35"/><stop offset="1" stop-color="#3ecfcf" stop-opacity="0"/></linearGradient></defs>
-    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="rgba(255,255,255,.07)"/><text x="${L-6}" y="${(Y(v)+4).toFixed(1)}" fill="#8fa3bb" font-size="10" text-anchor="end" font-family="Archivo">${fmtN(v)}</text>`).join('')}
-    <path d="${area}" fill="url(#ga)"/><path d="${path}" fill="none" stroke="#3ecfcf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-    ${pts.map(p=>`<circle cx="${X(p).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="#0f1a28" stroke="#3ecfcf" stroke-width="2"/>`).join('')}
-    <text x="${L}" y="${H-7}" fill="#8fa3bb" font-size="10" font-family="Archivo">${fmtDM(pts[0].d)}</text>
-    <text x="${W-R}" y="${H-7}" fill="#8fa3bb" font-size="10" text-anchor="end" font-family="Archivo">${fmtDM(last.d)}</text>
+    <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1f4d3a" stop-opacity=".35"/><stop offset="1" stop-color="#1f4d3a" stop-opacity="0"/></linearGradient></defs>
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="rgba(29,27,23,.06)"/><text x="${L-6}" y="${(Y(v)+4).toFixed(1)}" fill="#7a7368" font-size="10" text-anchor="end" font-family="Archivo">${fmtN(v)}</text>`).join('')}
+    <path d="${area}" fill="url(#ga)"/><path d="${path}" fill="none" stroke="#1f4d3a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map(p=>`<circle cx="${X(p).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="#f4efe6" stroke="#1f4d3a" stroke-width="2"/>`).join('')}
+    <text x="${L}" y="${H-7}" fill="#7a7368" font-size="10" font-family="Archivo">${fmtDM(pts[0].d)}</text>
+    <text x="${W-R}" y="${H-7}" fill="#7a7368" font-size="10" text-anchor="end" font-family="Archivo">${fmtDM(last.d)}</text>
   </svg>`;
 }
 function vBody(){
@@ -696,10 +699,10 @@ function dayEntries(d){ return (DT&&DT.entries||[]).filter(e=>e.date===d); }
 function sumOf(list){ return list.reduce((a,e)=>({kcal:a.kcal+nz(e.kcal), p:a.p+nz(e.p), c:a.c+nz(e.c), f:a.f+nz(e.f)}), {kcal:0,p:0,c:0,f:0}); }
 function ring(val, tgt, size){
   const R=size/2-9, C=2*Math.PI*R, pct=tgt?Math.min(1, val/tgt):0, over=tgt && val>tgt*1.05;
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:none"><circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/>
-    ${pct>0?`<circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none" stroke="${over?'#c9a15c':'#3ecfcf'}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/>`:''}
-    <text x="50%" y="47%" text-anchor="middle" fill="#eaf1f8" font-family="Archivo" font-weight="900" font-size="${size*.2}">${Math.round(val)}</text>
-    <text x="50%" y="66%" text-anchor="middle" fill="#8fa3bb" font-size="${size*.095}">${tgt?'/ '+Math.round(tgt)+' kcal':'kcal'}</text></svg>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:none"><circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none" stroke="rgba(29,27,23,.08)" stroke-width="10"/>
+    ${pct>0?`<circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none" stroke="${over?'#c96a3d':'#1f4d3a'}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/>`:''}
+    <text x="50%" y="47%" text-anchor="middle" fill="#1d1b17" font-family="Archivo" font-weight="900" font-size="${size*.2}">${Math.round(val)}</text>
+    <text x="50%" y="66%" text-anchor="middle" fill="#7a7368" font-size="${size*.095}">${tgt?'/ '+Math.round(tgt)+' kcal':'kcal'}</text></svg>`;
 }
 function macroBar(label, val, tgt, color){
   const pct=tgt?Math.min(100, val/tgt*100):0;
@@ -729,13 +732,13 @@ function vDiet(){
     <div style="text-align:center"><b>${S.dDate===today?t('today'):S.dDate===yest?t('yesterday'):wkName(S.dDate)}</b><div class="small muted num">${fmtD(S.dDate)}</div>${S.dDate!==today?`<button class="lnk" style="padding:4px 0" onclick="S.dDate=isoToday();render()">↩ ${t('today')}</button>`:''}</div><span class="sp"></span>
     <button class="pill" style="width:44px;height:44px" aria-label="next" ${S.dDate>=today?'disabled':''} onclick="S.dDate=addDays(S.dDate,1);render()">›</button></div>`;
   // 目標未設／唔自動計
-  if(!tg){ const bl=T.blocked; h+= bl ? `<div class="card" style="border-color:rgba(201,161,92,.35)"><div style="font-weight:800">🎯 ${t(bl==='minor'?'blockedMinor':'blockedMedical')}</div><div class="small muted" style="margin-top:4px">${t('blockedHint')}</div></div>`
+  if(!tg){ const bl=T.blocked; h+= bl ? `<div class="card" style="border-color:rgba(201,106,61,.35)"><div style="font-weight:800">🎯 ${t(bl==='minor'?'blockedMinor':'blockedMedical')}</div><div class="small muted" style="margin-top:4px">${t('blockedHint')}</div></div>`
     : `<div class="card hero tap" onclick="openProfile()"><div style="font-weight:900;font-size:17px">🎯 ${t('setTarget')}</div><div class="small muted" style="margin-top:4px">${t('setTargetHint')}</div><div class="row" style="margin-top:10px"><span class="sp"></span><span class="btn sm skew"><span>${t('start')} →</span></span></div></div>`; }
   h+=`<div class="card"><div class="row" style="gap:14px">${ring(s.kcal, tg&&tg.kcal, 112)}<div style="flex:1;min-width:0">
       ${tg?`<div class="small muted">${s.kcal<=tg.kcal?t('kcalLeft'):t('kcalOverSoft')}</div><div class="num" style="font-size:24px;font-weight:900">${Math.round(Math.abs(tg.kcal-s.kcal))} <span class="small muted">kcal</span></div>`:''}
-      ${macroBar(t('protein'), s.p, tg&&tg.p, '#3ecfcf')}${macroBar(t('carbs'), s.c, tg&&tg.c, '#6aa8ff')}${macroBar(t('fat'), s.f, tg&&tg.f, '#c9a15c')}</div></div>
+      ${macroBar(t('protein'), s.p, tg&&tg.p, '#1f4d3a')}${macroBar(t('carbs'), s.c, tg&&tg.c, '#5b7fa6')}${macroBar(t('fat'), s.f, tg&&tg.f, '#c96a3d')}</div></div>
     ${tg&&s.kcal>tg.kcal?`<div class="small muted" style="margin-top:8px">${t('overTip')}</div>`:''}
-    ${T.profile&&T.profile.coachNote?`<div class="small" style="margin-top:12px;padding:9px 11px;border-radius:10px;background:rgba(201,161,92,.1);border-left:3px solid var(--gold)">💬 ${t('coach')}${LANG==='en'?': ':'：'}${esc(T.profile.coachNote)}</div>`:''}</div>`;
+    ${T.profile&&T.profile.coachNote?`<div class="small" style="margin-top:12px;padding:9px 11px;border-radius:10px;background:rgba(201,106,61,.1);border-left:3px solid var(--gold)">💬 ${t('coach')}${LANG==='en'?': ':'：'}${esc(T.profile.coachNote)}</div>`:''}</div>`;
   const a7=avg7(); if(tg && a7 && a7.avg<tg.kcal*0.8) h+=`<div class="card" style="border-color:rgba(106,168,255,.4);background:rgba(106,168,255,.08)"><b>💙 ${t('lowTitle')}</b><div class="small muted" style="margin-top:4px">${t('lowHint').replace('{a}',Math.round(a7.avg))}</div></div>`;
   // 各餐
   (DT.meals||['早餐','午餐','晚餐','小食']).forEach(m=>{
@@ -774,9 +777,9 @@ function weekChart(end, tg){
   const Y=v=>T+(1-v/mx)*(H-T-B);
   let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
   days.forEach((d,i)=>{ const v=vals[i], x=10+i*bw+bw*.18, w=bw*.64, y=Y(v), over=tg&&v>tg.kcal*1.05;
-    svg+=`<rect x="${(10+i*bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H}" fill="transparent" style="cursor:pointer" onclick="S.dDate='${d}';render();window.scrollTo(0,0)"/><rect pointer-events="none" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,H-B-y).toFixed(1)}" rx="5" fill="${d===end?'#3ecfcf':'rgba(62,207,207,.45)'}"/>
-      <text x="${(x+w/2).toFixed(1)}" y="${H-7}" text-anchor="middle" fill="#8fa3bb" font-size="10" font-family="Archivo">${wkName(d)}</text>`; });
-  if(tg) svg+=`<line x1="8" x2="${W-8}" y1="${Y(tg.kcal).toFixed(1)}" y2="${Y(tg.kcal).toFixed(1)}" stroke="#eaf1f8" stroke-opacity=".5" stroke-dasharray="4 4"/>`;
+    svg+=`<rect x="${(10+i*bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H}" fill="transparent" style="cursor:pointer" onclick="S.dDate='${d}';render();window.scrollTo(0,0)"/><rect pointer-events="none" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0,H-B-y).toFixed(1)}" rx="5" fill="${d===end?'#1f4d3a':'rgba(31,77,58,.45)'}"/>
+      <text x="${(x+w/2).toFixed(1)}" y="${H-7}" text-anchor="middle" fill="#7a7368" font-size="10" font-family="Archivo">${wkName(d)}</text>`; });
+  if(tg) svg+=`<line x1="8" x2="${W-8}" y1="${Y(tg.kcal).toFixed(1)}" y2="${Y(tg.kcal).toFixed(1)}" stroke="#1d1b17" stroke-opacity=".5" stroke-dasharray="4 4"/>`;
   svg+='</svg>';
   return svg+`<div class="grid2" style="margin-top:8px"><div><div class="small muted">${t('avgKcal')}</div><b class="num">${logged?Math.round(avg):'—'}</b><span class="small muted"> kcal</span></div><div><div class="small muted">${t('avgProtein')}</div><b class="num">${logged?Math.round(pAvg):'—'}</b><span class="small muted"> g${tg?' / '+rnd(tg.p):''}</span></div></div>`;
 }
@@ -820,7 +823,7 @@ function pickPhoto(meal){
   const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';   // 唔加 capture：iPhone 可以揀「相片圖庫」或即影
   inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; let data; try{ data=await compressImg(f); }catch(e){ toast(t('photoErr')); return; }
     const ov=sheet(`<div class="row"><b style="font-size:18px">📷 ${mealName(meal)} · ${fmtD(S.dDate)}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
-      <img src="${data}" style="width:100%;border-radius:14px;margin:12px 0;max-height:46vh;object-fit:contain;background:#0c1622" alt="">
+      <img src="${data}" style="width:100%;border-radius:14px;margin:12px 0;max-height:46vh;object-fit:contain;background:#ffffff" alt="">
       <input class="in" id="ph-note" maxlength="200" placeholder="${t('photoNote')}"><button class="btn skew block" style="margin-top:12px" id="ph-go"><span>${t('upload')}</span></button>`);
     ov.querySelector('#ph-go').onclick=async()=>{ const b=ov.querySelector('#ph-go'); b.disabled=true; b.innerHTML=`<span>${t('uploading')}</span>`;
       const r=await api('mealPhoto',{date:S.dDate, meal, data, note:ov.querySelector('#ph-note').value.trim()}, true);
@@ -1163,7 +1166,7 @@ function vMore(){
   if(pt.ok && (pt.packages||[]).length){
     // 用完／過期嘅套票預設收埋（老闆 2026-10-04）
     const live=pt.packages.filter(pk=>Number(pk.remaining)>0 && !(Number(pk.daysToExp)<0)), done=pt.packages.length-live.length, shown=S.showUsedPkg?pt.packages:live;
-    h+=`<div class="sec">🎫 ${t('pkgHist')}</div><div class="card">${shown.length?'':`<div class="small muted">${t('noActivePkg')}</div>`}${shown.slice().reverse().map(pk=>`<div class="li"><div style="flex:1"><div style="font-weight:700">${pk.free?t('free'):`${pk.sessions} ${t('sessionsU')}`}</div><div class="small muted">${pk.buyDate?`${t('bought')} ${fmtD(pk.buyDate)}`:''}${pk.expiry?` · ${t('expire')} ${fmtD(pk.expiry)}`:''}</div></div><div class="num" style="font-weight:800">${pk.used}/${pk.sessions}</div></div>`).join('')}${done?`<button class="lnk" style="margin-top:8px;padding:6px 0" onclick="S.showUsedPkg=!S.showUsedPkg;render()">${S.showUsedPkg?t('hideUsedPkg'):t('showUsedPkg').replace('{n}',done)}</button>`:''}</div>`;
+    h+=`<div class="sec">🎫 ${t('pkgHist')}</div><div class="card">${shown.length?'':`<div class="small muted">${t('noActivePkg')}</div>`}${shown.slice().reverse().map(pk=>`<div class="li"><div style="flex:1"><div style="font-weight:700">${pk.free?t('free'):`${pk.sessions} ${t('sessionsU')}`}</div><div class="small muted">${pk.buyDate?`${t('bought')} ${fmtD(pk.buyDate)}`:''}${pk.expiry?` · ${t('expire')} ${fmtD(pk.expiry)}`:''}</div>${pkgDates(pk)}</div><div class="num" style="font-weight:800">${pk.used}/${pk.sessions}</div></div>`).join('')}${done?`<button class="lnk" style="margin-top:8px;padding:6px 0" onclick="S.showUsedPkg=!S.showUsedPkg;render()">${S.showUsedPkg?t('hideUsedPkg'):t('showUsedPkg').replace('{n}',done)}</button>`:''}</div>`;
   }
   // 設定
   h+=`<div class="sec">⚙️ ${t('settings')}</div><div class="card">
