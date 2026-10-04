@@ -183,7 +183,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-09-28-reflink';
+const FRONTEND_VERSION='enroll-2026-10-04-certrules';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -973,8 +973,8 @@ function renderMakeupInfo(inFlow){ if(inFlow)flowStep("renderMakeupInfo");
     </div>
     <div class="fld"><label>請假／補堂重點</label>
       <div class="cbox" style="align-items:flex-start"><span>• 請假須<b>最少開課前一日</b>提出；<b>當日不接受事假</b></span></div>
-      <div class="cbox" style="align-items:flex-start"><span>• 當日<b>病假</b>可請，須 <b>48 小時內</b>補交醫生證明（逾期作缺席）</span></div>
-      <div class="cbox" style="align-items:flex-start"><span>• 已請假之堂可於<b>請假當月起兩個月內</b>補堂，逾期不設順延</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 當日<b>病假</b>可請，須於<b>病假後兩日內</b>（例：星期一病假 → 星期四前）上傳醫生證明（逾期作缺席）</span></div>
+      <div class="cbox" style="align-items:flex-start"><span>• 已請假之堂可於<b>請假日起計兩個月內</b>補堂（例：15/09 請假須於 15/11 前補回），逾期不設順延</span></div>
       <div class="cbox" style="align-items:flex-start"><span>• 已預約補堂於<b>開課前 6 小時內不可取消</b>，否則該堂照扣</span></div>
       <div class="cbox" style="align-items:flex-start"><span>• 為確保學習進度及出席率，除<b>身體原因（須醫生證明）</b>外，<b>恕不接受因考試等私人原因暫停課堂</b>；如暫停後重新加入，須<b>按新收費</b>。</span></div>
     </div>
