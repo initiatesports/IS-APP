@@ -100,7 +100,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-09-30-h';
+const FRONTEND_VERSION = 'ptc-2026-10-04-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -764,10 +764,12 @@ function vAtt(){
   const act=D.packages.filter(p=>p.remaining>0 && !(p.daysToExp<0)), left=act.reduce((a,p)=>a+p.remaining,0);
   h+=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">🎫 套票（剩 ${left} 節）</div><span class="sp"></span><button class="btn sm" onclick="C.pkgEdit={id:'',sessions:'10',amount:'',buyDate:isoToday(),expiry:addMonthsI(isoToday(),6),pay:'',note:'',preUsed:'0'};render()">＋ 新套票</button></div>`;
   if(C.pkgEdit) h+=pkgForm();
-  h+=`<div class="card">${D.packages.length?D.packages.slice().reverse().map(p=>`<div class="li"><div style="flex:1;min-width:0"><b>${p.sessions} 節 ${p.free?'<span class="badge grey">免費</span>':money(p.amount)}</b>
+  const liveP=D.packages.filter(p=>p.remaining>0 && !(p.daysToExp!=null&&p.daysToExp<0)), doneP=D.packages.length-liveP.length, shownP=C.showUsedPkg?D.packages:liveP;   // 用完／過期預設收埋（老闆 2026-10-04）
+  h+=`<div class="card">${shownP.length?shownP.slice().reverse().map(p=>`<div class="li"><div style="flex:1;min-width:0"><b>${p.sessions} 節 ${p.free?'<span class="badge grey">免費</span>':money(p.amount)}</b>
       <div class="small muted">買 ${fmtD(p.buyDate)}${p.expiry?` · 到期 ${fmtD(p.expiry)}`:''}${p.pay?' · '+esc(p.pay):''}${p.note?' · '+esc(p.note):''}${p.preUsed?` · 人手已用 ${p.preUsed}`:''}</div></div>
       <div style="text-align:right"><b class="num">${p.used}/${p.sessions}</b><div class="small ${p.remaining<=0?'muted':p.daysToExp!=null&&p.daysToExp<0?'':'" style="color:var(--teal)'}">${p.daysToExp!=null&&p.daysToExp<0?'已過期':'剩 '+p.remaining}</div></div>
-      <button class="btn ghost xs" style="margin-left:6px" onclick="editPkg('${p.id}')">✎</button></div>`).join(''):'<div class="small muted">未有套票</div>'}</div>`;
+      <button class="btn ghost xs" style="margin-left:6px" onclick="editPkg('${p.id}')">✎</button></div>`).join(''):`<div class="small muted">${D.packages.length?'冇未用完嘅套票':'未有套票'}</div>`}
+    ${doneP?`<button class="lnk" style="margin-top:8px;padding:6px 0" onclick="C.showUsedPkg=!C.showUsedPkg;render()">${C.showUsedPkg?'收埋已用完／過期嘅套票':'顯示已用完／過期嘅套票（'+doneP+'）'}</button>`:''}</div>`;
   // 記出席
   h+=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">✓ 出席（${D.sessions.length} 節）</div><span class="sp"></span><button class="btn sm" onclick="newAtt()">＋ 記出席</button></div>`;
   if(C.attEdit) h+=attForm(D);
