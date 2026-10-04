@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-09-30-g';
+const FRONTEND_VERSION = 'pt-2026-10-04-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -201,7 +201,7 @@ const TX = {
     streak:'連續記錄 {n} 日', yesterday:'昨日', sameAsYest:'同昨日一樣（{n} 項）', adding:'加緊…', editCustom:'自訂食物請刪除再加過', recent:'最近', noRecent:'記錄過嘅食物會喺度，下次一撳就加', saveChange:'儲存修改', saving:'儲存緊…',
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
-    undo:'復原', deleted:'已刪除', restored:'已復原',
+    undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
     painQ:'今週有冇關節痛或者受傷？', painWhere:'邊度痛？（例：左膝落樓梯痛）', painHint:'酸痛同關節痛唔同——有痛請話教練知，唔好硬撐。', yes:'有', no:'冇'
   },
   en:{
@@ -248,7 +248,7 @@ const TX = {
     streak:'{n}-day logging streak', yesterday:'Yesterday', sameAsYest:'Same as yesterday ({n} items)', adding:'Adding…', editCustom:'For custom foods, delete and add again', recent:'Recent', noRecent:'Foods you log appear here for one-tap adding', saveChange:'Save changes', saving:'Saving…',
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
-    undo:'Undo', deleted:'Deleted', restored:'Restored',
+    undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
     painQ:'Any joint pain or injury this week?', painWhere:'Where does it hurt? (e.g. left knee on stairs)', painHint:'Soreness is not the same as joint pain — tell your coach about any pain, don\'t push through it.', yes:'Yes', no:'No'
   }
 };
@@ -1161,7 +1161,9 @@ function vMore(){
   else h+= att.length ? `<div class="card">${att.map(a=>`<div class="li"><div class="d"><b>${fmtDM(a.date).split('/')[0]}</b><span>${fmtDM(a.date).split('/')[1]}/${String(a.date).slice(2,4)}</span></div><div style="flex:1;min-width:0"><div style="font-weight:700">${wkName(a.date)}${a.no?` · #${a.no}`:''}</div><div class="small muted">${esc(String(a.venue||'').split('｜').filter(Boolean).slice(0,2).join(' · '))}</div></div>${a.exempt?`<span class="badge grey">${t('exempt')}</span>`:''}</div>`).join('')}</div>`
     : `<div class="card"><div class="small muted">${t('noAttend')}</div></div>`;
   if(pt.ok && (pt.packages||[]).length){
-    h+=`<div class="sec">🎫 ${t('pkgHist')}</div><div class="card">${pt.packages.slice().reverse().map(pk=>`<div class="li"><div style="flex:1"><div style="font-weight:700">${pk.free?t('free'):`${pk.sessions} ${t('sessionsU')}`}</div><div class="small muted">${pk.buyDate?`${t('bought')} ${fmtD(pk.buyDate)}`:''}${pk.expiry?` · ${t('expire')} ${fmtD(pk.expiry)}`:''}</div></div><div class="num" style="font-weight:800">${pk.used}/${pk.sessions}</div></div>`).join('')}</div>`;
+    // 用完／過期嘅套票預設收埋（老闆 2026-10-04）
+    const live=pt.packages.filter(pk=>Number(pk.remaining)>0 && !(Number(pk.daysToExp)<0)), done=pt.packages.length-live.length, shown=S.showUsedPkg?pt.packages:live;
+    h+=`<div class="sec">🎫 ${t('pkgHist')}</div><div class="card">${shown.length?'':`<div class="small muted">${t('noActivePkg')}</div>`}${shown.slice().reverse().map(pk=>`<div class="li"><div style="flex:1"><div style="font-weight:700">${pk.free?t('free'):`${pk.sessions} ${t('sessionsU')}`}</div><div class="small muted">${pk.buyDate?`${t('bought')} ${fmtD(pk.buyDate)}`:''}${pk.expiry?` · ${t('expire')} ${fmtD(pk.expiry)}`:''}</div></div><div class="num" style="font-weight:800">${pk.used}/${pk.sessions}</div></div>`).join('')}${done?`<button class="lnk" style="margin-top:8px;padding:6px 0" onclick="S.showUsedPkg=!S.showUsedPkg;render()">${S.showUsedPkg?t('hideUsedPkg'):t('showUsedPkg').replace('{n}',done)}</button>`:''}</div>`;
   }
   // 設定
   h+=`<div class="sec">⚙️ ${t('settings')}</div><div class="card">
