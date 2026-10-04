@@ -100,7 +100,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-04-c';
+const FRONTEND_VERSION = 'ptc-2026-10-04-d';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -421,7 +421,8 @@ function vRec(){
   if(!list.length) return h+'<div class="empty">未有記錄。去「📝 今堂」開始。</div>';
   list.forEach(s=>{
     const open=C.recOpen===s.id, cms=(G.comments||[]).filter(c=>c.type==='session'&&c.target===s.id);
-    h+=`<div class="card"><div class="row" style="cursor:pointer" onclick="C.recOpen=${open?'null':`'${s.id}'`};render()"><div><b>${fmtD(s.date)}（${WK[parseISO(s.date).getDay()]}）</b>${s.title?` · ${esc(s.title)}`:''}<div class="small muted">${new Set(s.sets.map(x=>x.order+'|'+x.ex)).size} 個動作 · ${s.sets.length} 組${cms.length?` · 💬 ${cms.length}`:''}</div></div><span class="sp"></span><span class="muted">${open?'▾':'▸'}</span></div>
+    const fl=(G.feels||[]).filter(f=>f.sid===s.id), fx=fl.map(f=>{ const m=members().find(x=>x.id===f.acct)||{}; return `${esc(m.en||m.name||'')} RPE ${f.rpe}${f.enjoy?' '+['😣','🙁','😐','🙂','😄'][f.enjoy-1]:''}`; }).join(' · ');   // 第二期：學員堂後感受
+    h+=`<div class="card"><div class="row" style="cursor:pointer" onclick="C.recOpen=${open?'null':`'${s.id}'`};render()"><div><b>${fmtD(s.date)}（${WK[parseISO(s.date).getDay()]}）</b>${s.title?` · ${esc(s.title)}`:''}<div class="small muted">${new Set(s.sets.map(x=>x.order+'|'+x.ex)).size} 個動作 · ${s.sets.length} 組${cms.length?` · 💬 ${cms.length}`:''}${fx?` · 💪 ${fx}`:''}</div></div><span class="sp"></span><span class="muted">${open?'▾':'▸'}</span></div>
       ${open?`<div style="margin-top:10px">${sesLines(s)}</div>${s.note?`<div class="small muted" style="margin-top:6px">📝 ${esc(s.note)}</div>`:''}
         <div class="row" style="margin-top:10px"><button class="btn ghost sm" onclick="editSes('${s.id}')">✎ 修改</button><button class="btn warn sm" onclick="delSes('${s.id}')">刪除</button></div>
         ${thread('session', s.id, '')}`:''}</div>`;
