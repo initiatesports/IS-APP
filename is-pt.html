@@ -83,6 +83,17 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 .nav button{background:none;border:none;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:700}
 .nav button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .nav button.on{color:var(--teal)}
+.nav button{position:relative}.nav button .dot{position:absolute;top:4px;left:calc(50% + 7px);width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2px var(--bg)}
+.todo{display:flex;align-items:center;gap:12px;padding:11px 2px;border-top:1px solid var(--line);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.todo:first-of-type{border-top:none}.todo .ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--line2,#cfc6b6);flex:none;display:grid;place-items:center;font-weight:900;font-size:14px;color:#fbf8f2}
+.todo.done .ck{background:var(--teal);border-color:var(--teal)}.todo.done .lb2{color:var(--mut);text-decoration:line-through}
+.rpe{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:10px}.rpe button{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:9px 0;font-weight:900;font-size:15px;color:var(--text)}
+.rpe button.on{background:var(--teal);color:#fbf8f2;border-color:var(--teal)}
+.enj{display:flex;gap:6px;margin-top:8px}.enj button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 0;font-size:20px}.enj button.on{border-color:var(--teal);background:rgba(31,77,58,.10)}
+.rep{background:linear-gradient(160deg,#fbf8f2 0%,#eef1e8 100%);border:1px solid var(--line);border-radius:18px;padding:18px 16px}
+.rep .rk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.rep .rk div{background:#fffdf8;border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.rep .rk b{display:block;font-size:24px;font-weight:900;color:var(--teal)}.rep .rk span{font-size:12px;color:var(--mut);font-weight:700}
+.rep h4{margin:16px 0 6px;font-size:14px;font-weight:900}
 /* sets table */
 .exb{padding:14px 0;border-top:1px solid var(--line)}
 .exb:first-child{border-top:none;padding-top:4px}
@@ -151,7 +162,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-04-c';
+const FRONTEND_VERSION = 'pt-2026-10-04-d';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -202,6 +213,12 @@ const TX = {
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
     undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', preUsedN:'另有 {n} 節冇記日期', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
+    todayTodo:'今日要做', logDietToday:'記錄今日飲食', newReply:'教練有 {n} 條新回覆', replyIn:{session:'訓練',homework:'功課',checkin:'每週回顧',body:'身體數據',diet:'飲食'},
+    feelQ:'{d} 嗰堂辛唔辛苦？', feelHint:'1＝好輕鬆 · 10＝盡晒力', enjoyQ:'享唔享受？', feelThanks:'多謝！教練會睇到', yourFeel:'你嘅感受', feelChange:'改',
+    rpeL:['','好輕鬆','輕鬆','幾輕鬆','中等','有啲辛苦','辛苦','好辛苦','非常辛苦','差唔多盡','盡晒力'],
+    addCal:'加入日曆', calApple:'iPhone／手機日曆（.ics）', calGoogle:'Google 日曆', calTitle:'INITIATE 私人訓練', bringList:'記得帶：毛巾、水、運動鞋', mapLink:'地圖', tmrSes:'聽日上堂', todaySes:'今日上堂',
+    report:'每月成長報告', reportMon:'{m} 成長報告', reportReady:'{m} 成長報告出咗', reportSee:'睇吓你上個月嘅進步', monthToDate:'本月至今',
+    rAttend:'上堂次數', rVolume:'訓練總量', rNewPr:'新紀錄', rStreak:'連續出席', rWeeks:'週', rTimes:'次', rLift:'力量進步', rBody:'身體變化', rHabit:'習慣完成', rHw:'功課打卡', rCheck:'每週回顧平均', rNoData:'呢個月未有足夠記錄，繼續加油！', rKeep:'繼續保持，下個月再見！', rShare:'存圖分享', rMaking:'整緊圖…', rFirstMon:'第一個月：之後每個月會同上個月比較', rBest:'最佳', rDays:'日',
     painQ:'今週有冇關節痛或者受傷？', painWhere:'邊度痛？（例：左膝落樓梯痛）', painHint:'酸痛同關節痛唔同——有痛請話教練知，唔好硬撐。', yes:'有', no:'冇'
   },
   en:{
@@ -249,6 +266,12 @@ const TX = {
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
     undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', preUsedN:'+{n} session(s) without a date', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
+    todayTodo:'Today', logDietToday:'Log today\'s food', newReply:'{n} new coach repl(ies)', replyIn:{session:'Training',homework:'Homework',checkin:'Weekly check-in',body:'Body',diet:'Diet'},
+    feelQ:'How hard was {d}\'s session?', feelHint:'1 = very easy · 10 = max effort', enjoyQ:'Did you enjoy it?', feelThanks:'Thanks! Your coach will see this', yourFeel:'How it felt', feelChange:'Change',
+    rpeL:['','Very easy','Easy','Fairly easy','Moderate','Somewhat hard','Hard','Very hard','Very, very hard','Near max','Max effort'],
+    addCal:'Add to calendar', calApple:'iPhone / phone calendar (.ics)', calGoogle:'Google Calendar', calTitle:'INITIATE Personal Training', bringList:'Bring: towel, water, training shoes', mapLink:'Map', tmrSes:'Session tomorrow', todaySes:'Session today',
+    report:'Monthly progress report', reportMon:'{m} progress report', reportReady:'Your {m} report is ready', reportSee:'See how you progressed last month', monthToDate:'This month so far',
+    rAttend:'Sessions', rVolume:'Total volume', rNewPr:'New PRs', rStreak:'Attendance streak', rWeeks:'wk', rTimes:'', rLift:'Strength gains', rBody:'Body changes', rHabit:'Habits done', rHw:'Homework logged', rCheck:'Weekly check-in average', rNoData:'Not enough records this month yet — keep going!', rKeep:'Keep it up — see you next month!', rShare:'Save image', rMaking:'Creating image…', rFirstMon:'First month: later reports compare with the previous month', rBest:'Best', rDays:'days',
     painQ:'Any joint pain or injury this week?', painWhere:'Where does it hurt? (e.g. left knee on stairs)', painHint:'Soreness is not the same as joint pain — tell your coach about any pain, don\'t push through it.', yes:'Yes', no:'No'
   }
 };
@@ -415,24 +438,25 @@ const ICONS = {
   more:'<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>'
 };
 function renderShell(loading){
-  const tabs=['home','train','diet','hw','body','more'];
+  const tabs=['home','train','diet','hw','body','more'], un=loading?{}:unread();
   $('#app').innerHTML = `
   <header class="top"><div class="top-in">
     <div class="brand"><img src="img/is-mark-96.png" alt="">INITIATE <span class="tag">PT</span></div><span class="sp"></span>
     <button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh')">中</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en')">EN</button>
   </div></header>
   <main class="wrap" id="main">${loading?'<div style="height:18px"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>':''}</main>
-  <nav class="nav"><div class="nav-in">${tabs.map(k=>`<button class="${S.tab===k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${t(k)}</button>`).join('')}</div></nav>`;
+  <nav class="nav"><div class="nav-in">${tabs.map(k=>`<button class="${S.tab===k?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${t(k)}${un[k]&&S.tab!==k?'<i class="dot"></i>':''}</button>`).join('')}</div></nav>`;
 }
-function go(tab){ S.tab=tab; S.ses=null; render(); window.scrollTo(0,0); }
+function go(tab){ S.tab=tab; S.ses=null; markSeen(tab); render(); window.scrollTo(0,0); }
 function render(){
   if(!AUTH){ renderLogin(); return; }
   if(!D){ if(S.meErr){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(S.meErr)}<br><br><button class="btn sm" onclick="S.meErr='';renderShell(true);refresh(true)">↻ ${LANG==='en'?'Retry':'再試'}</button></div></div>`; return; } renderShell(true); return; }
   const y=window.scrollY, keep={}, ae=document.activeElement, focusId=ae&&ae.id&&ae.closest&&ae.closest('#main')?ae.id:'';
   document.querySelectorAll('#main input[id],#main textarea[id]').forEach(el=>{ if(el.type!=='checkbox' && el.value) keep[el.id]=el.value; });   // 背景重畫唔好洗走打緊嘅字
+  markSeen(S.tab);
   renderShell(false);
   const m=$('#main');
-  m.innerHTML = ({home:vHome, train:vTrain, diet:vDiet, hw:()=>vHw()+vHabits()+vCheckins(), body:vBody, more:vMore, book:vBook}[S.tab]||vHome)();
+  m.innerHTML = ({home:vHome, train:vTrain, diet:vDiet, hw:()=>vHw()+vHabits()+vCheckins(), body:vBody, more:vMore, book:vBook, report:vReport}[S.tab]||vHome)();
   Object.keys(keep).forEach(id=>{ const el=document.getElementById(id); if(el && !el.value) el.value=keep[id]; });
   if(focusId){ const el=document.getElementById(focusId); if(el) try{ el.focus({preventScroll:true}); }catch(e){} }
   window.scrollTo(0,y);
@@ -473,6 +497,7 @@ function vHome(){
   const mates=(D.mates||[]).map(m=>LANG==='en'?(m.en||m.name):m.name).join(LANG==='en'?', ':'、');
   let h = `<div class="h1">${t('hi')}${LANG==='en'?', ':'，'}${esc(nm)} 👋</div><div class="sub">${mates?`${t('mates')} ${esc(mates)}`:esc(me.group||'')}${me.goal?` · 🎯 ${esc(me.goal)}`:''}</div>`;
   h += vReminders();
+  h += vUnreadCard() + vFeelPrompt() + vToday() + vReportPrompt();
   h += vPkgCard();
   h += `<div class="grid3">
     <div class="stat"><b class="num">${att.length}</b><span>${t('attended')}</span></div>
@@ -485,13 +510,13 @@ function vHome(){
     h += `<div class="card tap" onclick="openSes('${s.id}')"><div class="row"><div><div style="font-weight:800">${esc(s.title||fmtD(s.date))}</div><div class="small muted">${fmtD(s.date)} · ${g.length} ${t('exercises')} · ${ms.length} ${t('sets')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div>
       <div class="sets">${g.slice(0,4).map(b=>`<span class="badge grey">${esc(exName(b.ex))}</span>`).join('')}${g.length>4?`<span class="badge grey">+${g.length-4}</span>`:''}</div></div>`;
   } else h += `<div class="card"><div class="muted small">${t('noSes')}</div></div>`;
-  // 今週功課
+  // 今週功課（今日清單已包今日功課；呢度只喺冇今日清單時顯示，保留舊入口）
   const hw=curHw();
-  h += `<div class="sec">${t('weekHw')}</div>`;
-  if(hw){ const pr=hwProgress(hw);
-    h += `<div class="card tap" onclick="go('hw')"><div class="row"><div style="font-weight:800">${esc(hw.title||t('hw'))}</div><span class="sp"></span><span class="badge">${pr.done}/${pr.total} ${t('done')}</span></div>
-      <div class="bar"><i style="width:${pr.total?Math.round(pr.done/pr.total*100):0}%"></i></div></div>`;
-  } else h += `<div class="card"><div class="muted small">${t('noHw')}</div></div>`;
+  if(!todayRows().length){ h += `<div class="sec">${t('weekHw')}</div>`;
+    if(hw){ const pr=hwProgress(hw);
+      h += `<div class="card tap" onclick="go('hw')"><div class="row"><div style="font-weight:800">${esc(hw.title||t('hw'))}</div><span class="sp"></span><span class="badge">${pr.done}/${pr.total} ${t('done')}</span></div>
+        <div class="bar"><i style="width:${pr.total?Math.round(pr.done/pr.total*100):0}%"></i></div></div>`;
+    } else h += `<div class="card"><div class="muted small">${t('noHw')}</div></div>`; }
   h += vDietHomeCard();
   // 個人最佳＋體重
   const rec=(D.prs&&D.prs.recent||[]).slice(0,3);
@@ -503,7 +528,7 @@ function vHome(){
 }
 
 /* ───────── 訓練 ───────── */
-function openSes(id){ S.tab='train'; S.ses=id; render(); window.scrollTo(0,0); }
+function openSes(id){ S.tab='train'; S.ses=id; markSeen('train'); render(); window.scrollTo(0,0); }
 function vTrain(){
   if(S.ses){ const s=(D.sessions||[]).find(x=>x.id===S.ses); if(s) return vSesDetail(s); S.ses=null; }
   const list=D.sessions||[];
@@ -527,9 +552,133 @@ function vSesDetail(s){
         const main = x.kg!=='' && x.kg!=null ? `${fmtN(x.kg)}<span class="small muted">kg</span>${x.reps!==''?` × ${esc(x.reps)}`:''}` : (x.reps!==''?`${esc(x.reps)} ${LANG==='en'?'reps':'下'}`:'') ;
         const sec = x.sec!=='' && x.sec!=null ? `${esc(x.sec)}s` : '';
         return `<div class="set ${isPr?'pr':''}"><span class="n">${LANG==='en'?'Set '+(i+1):'第'+(i+1)+'組'}${isPr?' 🏆':''}</span><span class="k num">${main||sec||'—'}</span>${main&&sec?` <span class="small muted">${sec}</span>`:''}${x.acct&&(D.mates||[]).length?`<span class="n" style="color:var(--teal)">${t('onlyYou')}</span>`:''}${x.rpe?`<span class="n">RPE ${esc(x.rpe)}</span>`:''}${x.note?`<span class="n">${esc(x.note)}</span>`:''}</div>`; }).join('')}</div></div>`).join('') : `<div class="muted small">—</div>`)+`</div>`;
+  h+=feelBlock(s, false);
   h+=`<div class="card">${thread('session', s.id)}</div>`;
   return h;
 }
+
+/* ═════════ 第二期（2026-10-04）：今日清單／教練回覆紅點／堂後感受／堂前卡＋日曆／每月成長報告 ═════════ */
+/* 教練回覆未讀：localStorage 記每區上次睇嘅時間；首次用當而家（唔會一開就成堆紅點） */
+const CM_AREA={session:'train', homework:'hw', checkin:'hw', body:'body', diet:'diet'};
+function nowStamp(){ const d=new Date(); return isoOf(d)+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+/* 已讀＝記住睇過嘅教練留言 id（唔用時間：留言時間只到分鐘，同一分鐘回覆會漏）；首次用之前嘅當已讀 */
+function seenGet(){ let x=lsGet('ispt_seen2'); if(!x || typeof x!=='object' || !Array.isArray(x.ids)){ x={base:nowStamp(), ids:[]}; lsSet('ispt_seen2', x); } return x; }
+function markSeen(tab){ if(!CM_AREA_TABS.includes(tab) || !D) return; const x=seenGet(), have=new Set(x.ids); let ch=false;
+  coachCms().forEach(c=>{ if(CM_AREA[c.type]===tab && onScreen(c) && !have.has(c.id)){ x.ids.push(c.id); ch=true; } }); if(ch){ x.ids=x.ids.slice(-400); lsSet('ispt_seen2', x); } }
+const CM_AREA_TABS=['train','hw','body','diet'];
+/* 真係顯示緊先當已讀：訓練要打開嗰堂；飲食要睇緊嗰日；功課／回顧／身體留言喺頁面直接見到 */
+function onScreen(c){ if(c.type==='session') return S.tab==='train' && S.ses===c.target; if(c.type==='diet') return S.tab==='diet' && (S.dDate||isoToday())===String(c.target); return true; }
+function coachCms(){ return [...(D&&D.comments||[]), ...(DT&&DT.comments||[]), ...(PL&&PL.checkinComments||[])].filter(c=>c.by==='coach'); }
+function unread(){ if(!D) return {}; const x=seenGet(), have=new Set(x.ids), o={}; coachCms().forEach(c=>{ const a=CM_AREA[c.type]; if(a && String(c.at)>=String(x.base) && !have.has(c.id) && !(S.tab===a && onScreen(c))) (o[a]=o[a]||[]).push(c); }); return o; }
+function vUnreadCard(){ const u=unread(), all=Object.values(u).flat().sort((a,b)=>String(b.at).localeCompare(String(a.at))); if(!all.length) return '';
+  const c=all[0], where=(t('replyIn')||{})[c.type]||'';
+  return `<div class="card tap" style="border-color:rgba(201,106,61,.55)" onclick="openReply('${c.type}','${esc(String(c.target)).replace(/'/g,"\\'")}')"><div class="row"><div style="min-width:0;flex:1"><b>💬 ${t('newReply').replace('{n}',all.length)}</b>
+    <div class="small muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(where)} · ${esc(c.text)}</div></div><span style="color:var(--teal);font-size:20px">›</span></div></div>`; }
+function openReply(type, target){ if(type==='session') return openSes(target); if(type==='diet'){ S.dDate=target; return go('diet'); } go(CM_AREA[type]||'home'); }
+
+/* 今日清單：今日習慣＋今週功課（今日）＋飲食；喺首頁直接剔 */
+function todayRows(){ const today=isoToday(), rows=[];
+  if(PL){ const hs=PL.habits||[], lg=(PL.habitLog||{})[today]||[]; hs.forEach(hb=>{ const on=lg.includes(hb.id); rows.push({done:on, label:LANG==='en'?(hb.en||hb.zh):hb.zh, act:`habitTick('${hb.id}','${today}',${on?0:1})`}); }); }
+  const hw=curHw(); if(hw && hw.week<=today && addDays(hw.week,6)>=today){ const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}];
+    items.forEach((it,i)=>{ const on=(hw.logs||[]).some(l=>l.idx===i && l.date===today && l.done), presc=[it.sets?`${it.sets} ${LANG==='en'?'sets':'組'}`:'', it.reps?`× ${it.reps}`:''].filter(Boolean).join(' ');
+      rows.push({done:on, label:'📋 '+(it.ex?exName(it.ex):(it.text||'')), sub:presc, act:`hwTick('${hw.id}',${i},'${today}',${on?0:1})`}); }); }
+  if(DT) rows.push({done:dayEntries(today).length>0, label:'🍽 '+t('logDietToday'), act:`S.dDate=isoToday();go('diet')`, nav:true});
+  return rows; }
+function vToday(){ const rows=todayRows(); if(!rows.length) return ''; const n=rows.filter(r=>r.done).length;
+  return `<div class="sec">☀️ ${t('todayTodo')}<span class="sp" style="flex:1"></span><span class="badge ${n===rows.length?'':'grey'}">${n}/${rows.length}</span></div>
+    <div class="card" style="padding:6px 14px">${rows.map(r=>`<div class="todo ${r.done?'done':''}" onclick="${r.act}"><span class="ck">${r.done?'✓':''}</span><div style="flex:1;min-width:0"><div class="lb2" style="font-weight:800">${esc(r.label)}</div>${r.sub?`<div class="small muted">${esc(r.sub)}</div>`:''}</div>${r.nav?'<span style="color:var(--teal);font-size:18px">›</span>':''}</div>`).join('')}
+    <div class="bar" style="margin:4px 0 8px"><i style="width:${Math.round(n/rows.length*100)}%"></i></div></div>`; }
+
+/* 堂後感受（sRPE）：最近一堂 3 日內未答 → 首頁問；堂詳情可改 */
+function myFeel(sid){ return (D.feels||[]).find(f=>f.sid===sid); }
+function vFeelPrompt(){ const s=(D.sessions||[])[0]; if(!s || s.date>isoToday() || s.date<addDays(isoToday(),-3) || (myFeel(s.id) && S.feelEdit!==s.id)) return ''; return feelBlock(s, true); }   // 揀完 RPE 仲要留低問享受度
+function feelBlock(s, prompt){ const f=myFeel(s.id), L2=t('rpeL')||[], editing=S.feelEdit===s.id;
+  if(f && !editing && !prompt) return `<div class="card"><div class="row"><div><div class="small muted">${t('yourFeel')}</div><b>RPE ${f.rpe}/10</b> <span class="small muted">${esc(L2[f.rpe]||'')}</span>${f.enjoy?` <span style="font-size:18px">${ENJ[f.enjoy-1]}</span>`:''}</div><span class="sp"></span><button class="lnk" onclick="S.feelEdit='${s.id}';render()">${t('feelChange')}</button></div></div>`;
+  const cur=f?f.rpe:0, title=prompt?t('feelQ').replace('{d}',fmtDM(s.date)):t('yourFeel');
+  return `<div class="card" ${prompt?'style="border-color:rgba(31,77,58,.45)"':''}><b>💪 ${title}</b><div class="small muted">${t('feelHint')}</div>
+    <div class="rpe">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${cur===n?'on':''}" onclick="sendFeel('${s.id}',${n})">${n}</button>`).join('')}</div>
+    ${cur?`<div class="small" style="margin-top:6px;text-align:center;font-weight:700">${esc(L2[cur]||'')}</div><div class="small muted" style="margin-top:8px">${t('enjoyQ')}</div><div class="enj">${ENJ.map((e,i)=>`<button class="${f&&f.enjoy===i+1?'on':''}" onclick="sendFeel('${s.id}',${cur},${i+1})">${e}</button>`).join('')}</div>`:''}</div>`; }
+const ENJ=['😣','🙁','😐','🙂','😄'];
+async function sendFeel(sid, rpe, enjoy){ D.feels=D.feels||[]; const old=myFeel(sid), bak=old?Object.assign({},old):null;
+  if(old){ old.rpe=rpe; if(enjoy) old.enjoy=enjoy; } else D.feels.push({sid, rpe, enjoy:enjoy||0});
+  S.feelEdit=enjoy?null:sid; render();
+  const r=await api('sesFeel',{sid, rpe, enjoy:enjoy||''}, true);
+  if(!r.ok){ if(bak) Object.assign(old,bak); else D.feels=D.feels.filter(x=>x.sid!==sid); toast(r.err||t('net')); render(); return; }
+  if(enjoy){ toast('✓ '+t('feelThanks')); } lsSet('ispt_cache', D); }
+
+/* 堂前卡（36 小時內）＋加入日曆＋地圖 */
+function vPreClass(b){ const s=b.slotInfo, isT=s.date===isoToday();
+  return `<div class="card hero"><div class="small muted" style="letter-spacing:.08em">📅 ${(isT?t('todaySes'):t('tmrSes')).toUpperCase()}</div>
+    <div style="font-weight:900;font-size:20px;margin-top:4px">${slotWhen(s)}</div>
+    ${s.venue?`<div class="row small" style="margin-top:4px"><span>📍 ${esc(s.venue)}</span><span class="sp"></span><a class="lnk" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">${t('mapLink')} ›</a></div>`:''}
+    <div class="small" style="margin-top:6px">🎒 ${t('bringList')}</div>
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn ghost sm" onclick="calSheet('${b.id}')">📅 ${t('addCal')}</button><span class="sp"></span><button class="lnk" onclick="go('book')">${t('booking')} ›</button></div></div>`; }
+function calDT(d, hm){ return new Date(d+'T'+hm+':00+08:00').toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''); }
+function icsEsc(x){ return String(x||'').replace(/\\/g,'\\\\').replace(/([,;])/g,'\\$1').replace(/\n/g,'\\n'); }
+function calSheet(id){ const b=(PL&&PL.bookings||[]).find(x=>x.id===id); if(!b) return; const s=b.slotInfo;
+  const g='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(t('calTitle'))+'&dates='+calDT(s.date,s.start)+'/'+calDT(s.date,s.end)+'&location='+encodeURIComponent(s.venue||'')+'&details='+encodeURIComponent(t('bringList'))+'&ctz=Asia/Hong_Kong';
+  const ov=sheet(`<div class="row"><b style="font-size:18px">📅 ${t('addCal')}</b><span class="sp"></span><button class="pill" data-x>✕</button></div>
+    <div class="card" style="background:var(--panel2);margin-top:12px"><b>${slotWhen(s)}</b>${s.venue?`<div class="small muted">📍 ${esc(s.venue)}</div>`:''}</div>
+    <button class="btn block" id="cal-ics">${t('calApple')}</button><a class="btn ghost block" style="margin-top:8px;text-align:center;text-decoration:none" href="${g}" target="_blank" rel="noopener">${t('calGoogle')}</a>`);
+  ov.querySelector('#cal-ics').onclick=()=>{ const body=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//INITIATE SPORTS//PT//ZH','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+      'UID:'+b.id+'@initiatesportshk.com','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),'DTSTART:'+calDT(s.date,s.start),'DTEND:'+calDT(s.date,s.end),
+      'SUMMARY:'+icsEsc(t('calTitle')),'LOCATION:'+icsEsc(s.venue||''),'DESCRIPTION:'+icsEsc(t('bringList')),'BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY','DESCRIPTION:'+icsEsc(t('calTitle')),'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+    const url=URL.createObjectURL(new Blob([body],{type:'text/calendar;charset=utf-8'})), a=document.createElement('a'); a.href=url; a.download='IS-PT-'+s.date+'.ics'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1500); ov.remove(); }; }
+
+/* 每月成長報告（全部由現有記錄計，教練零工作；唔提套票） */
+const monLabel=m=>LANG==='en'?new Date(m+'-15').toLocaleString('en',{month:'long', year:'numeric'}):Number(m.slice(5))+' 月';
+function prevMon(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); return isoOf(d).slice(0,7); }
+function openReport(m){ S.repMon=m||prevMon(); S.tab='report'; render(); window.scrollTo(0,0); }
+function vReportPrompt(){ const d=new Date().getDate(), m=prevMon(); if(d>10 || lsGet('ispt_rep_seen')===m) return ''; const r=reportData(m); if(!r.sessions && !r.att) return '';
+  return `<div class="card tap" style="border-color:rgba(31,77,58,.45)" onclick="lsSet('ispt_rep_seen','${m}');openReport('${m}')"><div class="row"><div><b>📊 ${t('reportReady').replace('{m}',monLabel(m))}</b><div class="small muted">${t('reportSee')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`; }
+const e1=(kg,r)=>{ kg=Number(kg)||0; r=Number(r)||0; return kg>0&&r>0&&r<=12 ? kg*(1+r/30) : 0; };
+function reportData(m){ const inM=d=>String(d||'').slice(0,7)===m, before=d=>String(d||'').slice(0,7)<m, end=m+'-31';
+  const att=((D.pt||{}).sessions||[]).filter(x=>!x.exempt && inM(x.date));
+  const ses=(D.sessions||[]).filter(x=>inM(x.date)), vol=ses.reduce((a,x)=>a+volOf(mySets(x)),0);
+  const prs=((D.prs||{}).recent||[]).filter(x=>inM(x.date)).length;
+  // 力量：月內最佳 e1RM vs 之前最佳（同一動作）
+  const bestIn={}, bestPre={}; (D.sessions||[]).forEach(x=>mySets(x).forEach(st=>{ const v=e1(st.kg,st.reps); if(!v) return; if(inM(x.date)) bestIn[st.ex]=Math.max(bestIn[st.ex]||0,v); else if(before(x.date)) bestPre[st.ex]=Math.max(bestPre[st.ex]||0,v); }));
+  const lifts=Object.keys(bestIn).filter(k=>bestPre[k] && bestIn[k]>bestPre[k]).map(k=>({ex:k, from:bestPre[k], to:bestIn[k], pct:Math.round((bestIn[k]/bestPre[k]-1)*100)})).sort((a,b)=>b.pct-a.pct).slice(0,4);
+  // 身體：月尾最新 vs 月初前最後（冇就用月內第一筆）
+  const bd=(D.body||[]), pick=k=>{ const ok=bd.filter(b=>b[k]!==''&&b[k]!=null), a=ok.filter(b=>before(b.date)).pop()||ok.find(b=>inM(b.date)), z=ok.filter(b=>inM(b.date)).pop(); return a&&z&&a!==z?{from:Number(a[k]), to:Number(z[k])}:null; };
+  const body=[['weight','kg'],['waist','cm'],['fat','%']].map(([k,u])=>{ const v=pick(k); return v?{k,u,...v}:null; }).filter(Boolean);
+  // 習慣：月內（到今日為止）完成率
+  let hab=null; if(PL && (PL.habits||[]).length){ const hs=PL.habits, lg=PL.habitLog||{}, today=isoToday(); let tot=0, dn=0;
+    for(let i=1;i<=31;i++){ const d=m+'-'+pad(i); if(!parseISO(d) || d.slice(0,7)!==m || d>today) continue; if(isoOf(parseISO(d)).slice(0,7)!==m) continue; tot+=hs.length; dn+=(lg[d]||[]).filter(x=>hs.some(h=>h.id===x)).length; }
+    if(tot && dn) hab=Math.round(dn/tot*100); }   // 嗰個月完全冇用習慣打卡就唔顯示（0% 打擊士氣）
+  let hw=0; (D.homework||[]).forEach(h=>(h.logs||[]).forEach(l=>{ if(l.done && inM(l.date) && (!l.acct || l.acct===D.me.id)) hw++; }));
+  // 連續出席週數（到月尾）
+  const wk=new Set(((D.pt||{}).sessions||[]).filter(x=>!x.exempt && x.date<=end).map(x=>mondayISO(x.date))); let streak=0, w=mondayISO(att.length?att[att.length-1].date:end); while(wk.has(w)){ streak++; w=addDays(w,-7); }
+  const cks=(PL&&PL.checkins||[]).filter(c=>inM(c.week)), ckAvg={}; ['睡眠','精神','恢復'].forEach(k=>{ const v=cks.map(c=>Number(c[k])).filter(n=>n>0); if(v.length) ckAvg[k]=Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10; });
+  const hasPrev=(D.sessions||[]).some(x=>before(x.date));
+  return {m, att:att.length, sessions:ses.length, vol, prs, lifts, body, hab, hw, streak, ckAvg, hasPrev}; }
+function vReport(){ const m=S.repMon||prevMon(), r=reportData(m), me=D.me, nm=LANG==='en'?(me.en||me.name):me.name;
+  const months=[]; for(let i=0;i<6;i++){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); months.push(isoOf(d).slice(0,7)); }
+  const tx=CK_TX[LANG]||CK_TX.zh, sign=v=>(v>0?'+':'')+fmtN(v), empty=!r.att && !r.sessions;
+  let h=`<button class="back" onclick="go('more')">‹ ${t('more')}</button>
+    <div class="chips" style="margin:6px 0 12px">${months.map(x=>`<button class="chip ${x===m?'on':''}" onclick="S.repMon='${x}';render()">${x===months[0]?t('monthToDate'):monLabel(x)}</button>`).join('')}</div>
+    <div class="rep" id="rep"><div class="row"><img src="img/is-mark-96.png" style="width:28px;height:28px;border-radius:7px"><b style="margin-left:8px;letter-spacing:.06em">INITIATE PT</b><span class="sp"></span><span class="small muted">${esc(nm)}</span></div>
+      <div style="font-size:22px;font-weight:900;margin-top:10px">📊 ${t('reportMon').replace('{m}',monLabel(m))}</div>`;
+  if(empty) h+=`<div class="muted" style="margin-top:14px">${t('rNoData')}</div>`;
+  else { h+=`<div class="rk"><div><b class="num">${r.att||r.sessions}</b><span>${t('rAttend')}</span></div><div><b class="num">${r.vol?Math.round(r.vol).toLocaleString():'—'}</b><span>${t('rVolume')} kg</span></div>
+      <div><b class="num">${r.prs}</b><span>🏆 ${t('rNewPr')}</span></div><div><b class="num">${r.streak}</b><span>🔥 ${t('rStreak')}${LANG==='en'?' ('+t('rWeeks')+')':'（'+t('rWeeks')+'）'}</span></div></div>`;
+    if(r.lifts.length) h+=`<h4>💪 ${t('rLift')}</h4>${r.lifts.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${esc(exName(x.ex))}</b><span class="num muted">${fmtN(x.from)} → </span><b class="num" style="margin-left:4px">${fmtN(x.to)} kg</b><span class="badge" style="margin-left:8px">▲ ${x.pct}%</span></div>`).join('')}<div class="small muted">${t('e1rm')}</div>`;
+    else if(!r.hasPrev) h+=`<div class="small muted" style="margin-top:12px">${t('rFirstMon')}</div>`;
+    if(r.body.length) h+=`<h4>📏 ${t('rBody')}</h4>${r.body.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${x.k==='fat'?(LANG==='en'?'Body fat':'體脂'):t(x.k)}</b><span class="num muted">${fmtN(x.from)} → </span><b class="num" style="margin-left:4px">${fmtN(x.to)} ${x.u}</b><span class="badge grey" style="margin-left:8px">${sign(x.to-x.from)}</span></div>`).join('')}`;
+    const ext=[]; if(r.hab!=null) ext.push(`<div><b class="num">${r.hab}%</b><span>✅ ${t('rHabit')}</span></div>`); if(r.hw) ext.push(`<div><b class="num">${r.hw}</b><span>📋 ${t('rHw')}${LANG==='en'?'':'（次）'}</span></div>`);
+    if(ext.length) h+=`<div class="rk">${ext.join('')}</div>`;
+    const ck=Object.keys(r.ckAvg); if(ck.length) h+=`<h4>📝 ${t('rCheck')}</h4><div style="display:flex;flex-wrap:wrap;gap:6px">${ck.map(k=>`<span class="badge grey">${(tx[k]||[k])[0]} <b style="color:var(--text)">${r.ckAvg[k]}</b>/5</span>`).join('')}</div>`;
+    h+=`<div style="margin-top:16px;font-weight:800">${t('rKeep')} 💚</div>`; }
+  h+=`</div>`;
+  if(!empty) h+=`<button class="btn block" style="margin-top:12px" id="rep-sh" onclick="shareReport()">📷 ${t('rShare')}</button>`;
+  return h; }
+async function shareReport(){ const b=$('#rep-sh'); if(!b || b.disabled) return; b.disabled=true; const old=b.textContent; b.textContent=t('rMaking');
+  try{ if(!window.html2canvas) await new Promise((ok,no)=>{ const sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'; sc.onload=ok; sc.onerror=no; document.head.appendChild(sc); });
+    const cv=await window.html2canvas($('#rep'),{backgroundColor:'#f4efe6', scale:2, useCORS:true}), blob=await new Promise(r=>cv.toBlob(r,'image/png')), fn='IS-PT-'+(S.repMon||'report')+'.png', file=new File([blob], fn, {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], title:t('report')});
+    else { const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=fn; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },1500); }
+  }catch(e){ if(!(e && e.name==='AbortError')) toast(t('net')); }
+  b.disabled=false; b.textContent=old; }
 
 /* ───────── 留言串 ───────── */
 function thread(type, target){
@@ -1023,7 +1172,8 @@ function vReminders(){
   // 老闆 2026-09-30：唔好主動提醒續購／套票快用完——已刪（套票卡照顯示剩餘節數同到期日）
   if(!PL) return h;
   const nx=upcomingBk()[0];
-  if(nx) h+=`<div class="card tap hero" onclick="go('book')"><div class="small muted" style="letter-spacing:.08em">📅 ${t('nextSes').toUpperCase()}</div><div style="font-weight:900;font-size:18px;margin-top:4px">${slotWhen(nx.slotInfo)}</div><div class="row small muted" style="margin-top:2px"><span>${esc(nx.slotInfo.venue||'')}</span><span class="sp"></span><span style="color:var(--teal);font-weight:700">${t('manage')} ›</span></div></div>`;
+  if(nx && nx.hoursTo<=36) h+=vPreClass(nx);
+  else if(nx) h+=`<div class="card tap hero" onclick="go('book')"><div class="small muted" style="letter-spacing:.08em">📅 ${t('nextSes').toUpperCase()}</div><div style="font-weight:900;font-size:18px;margin-top:4px">${slotWhen(nx.slotInfo)}</div><div class="row small muted" style="margin-top:2px"><span>${esc(nx.slotInfo.venue||'')}</span><span class="sp"></span><span style="color:var(--teal);font-weight:700">${t('manage')} ›</span></div></div>`;
   else h+=`<div class="card tap" onclick="go('book')"><div class="row"><div><b>📅 ${t('bookNext')}</b><div class="small muted">${(PL.slots||[]).length?t('slotsAvail').replace('{n}',PL.slots.length):t('noSlots')}</div></div><span class="sp"></span><span class="btn sm skew"><span>${t('book')} →</span></span></div></div>`;
   const wk=mondayISO(isoToday()), dow=new Date().getDay();
   if((dow===0||dow>=5) && !(PL.checkins||[]).some(c=>c.week===wk)) h+=`<div class="card tap" onclick="openCheckin()"><div class="row"><div><b>📝 ${t('ckDue')}</b><div class="small muted">${t('ckDueHint')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
@@ -1039,6 +1189,7 @@ function vBook(){
   if(PL.pkgLeft!=null) h+=`<div class="card row" style="padding:12px 14px"><span>🎫 ${t('pkgLeftN').replace('{n}',PL.pkgLeft)}</span><span class="sp"></span><span class="small muted">${t('bookedN').replace('{n}',PL.futureBooked)}</span></div>`;
   h+=`<div class="sec">${t('myBookings')}</div>`;
   h+= up.length ? `<div class="card">${up.map(b=>`<div class="li"><div style="flex:1;min-width:0"><div style="font-weight:800">${slotWhen(b.slotInfo)}</div><div class="small muted">${esc(b.slotInfo.venue||'')}${b.note?' · '+esc(b.note):''}</div></div>
+      <button class="btn ghost sm" style="margin-right:6px" onclick="calSheet('${b.id}')" aria-label="${t('addCal')}">📅</button>
       ${b.canCancel?`<button class="btn ghost sm" onclick="cancelBk('${b.id}')">${t('cancel')}</button>`:`<span class="small muted" style="max-width:110px;text-align:right">${t('cantCancel').replace('{x}',R.cancelH)}</span>`}</div>`).join('')}</div>`
     : `<div class="card"><div class="small muted">${t('noBooking')}</div></div>`;
   h+=`<div class="sec">${t('openSlots')}</div>`;
@@ -1145,6 +1296,7 @@ function openCheckin(){
 function vMore(){
   const p=D.prs||{}, best=(p.best||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   let h=`<div class="h1">${t('more')}</div><div class="sub"></div>`;
+  h+=`<div class="card tap" onclick="openReport('')"><div class="row"><div><b>📊 ${t('report')}</b><div class="small muted">${t('reportSee')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
   // 個人最佳
   h+=`<div class="sec">🏆 ${t('prTitle')}</div>`;
   h+= best.length ? `<div class="card">${best.map(b=>`<div class="li" style="cursor:pointer" onclick="showEx('${b.ex}')"><div style="flex:1;min-width:0"><div style="font-weight:700">${esc(exName(b.ex))}</div><div class="small muted">${fmtD(b.date)}${b.e1rm?` · ${t('e1rm')} ${fmtN(b.e1rm)} kg`:''}</div></div><div class="num" style="font-weight:900;font-size:17px">${prTxt(b)}</div></div>`).join('')}</div>`
