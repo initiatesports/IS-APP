@@ -151,7 +151,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-04-b';
+const FRONTEND_VERSION = 'pt-2026-10-04-c';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -457,7 +457,7 @@ function vPkgCard(){
   if(s.none) return `<div class="card"><div class="muted small">${t('noPkg')}</div></div>`;
   const p=s.cur, used=Number(p.used)||0, tot=Number(p.sessions)||0, left=Number(p.remaining)||0, dte=Number(p.daysToExp);
   const exp = p.expiry ? `${t('expire')} ${fmtD(p.expiry)}` : '';
-  const warn = dte<0 ? `<span class="badge red">${t('expired')}</span>` : (dte<=30 ? `<span class="badge gold">${t('expSoon')}</span>` : '');
+  const warn = dte<0 ? `<span class="badge red">${t('expired')}</span>` : '';
   const more = s.active.length>1 ? `<div class="small muted" style="margin-top:6px">+ ${s.totalLeft-left} ${t('sessionsU')}</div>` : '';
   return `<div class="card hero">
     <div class="row"><span class="small muted" style="letter-spacing:.08em">${t('pkg').toUpperCase()}</span><span class="sp"></span>${warn}</div>
