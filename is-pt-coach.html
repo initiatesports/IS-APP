@@ -102,7 +102,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-f';
+const FRONTEND_VERSION = 'ptc-2026-10-05-g';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -1090,7 +1090,7 @@ function vSet(){
   h+=`<div class="h2">學員帳戶</div><div class="small muted" style="margin:0 2px 8px">「私訓名」要同 #4 私訓記錄一樣（例：Keith & Elaine），出席同套票先會自動顯示。1 對 2 就開兩個帳戶，私訓名填同一個。</div>`;
   if(C.acctEdit) h+=acctForm();
   else h+=`<button class="btn sm" onclick="C.acctEdit={id:'',name:'',en:'',last4:'',group:C.group||'',goal:'',status:'啟用'};render()">＋ 新帳戶</button>`;
-  h+=`<div class="card">${(L.accounts||[]).map(a=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> ${a.en?`<span class="muted small">${esc(a.en)}</span>`:''} ${a.status==='停用'?'<span class="badge red">停用</span>':''}<div class="small muted">${esc(a.group)} · 電話尾 ${esc(a.last4)}${a.goal?' · 🎯 '+esc(a.goal):''}</div></div><button class="btn ghost xs" onclick="editAcct('${a.id}')">✎</button></div>`).join('')||'<div class="small muted">未有帳戶</div>'}</div>`;
+  h+=`<div class="card">${(L.accounts||[]).map(a=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> ${a.en?`<span class="muted small">${esc(a.en)}</span>`:''} ${a.status==='停用'?'<span class="badge red">停用</span>':''}<div class="small muted">${esc(a.group)} · 電話尾 ${esc(a.last4)}${a.goal?' · 🎯 '+esc(a.goal):''}</div><div class="small">${a.pin?`🔑 登入密碼 <b class="num">${esc(a.pin)}</b>`:/示範|測試/.test(a.name+a.group)?'<span class="muted">🔑 測試帳戶：用電話尾登入（唔使改密碼）</span>':'<span style="color:var(--gold)">🔑 未改密碼（下次登入會要佢設）</span>'}${a.lastLogin?` <span class="muted">· 最後登入 ${fmtD(String(a.lastLogin).slice(0,10))}</span>`:''}</div></div><button class="btn ghost xs" onclick="editAcct('${a.id}')">✎</button></div>`).join('')||'<div class="small muted">未有帳戶</div>'}</div>`;
   h+=`<div class="card"><b>📲 學員 app 網址</b><div class="small muted" style="margin:4px 0 8px;word-break:break-all">${STUDENT_URL}</div><div class="small muted">學員用登記姓名（中文或英文）＋電話後 4 位登入，可加到主畫面當 app 用。</div><button class="btn ghost sm" style="margin-top:8px" onclick="copyTxt('${STUDENT_URL}')">複製網址</button> <a class="btn ghost sm" style="text-decoration:none;margin-top:8px" href="is-pt.html" target="_blank">預覽</a></div>`;
   h+=`<div class="small muted" style="margin:4px 4px 0">#4 私訓出席／套票連線：${L.ptOk?'<span style="color:var(--teal)">✓ 正常</span>':'<span style="color:var(--red)">未連上</span>'}</div>`;
   // 動作庫
