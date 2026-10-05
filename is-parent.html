@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-04-certresubmit';
+const FRONTEND_VERSION='parent-2026-10-05-renewcard';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -748,8 +748,8 @@ function mergeSAInto(sa){
   kids.forEach(sk=>{
     const cls=(sk.classes||[]).map(c=>Object.assign({},c,{_sa:true}));
     if(!cls.length) return;
-    if(byName[sk.name]){ byName[sk.name].classes=(byName[sk.name].classes||[]).concat(cls); byName[sk.name].certTodoSA=sk.certTodo||[]; }
-    else { const nk={name:sk.name,classes:cls,fees:(sk.fees||[]),addons:(sk.addons||[]),referralBalance:0,transfers:[],pt:null,_saOnly:true,certTodoSA:(sk.certTodo||[])};
+    if(byName[sk.name]){ byName[sk.name].classes=(byName[sk.name].classes||[]).concat(cls); byName[sk.name].certTodoSA=sk.certTodo||[]; if(!byName[sk.name].renewBill && sk.renewBill) byName[sk.name].renewBill=sk.renewBill; }
+    else { const nk={name:sk.name,classes:cls,fees:(sk.fees||[]),addons:(sk.addons||[]),referralBalance:0,transfers:[],pt:null,_saOnly:true,certTodoSA:(sk.certTodo||[]),renewBill:(sk.renewBill||null)};
            S.family.children.push(nk); byName[sk.name]=nk; }
     changed=true;
   });
@@ -866,6 +866,7 @@ function famSummary(kids){
   let next=null; shown.forEach(c=>{ let nx; try{nx=nextClassInfo(c);}catch(e){} if(nx&&nx.date&&(!next||nx.date<next.date)) next=nx; });
   let due=0, payShown=false; try{payShown=payOpen(S.period);}catch(e){}
   if(payShown) shown.forEach(c=>{ let f; try{f=feeForPeriod(c,S.period);}catch(e){} if(f&&f.status!=='已繳'&&f.status!=='豁免') due+=Number(f.net)||0; });
+  shown.forEach(c=>{ const rb=c.renewBill; if(rb && !rb.paid && periodLabel(S.period)===renewBillLabel(rb)){ due+=Number(rb.net)||0; payShown=true; } });   // 💳 11-12月續期帳單（上堂交現金）
   // 新報名期(9-10月)：以報名核實為準（fee status 對報名/未報名都係豁免）→ 有未報名子女就當「未激活」，唔好誤報「已繳清」（老闆 2026-08-31）
   const _notEnrolled9 = S.enrollPeriodLabel && periodLabel(S.period)===S.enrollPeriodLabel && shown.some(c=>c.enrolled9===false);
   let nTop,nSub;
@@ -978,7 +979,7 @@ function renderParent(){
   const showIdx = multi ? [S.kid] : kids.map((_,i)=>i);
   html+=famSummary(showIdx.map(i=>kids[i]).filter(Boolean));   // 🧭 概覽（下一堂／待補堂／本期待繳）——只計顯示緊嗰個小朋友，同下面班卡一致（老闆 2026-08-31：多孩家庭 KPI 跟選中嗰個，唔好因兄弟姊妹未報名而誤報未激活）
   // 💳 付款功能區：緊貼月份／小朋友選擇器下面（退出可回歸學生唔顯示，改用回歸面板）
-  showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable && !child.ptOnly) html+=paymentCard(child,ki); });
+  showIdx.forEach(ki=>{ const child=kids[ki]; if(child && !child.returnable && !child.ptOnly) html+=paymentCard(child,ki)+renewCard(child); });
   showIdx.forEach(ki=>{
     const child=kids[ki]; if(!child) return;
     // ⭐ 私人訓練「學生」：只顯示私訓卡（無班別/繳費/請假補堂）
@@ -1454,6 +1455,44 @@ function paymentCard(child,ki){
       <div class="stat"><div class="n">$${f.paid||0}</div><div class="k">${t('feePaid')}</div></div>
       <div class="stat"><div class="n" style="font-size:15px;color:${stCol}">${stTxt}</div><div class="k">${stK}</div></div>
     </div>${calcLine}${noteLine}${voucherLine}${owedLine}${actions}</div>`;
+}
+// 💳 11-12月起學費卡（老闆 2026-10-05）：自動續期帳單（後端 renewBill，教練頁公開後先有）→ 上堂交現金，教練撳「已收現金」即變已繳。
+//   顯示：未繳 → 帳單期＋當前期都顯示（10月就提早見到）；已繳 → 只喺帳單期顯示一行確認。唔使上載截圖。
+function renewBillLabel(rb){ return String((rb&&rb.period)||'').replace(/^\d+\s*/,''); }
+function renewCard(child){
+  const rb=child&&child.renewBill; if(!rb) return '';
+  const L=(zh,en)=>LANG==='en'?en:zh;
+  const h=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const lbl=renewBillLabel(rb), onBill=periodLabel(S.period)===lbl;
+  const who=((S.family&&S.family.children)||[]).length>1?`<div style="font-size:12px;color:var(--muted);margin:-2px 0 8px">${h(child.name)}</div>`:'';
+  if(rb.paid){
+    if(!onBill) return '';
+    return `<div class="card" style="border-color:rgba(52,211,153,.35)"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${who}
+      <div style="font-size:14px;color:var(--green);font-weight:800">✅ ${lbl} ${L('學費已繳','tuition paid')} $${Number(rb.net)||0}${rb.paidOn?`<span style="font-weight:600;color:var(--muted)">（${L('現金','cash')} ${fmtDate(rb.paidOn)}）</span>`:''}</div></div>`;
+  }
+  if(!onBill && S.period!==currentPeriodIdx()) return '';
+  const d=rb.detail||null, rows=[];
+  const row=(a,b,col)=>`<div style="display:flex;justify-content:space-between;gap:8px${col?';color:'+col:''}"><span>${a}</span><span style="white-space:nowrap">${b}</span></div>`;
+  if(d && Array.isArray(d.lines) && d.lines.length){
+    d.lines.forEach(l=>rows.push(row(`${h(String(l.label||'').replace(/\|/g,' '))}${l.sessions?` · <b>${l.sessions}</b> ${L('堂','sessions')}${l.unit?` × $${l.unit}`:''}`:''}`,`$${Number(l.fee)||0}`)));
+    if(d.multi>0) rows.push(row(L('多堂優惠','Multi-class discount'),`−$${d.multi}`,'var(--green)'));
+    if(d.voucher>0) rows.push(row(L('優惠券','Voucher'),`−$${d.voucher}`,'var(--green)'));
+    if(d.referral>0) rows.push(row(L('推薦優惠','Referral credit'),`−$${d.referral}`,'var(--green)'));
+    if(d.scholarship>0) rows.push(row(L('獎學金券','Scholarship'),`−$${d.scholarship}`,'var(--green)'));
+    if(d.adjust) rows.push(row(`${d.adjust<0?L('抵扣','Credit'):L('額外收費','Extra')}${d.adjustReason?`<span style="color:var(--muted)">（${h(d.adjustReason)}）</span>`:''}`,`${d.adjust<0?'−':'+'}$${Math.abs(d.adjust)}`,d.adjust<0?'var(--green)':'var(--amber)'));
+  } else rows.push(row(h(String(rb.courses||'').replace(/\|/g,' ')),`$${Number(rb.net)||0}`));
+  const calc=`<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--bg,#f4f7f8);font-size:12.5px;line-height:1.9;color:var(--ink)">
+    <div style="font-weight:800;color:var(--muted);margin-bottom:2px">🧮 ${L('學費明細','How it adds up')}</div>${rows.join('')}
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line,#e6ebee);margin-top:4px;padding-top:4px;font-weight:900"><span>${L('應繳','Total due')}</span><span>$${Number(rb.net)||0}</span></div></div>`;
+  const how=`<div style="margin-top:10px;padding:12px;border-radius:12px;background:rgba(224,169,58,.1);border:1px solid rgba(224,169,58,.35);font-size:13.5px;line-height:1.65;color:#8a5a08">
+    💵 <b>${L('請於上堂時以現金交學費俾教練','Please pay in cash to the coach at class')}</b>${rb.start?`${L('（','(')}${L(lbl+'由 ','term starts ')}${fmtDate(rb.start)}${L(' 開始）',')')}`:''}<br>
+    <span style="font-size:12.5px">${L('教練收妥後即場記錄並發收據，呢張卡會自動變「已繳」。','The coach records it and issues a receipt — this card then shows “Paid”.')}</span></div>`;
+  return `<div class="card" style="border-color:rgba(224,169,58,.45)"><div class="topline"><span class="dot"></span><h3>💳 ${t('feeTitle')}</h3></div>${who}
+    <div class="meta">${lbl}</div>
+    <div class="stats">
+      <div class="stat"><div class="n">$${Number(rb.net)||0}</div><div class="k">${t('feeDue')}</div></div>
+      <div class="stat"><div class="n" style="font-size:15px;color:var(--amber)">${L('待繳','Unpaid')}</div><div class="k">${LANG==='en'?'Status':'狀態'}</div></div>
+    </div>${calc}${how}</div>`;
 }
 // 其他記錄：推薦餘額 / 加操 / 調堂（放喺課堂下面）
 function extrasCard(child,ki){
