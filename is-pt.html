@@ -163,7 +163,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-05-c';
+const FRONTEND_VERSION = 'pt-2026-10-05-e';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -181,7 +181,7 @@ const TX = {
     latestW:'最新體重', kg:'公斤',
     sessions:'訓練記錄', exercises:'動作', sets:'組', volume:'總負荷', back:'返回', sharedGroup:'全組', onlyYou:'只限你',
     comments:'留言', say:'留言俾教練…', send:'送出', coach:'教練', you:'你', noCm:'有問題可以喺度問教練',
-    hwWeek:'週', hwTap:'撳日子打卡（今日或之前）', hwNote:'記錄（例：3 組 × 12，用 8kg）', save:'儲存', times:'次', thisWeek:'本週',
+    hwWeek:'週', hwTap:'做完功課撳「記錄練習」，揀日期、剔低做咗嘅動作', hwNote:'記錄（例：3 組 × 12，用 8kg）', save:'儲存', times:'次', thisWeek:'本週',
     bodyTitle:'身體數據', addRec:'新增記錄', date:'日期', weight:'體重', fat:'體脂', muscle:'肌肉量', waist:'腰圍', hip:'臀圍', chest:'胸圍', arm:'手臂', thigh:'大腿', note:'備註',
     unitKg:'kg', unitPct:'%', unitCm:'cm', noBody:'記錄第一筆數據，之後就睇到趨勢', del:'刪除', delQ:'刪除呢筆記錄？', byCoach:'教練記錄', fillOne:'請最少填一項數據',
     trend:'趨勢', change:'變化', history:'記錄',
@@ -214,6 +214,7 @@ const TX = {
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
     undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', preUsedN:'另有 {n} 節冇記日期', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
+    logPractice:'記錄練習', practiceDate:'練習日期', practiced:'今週練咗 {n} 次', noPractice:'今週未記錄練習', editDay:'改', doneLbl:'做咗', practiceLog:'練習記錄', rHwDays:'功課練習',
     phaseWk:'第 {w}/{n} 週', tests:'體能測試', testsHint:'教練每 8 週同你做一次，睇吓進步', vsPrev:'對比 {d}', readyQ:'今日狀態點？（上堂前揀，教練會調強度）', rdSleep:'睡眠', rdEnergy:'精神', rdSore:'身體恢復', rdLo:'差', rdHi:'好', kgL:'重量 kg', repsL:'次數', rTests:'體能測試',
     todayTodo:'今日要做', logDietToday:'記錄今日飲食', newReply:'教練有 {n} 條新回覆', replyIn:{session:'訓練',homework:'功課',checkin:'每週回顧',body:'身體數據',diet:'飲食'},
     feelQ:'{d} 嗰堂辛唔辛苦？', feelHint:'1＝好輕鬆 · 10＝盡晒力', enjoyQ:'享唔享受？', feelThanks:'多謝！教練會睇到', yourFeel:'你嘅感受', feelChange:'改',
@@ -235,7 +236,7 @@ const TX = {
     latestW:'Latest weight', kg:'kg',
     sessions:'Sessions', exercises:'exercises', sets:'sets', volume:'Volume', back:'Back', sharedGroup:'Group', onlyYou:'You only',
     comments:'Comments', say:'Message your coach…', send:'Send', coach:'Coach', you:'You', noCm:'Ask your coach anything here',
-    hwWeek:'Week of', hwTap:'Tap a day to check in (today or earlier)', hwNote:'Log (e.g. 3 × 12 with 8kg)', save:'Save', times:'times', thisWeek:'This week',
+    hwWeek:'Week of', hwTap:'After practising, tap “Log practice”, pick the date and tick what you did', hwNote:'Log (e.g. 3 × 12 with 8kg)', save:'Save', times:'times', thisWeek:'This week',
     bodyTitle:'Body stats', addRec:'Add entry', date:'Date', weight:'Weight', fat:'Body fat', muscle:'Muscle', waist:'Waist', hip:'Hip', chest:'Chest', arm:'Arm', thigh:'Thigh', note:'Note',
     unitKg:'kg', unitPct:'%', unitCm:'cm', noBody:'Log your first entry to start seeing trends', del:'Delete', delQ:'Delete this entry?', byCoach:'Logged by coach', fillOne:'Please fill in at least one value',
     trend:'Trend', change:'Change', history:'History',
@@ -268,6 +269,7 @@ const TX = {
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
     undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', preUsedN:'+{n} session(s) without a date', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
+    logPractice:'Log practice', practiceDate:'Practice date', practiced:'Practised {n}× this week', noPractice:'No practice logged this week', editDay:'Edit', doneLbl:'Done', practiceLog:'Practice log', rHwDays:'Homework sessions',
     phaseWk:'Week {w}/{n}', tests:'Fitness tests', testsHint:'Your coach re-tests you every 8 weeks', vsPrev:'vs {d}', readyQ:'How are you today? (before class — coach adjusts intensity)', rdSleep:'Sleep', rdEnergy:'Energy', rdSore:'Recovery', rdLo:'Poor', rdHi:'Great', kgL:'Weight kg', repsL:'Reps', rTests:'Fitness tests',
     todayTodo:'Today', logDietToday:'Log today\'s food', newReply:'{n} new coach repl(ies)', replyIn:{session:'Training',homework:'Homework',checkin:'Weekly check-in',body:'Body',diet:'Diet'},
     feelQ:'How hard was {d}\'s session?', feelHint:'1 = very easy · 10 = max effort', enjoyQ:'Did you enjoy it?', feelThanks:'Thanks! Your coach will see this', yourFeel:'How it felt', feelChange:'Change',
@@ -527,11 +529,10 @@ function vHome(){
   } else h += `<div class="card"><div class="muted small">${t('noSes')}</div></div>`;
   // 今週功課（今日清單已包今日功課；呢度只喺冇今日清單時顯示，保留舊入口）
   const hw=curHw();
-  if(!todayRows().length){ h += `<div class="sec">${t('weekHw')}</div>`;
-    if(hw){ const pr=hwProgress(hw);
-      h += `<div class="card tap" onclick="go('hw')"><div class="row"><div style="font-weight:800">${esc(hw.title||t('hw'))}</div><span class="sp"></span><span class="badge">${pr.done}/${pr.total} ${t('done')}</span></div>
-        <div class="bar"><i style="width:${pr.total?Math.round(pr.done/pr.total*100):0}%"></i></div></div>`;
-    } else h += `<div class="card"><div class="muted small">${t('noHw')}</div></div>`; }
+  h += `<div class="sec">${t('weekHw')}</div>`;
+  if(hw){ const ds=hwDays(hw);
+    h += `<div class="card tap" onclick="go('hw')"><div class="row"><div style="min-width:0"><div style="font-weight:800">${esc(hw.title||t('hw'))}</div><div class="small muted">${ds.length?t('practiced').replace('{n}',ds.length)+' · '+ds.map(fmtDM).join('、'):t('noPractice')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
+  } else h += `<div class="card"><div class="muted small">${t('noHw')}</div></div>`;
   h += vDietHomeCard();
   // 個人最佳＋體重
   const rec=(D.prs&&D.prs.recent||[]).slice(0,3);
@@ -594,7 +595,7 @@ function openReply(type, target){ if(type==='session') return openSes(target); i
 /* 今日清單：今日習慣＋今週功課（今日）＋飲食；喺首頁直接剔 */
 function todayRows(){ const today=isoToday(), rows=[];
   if(PL){ const hs=PL.habits||[], lg=(PL.habitLog||{})[today]||[]; hs.forEach(hb=>{ const on=lg.includes(hb.id); rows.push({done:on, label:LANG==='en'?(hb.en||hb.zh):hb.zh, act:`habitTick('${hb.id}','${today}',${on?0:1})`}); }); }
-  const hw=curHw(); if(hw && hw.week<=today && addDays(hw.week,6)>=today){ const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}];
+  const hw=false && curHw(); if(hw && hw.week<=today && addDays(hw.week,6)>=today){ const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}];   // 2026-10-05 老闆：功課一週練一兩次，唔放入每日清單
     items.forEach((it,i)=>{ const on=(hw.logs||[]).some(l=>l.idx===i && l.date===today && l.done), presc=[it.sets?`${it.sets} ${LANG==='en'?'sets':'組'}`:'', it.reps?`× ${it.reps}`:''].filter(Boolean).join(' ');
       rows.push({done:on, label:'📋 '+(it.ex?exName(it.ex):(it.text||'')), sub:presc, act:`hwTick('${hw.id}',${i},'${today}',${on?0:1})`}); }); }
   if(DT) rows.push({done:dayEntries(today).length>0, label:'🍽 '+t('logDietToday'), act:`S.dDate=isoToday();go('diet')`, nav:true});
@@ -661,7 +662,7 @@ function reportData(m){ const inM=d=>String(d||'').slice(0,7)===m, before=d=>Str
   let hab=null; if(PL && (PL.habits||[]).length){ const hs=PL.habits, lg=PL.habitLog||{}, today=isoToday(); let tot=0, dn=0;
     for(let i=1;i<=31;i++){ const d=m+'-'+pad(i); if(!parseISO(d) || d.slice(0,7)!==m || d>today) continue; if(isoOf(parseISO(d)).slice(0,7)!==m) continue; tot+=hs.length; dn+=(lg[d]||[]).filter(x=>hs.some(h=>h.id===x)).length; }
     if(tot && dn) hab=Math.round(dn/tot*100); }   // 嗰個月完全冇用習慣打卡就唔顯示（0% 打擊士氣）
-  let hw=0; (D.homework||[]).forEach(h=>(h.logs||[]).forEach(l=>{ if(l.done && inM(l.date) && (!l.acct || l.acct===D.me.id)) hw++; }));
+  const hwD=new Set(); (D.homework||[]).forEach(h=>(h.logs||[]).forEach(l=>{ if(l.done && inM(l.date) && (!l.acct || l.acct===D.me.id)) hwD.add(l.date); })); const hw=hwD.size;   // 練習日數（唔係逐項）
   // 連續出席週數（到月尾）
   const wk=new Set(((D.pt||{}).sessions||[]).filter(x=>!x.exempt && x.date<=end).map(x=>mondayISO(x.date))); let streak=0, w=mondayISO(att.length?att[att.length-1].date:end); while(wk.has(w)){ streak++; w=addDays(w,-7); }
   const cks=(PL&&PL.checkins||[]).filter(c=>inM(c.week)), ckAvg={}; ['睡眠','精神','恢復'].forEach(k=>{ const v=cks.map(c=>Number(c[k])).filter(n=>n>0); if(v.length) ckAvg[k]=Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10; });
@@ -683,7 +684,7 @@ function vReport(){ const m=S.repMon||prevMon(), r=reportData(m), me=D.me, nm=LA
     if(r.lifts.length) h+=`<h4>💪 ${t('rLift')}</h4>${r.lifts.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${esc(exName(x.ex))}</b><span class="num muted">${fmtN(x.from)} → </span><b class="num" style="margin-left:4px">${fmtN(x.to)} kg</b><span class="badge" style="margin-left:8px">▲ ${x.pct}%</span></div>`).join('')}<div class="small muted">${t('e1rm')}</div>`;
     else if(!r.hasPrev) h+=`<div class="small muted" style="margin-top:12px">${t('rFirstMon')}</div>`;
     if(r.body.length) h+=`<h4>📏 ${t('rBody')}</h4>${r.body.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${x.k==='fat'?(LANG==='en'?'Body fat':'體脂'):t(x.k)}</b><span class="num muted">${fmtN(x.from)} → </span><b class="num" style="margin-left:4px">${fmtN(x.to)} ${x.u}</b><span class="badge grey" style="margin-left:8px">${sign(x.to-x.from)}</span></div>`).join('')}`;
-    const ext=[]; if(r.hab!=null) ext.push(`<div><b class="num">${r.hab}%</b><span>✅ ${t('rHabit')}</span></div>`); if(r.hw) ext.push(`<div><b class="num">${r.hw}</b><span>📋 ${t('rHw')}${LANG==='en'?'':'（次）'}</span></div>`);
+    const ext=[]; if(r.hab!=null) ext.push(`<div><b class="num">${r.hab}%</b><span>✅ ${t('rHabit')}</span></div>`); if(r.hw) ext.push(`<div><b class="num">${r.hw}</b><span>📋 ${t('rHwDays')}${LANG==='en'?' (days)':'（日）'}</span></div>`);
     if(ext.length) h+=`<div class="rk">${ext.join('')}</div>`;
     if(r.test) h+=`<h4>📏 ${t('rTests')}</h4>${r.test.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${esc(x.lb)}</b>${x.from!=null?`<span class="num muted">${fmtN(x.from)} → </span>`:''}<b class="num" style="margin-left:4px">${fmtN(x.to)} ${esc(x.u)}</b>${x.from!=null&&x.to!==x.from?`<span class="badge ${x.good?'':'grey'}" style="margin-left:8px">${x.to>x.from?'▲':'▼'} ${fmtN(Math.abs(x.to-x.from))}</span>`:''}</div>`).join('')}`;
     const ck=Object.keys(r.ckAvg); if(ck.length) h+=`<h4>📝 ${t('rCheck')}</h4><div style="display:flex;flex-wrap:wrap;gap:6px">${ck.map(k=>`<span class="badge grey">${(tx[k]||[k])[0]} <b style="color:var(--text)">${r.ckAvg[k]}</b>/5</span>`).join('')}</div>`;
@@ -737,35 +738,46 @@ function hwProgress(h){ const days=Array.from({length:7},(_,i)=>addDays(h.week,i
   (h.items||[]).forEach((it,i)=>{ if((h.logs||[]).some(l=>l.idx===i && l.done && days.includes(l.date))) done++; });
   if(!(h.items||[]).length) done=(h.logs||[]).some(l=>l.done)?1:0;
   return {done, total}; }
+/* 功課（老闆 2026-10-05）：唔顯示成週日子；學員撳「記錄練習」揀日期，剔低嗰日做咗嘅動作＋重量次數，一次過存 */
+function hwDays(hw){ return [...new Set((hw.logs||[]).filter(l=>l.done && (!l.acct||l.acct===D.me.id)).map(l=>l.date))].sort().reverse(); }
 function vHw(){
   const list=D.homework||[];
   let h=`<div class="h1">${t('hw')}</div><div class="sub">${t('hwTap')}</div>`;
   if(!list.length) return h+`<div class="card empty"><div class="ic">📋</div>${t('noHw')}</div>`;
   const today=isoToday();
   list.forEach(hw=>{
-    const days=Array.from({length:7},(_,i)=>addDays(hw.week,i));
-    const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}];
-    const isCur = hw.week<=today && days[6]>=today;
+    const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title||t('hw')}], end=addDays(hw.week,6), isCur=hw.week<=today && end>=today, mine=(hw.logs||[]).filter(l=>!l.acct||l.acct===D.me.id), days=hwDays(hw), F=S.hwDay&&S.hwDay.hw===hw.id?S.hwDay:null;
     h+=`<div class="card"${isCur?' style="border-color:rgba(31,77,58,.35)"':''}>
-      <div class="row"><div><div style="font-weight:900;font-size:16.5px">${esc(hw.title||t('hw'))}</div><div class="small muted">${t('hwWeek')} ${fmtD(hw.week)} – ${fmtDM(days[6])}</div></div><span class="sp"></span>${isCur?`<span class="badge">${t('thisWeek')}</span>`:''}</div>
+      <div class="row"><div><div style="font-weight:900;font-size:16.5px">${esc(hw.title||t('hw'))}</div><div class="small muted">${t('hwWeek')} ${fmtD(hw.week)} – ${fmtDM(end)}</div></div><span class="sp"></span>${isCur?`<span class="badge">${t('thisWeek')}</span>`:''}</div>
       ${hw.desc?`<div style="white-space:pre-wrap;margin:10px 0 2px;font-size:14px">${esc(hw.desc)}</div>`:''}
-      <div style="margin-top:8px">${items.map((it,i)=>{
-        const logs=(hw.logs||[]).filter(l=>l.idx===i), doneDays=new Set(logs.filter(l=>l.done).map(l=>l.date)), cnt=days.filter(d=>doneDays.has(d)).length;
-        const lastNote=logs.filter(l=>l.note||l.kg||l.reps).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
-        const nm = it.ex ? exName(it.ex) : (it.text||'');
-        const presc=[it.sets?`${it.sets} ${LANG==='en'?'sets':'組'}`:'', it.reps?`× ${esc(it.reps)}`:''].filter(Boolean).join(' ');
-        const nkey=hw.id+'_'+i;
-        return `<div class="hwi"><div class="row"><div style="min-width:0">${it.ex?`<button class="exname" onclick="showEx('${it.ex}')">${esc(nm)}</button>`:`<div style="font-weight:800">${esc(nm)}</div>`}
-            ${it.ex&&it.text?`<div class="small">${esc(it.text)}</div>`:''}<div class="small muted">${presc}${it.note?`${presc?' · ':''}${esc(it.note)}`:''}</div></div><span class="sp"></span><span class="badge ${cnt?'':'grey'}">${cnt} ${t('times')}</span></div>
-          <div class="days">${days.map(d=>`<button class="day ${doneDays.has(d)?'done':''} ${d===today?'today':''}" ${d>today?'disabled':''} onclick="hwTick('${hw.id}',${i},'${d}',${doneDays.has(d)?0:1})"><span>${wkName(d)}</span><b>${parseISO(d).getDate()}</b></button>`).join('')}</div>
-          ${S.hwNote===nkey?`${it.ex?(()=>{ const pv=logs.filter(l=>l.kg||l.reps).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0]||{}; return `<div class="fgrid" style="margin-top:8px"><div><label class="lb">${t('kgL')}</label><input class="in num" inputmode="decimal" id="hwk-${nkey}" value="${esc(pv.kg||'')}"></div><div><label class="lb">${t('repsL')}</label><input class="in num" id="hwr-${nkey}" value="${esc(pv.reps||it.reps||'')}"></div></div>`; })():''}<div class="tin"><input class="in" id="hwn-${nkey}" placeholder="${t('hwNote')}" maxlength="200"><button class="btn sm" onclick="hwSaveNote('${hw.id}',${i})">${t('save')}</button></div>`
-            :`<div class="row small" style="margin-top:7px">${lastNote?`<span class="muted" style="flex:1;min-width:0">📝 ${fmtDM(lastNote.date)}：${esc([lastNote.kg?fmtN(lastNote.kg)+'kg':'', lastNote.reps?'×'+lastNote.reps:'', lastNote.note||''].filter(Boolean).join(' '))}</span>`:'<span class="sp"></span>'}<button class="lnk" onclick="S.hwNote='${nkey}';render();setTimeout(()=>{const e=document.getElementById('hwn-${nkey}');e&&e.focus()},30)">📝 ${LANG==='en'?'Log':'記錄'}</button></div>`}
-        </div>`; }).join('')}</div>
+      <div style="margin-top:8px">${items.map((it,i)=>{ const nm=it.ex?exName(it.ex):(it.text||''), presc=[it.sets?`${it.sets} ${LANG==='en'?'sets':'組'}`:'', it.reps?`× ${esc(it.reps)}`:''].filter(Boolean).join(' ');
+        return `<div class="hwi" style="padding:8px 0">${it.ex?`<button class="exname" onclick="showEx('${it.ex}')">${esc(nm)}</button>`:`<div style="font-weight:800">${esc(nm)}</div>`}${it.ex&&it.text?`<div class="small">${esc(it.text)}</div>`:''}<div class="small muted">${presc}${it.note?`${presc?' · ':''}${esc(it.note)}`:''}</div></div>`; }).join('')}</div>
+      ${F?hwDayForm(hw, items, F):`<button class="btn block" style="margin-top:10px" onclick="openHwDay('${hw.id}','${today}')">📝 ${t('logPractice')}</button>`}
+      ${days.length?`<div class="small muted" style="margin-top:12px;font-weight:700">${t('practiceLog')}</div>${days.map(d=>{ const ls=mine.filter(l=>l.date===d && l.done);
+        return `<div class="li small" style="padding:7px 0"><b style="width:44px">${fmtDM(d)}</b><span style="flex:1;min-width:0">${ls.map(l=>{ const it=items[l.idx]||{}; return esc(it.ex?exName(it.ex):(it.text||''))+([l.kg?' '+fmtN(l.kg)+'kg':'', l.reps?'×'+esc(l.reps):''].join('')); }).join('、')}${ls.find(l=>l.note)?` · 📝 ${esc(ls.find(l=>l.note).note)}`:''}</span><button class="lnk" onclick="openHwDay('${hw.id}','${d}')">${t('editDay')}</button></div>`; }).join('')}`:''}
       ${thread('homework', hw.id)}
     </div>`;
   });
   return h;
 }
+function openHwDay(hwId, date){ const hw=(D.homework||[]).find(h=>h.id===hwId); if(!hw) return; const items=(hw.items&&hw.items.length)?hw.items:[{text:hw.title}], mine=(hw.logs||[]).filter(l=>!l.acct||l.acct===D.me.id);
+  const rows=items.map((it,i)=>{ const cur=mine.find(l=>l.idx===i && l.date===date), pv=mine.filter(l=>l.idx===i && (l.kg||l.reps)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]||{};
+    return {done:cur?cur.done:true, kg:cur?(cur.kg||''):(pv.kg||''), reps:cur?(cur.reps||''):(pv.reps||it.reps||'')}; });
+  const cn=mine.find(l=>l.date===date && l.note); S.hwDay={hw:hwId, date, rows, note:cn?cn.note:''}; render(); }
+function hwDayForm(hw, items, F){
+  return `<div class="card" style="background:var(--panel2);margin:10px 0 0;padding:12px">
+    <div class="fld"><label class="lb">${t('practiceDate')}</label><input class="in" type="date" max="${isoToday()}" value="${esc(F.date)}" onchange="openHwDay('${hw.id}',this.value)"></div>
+    ${items.map((it,i)=>{ const r=F.rows[i]; return `<div style="padding:8px 0;border-top:1px solid var(--line)"><label class="row" style="gap:10px"><input type="checkbox" ${r.done?'checked':''} onchange="S.hwDay.rows[${i}].done=this.checked" style="width:22px;height:22px"><b style="flex:1">${esc(it.ex?exName(it.ex):(it.text||''))}</b></label>
+      ${it.ex?`<div class="fgrid" style="margin-top:6px"><div><label class="lb">${t('kgL')}</label><input class="in num" inputmode="decimal" value="${esc(r.kg)}" oninput="S.hwDay.rows[${i}].kg=this.value"></div><div><label class="lb">${t('repsL')}</label><input class="in num" value="${esc(r.reps)}" oninput="S.hwDay.rows[${i}].reps=this.value"></div></div>`:''}</div>`; }).join('')}
+    <input class="in" style="margin-top:8px" placeholder="${t('hwNote')}" maxlength="200" value="${esc(F.note)}" oninput="S.hwDay.note=this.value">
+    <div class="row" style="margin-top:10px"><button class="btn ghost sm" onclick="S.hwDay=null;render()">${t('cancel')}</button><span class="sp"></span><button class="btn sm" id="hwd-sv" onclick="saveHwDay()">${t('save')}</button></div></div>`; }
+async function saveHwDay(){ const F=S.hwDay, hw=(D.homework||[]).find(h=>h.id===F.hw), b=$('#hwd-sv'); if(!hw || !F.date || b.disabled) return; b.disabled=true;
+  const items=F.rows.map((r,i)=>({idx:i, done:!!r.done, kg:r.kg, reps:r.reps, note:i===0?F.note:''}));
+  const res=await api('hwLogDay',{hwId:hw.id, date:F.date, items:JSON.stringify(items)}, true);
+  if(!res.ok){ b.disabled=false; toast(res.err||t('net')); return; }
+  hw.logs=(hw.logs||[]).filter(l=>!(l.date===F.date && (!l.acct||l.acct===D.me.id)));
+  items.forEach(it=>hw.logs.push({acct:D.me.id, idx:it.idx, date:F.date, done:it.done, kg:it.kg, reps:it.reps, note:it.note, at:new Date().toISOString()}));
+  S.hwDay=null; lsSet('ispt_cache', D); toast('✓ '+t('saved')); render(); }
 async function hwTick(hwId, idx, date, done){
   const hw=(D.homework||[]).find(h=>h.id===hwId); if(!hw) return;
   // 樂觀更新
