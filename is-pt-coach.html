@@ -101,7 +101,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-c';
+const FRONTEND_VERSION = 'ptc-2026-10-05-d';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -799,7 +799,8 @@ function vBook(){
   const venues=[...new Set((SL.slots||[]).map(s=>s.venue).filter(Boolean))];
   let h=`<div class="row" style="margin-top:14px"><div class="h2" style="margin:0">預約時段</div><span class="sp"></span><button class="chip ${C.bookView!=='list'?'on':''}" onclick="C.bookView='week';render()">週曆</button><button class="chip ${C.bookView==='list'?'on':''}" onclick="C.bookView='list';render()">列表</button><button class="btn ghost xs" onclick="SL=null;render()">↻</button></div>
     <div class="small muted" style="margin:4px 2px 0">學員開課前 ${SL.rules.cutoffH} 小時截止預約；${SL.rules.cancelH} 小時前可自己取消。預約只係預留，出席照舊喺教練頁私訓記錄。</div>`;
-  const hasFuture=(SL.slots||[]).some(x=>x.date>=today); if(C.slotOpen==null) C.slotOpen=!hasFuture;   // 冇時段先預設打開
+  h+=`<button class="btn block" style="margin-top:12px" onclick="bookForSheet()">📅 幫學生約時間</button>`;   // 老闆 2026-10-05：教練直接幫學生加時間（唔使先開時段再代約）
+  const hasFuture=(SL.slots||[]).some(x=>x.date>=today); if(C.slotOpen==null) C.slotOpen=false;
   if(!C.slotOpen) h+=`<button class="btn ghost block" style="margin-top:12px;border-style:dashed" onclick="C.slotOpen=true;render()">＋ 開時段</button>`;
   else h+=`<div class="card"><div class="row"><b>＋ 開時段</b><span class="sp"></span><button class="btn ghost xs" onclick="C.slotOpen=false;render()">收起</button></div>
     <div class="fgrid" style="margin-top:8px"><div><label class="lb">第一日</label><input class="in" type="date" id="sf-date" value="${esc(f.date||today)}" min="${today}"></div>
@@ -832,6 +833,44 @@ async function addSlots(){
   if(!r.ok){ $('#sf-go').disabled=false; toast(r.err); return; }
   toast(`已開 ${r.added} 個時段${r.skipped?`（${r.skipped} 個重複／過咗略過）`:''}${r.booked!=null?`，代約 ${r.booked} 個${r.bookErr?'（有啲約唔到：'+r.bookErr+'）':''}`:''}`); C.slotForm.starts=''; C.slotOpen=false; SL=null; render();
 }
+/* 幫學生約時間（老闆 2026-10-05）：揀學員＋日期＋時間＋地點 → 一次過開時段（只開俾佢）＋代約；已有空時段就直接約；可每週重複 */
+function bookForSheet(){
+  const groups=L.groups||[], today=isoToday(); let g=groups.includes(C.group)?C.group:(groups[0]||'');
+  const lastFor=gg=>{ const my=(SL.bookings||[]).filter(b=>b.group===gg).map(b=>(SL.slots||[]).find(x=>x.id===b.slot)).filter(Boolean).sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start))[0]; return my||null; };
+  const venues=[...new Set((SL.slots||[]).map(s=>s.venue).filter(Boolean))];
+  const ov=document.createElement('div'); ov.className='ov'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  const draw=()=>{ const ls=lastFor(g), st=ov.querySelector('#bf-st'), keep=st?{d:ov.querySelector('#bf-d').value, t:st.value, dur:ov.querySelector('#bf-dur').value, v:ov.querySelector('#bf-v').value, rep:ov.querySelector('#bf-rep').value}:null;
+    const def={d:today, t:ls?ls.start:'10:00', dur:ls?String(Math.round((toMin(ls.end)-toMin(ls.start)))):'60', v:ls?ls.venue:(venues[0]||''), rep:'1'}, f=keep||def;
+    ov.innerHTML=`<div class="sheet" style="height:auto;max-height:88vh;padding-bottom:calc(18px + var(--safe-b))"><div class="row"><b style="font-size:17px">📅 幫學生約時間</b><span class="sp"></span><button class="btn ghost xs" id="bf-x">✕</button></div>
+      <div class="body"><div class="lb" style="margin-top:8px">學員</div><div style="display:flex;flex-wrap:wrap;gap:8px">${groups.map(x=>`<button class="chip ${x===g?'on':''}" data-g="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+      <div class="fgrid" style="margin-top:10px"><div><label class="lb">日期</label><input class="in" type="date" id="bf-d" min="${today}" value="${esc(f.d)}"></div>
+        <div><label class="lb">開始時間</label><input class="in num" type="time" id="bf-st" step="900" value="${esc(f.t)}"></div>
+        <div><label class="lb">每堂</label><select class="in" id="bf-dur">${[45,60,75,90,120].map(n=>`<option value="${n}" ${String(n)===String(f.dur)?'selected':''}>${n} 分鐘</option>`).join('')}</select></div>
+        <div><label class="lb">重複</label><select class="in" id="bf-rep">${[1,2,4,8,12].map(n=>`<option value="${n}" ${String(n)===String(f.rep)?'selected':''}>${n===1?'只呢次':'每週，共 '+n+' 次'}</option>`).join('')}</select></div></div>
+      <label class="lb" style="margin-top:10px">地點</label><input class="in" id="bf-v" list="bf-vl" value="${esc(f.v)}" placeholder="例：翠怡花園 GYM"><datalist id="bf-vl">${venues.map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+      ${venues.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${venues.slice(0,5).map(v=>`<button type="button" class="chip" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div>`:''}
+      <div class="small muted" style="margin-top:10px">會即刻幫佢約好（只開俾呢位學員）：學員 app 見到，你嘅 Google 日曆都會同步。代約唔扣堂，上完堂照記出席。</div></div>
+      <button class="btn block" style="margin-top:12px" id="bf-go">確認約時間</button></div>`;
+    ov.querySelector('#bf-x').onclick=()=>ov.remove();
+    ov.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ g=b.dataset.g; const dd=ov.querySelector('#bf-d').value; ov.innerHTML=''; draw(); ov.querySelector('#bf-d').value=dd; });   // 轉學員：時間／地點跟返佢上次，日期保留
+    ov.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ ov.querySelector('#bf-v').value=b.dataset.v; });
+    ov.querySelector('#bf-go').onclick=async()=>{ const btn=ov.querySelector('#bf-go'), d=ov.querySelector('#bf-d').value, t=ov.querySelector('#bf-st').value, dur=ov.querySelector('#bf-dur').value, v=ov.querySelector('#bf-v').value.trim(), rep=Number(ov.querySelector('#bf-rep').value)||1;
+      if(!g){ toast('揀學員先'); return; } if(!d || !/^\d{1,2}:\d{2}$/.test(t)){ toast('要揀日期同時間'); return; }
+      if(new Date(d+'T'+t+':00+08:00').getTime()<=Date.now()){ toast('呢個時間已經過咗（上咗嘅堂去 🎫 出席記）'); return; }
+      btn.disabled=true; btn.textContent='約緊…';
+      // 已有同一時間嘅空時段（第一次）→ 直接約；有人約咗 → 擋
+      const ex=(SL.slots||[]).find(x=>x.date===d && x.start===t), exB=ex&&(SL.bookings||[]).find(b=>b.slot===ex.id && b.status==='已約');
+      if(ex && exB){ btn.disabled=false; btn.textContent='確認約時間'; toast(fmtD(d)+' '+t+' 已經約咗俾 '+exB.group); return; }
+      let ok=0, msg='';
+      if(ex && rep===1){ const r=await api('cBook',{slotId:ex.id, group:g}, true); if(!r.ok){ btn.disabled=false; btn.textContent='確認約時間'; toast(r.err); return; } ok=1; }
+      else { const r=await api('cSlotAdd',{date:d, starts:t, dur, venue:v, only:g, bookFor:g, repeat:rep}, true);
+        if(!r.ok){ btn.disabled=false; btn.textContent='確認約時間'; toast(r.err); return; } ok=r.booked||0; if(r.skipped) msg=`（${r.skipped} 個時間撞咗／過咗略過）`; if(r.bookErr) msg+=`（${r.bookErr}）`;
+        if(!ok){ btn.disabled=false; btn.textContent='確認約時間'; toast('約唔到'+msg); return; } }
+      ov.remove(); toast(`✓ 已幫 ${g} 約好 ${ok} 次${msg}`); SL=null; render(); };
+  };
+  document.body.appendChild(ov); draw();
+}
+const toMin=t=>{ const m=String(t||'').split(':'); return Number(m[0])*60+Number(m[1]||0); };
 function coachBook(slotId){
   const s=(SL.slots||[]).find(x=>x.id===slotId), gs=(L.groups||[]).filter(g=>!s.only||g===s.only); if(!gs.length) return;
   let pick=s.only||(gs.includes(C.group)?C.group:'');
