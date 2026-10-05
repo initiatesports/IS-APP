@@ -100,7 +100,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-04-d';
+const FRONTEND_VERSION = 'ptc-2026-10-05-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -249,7 +249,7 @@ function startBooked(g){ if(C.group!==g){ C.group=g; C.hwEdit=null; C.recOpen=nu
 function vLog(){
   const d=getDraft(), ms=members(), multi=ms.length>1;
   const cols = b => '22px 1fr 1fr'+(b.timed?' 1fr':'')+(b.rpe?' .8fr':'')+(multi?' 1.2fr':'')+' 26px';
-  let h=todayStrip()+groupHeader();
+  let h=todayStrip()+groupHeader()+preClassC(d);
   if(d.blocks.length && d.date!==isoToday() && !d.id) h+=`<div class="card" style="border-color:rgba(201,106,61,.5)"><b style="color:var(--gold)">⚠️ 有 ${fmtD(d.date)} 未儲存嘅草稿</b><div class="small muted" style="margin:4px 0 8px">係咪上次冇儲存？可以繼續、改做今日，或者棄置。</div><div class="row" style="flex-wrap:wrap"><button class="btn sm" onclick="mutate(d=>d.date=isoToday())">改做今日</button><button class="btn ghost sm" onclick="clearDraft()">棄置</button></div></div>`;
   h+=`<div class="card">${d.id?`<div class="row" style="margin-bottom:8px"><span class="badge gold">✎ 修改緊 ${fmtD(d.date)} 嗰堂</span><span class="sp"></span><button class="lnk" onclick="newDraft()">改為開新一堂</button></div>`:''}
     <div class="fgrid"><div><label class="lb">日期</label><input class="in" type="date" data-f="date" value="${esc(d.date)}"></div>
@@ -269,7 +269,7 @@ function vLog(){
         ${b.rpe?`<input class="num" inputmode="decimal" data-b="${bi}" data-s="${si}" data-k="rpe" value="${esc(x.rpe||'')}" placeholder="—">`:''}
         ${multi?`<select data-b="${bi}" data-s="${si}" data-k="acct"><option value="">全組</option>${ms.map(m=>`<option value="${m.id}" ${x.acct===m.id?'selected':''}>${esc(m.en||m.name)}</option>`).join('')}</select>`:''}
         <button class="x" onclick="rmSet(${bi},${si})">✕</button></div>`).join('')}
-      <div class="row" style="margin-top:9px;flex-wrap:wrap"><button class="btn sm" onclick="addSet(${bi})">＋組</button>${last?`<button class="btn ghost sm" onclick="useLast(${bi})">帶入上次</button>`:''}
+      <div class="row" style="margin-top:9px;flex-wrap:wrap"><button class="btn sm" onclick="addSet(${bi})">＋組</button>${last?`<button class="btn ghost sm" onclick="useLast(${bi})">帶入上次</button>`:''}${suggestChip(b, last, bi)}
         <button class="btn ghost sm" onclick="toggleTimed(${bi})">${b.timed?'隱藏秒數':'⏱ 加秒數'}</button>
         <button class="btn ghost sm" onclick="mutate(d=>{d.blocks[${bi}].rpe=!d.blocks[${bi}].rpe})">${b.rpe?'隱藏 RPE':'＋RPE'}</button>
         ${multi?`<button class="btn ghost sm" onclick="splitSets(${bi})" title="每組複製一份俾每位學員">分開每人</button>`:''}</div></div>`;
@@ -361,6 +361,100 @@ function attPickV(c, r){ const d=getDraft(); d.att.centre=c; d.att.room=r; putDr
 function attTogP(id){ const d=getDraft(), s=new Set(d.att.people||[]); s.has(id)?s.delete(id):s.add(id); if(!s.size) return toast('最少要有一位學員'); d.att.people=[...s]; putDraft(d); render(); }
 function attPeopleArgs(sel){ const ms=members(); if(ms.length<2 || !sel || sel.length>=ms.length) return {people:'', note:''};
   return {people:sel.length, note:'只有 '+ms.filter(m=>sel.includes(m.id)).map(m=>m.en||m.name).join('、')+' 上堂'}; }
+/* ═════════ 第三期（2026-10-05）：運動科學＋教練營運 ═════════ */
+/* 功課完成度：每項 min(本週完成日數, 每週目標) ÷ 目標（目標冇填＝3） */
+function hwAdherence(hw, acct){ const days=Array.from({length:7},(_,i)=>addDays(hw.week,i)), items=hw.items&&hw.items.length?hw.items:[{}]; let got=0, need=0;
+  items.forEach((it,i)=>{ const tg=Number(it.days)||3, dn=new Set((hw.logs||[]).filter(l=>l.acct===acct && l.idx===i && l.done && days.includes(l.date)).map(l=>l.date)).size; got+=Math.min(dn,tg); need+=tg; });
+  if(hw.week>isoToday()) return null; return need?Math.round(got/need*100):null; }
+/* 訓練階段卡 */
+function vPhaseC(){ const ph=G.phase, list=G.phases||[], f=C.phaseEdit;
+  let h=`<div class="card"><div class="row"><b>🎯 訓練階段</b><span class="sp"></span><button class="btn ghost xs" onclick="C.phaseEdit={id:'',name:'',start:isoToday(),weeks:'6',reps:'',rpe:'',focus:''};render()">＋ 新階段</button></div>`;
+  if(ph) h+=`<div style="margin-top:6px"><b style="font-size:17px">${esc(ph.name)}</b> <span class="badge">第 ${ph.week}/${ph.weeks} 週</span><div class="small muted">${ph.reps?'次數 '+esc(ph.reps):''}${ph.rpe?' · RPE '+esc(ph.rpe):''}${ph.focus?' · '+esc(ph.focus):''}</div></div>`;
+  else h+=`<div class="small muted" style="margin-top:6px">未設階段。設咗之後學員首頁會見到「第幾週 · 階段」，今堂加重建議會跟次數範圍。</div>`;
+  if(f) h+=`<div class="fgrid" style="margin-top:10px"><div><label class="lb">階段名</label><input class="in" value="${esc(f.name)}" oninput="C.phaseEdit.name=this.value" placeholder="例：適應期／增肌期／肌力期"></div>
+      <div><label class="lb">開始日</label><input class="in" type="date" value="${esc(f.start)}" oninput="C.phaseEdit.start=this.value"></div>
+      <div><label class="lb">週數</label><input class="in num" inputmode="numeric" value="${esc(f.weeks)}" oninput="C.phaseEdit.weeks=this.value"></div>
+      <div><label class="lb">次數範圍</label><input class="in num" value="${esc(f.reps)}" oninput="C.phaseEdit.reps=this.value" placeholder="8-12"></div>
+      <div><label class="lb">目標 RPE</label><input class="in num" value="${esc(f.rpe)}" oninput="C.phaseEdit.rpe=this.value" placeholder="7-8"></div>
+      <div><label class="lb">重點（學員睇到）</label><input class="in" value="${esc(f.focus)}" oninput="C.phaseEdit.focus=this.value" placeholder="例：深蹲技術＋核心"></div></div>
+    <div class="row" style="margin-top:10px">${f.id?`<button class="btn warn sm" onclick="savePhase(1)">刪除</button>`:''}<span class="sp"></span><button class="btn ghost sm" onclick="C.phaseEdit=null;render()">取消</button><button class="btn sm" style="margin-left:6px" id="ph-sv" onclick="savePhase()">儲存</button></div>`;
+  if(list.length) h+=`<div style="margin-top:8px">${list.slice(0,6).map(x=>`<div class="li small"><span style="flex:1">${fmtD(x.start)} · <b>${esc(x.name)}</b> ${x.weeks} 週${x.reps?' · '+esc(x.reps)+' 下':''}</span><button class="btn ghost xs" onclick='C.phaseEdit=${JSON.stringify({id:x.id,name:x.name,start:x.start,weeks:String(x.weeks),reps:x.reps||'',rpe:x.rpe||'',focus:x.focus||''}).replace(/'/g,"&#39;")};render()'>✎</button></div>`).join('')}</div>`;
+  return h+`</div>`; }
+async function savePhase(del){ const f=C.phaseEdit; if(del && !confirm('刪除呢個階段？')) return; const b=$('#ph-sv'); if(b) b.disabled=true;
+  const r=await api('cPhaseSave',{id:f.id, group:C.group, name:f.name, start:f.start, weeks:f.weeks, reps:f.reps, rpe:f.rpe, focus:f.focus, del:del?'1':''}, true);
+  if(!r.ok){ if(b) b.disabled=false; toast(r.err); return; } C.phaseEdit=null; toast(del?'已刪除':'✓ 已儲存，學員首頁會見到'); loadGroup(); }
+/* 推拉平衡（近 4 週組數，按動作庫類別） */
+function vBalanceC(){ const d28=addDays(isoToday(),-28), cnt={}; (G.sessions||[]).filter(s=>s.date>=d28).forEach(s=>s.sets.forEach(x=>{ const e=(L.exercises||[]).find(y=>y.id===x.ex), c=(e&&e.cat)||'其他'; cnt[c]=(cnt[c]||0)+1; }));
+  const ks=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]); if(!ks.length) return '';
+  const push=ks.filter(k=>/推/.test(k)).reduce((a,k)=>a+cnt[k],0), pull=ks.filter(k=>/拉/.test(k)).reduce((a,k)=>a+cnt[k],0), warn=push>0 && pull<push/1.5;
+  return `<div class="card"><b>⚖️ 近 4 週動作分佈</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${ks.map(k=>`<span class="badge grey">${esc(k)} <b style="color:var(--text)">${cnt[k]}</b> 組</span>`).join('')}</div>
+    ${push||pull?`<div class="small" style="margin-top:8px;${warn?'color:var(--gold);font-weight:700':''}">推 ${push} 組 : 拉 ${pull} 組${warn?' ⚠️ 拉太少（建議拉 ≥ 推，護肩膊同姿勢）':' ✓'}</div>`:''}</div>`; }
+/* 今堂課前卡：階段、今日狀態、近期關節痛、上堂備註 */
+function preClassC(d){ if(d.id) return ''; const ph=G.phase, today=isoToday(), bits=[];
+  if(ph) bits.push(`🎯 <b>${esc(ph.name)}</b> 第 ${ph.week}/${ph.weeks} 週${ph.reps?' · '+esc(ph.reps)+' 下':''}${ph.rpe?' · RPE '+esc(ph.rpe):''}`);
+  members().forEach(m=>{ const r=(m.ready||[]).find(x=>x.date===today); if(!r) return; const low=[r.sleep&&r.sleep<=2?'瞓得差':'', r.energy&&r.energy<=2?'冇精神':'', r.sore&&r.sore<=2?'好酸痛':''].filter(Boolean);
+    bits.push(`🔋 ${esc(m.en||m.name)}：睡眠 ${r.sleep||'—'} · 精神 ${r.energy||'—'} · 恢復 ${r.sore||'—'}${low.length?` <span style="color:var(--gold);font-weight:700">⚠️ ${low.join('、')} → 考慮 RPE 降 1</span>`:''}${r.note?' · '+esc(r.note):''}`); });
+  const P=PLC[C.group]; if(!P) loadPlanC(C.group); else (P.members||[]).forEach(m=>(m.checkins||[]).filter(c=>c.pain==='是' && c.week>=addDays(today,-14)).slice(0,1).forEach(c=>bits.push(`🩹 ${esc(memName(m.id))} 回報痛：${esc(c.painWhere||'未寫位置')}（週 ${fmtDM(c.week)}）`)));
+  members().forEach(m=>{ const rf=(m.assess||[]).filter(a=>a.flags.length && a.date>=addDays(today,-90)); if(rf.length) bits.push(`<span style="color:var(--red,#b3402a);font-weight:700">🚩 ${esc(m.en||m.name)} 有紅旗（${esc(rf[0].flags.join('、'))}）→ 先轉介評估</span>`); });
+  const ls=(G.sessions||[])[0]; if(ls && ls.note) bits.push(`📝 上堂（${fmtDM(ls.date)}）：${esc(ls.note)}`);
+  return bits.length?`<div class="card" style="padding:10px 14px"><div class="small muted" style="margin-bottom:4px">課前</div>${bits.map(b=>`<div class="small" style="margin:3px 0">${b}</div>`).join('')}</div>`:''; }
+/* 加重建議（雙漸進）：上次全部組數做到範圍上限（或上次最多次數）而 RPE ≤ 8 → +2.5kg（≥60kg +5）；有組未到範圍下限 → 維持 */
+function suggestChip(b, last, bi){ if(!last) return ''; const ws=last.sets.filter(x=>Number(x.kg)>0 && Number(x.reps)>0); if(!ws.length) return '';
+  const ph=G.phase, m=ph&&String(ph.reps||'').match(/(\d+)\D+(\d+)/), lo=m?+m[1]:0, hi=m?+m[2]:Math.max(...ws.map(x=>+x.reps)), kg=Math.max(...ws.map(x=>+x.kg)), top=ws.filter(x=>+x.kg===kg);
+  const allHi=top.every(x=>+x.reps>=hi && (!x.rpe || +x.rpe<=8)), anyLo=lo && top.some(x=>+x.reps<lo);
+  if(anyLo) return `<span class="badge grey" style="margin-left:4px" title="上次有組未到 ${lo} 下">維持 ${fmtN(kg)}kg</span>`;
+  if(!allHi) return ''; const nk=kg+(kg>=60?5:2.5);
+  return `<button class="btn sm" style="margin-left:4px;background:var(--gold);border-color:var(--gold)" title="上次 ${fmtN(kg)}kg 全部做到 ${hi} 下${ph?'（'+esc(ph.name)+'）':''}" onclick="applyKg(${bi},${nk})">📈 建議 ${fmtN(nk)}kg</button>`; }
+function applyKg(bi, kg){ mutate(d=>{ const b=d.blocks[bi]; if(!b.sets.length) b.sets.push({kg:'',reps:'',sec:'',acct:''}); b.sets.forEach(x=>{ x.kg=String(kg); }); }); toast('已填 '+kg+' kg（教練自己決定，可以再改）'); }
+/* 體能測試 */
+function vTestsC(m){ const IT=G.testItems||[], ts=m.tests||[], f=C.testEdit&&C.testEdit.acct===m.id?C.testEdit:null, a=ts[0], b=ts[1], last=a?a.date:'';
+  const due=!last || last<addDays(isoToday(),-56);
+  let h=`<div class="card"><div class="row"><b>📏 體能測試</b>${due?`<span class="badge gold" style="margin-left:6px">${last?'夠 8 週，可以重測':'未有基準'}</span>`:''}<span class="sp"></span><button class="btn ghost xs" onclick="C.testEdit={acct:'${m.id}',date:isoToday(),vals:{},note:''};render()">＋ 入測試</button></div>`;
+  if(a) h+=`<div class="small muted" style="margin-top:4px">最新 ${fmtD(a.date)}${b?' · 對比 '+fmtD(b.date):''}</div>${IT.filter(t=>ts.some(x=>x.vals[t[0]]!=null)).map(t=>{ const hs=ts.filter(x=>x.vals[t[0]]!=null), v=hs[0].vals[t[0]], pv=hs[1]?hs[1].vals[t[0]]:null, df=pv!=null?v-pv:null, good=df!=null&&(t[4]?df>0:df<0);   // 逐項：最新 vs 該項上一次（部分重測都對得返）
+      return `<div class="li small"><span style="flex:1">${esc(t[1])}</span><b class="num">${v!=null?fmtN(v):'—'}</b><span class="muted" style="margin-left:3px">${esc(t[3])}</span>${df!=null&&df!==0?`<span class="badge ${good?'':'grey'}" style="margin-left:8px">${df>0?'▲':'▼'} ${fmtN(Math.abs(df))}</span>`:''}</div>`; }).join('')}`;
+  if(f) h+=`<div class="fgrid" style="margin-top:10px"><div><label class="lb">日期</label><input class="in" type="date" max="${isoToday()}" value="${esc(f.date)}" oninput="C.testEdit.date=this.value"></div>${IT.map(t=>`<div><label class="lb">${esc(t[1])}（${esc(t[3])}）</label><input class="in num" inputmode="decimal" value="${esc(f.vals[t[0]]??'')}" oninput="C.testEdit.vals['${t[0]}']=this.value"></div>`).join('')}</div>
+    <input class="in" style="margin-top:8px" placeholder="備註（例：同一場地、熱身後做）" value="${esc(f.note)}" oninput="C.testEdit.note=this.value">
+    <div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn ghost sm" onclick="C.testEdit=null;render()">取消</button><button class="btn sm" style="margin-left:6px" id="ts-sv" onclick="saveTest()">儲存</button></div>`;
+  if(ts.length>2) h+=`<div class="small muted" style="margin-top:6px">之前：${ts.slice(2,6).map(x=>fmtD(x.date)).join('、')}</div>`;
+  return h+`</div>`; }
+async function saveTest(){ const f=C.testEdit, vals={}; Object.keys(f.vals).forEach(k=>{ if(String(f.vals[k]).trim()!=='') vals[k]=f.vals[k]; }); if(!Object.keys(vals).length){ toast('最少填一項'); return; }
+  $('#ts-sv').disabled=true; const r=await api('cTestSave',{acct:f.acct, date:f.date, vals:JSON.stringify(vals), note:f.note}, true);
+  if(!r.ok){ $('#ts-sv').disabled=false; toast(r.err); return; } C.testEdit=null; toast('✓ 已儲存，學員見到前後對比'); loadGroup(); }
+/* 動作評估／NKT（只限教練；學員見唔到）。紅旗＝提示轉介，唔自動改課表 */
+const ASSESS_ITEMS=['深蹲篩查','單腳蹲','髖鉸鏈','肩關節活動度','胸椎旋轉','踝背屈','姿勢評估','NKT 檢查','DNS 呼吸／核心','SCS 檢查'];
+function vAssessC(m){ const list=m.assess||[], f=C.asEdit&&C.asEdit.acct===m.id?C.asEdit:null, RF=G.redFlags||[], rf=list.filter(a=>a.flags.length && a.date>=addDays(isoToday(),-90));
+  let h=`<div class="card"><div class="row"><b>🩺 動作評估／NKT</b><span class="badge grey" style="margin-left:6px">只限教練</span><span class="sp"></span><button class="btn ghost xs" onclick="C.asEdit={id:'',acct:'${m.id}',date:isoToday(),item:'',result:'',note:'',flags:[]};render()">＋ 記錄</button></div>`;
+  if(rf.length) h+=`<div class="small" style="margin-top:8px;padding:8px 10px;border-radius:10px;background:rgba(179,64,42,.08);color:#b3402a;font-weight:700">🚩 有紅旗症狀（${esc(rf[0].flags.join('、'))}）：建議先轉介醫生／物理治療師評估，相關訓練暫停或改做無痛範圍。呢度唔會自動改課表。</div>`;
+  if(f) h+=`<div class="fgrid" style="margin-top:10px"><div><label class="lb">日期</label><input class="in" type="date" value="${esc(f.date)}" oninput="C.asEdit.date=this.value"></div>
+      <div><label class="lb">項目</label><input class="in" list="as-it" value="${esc(f.item)}" oninput="C.asEdit.item=this.value" placeholder="例：深蹲篩查"><datalist id="as-it">${ASSESS_ITEMS.map(x=>`<option value="${x}">`).join('')}</datalist></div></div>
+    <textarea class="in" style="margin-top:8px" placeholder="結果（例：左膝內扣；NKT：臀中肌被抑制、闊筋膜張肌代償）" oninput="C.asEdit.result=this.value">${esc(f.result)}</textarea>
+    <input class="in" style="margin-top:8px" placeholder="跟進／矯正方向（可留空）" value="${esc(f.note)}" oninput="C.asEdit.note=this.value">
+    <div class="small muted" style="margin-top:8px">紅旗症狀（有就剔，會提示轉介）</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${RF.map(x=>`<button type="button" class="chip ${f.flags.includes(x)?'on':''}" onclick="asFlag('${x}')">${f.flags.includes(x)?'🚩 ':''}${esc(x)}</button>`).join('')}</div>
+    <div class="row" style="margin-top:10px">${f.id?`<button class="btn warn sm" onclick="saveAssess(1)">刪除</button>`:''}<span class="sp"></span><button class="btn ghost sm" onclick="C.asEdit=null;render()">取消</button><button class="btn sm" style="margin-left:6px" id="as-sv" onclick="saveAssess()">儲存</button></div>`;
+  h+=list.slice(0,8).map(a=>`<div class="li small"><div style="flex:1;min-width:0"><b>${fmtDM(a.date)} ${esc(a.item)}</b>${a.flags.length?' <span class="badge red">🚩</span>':''}<div>${esc(a.result)}</div>${a.note?`<div class="muted">→ ${esc(a.note)}</div>`:''}</div><button class="btn ghost xs" onclick='C.asEdit=${JSON.stringify({id:a.id,acct:m.id,date:a.date,item:a.item,result:a.result,note:a.note||'',flags:a.flags}).replace(/'/g,"&#39;")};render()'>✎</button></div>`).join('')||(f?'':'<div class="small muted" style="margin-top:6px">未有記錄</div>');
+  return h+`</div>`; }
+function asFlag(x){ const a=C.asEdit.flags, i=a.indexOf(x); i<0?a.push(x):a.splice(i,1); render(); }
+async function saveAssess(del){ const f=C.asEdit; if(del && !confirm('刪除呢筆評估？')) return; const b=$('#as-sv'); if(b) b.disabled=true;
+  const r=await api('cAssessSave',{id:f.id, acct:f.acct, date:f.date, item:f.item, result:f.result, note:f.note, flags:f.flags.join('、'), del:del?'1':''}, true);
+  if(!r.ok){ if(b) b.disabled=false; toast(r.err); return; } C.asEdit=null; toast(del?'已刪除':'✓ 已儲存（只有教練見到）'); loadGroup(); }
+/* 財務：未用套票負債、年初至今、逐組 */
+function vFinanceC(F){ const y=F.ytd||{};
+  return `<div class="h2">💰 財務總覽</div><div class="card"><div class="row"><div><div class="small muted">已收未上（未用套票價值）</div><b class="num" style="font-size:20px">${money(F.liability)}</b></div><span class="sp"></span><div style="text-align:right"><div class="small muted">${F.year} 年至今毛利</div><b class="num" style="font-size:20px;color:var(--teal)">${money(y.profit)}</b></div></div>
+    <div class="small num" style="margin-top:8px">${F.year} 年：${y.sessions} 節 · 收入 ${money(y.income)} · 場租 ${money(y.rent)} · 收款 ${money(y.cash)} · 每節平均毛利 <b>${money(y.perSession)}</b></div>
+    ${(F.byGroup||[]).map(g=>`<div class="li small"><b style="flex:1">${esc(g.group)}</b><span class="num">${g.sessions} 節 · 收款 ${money(g.cash)} · 毛利 <b>${money(g.profit)}</b></span></div>`).join('')}
+    <div class="small muted" style="margin-top:6px">已收未上＝已收錢但未上嘅堂（套票剩餘節數 × 每節價錢），唔計過期。</div></div>`; }
+/* 月結問題逐條撳去改 */
+function vIssuesC(){ const m=C.issueMon; if(!m || !LGALL) return ''; const list=(LGALL.sessions||[]).filter(s=>s.date.slice(0,7)===m && !/示範|測試/.test(s.group) && (s.missingVenue || s.missingTime || (s.noPkg && !(Number(s.fee)>0))));
+  return `<div class="card" style="border-color:rgba(201,106,61,.5)"><div class="row"><b>⚠️ ${m.slice(5)}/${m.slice(0,4)} 要補嘅出席</b><span class="sp"></span><button class="btn ghost xs" onclick="C.issueMon=null;render()">✕</button></div>
+    ${list.map(s=>`<div class="li small"><div style="flex:1">${fmtD(s.date)} · <b>${esc(s.group)}</b><div class="muted">${[s.missingVenue?'未填場地':'', s.missingTime?'未填時間':'', s.noPkg&&!(Number(s.fee)>0)?'冇套票冇費用':''].filter(Boolean).join('、')}</div></div><button class="btn sm" onclick="fixAtt('${esc(s.group).replace(/'/g,"\\'")}','${s.id}')">去改</button></div>`).join('')||'<div class="small muted">冇問題 ✓</div>'}</div>`; }
+async function fixAtt(g, id){ C.issueMon=null; if(C.group!==g){ C.group=g; await loadGroup(); } C.tab='att'; await loadLG(g, true); editAtt(id); }
+/* 新帳戶歡迎訊息（只有 app 網址＋登入方法；唔放電話） */
+function welcomeSheet(f){ const url=STUDENT_URL;
+  const txt=`${f.name} 你好！歡迎加入 INITIATE 私人訓練 💪\n\n你嘅專屬 App：${url}\n登入：姓名「${f.en||f.name}」＋ 你電話最後 4 個數字\n\n入面可以睇每堂訓練記錄、功課、飲食目標、預約上堂。建議撳「加至主畫面」，用起嚟似 App。\n有咩問題隨時問我！`;
+  const ov=document.createElement('div'); ov.className='ov'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML=`<div class="sheet"><div class="row"><b style="font-size:17px">👋 歡迎訊息（複製去 WhatsApp）</b><span class="sp"></span><button class="btn ghost xs" onclick="this.closest('.ov').remove()">✕</button></div>
+    <textarea class="in" id="wl-t" style="margin-top:10px;min-height:190px">${esc(txt)}</textarea><button class="btn block" style="margin-top:10px" onclick="navigator.clipboard.writeText($('#wl-t').value).then(()=>toast('已複製'),()=>toast('請長按揀全部複製'))">📋 複製</button></div>`;
+  document.body.appendChild(ov); }
 async function saveSession(){
   const d=getDraft();
   const sets=[]; d.blocks.forEach((b,bi)=>{ let n=0; b.sets.forEach(x=>{ if(String(x.kg).trim()===''&&String(x.reps).trim()===''&&String(x.sec||'').trim()==='') return; n++; sets.push({order:bi, ex:b.ex, set:n, kg:x.kg, reps:x.reps, sec:b.timed?x.sec:'', rpe:b.rpe?(x.rpe||''):'', acct:x.acct||''}); }); });
@@ -414,10 +508,10 @@ function sesLines(s){
 }
 function vRec(){
   const list=G.sessions||[];
-  let h=groupHeader()+`<div class="h2">訓練記錄（${list.length} 堂）</div>`;
+  let h=groupHeader()+vPhaseC()+vBalanceC()+`<div class="h2">訓練記錄（${list.length} 堂）</div>`;
   const att=(G.pt&&G.pt.sessions||[]).map(x=>x.date), logged=new Set(list.map(s=>s.date));
   const miss=att.filter(d=>!logged.has(d)).sort().reverse().slice(0,5);
-  if(miss.length) h+=`<div class="card" style="border-color:rgba(201,106,61,.35)"><div class="small" style="color:var(--gold);font-weight:700">#4 有出席但未記訓練內容：</div><div class="row" style="flex-wrap:wrap;margin-top:6px">${miss.map(d=>`<button class="chip" onclick="startFor('${d}')">${fmtD(d)} ＋記錄</button>`).join('')}</div></div>`;
+  if(miss.length) h+=`<div class="card" style="border-color:rgba(201,106,61,.35)"><div class="small" style="color:var(--gold);font-weight:700">有出席但未記訓練內容：</div><div class="row" style="flex-wrap:wrap;margin-top:6px">${miss.map(d=>`<button class="chip" onclick="startFor('${d}')">${fmtD(d)} ＋記錄</button>`).join('')}</div></div>`;
   if(!list.length) return h+'<div class="empty">未有記錄。去「📝 今堂」開始。</div>';
   list.forEach(s=>{
     const open=C.recOpen===s.id, cms=(G.comments||[]).filter(c=>c.type==='session'&&c.target===s.id);
@@ -465,11 +559,11 @@ function vHw(){
   if(!list.length) return h+'<div class="empty">未有功課</div>';
   list.forEach(hw=>{
     const days=Array.from({length:7},(_,i)=>addDays(hw.week,i)), items=hw.items&&hw.items.length?hw.items:[{text:hw.title}];
-    const tgt=hw.acct?ms.filter(m=>m.id===hw.acct):ms;
-    h+=`<div class="card"><div class="row"><div><b>${esc(hw.title||'功課')}</b><div class="small muted">${fmtD(hw.week)} – ${fmtDM(days[6])} · ${hw.acct?'只限 '+esc(memName(hw.acct)):'全組'}</div></div><span class="sp"></span><button class="btn ghost xs" onclick="editHw('${hw.id}')">✎</button><button class="btn warn xs" onclick="delHw('${hw.id}')">刪</button></div>
+    const tgt=hw.acct?ms.filter(m=>m.id===hw.acct):ms, adh=tgt.map(m=>{ const a=hwAdherence(hw, m.id); return a==null?'':`${esc(m.en||m.name)} ${a}%`; }).filter(Boolean).join(' · ');
+    h+=`<div class="card"><div class="row"><div><b>${esc(hw.title||'功課')}</b><div class="small muted">${fmtD(hw.week)} – ${fmtDM(days[6])} · ${hw.acct?'只限 '+esc(memName(hw.acct)):'全組'}${adh?` · 完成度 <b style="color:var(--teal)">${adh}</b>`:''}</div></div><span class="sp"></span><button class="btn ghost xs" onclick="editHw('${hw.id}')">✎</button><button class="btn warn xs" onclick="delHw('${hw.id}')">刪</button></div>
       ${hw.desc?`<div class="small" style="white-space:pre-wrap;margin-top:6px">${esc(hw.desc)}</div>`:''}
-      <div style="margin-top:8px">${items.map((it,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(it.ex?exName(it.ex):it.text)}</b>${it.ex&&it.text?` <span class="small">${esc(it.text)}</span>`:''}<div class="small muted">${[it.sets?it.sets+' 組':'', it.reps?'× '+esc(it.reps):'', esc(it.note||'')].filter(Boolean).join(' ')}</div>
-        ${tgt.map(m=>{ const lg=(hw.logs||[]).filter(l=>l.acct===m.id&&l.idx===i); const dn=days.filter(d=>lg.some(l=>l.date===d&&l.done)); const nt=lg.filter(l=>l.note).map(l=>fmtDM(l.date)+' '+l.note);
+      <div style="margin-top:8px">${items.map((it,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(it.ex?exName(it.ex):it.text)}</b>${it.ex&&it.text?` <span class="small">${esc(it.text)}</span>`:''}<div class="small muted">${[it.sets?it.sets+' 組':'', it.reps?'× '+esc(it.reps):'', it.days?'每週 '+it.days+' 次':'', esc(it.note||'')].filter(Boolean).join(' ')}</div>
+        ${tgt.map(m=>{ const lg=(hw.logs||[]).filter(l=>l.acct===m.id&&l.idx===i); const dn=days.filter(d=>lg.some(l=>l.date===d&&l.done)); const nt=lg.filter(l=>l.note||l.kg||l.reps).map(l=>fmtDM(l.date)+' '+[l.kg?fmtN(l.kg)+'kg':'', l.reps?'×'+l.reps:'', l.rpe?'RPE'+l.rpe:'', l.note||''].filter(Boolean).join(' '));
           return `<div class="small" style="margin-top:3px">${esc(m.en||m.name)}：<span style="letter-spacing:2px">${days.map(d=>dn.includes(d)?'<span style="color:var(--teal)">●</span>':'<span class="muted">○</span>').join('')}</span> <b>${dn.length}</b>${nt.length?` <span class="muted">📝 ${esc(nt.join('；'))}</span>`:''}</div>`; }).join('')}</div></div>`).join('')}</div>
       ${thread('homework', hw.id, hw.acct||'')}</div>`;
   });
@@ -487,8 +581,8 @@ function hwForm(){
     <div class="lb" style="margin-top:6px">項目</div>
     ${f.items.map((it,i)=>`<div class="blk" style="margin:8px 0;padding:10px"><div class="row"><b style="flex:1">${it.ex?esc(exName(it.ex)):'自訂項目'}</b><button class="ib" onclick="C.hwEdit.items.splice(${i},1);render()">✕</button></div>
       ${it.ex?'':`<input class="in" style="margin-top:6px" value="${esc(it.text)}" oninput="C.hwEdit.items[${i}].text=this.value" placeholder="例：行路 30 分鐘">`}
-      <div class="fgrid" style="margin-top:6px;grid-template-columns:1fr 1fr 2fr"><input class="in num" inputmode="numeric" value="${esc(it.sets)}" oninput="C.hwEdit.items[${i}].sets=this.value" placeholder="組數"><input class="in num" value="${esc(it.reps)}" oninput="C.hwEdit.items[${i}].reps=this.value" placeholder="次數/秒"><input class="in" value="${esc(it.note)}" oninput="C.hwEdit.items[${i}].note=this.value" placeholder="提示（可留空）"></div></div>`).join('')}
-    <div class="row" style="margin-top:8px"><button class="btn ghost sm" onclick="openPicker(id=>{C.hwEdit.items.push({ex:id,text:'',sets:'3',reps:'',note:''});render();})">＋ 動作</button><button class="btn ghost sm" onclick="C.hwEdit.items.push({ex:'',text:'',sets:'',reps:'',note:''});render()">＋ 自訂項目</button></div>
+      <div class="fgrid" style="margin-top:6px;grid-template-columns:1fr 1fr 1fr 2fr"><input class="in num" inputmode="numeric" value="${esc(it.sets)}" oninput="C.hwEdit.items[${i}].sets=this.value" placeholder="組數"><input class="in num" value="${esc(it.reps)}" oninput="C.hwEdit.items[${i}].reps=this.value" placeholder="次數/秒"><input class="in num" inputmode="numeric" value="${esc(it.days||'')}" oninput="C.hwEdit.items[${i}].days=this.value" placeholder="每週幾次"><input class="in" value="${esc(it.note)}" oninput="C.hwEdit.items[${i}].note=this.value" placeholder="提示（可留空）"></div></div>`).join('')}
+    <div class="row" style="margin-top:8px"><button class="btn ghost sm" onclick="openPicker(id=>{C.hwEdit.items.push({ex:id,text:'',sets:'3',reps:'',note:'',days:'3'});render();})">＋ 動作</button><button class="btn ghost sm" onclick="C.hwEdit.items.push({ex:'',text:'',sets:'',reps:'',note:'',days:'3'});render()">＋ 自訂項目</button></div>
     <div class="row" style="margin-top:16px"><button class="btn ghost" onclick="C.hwEdit=null;render()">取消</button><span class="sp"></span><button class="btn" id="hwsv" onclick="saveHw()">儲存功課</button></div></div>`;
 }
 async function saveHw(){
@@ -520,6 +614,7 @@ function vBody(){
   if(m.goal) h+=`<div class="small muted">🎯 ${esc(m.goal)}</div>`;
   if(avail.length) h+=`<div class="chips">${avail.map(x=>`<button class="chip ${x[0]===k[0]?'on':''}" onclick="C.bodyMetric='${x[0]}';render()">${x[1]}</button>`).join('')}</div>
     <div class="card"><div class="row"><b>${k[1]}</b><span class="sp"></span><span class="num" style="font-size:22px;font-weight:900">${pts.length?fmtN(pts[pts.length-1].v):'—'}</span><span class="muted">${k[2]}</span></div>${chartSVG(pts)}</div>`;
+  h+=vTestsC(m)+vAssessC(m);
   h+=`<div class="card"><b>＋ 教練記錄（例如上堂量度）</b><div class="fgrid" style="margin-top:8px"><div><label class="lb">日期</label><input class="in" type="date" id="cb-date" value="${isoToday()}"></div>${METRICS.map(x=>`<div><label class="lb">${x[1]} (${x[2]})</label><input class="in num" id="cb-${x[0]}" inputmode="decimal"></div>`).join('')}</div>
     <input class="in" id="cb-note" placeholder="備註" style="margin-top:10px"><button class="btn block" style="margin-top:10px" id="cbsv" onclick="coachBody('${m.id}')">儲存</button></div>`;
   h+=list.slice().reverse().map(b=>`<div class="card"><div class="row"><b>${fmtD(b.date)}</b> <span class="badge ${b.src==='教練'?'gold':'grey'}">${esc(b.src||'')}</span><span class="sp"></span><button class="lnk" style="color:var(--mut)" onclick="coachBodyDel('${b.id}')">刪除</button></div>
@@ -701,7 +796,8 @@ function vBook(){
       <div><label class="lb">開始時間（逗號分隔）</label><input class="in num" id="sf-st" value="${esc(f.starts||'')}" placeholder="18:00, 19:00"></div>
       <div><label class="lb">每堂</label><select class="in" id="sf-dur">${[45,60,75,90,120].map(n=>`<option value="${n}" ${Number(f.dur||60)===n?'selected':''}>${n} 分鐘</option>`).join('')}</select></div>
       <div><label class="lb">地點</label><input class="in" id="sf-ven" list="venl" value="${esc(f.venue||'')}"><datalist id="venl">${venues.map(v=>`<option value="${esc(v)}">`).join('')}</datalist></div>
-      <div><label class="lb">只開俾（可留空＝所有學員）</label><select class="in" id="sf-only"><option value="">所有學員</option>${groups.map(g=>`<option ${f.only===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div></div>
+      <div><label class="lb">只開俾（可留空＝所有學員）</label><select class="in" id="sf-only" onchange="document.getElementById('sf-bkrow').style.display=this.value?'':'none'"><option value="">所有學員</option>${groups.map(g=>`<option ${f.only===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div></div>
+    <label class="row small" id="sf-bkrow" style="margin-top:10px;gap:8px;${f.only?'':'display:none'}"><input type="checkbox" id="sf-bk" ${f.bookFor?'checked':''} style="width:22px;height:22px"> 同時代約晒俾呢位學員（固定學員一次過約好；代約唔扣堂）</label>
     <label class="lb" style="margin-top:10px">每週邊幾日（唔揀＝只係第一日嗰個星期幾）</label>
     <div class="row" id="sf-wd" style="gap:6px">${['一','二','三','四','五','六','日'].map((w,i)=>`<button type="button" class="chip ${(f.wd||[]).includes(i+1)?'on':''}" style="flex:1;justify-content:center;padding:8px 0" onclick="C.slotForm.wd=C.slotForm.wd||[];const k=${i+1},a=C.slotForm.wd,j=a.indexOf(k);j<0?a.push(k):a.splice(j,1);this.classList.toggle('on')">${w}</button>`).join('')}</div>
     <button class="btn block" style="margin-top:10px" id="sf-go" onclick="addSlots()">開時段</button></div>`;
@@ -718,12 +814,12 @@ function vBook(){
   return h;
 }
 async function addSlots(){
-  const v=id=>$(id).value.trim(), wd=(C.slotForm.wd||[]).slice().sort(); C.slotForm={date:v('#sf-date'), repeat:v('#sf-rep'), starts:v('#sf-st'), dur:v('#sf-dur'), venue:v('#sf-ven'), only:v('#sf-only'), wd:wd, weekdays:wd.join(',')};
+  const v=id=>$(id).value.trim(), wd=(C.slotForm.wd||[]).slice().sort(); C.slotForm={date:v('#sf-date'), repeat:v('#sf-rep'), starts:v('#sf-st'), dur:v('#sf-dur'), venue:v('#sf-ven'), only:v('#sf-only'), wd:wd, weekdays:wd.join(','), bookFor:($('#sf-bk')&&$('#sf-bk').checked&&v('#sf-only'))?v('#sf-only'):''};
   if(!C.slotForm.starts){ toast('要填開始時間'); return; }
   $('#sf-go').disabled=true;
   const r=await api('cSlotAdd', C.slotForm, true);
   if(!r.ok){ $('#sf-go').disabled=false; toast(r.err); return; }
-  toast(`已開 ${r.added} 個時段${r.skipped?`（${r.skipped} 個重複／過咗略過）`:''}`); C.slotForm.starts=''; C.slotOpen=false; SL=null; render();
+  toast(`已開 ${r.added} 個時段${r.skipped?`（${r.skipped} 個重複／過咗略過）`:''}${r.booked!=null?`，代約 ${r.booked} 個${r.bookErr?'（有啲約唔到：'+r.bookErr+'）':''}`:''}`); C.slotForm.starts=''; C.slotOpen=false; SL=null; render();
 }
 function coachBook(slotId){
   const s=(SL.slots||[]).find(x=>x.id===slotId), gs=(L.groups||[]).filter(g=>!s.only||g===s.only); if(!gs.length) return;
@@ -752,7 +848,7 @@ async function delSlot(id){
 /* ───────── 第三階段：習慣＋每週回顧（功課分頁下面）───────── */
 const PLC={};   // group → cPlan
 const CK_LB={'睡眠':'睡眠','精神':'精神','壓力':'壓力(5=輕鬆)','恢復':'恢復','訓練':'跟訓練','飲食':'跟飲食','饑餓感':'飽足(5=唔餓)','酸痛':'酸痛(舊)'};
-async function loadPlanC(g, force){ if(PLC[g] && !force) return; return once('plan'+g, async()=>{ const r=await api('cPlan',{group:g}); if(!r.ok){ toast(r.err); return; } PLC[g]=r; if(C.tab==='hw') render(); }); }
+async function loadPlanC(g, force){ if(PLC[g] && !force) return; return once('plan'+g, async()=>{ const r=await api('cPlan',{group:g}); if(!r.ok){ toast(r.err); return; } PLC[g]=r; if(C.tab==='log'||C.tab==='hw') render(); }); }
 function vPlanC(){
   const P=PLC[C.group]; if(!P){ loadPlanC(C.group); return '<div class="spin"></div>'; }
   const today=isoToday(), days=Array.from({length:7},(_,i)=>addDays(today,i-6));
@@ -830,8 +926,9 @@ function vAtt(){
   if(!LGALL) loadLGAll();
   else if((LGALL.monthly||[]).length) h+=`<div class="h2">📊 每月小結（全部成人私訓）</div><div class="card"><div class="small muted" style="margin-bottom:6px">收入＝逐節確認（套票金額÷節數）；收款＝當月買嘅套票；場租按場地規則（同恆常班會計一樣）。${LGALL.on?'':'（未切換：只計已匯入嘅記錄）'}</div>
     ${LGALL.monthly.map(m=>`<div class="li"><div style="width:70px"><b class="num">${m.month.slice(5)}/${m.month.slice(0,4)}</b><div class="small muted">${m.sessions} 節</div></div>
-      <div style="flex:1" class="small num">收入 <b>${money(m.income)}</b> · 收款 ${money(m.cash)} · 場租 ${money(m.rent)}${m.missingVenue?` <span style="color:var(--gold)">(${m.missingVenue} 節未填場地)</span>`:''}${m.missingTime?` <span style="color:var(--gold)">(${m.missingTime} 節未填時間)</span>`:''}${m.noPkg?` <span style="color:var(--gold)">(${m.noPkg} 節冇套票冇費用)</span>`:''}</div><b class="num" style="color:var(--teal)">${money(m.profit)}</b></div>`).join('')}
+      <div style="flex:1" class="small num">收入 <b>${money(m.income)}</b> · 收款 ${money(m.cash)} · 場租 ${money(m.rent)}${m.missingVenue||m.missingTime||m.noPkg?` <button class="lnk" style="color:var(--gold);padding:0" onclick="C.issueMon='${m.month}';render()">⚠️ ${[m.missingVenue?m.missingVenue+' 節未填場地':'', m.missingTime?m.missingTime+' 節未填時間':'', m.noPkg?m.noPkg+' 節冇套票冇費用':''].filter(Boolean).join('、')} ›</button>`:''}</div><b class="num" style="color:var(--teal)">${money(m.profit)}</b></div>`).join('')}
     <div class="small muted" style="margin-top:6px">右邊＝收入減場租（毛利）</div></div>`;
+  if(LGALL && LGALL.finance) h+=vFinanceC(LGALL.finance)+vIssuesC();
   return h;
 }
 function addMonthsI(iso, n){ const d=parseISO(iso); d.setMonth(d.getMonth()+n); return isoOf(d); }
@@ -964,7 +1061,8 @@ async function saveAcct(force){ const f=C.acctEdit; $('#acsv').disabled=true;
   const r=await api('cAccountSave',{id:f.id, name:f.name, en:f.en, last4:f.last4, group:f.group, goal:f.goal, status:f.status, clearPin:f.clearPin||'', force:force?'1':''}, true);
   if(!r.ok){ $('#acsv').disabled=false; if(r.dupCode && confirm(r.err+'\n\n撳「確定」照樣儲存。')) return saveAcct(true); toast(r.err); return; }
   if(!C.group) C.group=f.group.trim();
-  C.acctEdit=null; toast('已儲存帳戶'); reloadAll(); }
+  const isNew=!f.id; C.acctEdit=null; toast('已儲存帳戶'); reloadAll();
+  if(isNew) welcomeSheet(f); }
 function editEx(id){ C.exEdit=Object.assign({}, L.exercises.find(e=>e.id===id)); render(); }
 function exForm(){ const f=C.exEdit;
   return `<div class="card"><div class="fgrid"><div><label class="lb">中文名</label><input class="in" value="${esc(f.zh)}" oninput="C.exEdit.zh=this.value"></div><div><label class="lb">英文名</label><input class="in" value="${esc(f.en)}" oninput="C.exEdit.en=this.value"></div>

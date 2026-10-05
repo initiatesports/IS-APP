@@ -162,7 +162,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-04-d';
+const FRONTEND_VERSION = 'pt-2026-10-05-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -213,6 +213,7 @@ const TX = {
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
     undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', preUsedN:'另有 {n} 節冇記日期', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
+    phaseWk:'第 {w}/{n} 週', tests:'體能測試', testsHint:'教練每 8 週同你做一次，睇吓進步', vsPrev:'對比 {d}', readyQ:'今日狀態點？（上堂前揀，教練會調強度）', rdSleep:'睡眠', rdEnergy:'精神', rdSore:'身體恢復', rdLo:'差', rdHi:'好', kgL:'重量 kg', repsL:'次數', rTests:'體能測試',
     todayTodo:'今日要做', logDietToday:'記錄今日飲食', newReply:'教練有 {n} 條新回覆', replyIn:{session:'訓練',homework:'功課',checkin:'每週回顧',body:'身體數據',diet:'飲食'},
     feelQ:'{d} 嗰堂辛唔辛苦？', feelHint:'1＝好輕鬆 · 10＝盡晒力', enjoyQ:'享唔享受？', feelThanks:'多謝！教練會睇到', yourFeel:'你嘅感受', feelChange:'改',
     rpeL:['','好輕鬆','輕鬆','幾輕鬆','中等','有啲辛苦','辛苦','好辛苦','非常辛苦','差唔多盡','盡晒力'],
@@ -266,6 +267,7 @@ const TX = {
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
     undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', preUsedN:'+{n} session(s) without a date', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
+    phaseWk:'Week {w}/{n}', tests:'Fitness tests', testsHint:'Your coach re-tests you every 8 weeks', vsPrev:'vs {d}', readyQ:'How are you today? (before class — coach adjusts intensity)', rdSleep:'Sleep', rdEnergy:'Energy', rdSore:'Recovery', rdLo:'Poor', rdHi:'Great', kgL:'Weight kg', repsL:'Reps', rTests:'Fitness tests',
     todayTodo:'Today', logDietToday:'Log today\'s food', newReply:'{n} new coach repl(ies)', replyIn:{session:'Training',homework:'Homework',checkin:'Weekly check-in',body:'Body',diet:'Diet'},
     feelQ:'How hard was {d}\'s session?', feelHint:'1 = very easy · 10 = max effort', enjoyQ:'Did you enjoy it?', feelThanks:'Thanks! Your coach will see this', yourFeel:'How it felt', feelChange:'Change',
     rpeL:['','Very easy','Easy','Fairly easy','Moderate','Somewhat hard','Hard','Very hard','Very, very hard','Near max','Max effort'],
@@ -496,6 +498,7 @@ function vHome(){
   const nm = LANG==='en' ? (me.en||me.name) : me.name;
   const mates=(D.mates||[]).map(m=>LANG==='en'?(m.en||m.name):m.name).join(LANG==='en'?', ':'、');
   let h = `<div class="h1">${t('hi')}${LANG==='en'?', ':'，'}${esc(nm)} 👋</div><div class="sub">${mates?`${t('mates')} ${esc(mates)}`:esc(me.group||'')}${me.goal?` · 🎯 ${esc(me.goal)}`:''}</div>`;
+  const ph=D.phase; if(ph) h += `<div class="card" style="padding:11px 14px;border-left:3px solid var(--teal)"><div class="row"><b>🎯 ${esc(ph.name)}</b><span class="sp"></span><span class="badge">${t('phaseWk').replace('{w}',ph.week).replace('{n}',ph.weeks)}</span></div><div class="bar" style="margin:8px 0 4px"><i style="width:${Math.min(100,Math.round(ph.week/ph.weeks*100))}%"></i></div>${ph.focus||ph.reps?`<div class="small muted">${[ph.focus?esc(ph.focus):'', ph.reps?esc(ph.reps)+(LANG==='en'?' reps':' 下'):'', ph.rpe?'RPE '+esc(ph.rpe):''].filter(Boolean).join(' · ')}</div>`:''}</div>`;
   h += vReminders();
   h += vUnreadCard() + vFeelPrompt() + vToday() + vReportPrompt();
   h += vPkgCard();
@@ -611,7 +614,7 @@ function vPreClass(b){ const s=b.slotInfo, isT=s.date===isoToday();
   return `<div class="card hero"><div class="small muted" style="letter-spacing:.08em">📅 ${(isT?t('todaySes'):t('tmrSes')).toUpperCase()}</div>
     <div style="font-weight:900;font-size:20px;margin-top:4px">${slotWhen(s)}</div>
     ${s.venue?`<div class="row small" style="margin-top:4px"><span>📍 ${esc(s.venue)}</span><span class="sp"></span><a class="lnk" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.venue)}" target="_blank" rel="noopener">${t('mapLink')} ›</a></div>`:''}
-    <div class="small" style="margin-top:6px">🎒 ${t('bringList')}</div>
+    <div class="small" style="margin-top:6px">🎒 ${t('bringList')}</div>${isT?vReadyQ():''}
     <div class="row" style="margin-top:10px;gap:8px"><button class="btn ghost sm" onclick="calSheet('${b.id}')">📅 ${t('addCal')}</button><span class="sp"></span><button class="lnk" onclick="go('book')">${t('booking')} ›</button></div></div>`; }
 function calDT(d, hm){ return new Date(d+'T'+hm+':00+08:00').toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''); }
 function icsEsc(x){ return String(x||'').replace(/\\/g,'\\\\').replace(/([,;])/g,'\\$1').replace(/\n/g,'\\n'); }
@@ -651,7 +654,10 @@ function reportData(m){ const inM=d=>String(d||'').slice(0,7)===m, before=d=>Str
   const wk=new Set(((D.pt||{}).sessions||[]).filter(x=>!x.exempt && x.date<=end).map(x=>mondayISO(x.date))); let streak=0, w=mondayISO(att.length?att[att.length-1].date:end); while(wk.has(w)){ streak++; w=addDays(w,-7); }
   const cks=(PL&&PL.checkins||[]).filter(c=>inM(c.week)), ckAvg={}; ['睡眠','精神','恢復'].forEach(k=>{ const v=cks.map(c=>Number(c[k])).filter(n=>n>0); if(v.length) ckAvg[k]=Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10; });
   const hasPrev=(D.sessions||[]).some(x=>before(x.date));
-  return {m, att:att.length, sessions:ses.length, vol, prs, lifts, body, hab, hw, streak, ckAvg, hasPrev}; }
+  let test=null; const ts=(D.tests||[]);   // 逐項：月內最新嗰次 vs 該項之前一次
+  const tl=(D.testItems||[]).map(it=>{ const k=it[0], cur=ts.find(x=>inM(x.date) && x.vals[k]!=null); if(!cur) return null; const pv=ts.find(x=>x.date<cur.date && x.vals[k]!=null), a=cur.vals[k], b=pv?pv.vals[k]:null;
+    return {lb:LANG==='en'?it[2]:it[1], u:it[3], to:a, from:b, good:b!=null&&(it[4]?a>b:a<b)}; }).filter(Boolean); if(tl.length) test=tl;
+  return {m, test, att:att.length, sessions:ses.length, vol, prs, lifts, body, hab, hw, streak, ckAvg, hasPrev}; }
 function vReport(){ const m=S.repMon||prevMon(), r=reportData(m), me=D.me, nm=LANG==='en'?(me.en||me.name):me.name;
   const months=[]; for(let i=0;i<6;i++){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); months.push(isoOf(d).slice(0,7)); }
   const tx=CK_TX[LANG]||CK_TX.zh, sign=v=>(v>0?'+':'')+fmtN(v), empty=!r.att && !r.sessions;
@@ -667,6 +673,7 @@ function vReport(){ const m=S.repMon||prevMon(), r=reportData(m), me=D.me, nm=LA
     if(r.body.length) h+=`<h4>📏 ${t('rBody')}</h4>${r.body.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${x.k==='fat'?(LANG==='en'?'Body fat':'體脂'):t(x.k)}</b><span class="num muted">${fmtN(x.from)} → </span><b class="num" style="margin-left:4px">${fmtN(x.to)} ${x.u}</b><span class="badge grey" style="margin-left:8px">${sign(x.to-x.from)}</span></div>`).join('')}`;
     const ext=[]; if(r.hab!=null) ext.push(`<div><b class="num">${r.hab}%</b><span>✅ ${t('rHabit')}</span></div>`); if(r.hw) ext.push(`<div><b class="num">${r.hw}</b><span>📋 ${t('rHw')}${LANG==='en'?'':'（次）'}</span></div>`);
     if(ext.length) h+=`<div class="rk">${ext.join('')}</div>`;
+    if(r.test) h+=`<h4>📏 ${t('rTests')}</h4>${r.test.map(x=>`<div class="row small" style="padding:4px 0"><b style="flex:1">${esc(x.lb)}</b>${x.from!=null?`<span class="num muted">${fmtN(x.from)} → </span>`:''}<b class="num" style="margin-left:4px">${fmtN(x.to)} ${esc(x.u)}</b>${x.from!=null&&x.to!==x.from?`<span class="badge ${x.good?'':'grey'}" style="margin-left:8px">${x.to>x.from?'▲':'▼'} ${fmtN(Math.abs(x.to-x.from))}</span>`:''}</div>`).join('')}`;
     const ck=Object.keys(r.ckAvg); if(ck.length) h+=`<h4>📝 ${t('rCheck')}</h4><div style="display:flex;flex-wrap:wrap;gap:6px">${ck.map(k=>`<span class="badge grey">${(tx[k]||[k])[0]} <b style="color:var(--text)">${r.ckAvg[k]}</b>/5</span>`).join('')}</div>`;
     h+=`<div style="margin-top:16px;font-weight:800">${t('rKeep')} 💚</div>`; }
   h+=`</div>`;
@@ -679,6 +686,19 @@ async function shareReport(){ const b=$('#rep-sh'); if(!b || b.disabled) return;
     else { const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=fn; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },1500); }
   }catch(e){ if(!(e && e.name==='AbortError')) toast(t('net')); }
   b.disabled=false; b.textContent=old; }
+
+/* ═════════ 第三期（2026-10-05）：體能測試、今日狀態 ═════════ */
+function vTests(){ const ts=D.tests||[], IT=D.testItems||[]; if(!ts.length) return ''; const a=ts[0], b=ts[1];
+  return `<div class="card"><div class="row"><b>📏 ${t('tests')}</b><span class="sp"></span><span class="small muted">${fmtD(a.date)}${b?' · '+t('vsPrev').replace('{d}',fmtD(b.date)):''}</span></div>
+    ${IT.filter(it=>ts.some(x=>x.vals[it[0]]!=null)).map(it=>{ const hs=ts.filter(x=>x.vals[it[0]]!=null), v=hs[0].vals[it[0]], pv=hs[1]?hs[1].vals[it[0]]:null, df=pv!=null?v-pv:null, good=df!=null&&(it[4]?df>0:df<0);
+      return `<div class="li"><span style="flex:1">${esc(LANG==='en'?it[2]:it[1])}</span><b class="num">${fmtN(v)}</b><span class="small muted" style="margin-left:3px">${esc(it[3])}</span>${df?`<span class="badge ${good?'':'grey'}" style="margin-left:8px">${df>0?'▲':'▼'} ${fmtN(Math.abs(df))}</span>`:''}</div>`; }).join('')}
+    <div class="small muted" style="margin-top:6px">${t('testsHint')}</div></div>`; }
+function vReadyQ(){ const today=isoToday(), r=(D.ready||[]).find(x=>x.date===today)||{};
+  const row=(k,lb)=>`<div class="row small" style="margin-top:6px"><span style="width:72px">${lb}</span><div style="display:flex;gap:4px;flex:1">${[1,2,3,4,5].map(n=>`<button class="chip ${r[k]===n?'on':''}" style="flex:1;justify-content:center;padding:6px 0" onclick="event.stopPropagation();sendReady('${k}',${n})">${n}</button>`).join('')}</div></div>`;
+  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div class="small" style="font-weight:800">🔋 ${t('readyQ')}</div><div class="small muted">1＝${t('rdLo')} · 5＝${t('rdHi')}</div>${row('sleep',t('rdSleep'))}${row('energy',t('rdEnergy'))}${row('sore',t('rdSore'))}</div>`; }
+async function sendReady(k, n){ const today=isoToday(); D.ready=D.ready||[]; let r=D.ready.find(x=>x.date===today); const bak=r?Object.assign({},r):null;
+  if(!r){ r={date:today}; D.ready.unshift(r); } r[k]=n; render();
+  const res=await api('ready',{[k]:n}, true); if(!res.ok){ if(bak) Object.assign(r,bak); else D.ready=D.ready.filter(x=>x!==r); toast(res.err||t('net')); render(); return; } lsSet('ispt_cache', D); }
 
 /* ───────── 留言串 ───────── */
 function thread(type, target){
@@ -719,15 +739,15 @@ function vHw(){
       ${hw.desc?`<div style="white-space:pre-wrap;margin:10px 0 2px;font-size:14px">${esc(hw.desc)}</div>`:''}
       <div style="margin-top:8px">${items.map((it,i)=>{
         const logs=(hw.logs||[]).filter(l=>l.idx===i), doneDays=new Set(logs.filter(l=>l.done).map(l=>l.date)), cnt=days.filter(d=>doneDays.has(d)).length;
-        const lastNote=logs.filter(l=>l.note).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
+        const lastNote=logs.filter(l=>l.note||l.kg||l.reps).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
         const nm = it.ex ? exName(it.ex) : (it.text||'');
         const presc=[it.sets?`${it.sets} ${LANG==='en'?'sets':'組'}`:'', it.reps?`× ${esc(it.reps)}`:''].filter(Boolean).join(' ');
         const nkey=hw.id+'_'+i;
         return `<div class="hwi"><div class="row"><div style="min-width:0">${it.ex?`<button class="exname" onclick="showEx('${it.ex}')">${esc(nm)}</button>`:`<div style="font-weight:800">${esc(nm)}</div>`}
             ${it.ex&&it.text?`<div class="small">${esc(it.text)}</div>`:''}<div class="small muted">${presc}${it.note?`${presc?' · ':''}${esc(it.note)}`:''}</div></div><span class="sp"></span><span class="badge ${cnt?'':'grey'}">${cnt} ${t('times')}</span></div>
           <div class="days">${days.map(d=>`<button class="day ${doneDays.has(d)?'done':''} ${d===today?'today':''}" ${d>today?'disabled':''} onclick="hwTick('${hw.id}',${i},'${d}',${doneDays.has(d)?0:1})"><span>${wkName(d)}</span><b>${parseISO(d).getDate()}</b></button>`).join('')}</div>
-          ${S.hwNote===nkey?`<div class="tin"><input class="in" id="hwn-${nkey}" placeholder="${t('hwNote')}" maxlength="200"><button class="btn sm" onclick="hwSaveNote('${hw.id}',${i})">${t('save')}</button></div>`
-            :`<div class="row small" style="margin-top:7px">${lastNote?`<span class="muted" style="flex:1;min-width:0">📝 ${fmtDM(lastNote.date)}：${esc(lastNote.note)}</span>`:'<span class="sp"></span>'}<button class="lnk" onclick="S.hwNote='${nkey}';render();setTimeout(()=>{const e=document.getElementById('hwn-${nkey}');e&&e.focus()},30)">📝 ${LANG==='en'?'Log':'記錄'}</button></div>`}
+          ${S.hwNote===nkey?`${it.ex?(()=>{ const pv=logs.filter(l=>l.kg||l.reps).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0]||{}; return `<div class="fgrid" style="margin-top:8px"><div><label class="lb">${t('kgL')}</label><input class="in num" inputmode="decimal" id="hwk-${nkey}" value="${esc(pv.kg||'')}"></div><div><label class="lb">${t('repsL')}</label><input class="in num" id="hwr-${nkey}" value="${esc(pv.reps||it.reps||'')}"></div></div>`; })():''}<div class="tin"><input class="in" id="hwn-${nkey}" placeholder="${t('hwNote')}" maxlength="200"><button class="btn sm" onclick="hwSaveNote('${hw.id}',${i})">${t('save')}</button></div>`
+            :`<div class="row small" style="margin-top:7px">${lastNote?`<span class="muted" style="flex:1;min-width:0">📝 ${fmtDM(lastNote.date)}：${esc([lastNote.kg?fmtN(lastNote.kg)+'kg':'', lastNote.reps?'×'+lastNote.reps:'', lastNote.note||''].filter(Boolean).join(' '))}</span>`:'<span class="sp"></span>'}<button class="lnk" onclick="S.hwNote='${nkey}';render();setTimeout(()=>{const e=document.getElementById('hwn-${nkey}');e&&e.focus()},30)">📝 ${LANG==='en'?'Log':'記錄'}</button></div>`}
         </div>`; }).join('')}</div>
       ${thread('homework', hw.id)}
     </div>`;
@@ -746,12 +766,13 @@ async function hwTick(hwId, idx, date, done){
 }
 async function hwSaveNote(hwId, idx){
   const hw=(D.homework||[]).find(h=>h.id===hwId); const el=document.getElementById('hwn-'+hwId+'_'+idx); const note=(el.value||'').trim();
-  if(!note){ S.hwNote=null; render(); return; }
+  const ek=document.getElementById('hwk-'+hwId+'_'+idx), er=document.getElementById('hwr-'+hwId+'_'+idx), kg=ek?ek.value.trim():'', reps=er?er.value.trim():'';
+  if(!note && !kg && !reps){ S.hwNote=null; render(); return; }
   if(el.disabled) return; const date=isoToday(); el.disabled=true;
-  const r=await api('hwLog',{hwId, idx, date, done:'1', note}, true);
+  const r=await api('hwLog',{hwId, idx, date, done:'1', note, kg, reps}, true);
   if(!r.ok){ el.disabled=false; toast(r.err||t('net')); return; }
   const old=(hw.logs||[]).find(l=>l.idx===idx && l.date===date);
-  if(old){ old.done=true; old.note=note; old.at=new Date().toISOString(); } else (hw.logs=hw.logs||[]).push({acct:D.me.id, idx, date, done:true, note, at:new Date().toISOString()});
+  if(old){ old.done=true; old.note=note; old.kg=kg; old.reps=reps; old.at=new Date().toISOString(); } else (hw.logs=hw.logs||[]).push({acct:D.me.id, idx, date, done:true, note, kg, reps, at:new Date().toISOString()});
   S.hwNote=null; lsSet('ispt_cache', D); toast(t('saved')); render();
 }
 
@@ -781,6 +802,7 @@ function vBody(){
   const avail=METRICS.filter(m=>list.some(b=>b[m[0]]!=='' && b[m[0]]!=null));
   if(avail.length && !avail.some(m=>m[0]===S.bodyMetric)) S.bodyMetric=avail[0][0];
   let h=`<div class="row"><div class="h1">${t('bodyTitle')}</div><span class="sp"></span><button class="btn sm skew" style="margin-top:14px" onclick="S.bodyForm=!S.bodyForm;render()"><span>${S.bodyForm?'✕':'＋ '+t('addRec')}</span></button></div><div class="sub"></div>`;
+  h+=vTests();
   if(S.bodyForm){
     h+=`<div class="card"><div class="fld"><label class="lb">${t('date')}</label><input class="in" type="date" id="bf-date" value="${isoToday()}" max="${isoToday()}"></div>
       <div class="fgrid">${METRICS.map(m=>`<div><label class="lb">${t(m[0])} (${t(m[1])})</label><input class="in num" id="bf-${m[0]}" inputmode="decimal"></div>`).join('')}</div>
