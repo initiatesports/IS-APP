@@ -324,7 +324,7 @@ async function sweep(label, exec, rows, withPin) {
       process.stderr.write(`\r[${label}] ${++idx}/${students.length}   `);
       const r = await callLogin(exec, name, cred);
       if (r && !r.ok && RETIRED_RE.test(String(r.err || ""))) { retired.push(name); continue; }   // 未續報＝後端刻意拒絕，唔係故障
-      if (!r || !r.ok) { failed.push([name, cred, (r && r.err) || "?"]); continue; }
+      if (!r || !r.ok) { failed.push([name, cred, (r && r.err) || "?", pad4(last4)]); continue; }
       okCount++;
       analyze(label, name, r);
     }
@@ -344,8 +344,11 @@ async function sweep(label, exec, rows, withPin) {
   } else if (failed.length) {
     process.stderr.write(`\r[${label}] 第二輪重試 ${failed.length} 個…   `);
     await new Promise(r => setTimeout(r, 20000));
-    for (const [name, cred, err0] of failed) {
-      const r = await callLogin(exec, name, cred);
+    for (const [name, cred, err0, raw4] of failed) {
+      let r = await callLogin(exec, name, cred);
+      // 尾4位撞碼（唔同家庭同後4位，見 phone-last4 教訓）：PIN4 係另一家庭設嘅自訂密碼，
+      // 呢個家庭自己仍用後4位登入。2026-10-05 成人班 Toby(0386) 同跳繩鄧可澄家庭撞碼被誤報 ERR。
+      if ((!r || !r.ok) && cred !== raw4) r = await callLogin(exec, name, raw4);
       if (!r || !r.ok) { add("ERR", label, name, "登入失敗（已重試兩輪）：" + ((r && r.err) || err0)); continue; }
       okCount++;
       analyze(label, name, r);
