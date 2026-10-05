@@ -101,7 +101,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-b';
+const FRONTEND_VERSION = 'ptc-2026-10-05-c';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -505,7 +505,7 @@ function openPicker(cb){
       + (q?`<div class="pick" id="pnew"><b style="color:var(--teal)">＋ 新增動作「${esc(q)}」</b></div>`:'')
       + (!list.length&&!q?'<div class="empty">冇動作</div>':'');
     ov.querySelectorAll('#pl .pick[data-id]').forEach(el=>el.onclick=()=>{ ov.remove(); cb(el.dataset.id); });
-    const pn=ov.querySelector('#pnew'); if(pn) pn.onclick=async()=>{ pn.innerHTML='新增中…'; const r=await api('cExerciseSave',{zh:q.trim()}, true); if(!r.ok){ toast(r.err); draw(); return; }
+    const pn=ov.querySelector('#pnew'); if(pn) pn.onclick=async()=>{ pn.innerHTML='新增中…'; const qq=q.trim(), cjk=/[\u3400-\u9fff]/.test(qq), r=await api('cExerciseSave',cjk?{zh:qq}:{en:qq}, true);   // 打英文就入英文名（2026-10-05：split squat 曾入咗中文欄） if(!r.ok){ toast(r.err); draw(); return; }
       L.exercises.push({id:r.id, zh:q.trim(), en:'', cat:'', eq:'', cue:'', cueEn:'', video:''}); ov.remove(); cb(r.id); toast('已加入動作庫（之後可喺設定補英文名／片）'); };
   };
   ov.querySelector('#pq').oninput=e=>{ q=e.target.value.trim(); draw(); };
