@@ -66,6 +66,7 @@ textarea.in{resize:vertical;min-height:70px}
 .srow input,.srow select{background:#ffffff;border:1px solid var(--line2);border-radius:9px;padding:9px 6px;text-align:center;width:100%;min-width:0;outline:none;font-size:16px}
 .srow input:focus{border-color:var(--teal)}
 .srow .x{background:none;border:none;color:var(--mut);font-size:16px;padding:8px 4px;min-height:40px}
+.unitbtn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:1px 6px;font:inherit;font-weight:800;color:var(--teal);cursor:pointer}
 .shead{display:grid;gap:6px;font-size:11px;color:var(--mut);text-align:center;margin-top:8px}
 .ib{background:none;border:1px solid var(--line2);border-radius:8px;color:var(--mut);padding:8px 11px;font-size:13px;min-height:36px}
 .qr{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:6px}.qr::-webkit-scrollbar{display:none}.qr button{flex:none;border:1px dashed var(--line2);background:transparent;color:var(--mut);border-radius:99px;padding:6px 10px;font-size:12.5px}
@@ -100,7 +101,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-a';
+const FRONTEND_VERSION = 'ptc-2026-10-05-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -237,7 +238,11 @@ function lastSetsFor(ex, beforeDate, excludeId){
   const s=(G.sessions||[]).filter(x=>x.id!==excludeId && (!beforeDate || x.date<=beforeDate)).find(x=>x.sets.some(y=>y.ex===ex));
   if(!s) return null; return {date:s.date, sets:s.sets.filter(y=>y.ex===ex)};
 }
-function setTxt(x){ const kg=fmtN(x.kg), r=x.reps, sec=x.sec; let t=kg?kg+(r!==''&&r!=null?'×'+r:'kg'):(r!==''&&r!=null?r+'下':''); if(sec!==''&&sec!=null) t+=(t?' ':'')+sec+'s'; return t||'—'; }
+/* 重量單位（老闆 2026-10-05：gym 有啲係 lb）：lb 組儲 原重量＋單位，重量kg 照換算；顯示／輸入一律用返原單位 */
+const wIn=x=>x.unit==='lb'?(x.raw==null?'':String(x.raw)):(x.kg==null?'':x.kg);
+const unitOf=sets=>(sets||[]).some(x=>x.unit==='lb')?'lb':'kg';
+const defUnit=()=>lsGet('isptc_unit')==='lb'?'lb':'kg';
+function setTxt(x){ const lb=x.unit==='lb', kg=fmtN(lb?x.raw:x.kg), r=x.reps, sec=x.sec; let t=kg?kg+(lb?'lb':'')+(r!==''&&r!=null?'×'+r:(lb?'':'kg')):(r!==''&&r!=null?r+'下':''); if(sec!==''&&sec!=null) t+=(t?' ':'')+sec+'s'; return t||'—'; }
 function todayStrip(){
   if(!SL){ loadSlots(); return ''; }
   const today=isoToday(), bk=(SL.bookings||[]).filter(b=>b.status==='已約'), sl={}; (SL.slots||[]).forEach(s=>sl[s.id]=s);
@@ -261,7 +266,7 @@ function vLog(){
     h+=`<div class="blk"><div class="blk-h"><div style="flex:1;min-width:0"><div class="nm">${bi+1}. ${esc(exName(b.ex))}</div><div class="small muted">${esc(exEn(b.ex))}</div></div>
       <button class="ib" onclick="mvBlock(${bi},-1)" ${bi?'':'disabled'}>↑</button><button class="ib" onclick="mvBlock(${bi},1)" ${bi<d.blocks.length-1?'':'disabled'}>↓</button><button class="ib" onclick="rmBlock(${bi})">✕</button></div>
       ${last?`<div class="last">上次 ${fmtDM(last.date)}：${last.sets.map(x=>setTxt(x)+(x.acct?`(${esc(memName(x.acct))})`:'')).join('、')}</div>`:''}
-      <div class="shead" style="grid-template-columns:${cols(b)}"><span>組</span><span>kg</span><span>次數</span>${b.timed?'<span>秒</span>':''}${b.rpe?'<span>RPE</span>':''}${multi?'<span>對象</span>':''}<span></span></div>
+      <div class="shead" style="grid-template-columns:${cols(b)}"><span>組</span><span><button type="button" class="unitbtn" onclick="toggleUnit(${bi})" title="撳轉 kg／lb">${b.unit==='lb'?'lb':'kg'} ⇄</button></span><span>次數</span>${b.timed?'<span>秒</span>':''}${b.rpe?'<span>RPE</span>':''}${multi?'<span>對象</span>':''}<span></span></div>
       ${b.sets.map((x,si)=>`<div class="srow" style="grid-template-columns:${cols(b)}"><span class="no">${si+1}</span>
         <input class="num" inputmode="decimal" data-b="${bi}" data-s="${si}" data-k="kg" value="${esc(x.kg)}" placeholder="—">
         <input class="num" inputmode="numeric" data-b="${bi}" data-s="${si}" data-k="reps" value="${esc(x.reps)}" placeholder="—">
@@ -282,13 +287,16 @@ function vLog(){
 }
 function bindDraftInputs(){
   document.querySelectorAll('#main [data-f]').forEach(el=>el.addEventListener('input',()=>{ const d=getDraft(); d[el.dataset.f]=el.value; putDraft(d); }));
-  document.querySelectorAll('#main [data-b]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{ const d=getDraft(); const x=d.blocks[+el.dataset.b].sets[+el.dataset.s]; x[el.dataset.k]=el.value; putDraft(d); }));
+  document.querySelectorAll('#main [data-b]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{ const d=getDraft(), bi=+el.dataset.b, si=+el.dataset.s, k=el.dataset.k, b=d.blocks[bi], x=b.sets[si], old=x[k]; x[k]=el.value;
+    // 次數：每組通常一樣 → 打咗就自動填落後面「未填」或「同舊值一樣」嘅組（老闆 2026-10-05）
+    if(k==='reps') b.sets.forEach((y,j)=>{ if(j<=si || !(String(y.reps||'')==='' || String(y.reps)===String(old))) return; y.reps=el.value; const t=document.querySelector(`#main [data-b="${bi}"][data-s="${j}"][data-k="reps"]`); if(t) t.value=el.value; });
+    putDraft(d); }));
 }
 function mutate(fn){ const d=getDraft(); fn(d); putDraft(d); render(); }
 function newDraft(){ if(!confirm('開一堂新記錄？（修改緊嘅內容唔會儲存）')) return; lsDel(dKey()); render(); }
 function clearDraft(){ if(!confirm('清除今堂未儲存嘅記錄？')) return; lsDel(dKey()); render(); }
 function addBlock(ex){ mutate(d=>{ const last=lastSetsFor(ex, d.date, d.id); const s0=last&&last.sets.filter(x=>!x.acct)[0]||last&&last.sets[0];
-  d.blocks.push({ex, timed:!!(last&&last.sets.some(x=>x.sec!=='')), sets:[{kg:s0?s0.kg:'', reps:s0?s0.reps:'', sec:s0?s0.sec:'', acct:''}]}); }); setTimeout(()=>window.scrollTo(0,document.body.scrollHeight),50); }
+  d.blocks.push({ex, unit:last?unitOf(last.sets):defUnit(), timed:!!(last&&last.sets.some(x=>x.sec!=='')), sets:[{kg:s0?wIn(s0):'', reps:s0?s0.reps:'', sec:s0?s0.sec:'', acct:''}]}); }); setTimeout(()=>window.scrollTo(0,document.body.scrollHeight),50); }
 /* 組間休息計時（老闆 2026-09-30）：⏱ 揀秒數即開始；「加組後自動」開咗就每次＋組自動倒數；夠鐘震＋響 */
 const REST=Object.assign({sec:90, auto:false}, lsGet('isptc_rest')||{}); let restT=null, restEnd=0;
 function restMenu(){
@@ -313,16 +321,18 @@ function restStop(){ if(restT){ clearInterval(restT); restT=null; } const el=doc
 function restDone(){ try{ navigator.vibrate&&navigator.vibrate([300,120,300]); }catch(e){}
   try{ const A=window.AudioContext||window.webkitAudioContext, ac=new A(), o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(.25, ac.currentTime); o.start(); o.stop(ac.currentTime+.6); }catch(e){}
   toast('⏱ 休息完，開始下一組！'); }
-function addSet(bi){ let si=0; mutate(d=>{ const b=d.blocks[bi], p=b.sets[b.sets.length-1]||{}; b.sets.push({kg:p.kg||'', reps:p.reps||'', sec:p.sec||'', acct:p.acct||''}); si=b.sets.length-1; });
+function addSet(bi){ let si=0; mutate(d=>{ const b=d.blocks[bi], who=members().filter(m=>b.sets.some(x=>x.acct===m.id)).map(m=>m.id);
+  if(who.length>1){ si=b.sets.length; who.forEach(a=>{ const p=b.sets.filter(x=>x.acct===a).pop()||{}; b.sets.push({kg:p.kg||'', reps:p.reps||'', sec:p.sec||'', rpe:'', acct:a}); }); return; }   // 分開每人之後：＋組＝每人各加一組（老闆 2026-10-05）
+  const p=b.sets[b.sets.length-1]||{}; b.sets.push({kg:p.kg||'', reps:p.reps||'', sec:p.sec||'', acct:p.acct||''}); si=b.sets.length-1; });
   setTimeout(()=>{ const el=document.querySelector(`#main [data-b="${bi}"][data-s="${si}"][data-k="kg"]`); if(el){ el.focus(); el.select&&el.select(); } },30);
   if(REST.auto) restStart(); }
 function rmSet(bi,si){ mutate(d=>{ d.blocks[bi].sets.splice(si,1); if(!d.blocks[bi].sets.length) d.blocks.splice(bi,1); }); }
 function rmBlock(bi){ if(!confirm('刪除「'+exName(getDraft().blocks[bi].ex)+'」？')) return; mutate(d=>d.blocks.splice(bi,1)); }
 function mvBlock(bi,dir){ mutate(d=>{ const j=bi+dir; if(j<0||j>=d.blocks.length) return; const t=d.blocks[bi]; d.blocks[bi]=d.blocks[j]; d.blocks[j]=t; }); }
 function toggleTimed(bi){ mutate(d=>{ d.blocks[bi].timed=!d.blocks[bi].timed; }); }
-function useLast(bi){ mutate(d=>{ const b=d.blocks[bi], last=lastSetsFor(b.ex, d.date, d.id); if(!last) return; b.sets=last.sets.map(x=>({kg:x.kg, reps:x.reps, sec:x.sec, acct:x.acct||''})); if(last.sets.some(x=>x.sec!=='')) b.timed=true; }); }
+function useLast(bi){ mutate(d=>{ const b=d.blocks[bi], last=lastSetsFor(b.ex, d.date, d.id); if(!last) return; b.sets=last.sets.map(x=>({kg:wIn(x), reps:x.reps, sec:x.sec, acct:x.acct||''})); b.unit=unitOf(last.sets); if(last.sets.some(x=>x.sec!=='')) b.timed=true; }); }
 function splitSets(bi){ mutate(d=>{ const b=d.blocks[bi], ms=members(); const out=[]; b.sets.forEach(x=>{ if(x.acct) out.push(x); else ms.forEach(m=>out.push(Object.assign({},x,{acct:m.id}))); }); b.sets=out; }); }
-function copyLast(){ const s=G.sessions[0]; if(!s) return; mutate(d=>{ const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, timed:false, sets:[]}; order.push(k); } by[k].sets.push({kg:x.kg, reps:x.reps, sec:x.sec, acct:x.acct||''}); if(x.sec!=='') by[k].timed=true; }); d.blocks=order.map(k=>by[k]); if(!d.title) d.title=s.title||''; }); }
+function copyLast(){ const s=G.sessions[0]; if(!s) return; mutate(d=>{ const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, timed:false, unit:'kg', sets:[]}; order.push(k); } by[k].sets.push({kg:wIn(x), reps:x.reps, sec:x.sec, acct:x.acct||''}); if(x.unit==='lb') by[k].unit='lb'; if(x.sec!=='') by[k].timed=true; }); d.blocks=order.map(k=>by[k]); if(!d.title) d.title=s.title||''; }); }
 /* ───────── 儲存今堂同時記出席（老闆 2026-10-04：上完堂一定有出席，唔使再補記）─────────
    預設：當日預約 → 上一節同星期幾 → 上一節；照扣一節套票（1 對 2 一人缺席照扣，場租按實到人數） */
 const attTime=s=>String(s.time||String(s.venue||'').split('｜')[2]||'').trim();
@@ -399,13 +409,14 @@ function preClassC(d){ if(d.id) return ''; const ph=G.phase, today=isoToday(), b
   const ls=(G.sessions||[])[0]; if(ls && ls.note) bits.push(`📝 上堂（${fmtDM(ls.date)}）：${esc(ls.note)}`);
   return bits.length?`<div class="card" style="padding:10px 14px"><div class="small muted" style="margin-bottom:4px">課前</div>${bits.map(b=>`<div class="small" style="margin:3px 0">${b}</div>`).join('')}</div>`:''; }
 /* 加重建議（雙漸進）：上次全部組數做到範圍上限（或上次最多次數）而 RPE ≤ 8 → +2.5kg（≥60kg +5）；有組未到範圍下限 → 維持 */
-function suggestChip(b, last, bi){ if(!last) return ''; const ws=last.sets.filter(x=>Number(x.kg)>0 && Number(x.reps)>0); if(!ws.length) return '';
-  const ph=G.phase, m=ph&&String(ph.reps||'').match(/(\d+)\D+(\d+)/), lo=m?+m[1]:0, hi=m?+m[2]:Math.max(...ws.map(x=>+x.reps)), kg=Math.max(...ws.map(x=>+x.kg)), top=ws.filter(x=>+x.kg===kg);
+function suggestChip(b, last, bi){ if(!last) return ''; const U=unitOf(last.sets), W=x=>Number(wIn(x))||0, ws=last.sets.filter(x=>W(x)>0 && Number(x.reps)>0); if(!ws.length) return '';
+  const ph=G.phase, m=ph&&String(ph.reps||'').match(/(\d+)\D+(\d+)/), lo=m?+m[1]:0, hi=m?+m[2]:Math.max(...ws.map(x=>+x.reps)), kg=Math.max(...ws.map(W)), top=ws.filter(x=>W(x)===kg);
   const allHi=top.every(x=>+x.reps>=hi && (!x.rpe || +x.rpe<=8)), anyLo=lo && top.some(x=>+x.reps<lo);
-  if(anyLo) return `<span class="badge grey" style="margin-left:4px" title="上次有組未到 ${lo} 下">維持 ${fmtN(kg)}kg</span>`;
-  if(!allHi) return ''; const nk=kg+(kg>=60?5:2.5);
-  return `<button class="btn sm" style="margin-left:4px;background:var(--gold);border-color:var(--gold)" title="上次 ${fmtN(kg)}kg 全部做到 ${hi} 下${ph?'（'+esc(ph.name)+'）':''}" onclick="applyKg(${bi},${nk})">📈 建議 ${fmtN(nk)}kg</button>`; }
-function applyKg(bi, kg){ mutate(d=>{ const b=d.blocks[bi]; if(!b.sets.length) b.sets.push({kg:'',reps:'',sec:'',acct:''}); b.sets.forEach(x=>{ x.kg=String(kg); }); }); toast('已填 '+kg+' kg（教練自己決定，可以再改）'); }
+  if(anyLo) return `<span class="badge grey" style="margin-left:4px" title="上次有組未到 ${lo} 下">維持 ${fmtN(kg)}${U}</span>`;
+  if(!allHi) return ''; const nk=kg+(U==='lb'?(kg>=135?10:5):(kg>=60?5:2.5));
+  return `<button class="btn sm" style="margin-left:4px;background:var(--gold);border-color:var(--gold)" title="上次 ${fmtN(kg)}${U} 全部做到 ${hi} 下${ph?'（'+esc(ph.name)+'）':''}" onclick="applyKg(${bi},${nk},'${U}')">📈 建議 ${fmtN(nk)}${U}</button>`; }
+function applyKg(bi, kg, u){ mutate(d=>{ const b=d.blocks[bi]; if(u) b.unit=u; if(!b.sets.length) b.sets.push({kg:'',reps:'',sec:'',acct:''}); b.sets.forEach(x=>{ x.kg=String(kg); }); }); toast('已填 '+kg+' '+(u||'kg')+'（教練自己決定，可以再改）'); }
+function toggleUnit(bi){ let u='kg'; mutate(d=>{ const b=d.blocks[bi]; b.unit=b.unit==='lb'?'kg':'lb'; u=b.unit; }); lsSet('isptc_unit', u); toast('呢個動作改用 '+u+'（數字唔會自動換算）'); }
 /* 體能測試 */
 function vTestsC(m){ const IT=G.testItems||[], ts=m.tests||[], f=C.testEdit&&C.testEdit.acct===m.id?C.testEdit:null, a=ts[0], b=ts[1], last=a?a.date:'';
   const due=!last || last<addDays(isoToday(),-56);
@@ -457,7 +468,7 @@ function welcomeSheet(f){ const url=STUDENT_URL;
   document.body.appendChild(ov); }
 async function saveSession(){
   const d=getDraft();
-  const sets=[]; d.blocks.forEach((b,bi)=>{ let n=0; b.sets.forEach(x=>{ if(String(x.kg).trim()===''&&String(x.reps).trim()===''&&String(x.sec||'').trim()==='') return; n++; sets.push({order:bi, ex:b.ex, set:n, kg:x.kg, reps:x.reps, sec:b.timed?x.sec:'', rpe:b.rpe?(x.rpe||''):'', acct:x.acct||''}); }); });
+  const sets=[]; d.blocks.forEach((b,bi)=>{ let n=0; b.sets.forEach(x=>{ if(String(x.kg).trim()===''&&String(x.reps).trim()===''&&String(x.sec||'').trim()==='') return; n++; sets.push({order:bi, ex:b.ex, set:n, kg:x.kg, unit:b.unit==='lb'?'lb':'', raw:b.unit==='lb'?x.kg:'', reps:x.reps, sec:b.timed?x.sec:'', rpe:b.rpe?(x.rpe||''):'', acct:x.acct||''}); }); });
   if(!sets.length){ toast('未有任何組數'); return; }
   const D0=LG[C.group], a=d.att, doAtt=!!(a && a.on && D0 && d.date<=isoToday() && !(D0.sessions||[]).some(x=>x.date===d.date));
   if(doAtt && (!okTime(a.time) || !a.centre)){ toast('「同時記出席」要填時間同地點（或者剔走唔記）'); return; }
@@ -527,7 +538,7 @@ function startFor(date){ const d=getDraft(); if(d.blocks.length && !confirm('記
 function editSes(id){
   const s=G.sessions.find(x=>x.id===id); if(!s) return;
   const d=getDraft(); if(d.blocks.length && d.id!==id && !confirm('記錄今堂有未儲存內容，要覆蓋？')) return;
-  const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, timed:false, sets:[]}; order.push(k); } by[k].sets.push({kg:x.kg, reps:x.reps, sec:x.sec, rpe:x.rpe||'', acct:x.acct||''}); if(x.sec!=='') by[k].timed=true; if(x.rpe) by[k].rpe=true; });
+  const by={}, order=[]; s.sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(!by[k]){ by[k]={ex:x.ex, timed:false, unit:'kg', sets:[]}; order.push(k); } by[k].sets.push({kg:wIn(x), reps:x.reps, sec:x.sec, rpe:x.rpe||'', acct:x.acct||''}); if(x.unit==='lb') by[k].unit='lb'; if(x.sec!=='') by[k].timed=true; if(x.rpe) by[k].rpe=true; });
   putDraft({id:s.id, date:s.date, title:s.title||'', note:s.note||'', blocks:order.map(k=>by[k])}); C.tab='log'; render(); window.scrollTo(0,0);
 }
 async function delSes(id){ const s=G.sessions.find(x=>x.id===id); if(!confirm(`刪除 ${fmtD(s.date)} 嘅訓練記錄？學員會睇唔到。`)) return;
