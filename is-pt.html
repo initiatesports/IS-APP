@@ -163,7 +163,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-05-e';
+const FRONTEND_VERSION = 'pt-2026-10-05-f';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -214,6 +214,7 @@ const TX = {
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
     undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', preUsedN:'另有 {n} 節冇記日期', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
+    fpTitle:'設定你自己嘅登入密碼', fpHint:'第一次登入請設一個 4 位數字密碼（唔好用電話後 4 位）。之後用「姓名＋呢個密碼」登入；加咗主畫面嘅話唔使再打。教練可以幫你查返密碼。', fpNew:'新 4 位密碼', fpAgain:'再輸入一次', fpGo:'確認', fpMismatch:'兩次輸入唔一樣',
     logPractice:'記錄練習', practiceDate:'練習日期', practiced:'今週練咗 {n} 次', noPractice:'今週未記錄練習', editDay:'改', doneLbl:'做咗', practiceLog:'練習記錄', rHwDays:'功課練習',
     phaseWk:'第 {w}/{n} 週', tests:'體能測試', testsHint:'教練每 8 週同你做一次，睇吓進步', vsPrev:'對比 {d}', readyQ:'今日狀態點？（上堂前揀，教練會調強度）', rdSleep:'睡眠', rdEnergy:'精神', rdSore:'身體恢復', rdLo:'差', rdHi:'好', kgL:'重量 kg', repsL:'次數', rTests:'體能測試',
     todayTodo:'今日要做', logDietToday:'記錄今日飲食', newReply:'教練有 {n} 條新回覆', replyIn:{session:'訓練',homework:'功課',checkin:'每週回顧',body:'身體數據',diet:'飲食'},
@@ -269,6 +270,7 @@ const TX = {
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
     undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', preUsedN:'+{n} session(s) without a date', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
+    fpTitle:'Set your own login PIN', fpHint:'First login: please set a 4-digit PIN (not your phone digits). Log in with your name + this PIN from now on; if added to your home screen you will stay logged in. Your coach can look it up if you forget.', fpNew:'New 4-digit PIN', fpAgain:'Enter it again', fpGo:'Confirm', fpMismatch:'The two PINs do not match',
     logPractice:'Log practice', practiceDate:'Practice date', practiced:'Practised {n}× this week', noPractice:'No practice logged this week', editDay:'Edit', doneLbl:'Done', practiceLog:'Practice log', rHwDays:'Homework sessions',
     phaseWk:'Week {w}/{n}', tests:'Fitness tests', testsHint:'Your coach re-tests you every 8 weeks', vsPrev:'vs {d}', readyQ:'How are you today? (before class — coach adjusts intensity)', rdSleep:'Sleep', rdEnergy:'Energy', rdSore:'Recovery', rdLo:'Poor', rdHi:'Great', kgL:'Weight kg', repsL:'Reps', rTests:'Fitness tests',
     todayTodo:'Today', logDietToday:'Log today\'s food', newReply:'{n} new coach repl(ies)', replyIn:{session:'Training',homework:'Homework',checkin:'Weekly check-in',body:'Body',diet:'Diet'},
@@ -467,6 +469,7 @@ function go(tab){ S.tab=tab; S.ses=null; markSeen(tab); render(); window.scrollT
 function render(){
   if(!AUTH){ renderLogin(); return; }
   if(!D){ if(S.meErr){ $('#app').innerHTML = `<div class="wrap"><div class="empty" style="padding-top:30vh"><div class="ic">📶</div>${esc(S.meErr)}<br><br><button class="btn sm" onclick="S.meErr='';renderShell(true);refresh(true)">↻ ${LANG==='en'?'Retry':'再試'}</button></div></div>`; return; } renderShell(true); return; }
+  if(D.needPin){ if(!document.getElementById('fp1')) renderForcePin(); return; }   // 老闆 2026-10-05：第一次登入一定要設自己密碼
   const y=window.scrollY, keep={}, ae=document.activeElement, focusId=ae&&ae.id&&ae.closest&&ae.closest('#main')?ae.id:'';
   document.querySelectorAll('#main input[id],#main textarea[id]').forEach(el=>{ if(el.type!=='checkbox' && el.value) keep[el.id]=el.value; });   // 背景重畫唔好洗走打緊嘅字
   markSeen(S.tab);
@@ -1383,6 +1386,18 @@ function renderLib(){
   $('#exlist').innerHTML=libRows(shown);
   document.querySelectorAll('.chips .chip').forEach(c=>{ const cat=c.getAttribute('onclick').match(/S\.exCat='([^']*)'/); if(cat) c.classList.toggle('on', cat[1]===S.exCat); });
 }
+function renderForcePin(err){
+  $('#app').innerHTML=`<div class="login"><div class="row" style="margin-bottom:24px"><img class="logo" src="img/is-mark-512.png" alt=""><span class="sp"></span></div>
+    <h1 style="font-size:26px">🔐 ${t('fpTitle')}</h1><p class="muted small" style="margin:8px 0 18px;line-height:1.6">${t('fpHint')}</p>
+    <form onsubmit="event.preventDefault();doForcePin()"><div class="fld"><label class="lb">${t('fpNew')}</label><input class="in num" id="fp1" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"></div>
+      <div class="fld"><label class="lb">${t('fpAgain')}</label><input class="in num" id="fp2" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"></div>
+      <div id="fp-err" style="color:var(--red);font-size:13px;min-height:20px;margin:-4px 2px 8px">${esc(err||'')}</div>
+      <button class="btn skew block" id="fp-go"><span>${t('fpGo')} →</span></button></form></div>`; }
+async function doForcePin(){ const a=$('#fp1').value.replace(/\D/g,''), b=$('#fp2').value.replace(/\D/g,''), e=$('#fp-err'), btn=$('#fp-go');
+  if(a.length!==4){ e.textContent=LANG==='en'?'Enter 4 digits':'請輸入 4 位數字'; return; } if(a!==b){ e.textContent=t('fpMismatch'); return; }
+  btn.disabled=true; const r=await api('setPin',{newPin:a}, true);
+  if(!r.ok){ btn.disabled=false; e.textContent=r.err||t('net'); return; }
+  AUTH.code=a; lsSet('ispt_auth', AUTH); D.needPin=false; lsSet('ispt_cache', D); toast('✓ '+t('pinOk')); render(); loadPlan(); loadDiet(); }
 async function setPin(){
   const v=$('#newpin').value.replace(/\D/g,''); if(v.length!==4){ toast(LANG==='en'?'Enter 4 digits':'請輸入 4 位數字'); return; }
   const r=await api('setPin',{newPin:v}, true);
