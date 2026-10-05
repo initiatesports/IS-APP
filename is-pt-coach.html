@@ -21,8 +21,9 @@ button{cursor:pointer}
 .wrap{max-width:720px;margin:0 auto;padding:0 14px calc(110px + var(--safe-b))}
 .top{position:sticky;top:0;z-index:20;background:rgba(244,239,230,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 8px) 14px 0}
 .top-in{max-width:720px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:8px;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.05em;font-size:14px}
+.brand{display:flex;align-items:center;gap:8px;white-space:nowrap;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.05em;font-size:14px}
 .brand img{width:24px;height:24px;border-radius:6px}
+@media (max-width:370px){.brand{font-size:12.5px;letter-spacing:.02em;gap:6px}.brand img{width:22px;height:22px}.brand .tag{font-size:10px;padding:1px 5px}}   /* 細 iPhone：INITIATE SPORTS 唔好逼走右邊掣 */
 .brand .tag{transform:skewX(-6deg);background:var(--gold);color:#fbf8f2;padding:1px 7px;font-size:11px}
 .row{display:flex;align-items:center;gap:8px}
 .sp{flex:1}
@@ -101,7 +102,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-d';
+const FRONTEND_VERSION = 'ptc-2026-10-05-e';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -173,7 +174,7 @@ async function boot(){
 }
 function renderLogin(err){
   $('#app').innerHTML=`<div style="max-width:380px;margin:0 auto;padding:22vh 22px 0">
-    <div class="brand" style="font-size:18px;margin-bottom:18px"><img src="img/is-mark-96.png" style="width:36px;height:36px">INITIATE <span class="tag">PT 教練</span></div>
+    <div class="brand" style="font-size:18px;margin-bottom:18px"><img src="img/is-mark-96.png" style="width:36px;height:36px">INITIATE SPORTS <span class="tag">PT 教練</span></div>
     <form onsubmit="doLogin(event)"><label class="lb">教練密碼</label><input class="in" type="password" id="pw" autocomplete="current-password">
     <div style="color:var(--red);font-size:13px;min-height:20px;margin:6px 2px">${esc(err||'')}</div>
     <button class="btn block">登入</button></form>
@@ -183,10 +184,15 @@ async function doLogin(e){ e.preventDefault(); PASS=$('#pw').value.trim(); if(!P
 async function checkVersion(){
   try{ const r=await fetch(location.pathname+'?_ck='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
     const m=(await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
-    if(m && m[1]!==FRONTEND_VERSION){ let tr=null; try{ tr=sessionStorage.getItem('isptc_upd'); }catch(e){} if(tr===m[1]) return; try{ sessionStorage.setItem('isptc_upd',m[1]); }catch(e){}
+    if(m && m[1]!==FRONTEND_VERSION){ let tr=null; try{ tr=JSON.parse(sessionStorage.getItem('isptc_upd2')||'null'); }catch(e){} if(tr && tr.v===m[1] && Date.now()-tr.at<600000) return; try{ sessionStorage.setItem('isptc_upd2',JSON.stringify({v:m[1], at:Date.now()})); }catch(e){}
       const busy=()=>C.hwEdit||C.acctEdit||C.habEdit||C.exEdit||C.foodEdit||C.dietEdit||[...document.querySelectorAll('#main input,#main textarea')].some(el=>el.value&&el.type!=='date'&&!el.dataset.f&&!el.dataset.b);
       const go=()=>{ if(busy()){ setTimeout(go, 20000); return; } toast('🔄 有新版本，更新中…'); setTimeout(()=>location.replace(location.pathname+'?v='+encodeURIComponent(m[1])),900); }; go(); } }catch(e){}
 }
+/* 由背景返嚟（主畫面 app）都檢查新版，最多每分鐘一次；開住每 30 分鐘一次 */
+let lastWake_=Date.now();
+function onWake_(){ if(document.visibilityState!=='visible' || Date.now()-lastWake_<60000) return; lastWake_=Date.now(); checkVersion(); }
+document.addEventListener('visibilitychange', onWake_); window.addEventListener('pageshow', e=>{ if(e.persisted) onWake_(); }); window.addEventListener('focus', onWake_);
+setInterval(()=>{ lastWake_=0; onWake_(); }, 30*60*1000);
 async function loadGroup(){
   if(!C.group){ G=null; render(); return; }
   lsSet('isptc_group', C.group);
@@ -208,7 +214,7 @@ function render(){
   const y=window.scrollY, keep={}, ae=document.activeElement, focusId=ae&&ae.id&&ae.closest&&ae.closest('#main')?ae.id:'';
   document.querySelectorAll('#main input[id],#main textarea[id]').forEach(el=>{ if(el.type!=='checkbox' && el.value) keep[el.id]=el.value; });
   $('#app').innerHTML=`<header class="top"><div class="top-in">
-    <div class="row"><div class="brand"><img src="img/is-mark-96.png">INITIATE <span class="tag">PT 教練</span></div><span class="sp"></span>
+    <div class="row"><div class="brand"><img src="img/is-mark-96.png">INITIATE SPORTS <span class="tag">PT 教練</span></div><span class="sp"></span>
       <a class="lnk" href="coach.html" style="text-decoration:none">‹ 教練頁</a></div>
     <div class="chips">${L.groups.map(g=>`<button class="chip ${g===C.group?'on':''}" onclick="pickGroup('${esc(g).replace(/'/g,"\\'")}')">${esc(g)}</button>`).join('')||'<span class="small muted">未有學員帳戶 → 去「設定」開帳戶</span>'}</div>
     <div class="tabs">${TABS.map(t=>`<button class="${C.tab===t[0]?'on':''}" onclick="C.tab='${t[0]}';render();window.scrollTo(0,0)">${t[1]}${t[0]==='cm'&&unread?` <span class="badge gold">${unread}</span>`:''}</button>`).join('')}</div>

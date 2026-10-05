@@ -31,8 +31,9 @@ button{cursor:pointer}
 /* header */
 .top{position:sticky;top:0;z-index:20;background:rgba(244,239,230,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px}
 .top-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px}
-.brand{display:flex;align-items:center;gap:8px;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.06em;font-size:14px}
+.brand{display:flex;align-items:center;gap:8px;white-space:nowrap;font-family:'Archivo',sans-serif;font-weight:900;letter-spacing:.06em;font-size:14px}
 .brand img{width:26px;height:26px;border-radius:7px}
+@media (max-width:370px){.brand{font-size:12.5px;letter-spacing:.02em;gap:6px}.brand img{width:22px;height:22px}.brand .tag{font-size:10px;padding:1px 5px}}   /* 細 iPhone：INITIATE SPORTS 唔好逼走右邊掣 */
 .brand .tag{display:inline-block;transform:skewX(-6deg);background:var(--teal);color:#fbf8f2;padding:1px 7px;font-size:11px;letter-spacing:.08em}
 .top .sp{flex:1}
 .pill{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:5px 11px;font-size:12px;color:var(--mut);min-height:36px;min-width:36px}
@@ -162,7 +163,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-05-b';
+const FRONTEND_VERSION = 'pt-2026-10-05-c';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -393,13 +394,23 @@ async function checkVersion(){
     const r = await fetch(location.pathname+'?_ck='+Date.now(), {cache:'no-store'}); if(!r.ok) return;
     const m = (await r.text()).match(/FRONTEND_VERSION\s*=\s*'([^']+)'/);
     if(m && m[1]!==FRONTEND_VERSION){
-      let tried=null; try{ tried=sessionStorage.getItem('ispt_upd'); }catch(e){}
-      if(tried===m[1]) return;
-      try{ sessionStorage.setItem('ispt_upd', m[1]); }catch(e){}
-      toast(t('newVer')); setTimeout(()=>location.replace(location.pathname+'?v='+encodeURIComponent(m[1])), 900);
+      // 防無限 reload（CDN 偶然仲派舊版）：同一個新版本 10 分鐘內只試一次，之後再試
+      let tr=null; try{ tr=JSON.parse(sessionStorage.getItem('ispt_upd2')||'null'); }catch(e){}
+      if(tr && tr.v===m[1] && Date.now()-tr.at<600000) return;
+      try{ sessionStorage.setItem('ispt_upd2', JSON.stringify({v:m[1], at:Date.now()})); }catch(e){}
+      // 學員打緊嘢／開住表單就等一陣先更新，唔好洗走佢輸入緊嘅內容
+      const busy=()=>!!document.querySelector('.ov') || [...document.querySelectorAll('#main input,#main textarea')].some(el=>el.value && !['date','time','checkbox','hidden'].includes(el.type) && el.id!=='exq');
+      const go=()=>{ if(busy()){ setTimeout(go, 20000); return; } toast(t('newVer')); setTimeout(()=>location.replace(location.pathname+'?v='+encodeURIComponent(m[1])), 900); }; go();
     }
   }catch(e){}
 }
+/* 加咗落手機主畫面嘅 app 多數係「由背景返嚟」而唔係重新開（尤其 iPhone）→ 每次返到前台都檢查新版＋更新資料（最多每分鐘一次），開住都每 30 分鐘檢查（老闆 2026-10-05） */
+let lastWake_=Date.now();
+function onWake_(){ if(document.visibilityState!=='visible' || Date.now()-lastWake_<60000) return; lastWake_=Date.now(); checkVersion(); if(AUTH && D) refresh(false); }
+document.addEventListener('visibilitychange', onWake_);
+window.addEventListener('pageshow', e=>{ if(e.persisted) onWake_(); });
+window.addEventListener('focus', onWake_);
+setInterval(()=>{ lastWake_=0; onWake_(); }, 30*60*1000);
 
 /* ───────── 登入 ───────── */
 function renderLogin(err){
@@ -444,7 +455,7 @@ function renderShell(loading){
   const tabs=['home','train','diet','hw','body','more'], un=loading?{}:unread();
   $('#app').innerHTML = `
   <header class="top"><div class="top-in">
-    <div class="brand"><img src="img/is-mark-96.png" alt="">INITIATE <span class="tag">PT</span></div><span class="sp"></span>
+    <div class="brand"><img src="img/is-mark-96.png" alt="">INITIATE SPORTS <span class="tag">PT</span></div><span class="sp"></span>
     <button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh')">中</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en')">EN</button>
   </div></header>
   <main class="wrap" id="main">${loading?'<div style="height:18px"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>':''}</main>
