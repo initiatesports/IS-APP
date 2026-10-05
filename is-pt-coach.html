@@ -102,7 +102,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-e';
+const FRONTEND_VERSION = 'ptc-2026-10-05-f';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -576,12 +576,13 @@ function vHw(){
   if(!list.length) return h+'<div class="empty">未有功課</div>';
   list.forEach(hw=>{
     const days=Array.from({length:7},(_,i)=>addDays(hw.week,i)), items=hw.items&&hw.items.length?hw.items:[{text:hw.title}];
-    const tgt=hw.acct?ms.filter(m=>m.id===hw.acct):ms, adh=tgt.map(m=>{ const a=hwAdherence(hw, m.id); return a==null?'':`${esc(m.en||m.name)} ${a}%`; }).filter(Boolean).join(' · ');
-    h+=`<div class="card"><div class="row"><div><b>${esc(hw.title||'功課')}</b><div class="small muted">${fmtD(hw.week)} – ${fmtDM(days[6])} · ${hw.acct?'只限 '+esc(memName(hw.acct)):'全組'}${adh?` · 完成度 <b style="color:var(--teal)">${adh}</b>`:''}</div></div><span class="sp"></span><button class="btn ghost xs" onclick="editHw('${hw.id}')">✎</button><button class="btn warn xs" onclick="delHw('${hw.id}')">刪</button></div>
+    const tgt=hw.acct?ms.filter(m=>m.id===hw.acct):ms, adh=tgt.map(m=>{ const ds=[...new Set((hw.logs||[]).filter(l=>l.acct===m.id && l.done).map(l=>l.date))].sort(); return `${esc(m.en||m.name)} 練咗 ${ds.length} 次${ds.length?'（'+ds.map(fmtDM).join('、')+'）':''}`; }).join(' · ');   // 老闆 2026-10-05：唔計每週幾次，直接睇練咗邊幾日
+    h+=`<div class="card"><div class="row"><div><b>${esc(hw.title||'功課')}</b><div class="small muted">${fmtD(hw.week)} – ${fmtDM(days[6])} · ${hw.acct?'只限 '+esc(memName(hw.acct)):'全組'}${adh?`<div style="color:var(--teal);font-weight:700">${adh}</div>`:''}</div></div><span class="sp"></span><button class="btn ghost xs" onclick="editHw('${hw.id}')">✎</button><button class="btn warn xs" onclick="delHw('${hw.id}')">刪</button></div>
       ${hw.desc?`<div class="small" style="white-space:pre-wrap;margin-top:6px">${esc(hw.desc)}</div>`:''}
-      <div style="margin-top:8px">${items.map((it,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(it.ex?exName(it.ex):it.text)}</b>${it.ex&&it.text?` <span class="small">${esc(it.text)}</span>`:''}<div class="small muted">${[it.sets?it.sets+' 組':'', it.reps?'× '+esc(it.reps):'', it.days?'每週 '+it.days+' 次':'', esc(it.note||'')].filter(Boolean).join(' ')}</div>
-        ${tgt.map(m=>{ const lg=(hw.logs||[]).filter(l=>l.acct===m.id&&l.idx===i); const dn=days.filter(d=>lg.some(l=>l.date===d&&l.done)); const nt=lg.filter(l=>l.note||l.kg||l.reps).map(l=>fmtDM(l.date)+' '+[l.kg?fmtN(l.kg)+'kg':'', l.reps?'×'+l.reps:'', l.rpe?'RPE'+l.rpe:'', l.note||''].filter(Boolean).join(' '));
-          return `<div class="small" style="margin-top:3px">${esc(m.en||m.name)}：<span style="letter-spacing:2px">${days.map(d=>dn.includes(d)?'<span style="color:var(--teal)">●</span>':'<span class="muted">○</span>').join('')}</span> <b>${dn.length}</b>${nt.length?` <span class="muted">📝 ${esc(nt.join('；'))}</span>`:''}</div>`; }).join('')}</div></div>`).join('')}</div>
+      <div style="margin-top:8px">${items.map((it,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(it.ex?exName(it.ex):it.text)}</b>${it.ex&&it.text?` <span class="small">${esc(it.text)}</span>`:''}<div class="small muted">${[it.sets?it.sets+' 組':'', it.reps?'× '+esc(it.reps):'', esc(it.note||'')].filter(Boolean).join(' ')}</div>
+        ${tgt.map(m=>{ const lg=(hw.logs||[]).filter(l=>l.acct===m.id&&l.idx===i); const dn=days.filter(d=>lg.some(l=>l.date===d&&l.done)); const nt=lg.filter(l=>l.done&&(l.note||l.kg||l.reps)).map(l=>fmtDM(l.date)+' '+[l.kg?fmtN(l.kg)+'kg':'', l.reps?'×'+l.reps:'', l.rpe?'RPE'+l.rpe:'', l.note||''].filter(Boolean).join(' '));
+          const all=[...new Set(lg.filter(l=>l.done).map(l=>l.date))].sort(); if(!all.length && !nt.length) return '';
+          return `<div class="small" style="margin-top:3px">${esc(m.en||m.name)}：${nt.length?`<span class="muted">${esc(nt.join('；'))}</span>`:all.map(fmtDM).join('、')+' ✓'}</div>`; }).join('')}</div></div>`).join('')}</div>
       ${thread('homework', hw.id, hw.acct||'')}</div>`;
   });
   return h;
@@ -598,8 +599,8 @@ function hwForm(){
     <div class="lb" style="margin-top:6px">項目</div>
     ${f.items.map((it,i)=>`<div class="blk" style="margin:8px 0;padding:10px"><div class="row"><b style="flex:1">${it.ex?esc(exName(it.ex)):'自訂項目'}</b><button class="ib" onclick="C.hwEdit.items.splice(${i},1);render()">✕</button></div>
       ${it.ex?'':`<input class="in" style="margin-top:6px" value="${esc(it.text)}" oninput="C.hwEdit.items[${i}].text=this.value" placeholder="例：行路 30 分鐘">`}
-      <div class="fgrid" style="margin-top:6px;grid-template-columns:1fr 1fr 1fr 2fr"><input class="in num" inputmode="numeric" value="${esc(it.sets)}" oninput="C.hwEdit.items[${i}].sets=this.value" placeholder="組數"><input class="in num" value="${esc(it.reps)}" oninput="C.hwEdit.items[${i}].reps=this.value" placeholder="次數/秒"><input class="in num" inputmode="numeric" value="${esc(it.days||'')}" oninput="C.hwEdit.items[${i}].days=this.value" placeholder="每週幾次"><input class="in" value="${esc(it.note)}" oninput="C.hwEdit.items[${i}].note=this.value" placeholder="提示（可留空）"></div></div>`).join('')}
-    <div class="row" style="margin-top:8px"><button class="btn ghost sm" onclick="openPicker(id=>{C.hwEdit.items.push({ex:id,text:'',sets:'3',reps:'',note:'',days:'3'});render();})">＋ 動作</button><button class="btn ghost sm" onclick="C.hwEdit.items.push({ex:'',text:'',sets:'',reps:'',note:'',days:'3'});render()">＋ 自訂項目</button></div>
+      <div class="fgrid" style="margin-top:6px;grid-template-columns:1fr 1fr 2fr"><input class="in num" inputmode="numeric" value="${esc(it.sets)}" oninput="C.hwEdit.items[${i}].sets=this.value" placeholder="組數"><input class="in num" value="${esc(it.reps)}" oninput="C.hwEdit.items[${i}].reps=this.value" placeholder="次數/秒"><input class="in" value="${esc(it.note)}" oninput="C.hwEdit.items[${i}].note=this.value" placeholder="提示（可留空）"></div></div>`).join('')}
+    <div class="row" style="margin-top:8px"><button class="btn ghost sm" onclick="openPicker(id=>{C.hwEdit.items.push({ex:id,text:'',sets:'3',reps:'',note:''});render();})">＋ 動作</button><button class="btn ghost sm" onclick="C.hwEdit.items.push({ex:'',text:'',sets:'',reps:'',note:''});render()">＋ 自訂項目</button></div>
     <div class="row" style="margin-top:16px"><button class="btn ghost" onclick="C.hwEdit=null;render()">取消</button><span class="sp"></span><button class="btn" id="hwsv" onclick="saveHw()">儲存功課</button></div></div>`;
 }
 async function saveHw(){
