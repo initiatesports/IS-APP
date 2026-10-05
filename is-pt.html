@@ -162,7 +162,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-05-a';
+const FRONTEND_VERSION = 'pt-2026-10-05-b';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -362,7 +362,8 @@ function prSets(){ const best={}, hit=new WeakSet();
     mySets(s).forEach(x=>{ const k=setKind(x); if(!k) return; const v={kg:Number(x.kg)||0, reps:Number(x.reps)||0, sec:Number(x.sec)||0, x}; const key=x.ex+'|'+k; if(setBetter(k,v,top[key])) top[key]=Object.assign({k},v); });
     Object.keys(top).forEach(key=>{ const tp=top[key], b=best[key]; if(!b){ best[key]=tp; return; } if(setBetter(tp.k,tp,b)){ best[key]=tp; hit.add(tp.x); } }); });
   return hit; }
-function prTxt(b){ return b.kind==='bw' ? `${b.reps} ${LANG==='en'?'reps':'下'}` : b.kind==='t' ? `${fmtN(b.sec)} ${LANG==='en'?'s':'秒'}` : `${fmtN(b.kg)} kg × ${b.reps}`; }
+const wTxt=x=>x.unit==='lb'?`${fmtN(x.raw)} lb`:`${fmtN(x.kg)} kg`;   // lb 組照顯示磅（2026-10-05）
+function prTxt(b){ return b.kind==='bw' ? `${b.reps} ${LANG==='en'?'reps':'下'}` : b.kind==='t' ? `${fmtN(b.sec)} ${LANG==='en'?'s':'秒'}` : `${wTxt(b)} × ${b.reps}`; }
 function groupSets(sets){ const out=[], idx={}; sets.forEach(x=>{ const k=x.order+'|'+x.ex; if(idx[k]==null){ idx[k]=out.length; out.push({ex:x.ex, sets:[]}); } out[idx[k]].sets.push(x); }); return out; }
 function volOf(sets){ return sets.reduce((a,x)=>a+(Number(x.kg)||0)*(Number(x.reps)||0),0); }
 
@@ -552,7 +553,7 @@ function vSesDetail(s){
   h+=`<div class="card">`+(g.length?g.map(b=>`<div class="exb"><div class="row"><button class="exname" onclick="showEx('${b.ex}')">${esc(exName(b.ex))}</button></div>
       ${exSub(b.ex)?`<div class="small muted">${esc(exSub(b.ex))}</div>`:''}
       <div class="sets">${b.sets.map((x,i)=>{ const isPr=pk.has(x);
-        const main = x.kg!=='' && x.kg!=null ? `${fmtN(x.kg)}<span class="small muted">kg</span>${x.reps!==''?` × ${esc(x.reps)}`:''}` : (x.reps!==''?`${esc(x.reps)} ${LANG==='en'?'reps':'下'}`:'') ;
+        const main = x.kg!=='' && x.kg!=null ? `${fmtN(x.unit==='lb'?x.raw:x.kg)}<span class="small muted">${x.unit==='lb'?'lb':'kg'}</span>${x.reps!==''?` × ${esc(x.reps)}`:''}` : (x.reps!==''?`${esc(x.reps)} ${LANG==='en'?'reps':'下'}`:'') ;
         const sec = x.sec!=='' && x.sec!=null ? `${esc(x.sec)}s` : '';
         return `<div class="set ${isPr?'pr':''}"><span class="n">${LANG==='en'?'Set '+(i+1):'第'+(i+1)+'組'}${isPr?' 🏆':''}</span><span class="k num">${main||sec||'—'}</span>${main&&sec?` <span class="small muted">${sec}</span>`:''}${x.acct&&(D.mates||[]).length?`<span class="n" style="color:var(--teal)">${t('onlyYou')}</span>`:''}${x.rpe?`<span class="n">RPE ${esc(x.rpe)}</span>`:''}${x.note?`<span class="n">${esc(x.note)}</span>`:''}</div>`; }).join('')}</div></div>`).join('') : `<div class="muted small">—</div>`)+`</div>`;
   h+=feelBlock(s, false);
@@ -1370,7 +1371,7 @@ async function setPin(){
 function showEx(id){
   const e=EXM()[id]; if(!e) return;
   const best=(D.prs&&D.prs.best||[]).filter(b=>b.ex===id).sort((a,b)=>(a.kind==='w'?0:1)-(b.kind==='w'?0:1))[0];
-  const hist=[]; (D.sessions||[]).forEach(s=>{ const xs=mySets(s).filter(x=>x.ex===id); if(xs.length){ const top=xs.reduce((a,x)=>(Number(x.kg)||0)>(Number(a.kg)||0)?x:a, xs[0]); hist.push({d:s.date, n:xs.length, kg:top.kg, reps:top.reps}); } });
+  const hist=[]; (D.sessions||[]).forEach(s=>{ const xs=mySets(s).filter(x=>x.ex===id); if(xs.length){ const top=xs.reduce((a,x)=>(Number(x.kg)||0)>(Number(a.kg)||0)?x:a, xs[0]); hist.push({d:s.date, n:xs.length, kg:top.kg, reps:top.reps, unit:top.unit, raw:top.raw}); } });
   const cue = LANG==='en' ? (e.cueEn||e.cue) : e.cue;
   const ov=document.createElement('div'); ov.className='ov'; ov.onclick=ev=>{ if(ev.target===ov) ov.remove(); };
   const pts=hist.filter(x=>Number(x.kg)>0).map(x=>({d:x.d, v:Number(x.kg)})).reverse();
@@ -1381,7 +1382,7 @@ function showEx(id){
     ${e.video?`<a class="btn skew block" style="text-decoration:none;margin:6px 0 4px" href="${esc(e.video)}" target="_blank" rel="noopener"><span>▶ ${t('video')}</span></a>`:''}
     ${best?`<div class="sec">🏆 ${t('yourBest')}</div><div class="card"><span class="big num" style="font-size:26px">${prTxt(best)}</span><div class="small muted">${fmtD(best.date)}${best.e1rm?` · ${t('e1rm')} ${fmtN(best.e1rm)} kg`:''}</div></div>`:''}
     ${pts.length>1?`<div class="card">${chartSVG(pts,'kg')}</div>`:''}
-    ${hist.length?`<div class="sec">${t('yourHist')}</div><div class="card">${hist.slice(0,12).map(x=>`<div class="li"><div style="flex:1">${fmtD(x.d)}</div><div class="num small">${x.n} ${t('sets')}${Number(x.kg)>0?` · ${fmtN(x.kg)} kg × ${esc(x.reps)}`:''}</div></div>`).join('')}</div>`:''}
+    ${hist.length?`<div class="sec">${t('yourHist')}</div><div class="card">${hist.slice(0,12).map(x=>`<div class="li"><div style="flex:1">${fmtD(x.d)}</div><div class="num small">${x.n} ${t('sets')}${Number(x.kg)>0?` · ${wTxt(x)} × ${esc(x.reps)}`:''}</div></div>`).join('')}</div>`:''}
   </div>`;
   document.body.appendChild(ov);
 }
