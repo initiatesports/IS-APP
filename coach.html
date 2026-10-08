@@ -603,7 +603,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-09-30-ptsplit2';
+const FRONTEND_VERSION = 'coach-2026-10-08-sickleave';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1712,14 +1712,15 @@ function renderManualLeaveMakeup(){
   host.innerHTML=`
   <div class="section-header">✍️ 手動請假／補堂（WhatsApp 用）</div>
   <div style="border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface);margin:0 16px">
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">家長用 WhatsApp 請假／補堂時，喺呢度打學生【姓】即彈名單揀 → 揀日期 → 揀當日班別 → 撳「補堂」或「請假」。</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">家長用 WhatsApp 請假／補堂時，喺呢度打學生【姓】即彈名單揀 → 揀日期 → 揀當日班別 → 撳「補堂」、「事假」或「病假」。病假要家長喺病假日起計 3 日內（例：星期一病→星期四前）喺家長頁交醫生紙，你核實後先可補堂。</div>
     ${_mlDatalist}
     <input id="ml-name" list="ml-students" placeholder="打個姓即彈名單（例：陳 → 陳大文…）" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
     <input type="date" id="ml-date" value="${todayStr()}" onchange="mlLoadClasses()" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:8px;font-family:inherit;font-size:14px">
     <select id="ml-cls" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;margin-bottom:10px;font-family:inherit;font-size:14px"><option value="">— 先揀日期 —</option></select>
     <div style="display:flex;gap:8px">
       <button onclick="mlSubmit('makeup')" style="flex:1;padding:12px;border:0;border-radius:10px;background:var(--cyan,#28B8C8);color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🔵 補堂</button>
-      <button onclick="mlSubmit('leave')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#E9A100;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🟡 請假</button>
+      <button onclick="mlSubmit('leave','事假')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#E9A100;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🟡 事假</button>
+      <button onclick="mlSubmit('leave','病假')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#D9534F;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🤒 病假</button>
       <button onclick="mlSubmit('drill')" style="flex:1;padding:12px;border:0;border-radius:10px;background:#7C4DBF;color:#fff;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer">🟣 加操</button>
     </div>
     <div style="font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.5">🟣 加操：學生今日多練一節。系統會自動查佢有冇未補請假 —— 有就當補堂（免費）；冇就按學費收一節落下期（出單前若有請假會自動轉補堂）。</div>
@@ -1746,7 +1747,7 @@ async function mlLoadClasses(){
   if(!opts.length){ sel.innerHTML='<option value="">冇班別可揀（請先載入雲端資料）</option>'; return; }
   sel.innerHTML='<option value="">— 揀班別 —</option>'+opts.map(o=>`<option value="${o.cid}">${o.lbl.replace(/</g,'&lt;')}</option>`).join('');
 }
-async function mlSubmit(kind){
+async function mlSubmit(kind, leaveType){
   const name=((document.getElementById('ml-name')||{}).value||'').trim();
   const date=(document.getElementById('ml-date')||{}).value;
   const cid=(document.getElementById('ml-cls')||{}).value;
@@ -1761,22 +1762,24 @@ async function mlSubmit(kind){
      而且 coachDrill 會**出加操費**＝動錢，唔適合喺冇得 live dry-run 嘅情況下摸黑搬。
      所以呢度先講清楚，等教練即刻知道要點做，唔好對住一句 unknown action 發呆。
      （🟡請假 markLeave 兩邊都有，運動班照用得。）*/
+  /* 醫生紙限期「YYYY-MM-DD HH:mm」→ DD/MM/YYYY（老闆日期規則；00:00 即前一日完結）*/
+  function fmtDmyTime_(t){ const m=String(t||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?(m[3]+'/'+m[2]+'/'+m[1]+' 前'):String(t||''); }
   if(isSA(cid) && kind!=='leave'){
     msg.style.color='var(--amber,#e0a050)';
     msg.innerHTML='運動班暫時未支援教練端「'+(kind==='makeup'?'補堂':'加操')+'」（後端未有呢個功能）。<br>'
-      +'・<b>請假</b>：運動班支援，可以用返「🟡 請假」掣。<br>'
+      +'・<b>請假</b>：運動班支援，可以用返「🟡 事假／🤒 病假」掣。<br>'
       +'・<b>補堂／加操</b>：請暫時人手記低，或叫家長喺家長頁自助約。';
     return;
   }
   msg.style.color='var(--muted,#888)'; msg.textContent='處理緊…';
   const body = kind==='makeup' ? {action:'coachAddMakeup', name, toKey:cid, toDate:date, coachPass:cpass()}
-             : kind==='leave'  ? {action:'markLeave', name, classId:cid, date, coachPass:cpass()}
+             : kind==='leave'  ? {action:'markLeave', name, classId:cid, date, leaveType:(leaveType||'事假'), coachPass:cpass()}
              :                    {action:'coachDrill', name, cid, date, coachPass:cpass()};
   let r; try{ r=await apiPost(body); }catch(e){ r=null; }
   if(r&&r.err==='密碼錯誤'){ COACH_PASS_RT=''; try{localStorage.removeItem('is_cpass');}catch(e){} toast('請重新輸入教練密碼','⚠️'); coachLogout(); return; }
   if(!r||!r.ok){ msg.style.color='var(--red,#f87171)'; msg.textContent='失敗'+((r&&r.err)?'：'+r.err:'，請再試'); return; }
   const word = kind==='makeup' ? (r.dup?'已有補堂記錄':'已加補堂')
-             : kind==='leave'  ? '已標請假'
+             : kind==='leave'  ? ('已標請假（'+(r.leaveType||leaveType||'事假')+(r.asAdvance?'：未來日子病假按事假':'')+'）'+(r.certDeadline?'・醫生紙限期 '+fmtDmyTime_(r.certDeadline):''))
              :                    (r.result==='補堂' ? '加操 → 已當補堂（免費）' : ('加操（'+(r.chargePeriod||'下期')+' 收 $'+r.fee+'）'));
   msg.style.color='var(--green,#2ecc71)'; msg.textContent='✓ '+name+' → '+vnCidLabel(cid)+'　'+date+'　'+word + (kind==='drill'&&r.note?('　'+r.note):'');
   toast(name+' '+word+' ✓','✓');
