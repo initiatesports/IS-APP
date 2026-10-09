@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-09-leaveonce';
+const FRONTEND_VERSION='parent-2026-10-09-mkonce';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1931,8 +1931,10 @@ async function submitCancelLeave(){
   const code=$('cf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong')); if(!CF.dates.length) return;
   const child=S.family.children[CF.ki], c=child.classes[CF.ci]; const btn=$('cf-go'); btn.disabled=true; btn.textContent=t('submitting');
   let fail=0,err='';
-  for(const date of CF.dates){ try{ const r=await api('cancelLeave',{name:child.name,key:classKey(c),date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);} }
-  closeSheet(); await refresh();
+  for(const date of CF.dates){ try{ const r=await api('cancelLeave',{name:child.name,key:classKey(c),date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} else { const x=(c.sessions||[]).find(z=>z.date===date); if(x) x.status=''; } }catch(e){fail++;err=String(e);} }
+  closeSheet();
+  if(!fail) toast(LANG==='en'?'✓ Leave cancelled — updating…':'✓ 已取消請假，更新緊資料…');
+  await refresh();
   if(fail) return toast(t('failN',fail,err));
   const ds=CF.dates.map(d=>fmtDate(d)).join('、');
   showReceipt(t('rcCancelL'),[`${t('child')}：<b>${child.name}</b>`,`${t('klass')}：${classLabel(c.key||c.sport)}`,t('restored',ds)],
@@ -2063,6 +2065,8 @@ function renderMfPicks(){
 }
 function mfRemove(i){ MF.picks.splice(i,1); mfPickDate(); renderMfPicks(); }
 function toggleMkSib(idx,el){ const i=MF.sibs.indexOf(idx); if(i>=0){MF.sibs.splice(i,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}else{MF.sibs.push(idx);el.classList.add('on');el.querySelector('.cap').style.display='';} }
+// 補堂成功即刻喺本機扣待補＋記一筆預約：refresh 未返之前唔會再畀揀多一堂（防重複預約）
+function markLocalMakeup_(c,p){ try{ c.owed=Math.max(0,(Number(c.owed)||0)-1); (c.makeups=c.makeups||[]).push({to:p.toKey,date:p.date,status:'補堂'}); }catch(e){} }
 async function submitMakeup(){
   const code=$('mf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong')); if(!MF.picks.length) return;
   // ⏱️ 少於開課前 6 小時嘅補堂：可以申請，但一經提交即不可取消 → 先彈窗（家長須按 OK 確認）
@@ -2070,7 +2074,7 @@ async function submitMakeup(){
   const child=S.family.children[MF.ki], c=child.classes[MF.ci]; const btn=$('mf-go'); btn.disabled=true; btn.textContent=t('submitting');
   let fail=0,err='';
   for(const p of MF.picks){
-    try{ const r=await api('bookMakeup',{name:child.name,fromKey:classKey(c),fromDate:'',toKey:p.toKey,toDate:p.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} }catch(e){fail++;err=String(e);}
+    try{ const r=await api('bookMakeup',{name:child.name,fromKey:classKey(c),fromDate:'',toKey:p.toKey,toDate:p.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';} else if(!r.dup) markLocalMakeup_(c,p); }catch(e){fail++;err=String(e);}
   }
   // 👨‍👩‍👧‍👦 兄弟姊妹一齊補堂：同班(同cid)、同上面日子；每個 sibling 只book唔超過佢 owed 數(防過度預約)
   const sibDone=[];
@@ -2079,11 +2083,13 @@ async function submitMakeup(){
     const sc=(sib.classes||[]).find(x=>(x.key||x.sport)===(c.key||c.sport)&&(x.owed||0)>0); if(!sc) continue;
     let sok=0;
     for(const p of MF.picks.slice(0, sc.owed)){
-      try{ const r=await api('bookMakeup',{name:sib.name,fromKey:classKey(sc),fromDate:'',toKey:p.toKey,toDate:p.date}); if(r&&r.ok)sok++; }catch(e){}
+      try{ const r=await api('bookMakeup',{name:sib.name,fromKey:classKey(sc),fromDate:'',toKey:p.toKey,toDate:p.date}); if(r&&r.ok){ sok++; if(!r.dup) markLocalMakeup_(sc,p); } }catch(e){}
     }
     if(sok) sibDone.push(sib.name);
   }
-  closeSheet(); await refresh();
+  closeSheet();
+  if(!fail) toast(LANG==='en'?'✓ Make-up booked — updating…':'✓ 補堂已預約，更新緊資料…');   // 2026-10-09：同請假一樣即時回應，防等 refresh 時再撳
+  await refresh();
   if(fail) return toast(t('failN',fail,err));
   const picks=MF.picks.map(p=>{const d=new Date(p.date+'T00:00:00');return `${classLabel(p.toKey)}・${fmt(d)}${dow(d)}`;});
   showReceipt(t('rcMk'),[`${t('child')}：<b>${child.name}</b>${sibDone.length?('、<b>'+sibDone.join('、')+'</b>'):''}`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...picks.map(p=>t('mkTo',p)),`<span style="color:var(--muted)">${t('mkReviewHint')}</span>`],
@@ -2114,7 +2120,10 @@ async function submitCancelMakeup(){
   for(const i of XF.picks){ const m=XF.opts[i];
     try{ const r=await api('cancelMakeup',{name:child.name,fromKey,toKey:m.to,toDate:m.date}); if(!r||!r.ok){fail++;err=(r&&r.err)||'';}else{const d=new Date(m.date+'T00:00:00');done.push(`${mkOptLabel(m.to)}・${fmt(d)}`);} }catch(e){fail++;err=String(e);}
   }
-  closeSheet(); await refresh();
+  closeSheet();
+  if(!fail){ toast(LANG==='en'?'✓ Make-up cancelled — updating…':'✓ 已取消補堂，更新緊資料…');
+    try{ const gone=new Set(XF.picks.map(k=>{const m=XF.opts[k]; return m.to+'|'+m.date;})); c.makeups=(c.makeups||[]).filter(m=>!gone.has(m.to+'|'+m.date)); c.owed=(Number(c.owed)||0)+gone.size; }catch(e){} }
+  await refresh();
   if(fail) return toast(t('failN',fail,err));
   showReceipt(t('rcCancelMk'),[`${t('child')}：<b>${child.name}</b>`,`${t('origClass')}：${classLabel(c.key||c.sport)}`,...done.map(x=>t('cancelled',x))],
     `INITIATE 取消補堂\n小朋友：${child.name}\n原班：${classLabel(c.key||c.sport)}\n${done.map(x=>'已取消：'+x).join('\n')}`);
