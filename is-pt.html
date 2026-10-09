@@ -2,6 +2,7 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
+<script src="is-loading.js"></script><!-- 全站「載入中」窗口（#709 共用） -->
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>IS 私人訓練 · Personal Training</title>
 <meta name="robots" content="noindex,nofollow">
@@ -163,7 +164,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-09-c';
+const FRONTEND_VERSION = 'pt-2026-10-09-d';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -331,7 +332,7 @@ function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 /* ───────── API（POST text/plain 免 CORS 預檢；個資唔入網址）─────────
    讀取：任何失敗都重試；寫入：回應唔係 JSON 先重試，並帶 rid（後端同一 rid 只執行一次——實測 POST 可能已執行但回應甩咗）。 */
 let AUTH = lsGet('ispt_auth');
-async function api(action, p, write){
+async function api(action, p, write, bg){   // bg：背景請求（已有畫面／即時更新），唔彈「載入中」（is-loading.js isBg）
   const body = Object.assign({action}, p||{});
   if(AUTH){ body.name = AUTH.name; body.code = AUTH.code; }
   if(write) body.rid = Date.now().toString(36)+Math.random().toString(36).slice(2,10);   // 冪等：重試沿用同一 rid，後端唔會重複寫
@@ -340,7 +341,7 @@ async function api(action, p, write){
     let txt = null;
     try{
       const c=new AbortController(), tm=setTimeout(()=>c.abort(), write?45000:40000);
-      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
+      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal, isBg:!!bg});
       clearTimeout(tm); txt = await r.text();
       if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; }
         if(j.err==='unknown action'){ await new Promise(r=>setTimeout(r,1500)); continue; }   // 慢請求（>30 秒）連線斷咗、瀏覽器改用冇參數 GET 再送 → 當網絡問題重試（2026-09-30 正式環境實測）
@@ -387,7 +388,7 @@ async function boot(){
   if(AUTH){ loadPlan(); loadDiet(); }
 }
 async function refresh(showErr){
-  const r = await api('me');
+  const r = await api('me', null, false, !!D);   // 已有快取畫面＝背景更新
   if(r.ok){ D = r; S.meErr=''; lsSet('ispt_cache', r); render(); return true; }
   if(/試太多/.test(r.errZh||r.err||'')){ if(!D) renderLogin(r.err); else toast(r.err); return false; }
   if(/唔啱/.test(r.errZh||r.err||'')){ AUTH=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); D=null; DT=null; PL=null; renderLogin(r.err); return false; }
@@ -625,7 +626,7 @@ const ENJ=['😣','🙁','😐','🙂','😄'];
 async function sendFeel(sid, rpe, enjoy){ D.feels=D.feels||[]; const old=myFeel(sid), bak=old?Object.assign({},old):null;
   if(old){ old.rpe=rpe; if(enjoy) old.enjoy=enjoy; } else D.feels.push({sid, rpe, enjoy:enjoy||0});
   S.feelEdit=enjoy?null:sid; render();
-  const r=await api('sesFeel',{sid, rpe, enjoy:enjoy||''}, true);
+  const r=await api('sesFeel',{sid, rpe, enjoy:enjoy||''}, true, true);
   if(!r.ok){ if(bak) Object.assign(old,bak); else D.feels=D.feels.filter(x=>x.sid!==sid); toast(r.err||t('net')); render(); return; }
   if(enjoy){ toast('✓ '+t('feelThanks')); } lsSet('ispt_cache', D); }
 
@@ -718,7 +719,7 @@ function vReadyQ(){ const today=isoToday(), r=(D.ready||[]).find(x=>x.date===tod
   return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><div class="small" style="font-weight:800">🔋 ${t('readyQ')}</div><div class="small muted">1＝${t('rdLo')} · 5＝${t('rdHi')}</div>${row('sleep',t('rdSleep'))}${row('energy',t('rdEnergy'))}${row('sore',t('rdSore'))}</div>`; }
 async function sendReady(k, n){ const today=isoToday(); D.ready=D.ready||[]; let r=D.ready.find(x=>x.date===today); const bak=r?Object.assign({},r):null;
   if(!r){ r={date:today}; D.ready.unshift(r); } r[k]=n; render();
-  const res=await api('ready',{[k]:n}, true); if(!res.ok){ if(bak) Object.assign(r,bak); else D.ready=D.ready.filter(x=>x!==r); toast(res.err||t('net')); render(); return; } lsSet('ispt_cache', D); }
+  const res=await api('ready',{[k]:n}, true, true); if(!res.ok){ if(bak) Object.assign(r,bak); else D.ready=D.ready.filter(x=>x!==r); toast(res.err||t('net')); render(); return; } lsSet('ispt_cache', D); }
 
 /* ═════════ 手機推送通知（2026-10-09）：service worker is-pt-sw.js（只做推送，唔快取）═════════ */
 const SW_SCOPE='is-pt.html';
@@ -729,10 +730,10 @@ function idb(fn){ return new Promise(res=>{ try{ const rq=indexedDB.open('ispt',
 function swAuth(a){ idb(st=>a?st.put({name:a.name, code:a.code},'auth'):st.delete('auth')); }   // 俾 service worker 用嚟攞通知內容
 async function swReg(){ return navigator.serviceWorker.register('is-pt-sw.js', {scope:SW_SCOPE}); }
 async function pushSubNow(){ const reg=await swReg(); await navigator.serviceWorker.ready;
-  const k=await api('pushKey'); if(!k.ok) throw new Error(k.err||'key');
+  const k=await api('pushKey', null, false, true); if(!k.ok) throw new Error(k.err||'key');
   const raw=atob(k.key.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-k.key.length%4)%4)), key=Uint8Array.from(raw, c=>c.charCodeAt(0));
   let sub=await reg.pushManager.getSubscription(); if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:key});
-  const j=sub.toJSON(); const r=await api('pushSub',{endpoint:j.endpoint, p256dh:j.keys&&j.keys.p256dh, pauth:j.keys&&j.keys.auth, device:(isIOS()?'iOS':/Android/.test(navigator.userAgent)?'Android':'Web')}, true);
+  const j=sub.toJSON(); const r=await api('pushSub',{endpoint:j.endpoint, p256dh:j.keys&&j.keys.p256dh, pauth:j.keys&&j.keys.auth, device:(isIOS()?'iOS':/Android/.test(navigator.userAgent)?'Android':'Web')}, true, true);
   if(!r.ok) throw new Error(r.err||'sub'); lsSet('ispt_push', j.endpoint); return true; }
 async function enablePush(){ if(!pushOK()){ toast(isIOS()&&!isStandalone()?t('ntfIos'):t('ntfNo')); return; }
   try{ const perm=await Notification.requestPermission(); if(perm!=='granted'){ render(); toast(t('ntfDenied')); return; }
@@ -912,7 +913,7 @@ async function hwTick(hwId, idx, date, done){
   const old=(hw.logs||[]).find(l=>l.idx===idx && l.date===date);
   if(old) old.done=!!done; else (hw.logs=hw.logs||[]).push({acct:D.me.id, idx, date, done:!!done, note:'', at:new Date().toISOString()});
   render();
-  const r=await api('hwLog',{hwId, idx, date, done:done?'1':'0', note:old?old.note:''}, true);
+  const r=await api('hwLog',{hwId, idx, date, done:done?'1':'0', note:old?old.note:''}, true, true);
   if(!r.ok){ toast(r.err||t('net')); if(old) old.done=!done; else hw.logs.pop(); render(); return; }
   lsSet('ispt_cache', D);
 }
@@ -1012,7 +1013,7 @@ const nz = v => { const n=Number(v); return isFinite(n)&&String(v)!=='' ? n : 0;
 const rnd = v => (v===''||v==null) ? '—' : Math.round(v);
 function loadDiet(){
   if(dietLoading) return dietLoading;
-  dietLoading = api('diet').then(r=>{ dietLoading=null;
+  dietLoading = api('diet', null, false, true).then(r=>{ dietLoading=null;
     if(r.ok){ r._who = AUTH&&AUTH.name; DT=r; lsSet('ispt_diet', r); if(S.tab==='diet'||S.tab==='home') render(); }
     else if(S.tab==='diet' && !DT) toast(r.err||t('net'));
     return r; });
@@ -1331,7 +1332,7 @@ const CK_TX = {
 };
 function loadPlan(){
   if(planLoading) return planLoading;
-  planLoading = api('plan').then(r=>{ planLoading=null;
+  planLoading = api('plan', null, false, true).then(r=>{ planLoading=null;
     if(r.ok){ r._who=AUTH&&AUTH.name; PL=r; lsSet('ispt_plan', r); if(['home','book','hw'].includes(S.tab)) render(); }
     else if(S.tab==='book' && !PL) toast(r.err||t('net'));
     return r; });
@@ -1407,7 +1408,7 @@ function vHabits(){
 async function habitTick(hid, date, done){
   const log=PL.habitLog=PL.habitLog||{}, old=(log[date]||[]).slice();
   log[date]=old.filter(x=>x!==hid); if(done) log[date].push(hid); render();
-  const r=await api('habitTick',{hid, date, done:done?'1':'0'}, true);
+  const r=await api('habitTick',{hid, date, done:done?'1':'0'}, true, true);
   if(!r.ok){ log[date]=old; toast(r.err||t('net')); render(); return; }
   log[date]=r.done; lsSet('ispt_plan', PL);
 }

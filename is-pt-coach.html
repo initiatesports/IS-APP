@@ -2,6 +2,7 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
+<script src="is-loading.js"></script><!-- 全站「載入中」窗口（#709 共用） -->
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>IS 私訓教練記錄</title>
 <meta name="robots" content="noindex,nofollow">
@@ -102,7 +103,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-09-c';
+const FRONTEND_VERSION = 'ptc-2026-10-09-d';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -132,12 +133,12 @@ function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 /* 教練密碼：同 coach.html 共用 sessionStorage is_cpass（只存本分頁，唔持久）*/
 let PASS = (()=>{ try{ return sessionStorage.getItem('isptc_pass')||sessionStorage.getItem('is_cpass')||''; }catch(e){ return ''; } })();   // 分家後私訓 App 密碼可以同恆常班唔同（isptc_pass）
 async function api(action, p, write, rid){
-  const body=Object.assign({action, coachPass:PASS}, p||{});
+  const body=Object.assign({action, coachPass:PASS}, p||{}); delete body._bg;   // _bg：已有轉圈／背景載入，唔彈「載入中」
   if(write) body.rid=rid||(Date.now().toString(36)+Math.random().toString(36).slice(2,10));   // 冪等：重試沿用同一 rid，後端唔會重複寫
   const tries=write?5:3;
   for(let i=0;i<tries;i++){
     try{ const c=new AbortController(), tm=setTimeout(()=>c.abort(), write?50000:30000);
-      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal});
+      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal, isBg:!!(p&&p._bg)});
       clearTimeout(tm); const txt=await r.text();
       if(txt.charAt(0)==='{'){ const j=JSON.parse(txt); if(write && j.pending){ await new Promise(r=>setTimeout(r,3000)); continue; }
         if(j.err==='unknown action'){ await new Promise(r=>setTimeout(r,1500)); continue; }   // 慢請求斷線後瀏覽器改用冇參數 GET → 當網絡問題重試
@@ -684,7 +685,7 @@ const LOADING={};
 function once(key, fn){ if(LOADING[key]) return LOADING[key]; LOADING[key]=fn().finally(()=>{ delete LOADING[key]; }); return LOADING[key]; }
 async function loadDietC(acct, force){
   if(DIETC[acct] && !force) return DIETC[acct];
-  return once('diet'+acct, async()=>{ const r=await api('cDiet',{acct}); if(!r.ok){ toast(r.err); return null; } DIETC[acct]=r; if(C.tab==='diet') render(); return r; });
+  return once('diet'+acct, async()=>{ const r=await api('cDiet',{acct, _bg:1}); if(!r.ok){ toast(r.err); return null; } DIETC[acct]=r; if(C.tab==='diet') render(); return r; });
 }
 function vDiet(){
   const ms=members(); if(!ms.length) return groupHeader()+'<div class="empty">未有學員</div>';
@@ -809,7 +810,7 @@ const QUICK=['👍 做得好，繼續保持！','份量啱啱好 👌','蛋白�
 function qr(inputId){ return `<div class="qr">${QUICK.map(q=>`<button type="button" onclick="const e=document.getElementById('${inputId}'); if(e){ e.value=${JSON.stringify(q).replace(/"/g,'&quot;')}; e.focus(); }">${esc(q)}</button>`).join('')}</div>`; }
 /* ───────── 第三階段：預約時段管理 ───────── */
 let SL=null;   // cSlots
-async function loadSlots(){ return once('slots', async()=>{ const from=C.weekStart&&C.weekStart<addDays(isoToday(),-7)?C.weekStart:''; const r=await api('cSlots', from?{from}:{}); if(!r.ok){ toast(r.err); return; } SL=r; SL._from=from; if(C.tab==='book'||C.tab==='log') render(); }); }
+async function loadSlots(){ return once('slots', async()=>{ const from=C.weekStart&&C.weekStart<addDays(isoToday(),-7)?C.weekStart:''; const r=await api('cSlots', from?{from, _bg:1}:{_bg:1}); if(!r.ok){ toast(r.err); return; } SL=r; SL._from=from; if(C.tab==='book'||C.tab==='log') render(); }); }
 /* 週曆：7 日 × 時間，一眼睇邊個約咗（撳空格代約、撳已約取消） */
 function weekCal(){
   const ws=C.weekStart||mondayOf(isoToday()), days=Array.from({length:7},(_,i)=>addDays(ws,i)), bk={}; (SL.bookings||[]).forEach(b=>{ if(b.status==='已約') bk[b.slot]=b; });
@@ -930,7 +931,7 @@ async function delSlot(id){
 /* ───────── 第三階段：習慣＋每週回顧（功課分頁下面）───────── */
 const PLC={};   // group → cPlan
 const CK_LB={'睡眠':'睡眠','精神':'精神','壓力':'壓力(5=輕鬆)','恢復':'恢復','訓練':'跟訓練','飲食':'跟飲食','饑餓感':'飽足(5=唔餓)','酸痛':'酸痛(舊)'};
-async function loadPlanC(g, force){ if(PLC[g] && !force) return; return once('plan'+g, async()=>{ const r=await api('cPlan',{group:g}); if(!r.ok){ toast(r.err); return; } PLC[g]=r; if(C.tab==='log'||C.tab==='hw') render(); }); }
+async function loadPlanC(g, force){ if(PLC[g] && !force) return; return once('plan'+g, async()=>{ const r=await api('cPlan',{group:g, _bg:1}); if(!r.ok){ toast(r.err); return; } PLC[g]=r; if(C.tab==='log'||C.tab==='hw') render(); }); }
 function vPlanC(){
   const P=PLC[C.group]; if(!P){ loadPlanC(C.group); return '<div class="spin"></div>'; }
   const today=isoToday(), days=Array.from({length:7},(_,i)=>addDays(today,i-6));
@@ -971,8 +972,8 @@ async function saveHab(){ const f=C.habEdit; $('#hbsv').disabled=true;
 /* ───────── 🎫 出席＋套票（2026-09-30 由 #4 抽離：成人私訓喺度記，唔再喺恆常班教練頁）───────── */
 const LG={};            // group → cLedger
 let LGALL=null;         // 全部（每月小結）
-async function loadLG(g, force){ if(LG[g] && !force) return; return once('lg'+g, async()=>{ const r=await api('cLedger',{group:g}); if(!r.ok){ toast(r.err); return; } LG[g]=r; if(C.tab==='att'||C.tab==='log') render(); }); }
-async function loadLGAll(force){ if(LGALL && !force) return; return once('lgall', async()=>{ const r=await api('cLedger',{}); if(!r.ok) return; LGALL=r; if(C.tab==='att') render(); }); }
+async function loadLG(g, force){ if(LG[g] && !force) return; return once('lg'+g, async()=>{ const r=await api('cLedger',{group:g, _bg:1}); if(!r.ok){ toast(r.err); return; } LG[g]=r; if(C.tab==='att'||C.tab==='log') render(); }); }
+async function loadLGAll(force){ if(LGALL && !force) return; return once('lgall', async()=>{ const r=await api('cLedger',{_bg:1}); if(!r.ok) return; LGALL=r; if(C.tab==='att') render(); }); }
 const money=n=>'$'+Math.round(Number(n)||0).toLocaleString();
 function vAtt(){
   const g=C.group, D=LG[g]; if(!D){ loadLG(g); return groupHeader()+'<div class="spin"></div>'; }
@@ -1077,7 +1078,7 @@ async function setCoachPass(){ const a=prompt('新教練密碼（最少 6 個字
 /* ───────── 留言（全部組）───────── */
 /* 總覽：全部學員一眼睇（近 7 日飲食、今日熱量、今週回顧、習慣、未回覆、套票、下一堂、提醒）；撳一行直達 */
 let OV=null;
-async function loadOV(force){ if(OV && !force) return; return once('ov', async()=>{ const r=await api('cOverview'); if(!r.ok){ toast(r.err); return; } OV=r; if(C.tab==='cm') render(); }); }
+async function loadOV(force){ if(OV && !force) return; return once('ov', async()=>{ const r=await api('cOverview',{_bg:1}); if(!r.ok){ toast(r.err); return; } OV=r; if(C.tab==='cm') render(); }); }
 function openStu(i){ const x=OV.rows[i]; C.group=x.group; C.tab=x.checkin&&x.checkin.pain?'hw':'diet'; C.dietMem=x.id; C.dDate=''; delete DIETC[x.id]; delete PLC[x.group]; loadGroup(); window.scrollTo(0,0); }
 function vOverview(){
   if(!OV){ loadOV(); return '<div class="spin"></div>'; }
