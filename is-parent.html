@@ -247,7 +247,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-08-noc5mk';
+const FRONTEND_VERSION='parent-2026-10-09-leaveonce';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1857,6 +1857,8 @@ function toggleLeave(di,el){const i=LF.dates.indexOf(di);if(i>=0){LF.dates.splic
   $('lf-count').textContent=LF.dates.length?t('picked',LF.dates.length):t('none');$('lf-go').disabled=LF.dates.length===0;}
 function toggleSib(idx,el){const i=LF.sibs.indexOf(idx);if(i>=0){LF.sibs.splice(i,1);el.classList.remove('on');el.querySelector('.cap').style.display='none';}else{LF.sibs.push(idx);el.classList.add('on');el.querySelector('.cap').style.display='';}}
 function alertSheet(title,msg){ openSheet(`<h2>${title}</h2><div class="notice warn" style="margin-top:8px">${msg}</div><div style="height:12px"></div><button class="btn" onclick="closeSheet()">${t('okBtn')}</button>`); }
+// 請假成功即刻喺本機標「請假」：refresh 未返嚟之前，請假選單唔會再出返呢日（防重複提交）
+function markLocalLeave_(c,date){ try{ const x=(c.sessions||[]).find(z=>z.date===date); if(x && !x.status) x.status='請假'; }catch(e){} }
 async function submitLeave(){
   const code=$('lf-code').value.trim(); if(code!==S.family.last4) return toast(t('codeWrong'));
   if(!LF.dates.length) return;
@@ -1875,7 +1877,7 @@ async function submitLeave(){
   let fail=0,err='',certDeadline='';
   for(const date of LF.dates){
     try{ const r=await api('applyLeave',{name:child.name,key:classKey(c),date,leaveType:LF.type});
-      if(!r||!r.ok){fail++;err=(r&&r.err)||'';} else if(date===today0 && r.certDeadline) certDeadline=r.certDeadline; }catch(e){fail++;err=String(e);}
+      if(!r||!r.ok){fail++;err=(r&&r.err)||'';} else { markLocalLeave_(c,date); if(date===today0 && r.certDeadline) certDeadline=r.certDeadline; } }catch(e){fail++;err=String(e);}
   }
   // 兄弟姊妹一齊請假：同一日（同 dayZh）有未上堂先請
   const sibDone=[];
@@ -1885,11 +1887,12 @@ async function submitLeave(){
     let did=0;
     for(const date of LF.dates){
       if(!(sc.sessions||[]).some(x=>x.date===date && !x.status)) continue;
-      try{ const r=await api('applyLeave',{name:sib.name,key:classKey(sc),date,leaveType:LF.type}); if(r&&r.ok) did++; else fail++; }catch(e){ fail++; }
+      try{ const r=await api('applyLeave',{name:sib.name,key:classKey(sc),date,leaveType:LF.type}); if(r&&r.ok){ did++; markLocalLeave_(sc,date); } else fail++; }catch(e){ fail++; }
     }
     if(did) sibDone.push(sib.name);
   }
   closeSheet();
+  if(!fail) toast(LANG==='en'?'✓ Leave submitted — updating…':'✓ 請假已提交，更新緊資料…');   // 2026-10-08：refresh 要等十幾秒，以前冇即時回應→家長以為未成功再撳一次（重複通知）
   // 醫生紙：只在「當日病假」時上傳，連到當日；提前病假已按事假處理，不需醫生紙
   let medMsg=''; const sickToday = (LF.type==='病假' && sameDay.length>0);
   if(sickToday && LF.fileData){
