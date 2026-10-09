@@ -1,5 +1,6 @@
 <!doctype html><html lang="zh-HK"><head>
 <meta charset="utf-8">
+<script src="is-loading.js?v=1"></script><!-- 共用「載入中」提示（老闆 2026-10-09） -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <title>新生試堂報名 · INITIATE SPORTS</title>
@@ -86,7 +87,7 @@ input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--tea
   <div class="foot">INITIATE SPORTS · 新生試堂報名　·　青衣體育館<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='trial-2026-09-27-terms';
+const FRONTEND_VERSION='trial-2026-10-09-loading';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端（舊 #4 AKfycbxNikFc… fallback）
 const $=s=>document.querySelector(s);
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}

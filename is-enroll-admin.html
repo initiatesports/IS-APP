@@ -3,6 +3,7 @@
 <head>
 <meta name="robots" content="noindex,nofollow">
 <meta charset="UTF-8">
+<script src="is-loading.js?v=1"></script><!-- 共用「載入中」提示（老闆 2026-10-09） -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#28B8C8">
@@ -68,7 +69,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const APISA='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-28-hash';
+const FRONTEND_VERSION='admin-2026-10-09-loading';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
