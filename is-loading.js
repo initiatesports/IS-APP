@@ -47,11 +47,15 @@
   function end() { pending = Math.max(0, pending - 1); if (pending === 0) hide(); }
   var isBackend = function (u) { return /script\.google(usercontent)?\.com\//.test(u); };
 
+  // 教練頁用（2026-10-09）：頁面設 window.IS_LOADING_USER_ONLY=true → 只有「撳完掣 1.5 秒內」發出嘅請求先彈；
+  //   自動／背景（快取先顯示再更新、待辦箱、驗證等）一律唔彈。唔設嘅頁面行為不變。
+  var lastTap = 0;
+  ['pointerdown', 'touchstart', 'click', 'keydown', 'submit'].forEach(function (ev) { document.addEventListener(ev, function () { lastTap = Date.now(); }, true); });
   var orig = window.fetch && window.fetch.bind(window);
   if (!orig) return;
   window.fetch = function (input, init) {
     var url = typeof input === 'string' ? input : (input && input.url) || '';
-    var bg = !!(init && init.isBg);
+    var bg = !!(init && init.isBg) || (window.IS_LOADING_USER_ONLY === true && Date.now() - lastTap > 1500);
     if (init && 'isBg' in init) { init = Object.assign({}, init); delete init.isBg; }
     if (bg || !isBackend(url)) return orig(input, init);
     begin();
