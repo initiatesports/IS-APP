@@ -163,7 +163,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-05-f';
+const FRONTEND_VERSION = 'pt-2026-10-09-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -214,6 +214,7 @@ const TX = {
     blockedMinor:'18 歲以下嘅飲食目標由教練設定', blockedMedical:'你嘅飲食目標會由教練按你情況設定', blockedHint:'你照樣可以記錄飲食同影相，教練會睇。',
     medicalQ:'我有特別健康狀況（例如懷孕／授乳、糖尿病用藥、腎病、飲食失調史）——由教練設定目標',
     undo:'復原', deleted:'已刪除', restored:'已復原', noActivePkg:'暫時冇未用完嘅套票', preUsedN:'另有 {n} 節冇記日期', showUsedPkg:'顯示已用完嘅套票（{n}）', hideUsedPkg:'收埋已用完嘅套票',
+    ntfTitle:'手機通知', ntfHint:'教練回覆、預約有變、上堂前一晚提醒、新功課都會即刻彈出嚟', ntfOn:'開啟通知', ntfOnOk:'✓ 已開啟通知', ntfTest:'送測試通知', ntfOff:'關閉', ntfIos:'iPhone 要先喺 Safari 撳「分享」→「加至主畫面」，再由主畫面個 icon 開 app，先開到通知', ntfNo:'呢部手機／瀏覽器唔支援通知', ntfDenied:'你之前揀咗「唔允許」：要去手機「設定 › 通知」搵返呢個 app 開返', ntfAsk:'開啟手機通知', ntfAskHint:'教練回覆同上堂提醒即刻知', ntfLater:'遲啲先', ntfFail:'開唔到通知，請再試',
     fpTitle:'設定你自己嘅登入密碼', fpHint:'第一次登入請設一個 4 位數字密碼（唔好用電話後 4 位）。之後用「姓名＋呢個密碼」登入；加咗主畫面嘅話唔使再打。教練可以幫你查返密碼。', fpNew:'新 4 位密碼', fpAgain:'再輸入一次', fpGo:'確認', fpMismatch:'兩次輸入唔一樣',
     logPractice:'記錄練習', practiceDate:'練習日期', practiced:'今週練咗 {n} 次', noPractice:'今週未記錄練習', editDay:'改', doneLbl:'做咗', practiceLog:'練習記錄', rHwDays:'功課練習',
     phaseWk:'第 {w}/{n} 週', tests:'體能測試', testsHint:'教練每 8 週同你做一次，睇吓進步', vsPrev:'對比 {d}', readyQ:'今日狀態點？（上堂前揀，教練會調強度）', rdSleep:'睡眠', rdEnergy:'精神', rdSore:'身體恢復', rdLo:'差', rdHi:'好', kgL:'重量 kg', repsL:'次數', rTests:'體能測試',
@@ -270,6 +271,7 @@ const TX = {
     blockedMinor:'Targets for under-18s are set by your coach', blockedMedical:'Your coach will set targets for your situation', blockedHint:'You can still log meals and photos — your coach will review them.',
     medicalQ:'I have a health condition (e.g. pregnancy/breastfeeding, diabetes medication, kidney disease, history of eating disorder) — let my coach set targets',
     undo:'Undo', deleted:'Deleted', restored:'Restored', noActivePkg:'No active package', preUsedN:'+{n} session(s) without a date', showUsedPkg:'Show used-up packages ({n})', hideUsedPkg:'Hide used-up packages',
+    ntfTitle:'Phone notifications', ntfHint:'Coach replies, booking changes, the night-before reminder and new homework pop up instantly', ntfOn:'Turn on notifications', ntfOnOk:'✓ Notifications on', ntfTest:'Send a test', ntfOff:'Turn off', ntfIos:'On iPhone: in Safari tap Share → “Add to Home Screen”, then open the app from that icon to turn on notifications', ntfNo:'This phone / browser does not support notifications', ntfDenied:'You chose “Don’t Allow” before: turn it back on in your phone’s Settings › Notifications', ntfAsk:'Turn on phone notifications', ntfAskHint:'Get coach replies and class reminders instantly', ntfLater:'Later', ntfFail:'Could not turn on notifications, please try again',
     fpTitle:'Set your own login PIN', fpHint:'First login: please set a 4-digit PIN (not your phone digits). Log in with your name + this PIN from now on; if added to your home screen you will stay logged in. Your coach can look it up if you forget.', fpNew:'New 4-digit PIN', fpAgain:'Enter it again', fpGo:'Confirm', fpMismatch:'The two PINs do not match',
     logPractice:'Log practice', practiceDate:'Practice date', practiced:'Practised {n}× this week', noPractice:'No practice logged this week', editDay:'Edit', doneLbl:'Done', practiceLog:'Practice log', rHwDays:'Homework sessions',
     phaseWk:'Week {w}/{n}', tests:'Fitness tests', testsHint:'Your coach re-tests you every 8 weeks', vsPrev:'vs {d}', readyQ:'How are you today? (before class — coach adjusts intensity)', rdSleep:'Sleep', rdEnergy:'Energy', rdSore:'Recovery', rdLo:'Poor', rdHi:'Great', kgL:'Weight kg', repsL:'Reps', rTests:'Fitness tests',
@@ -377,6 +379,7 @@ async function boot(){
   document.documentElement.lang = LANG==='en'?'en':'zh-HK';
   checkVersion();
   if(!AUTH){ renderLogin(); return; }
+  swAuth(AUTH); goHash(); listenSw();
   const cached = lsGet('ispt_cache');
   if(cached && cached.me){ D = cached; render(); }
   else renderShell(true);
@@ -441,10 +444,10 @@ async function doLogin(ev){
   const b=$('#lg-btn'); b.disabled=true; b.innerHTML=`<span>${t('loading')}</span>`;
   AUTH={name, code};
   const r=await api('me');
-  if(r.ok){ lsSet('ispt_auth', AUTH); D=r; lsSet('ispt_cache', r); DT=null; PL=null; lsDel('ispt_diet'); lsDel('ispt_plan'); S.tab='home'; render(); window.scrollTo(0,0); loadPlan(); loadDiet(); return; }
+  if(r.ok){ lsSet('ispt_auth', AUTH); swAuth(AUTH); D=r; lsSet('ispt_cache', r); DT=null; PL=null; lsDel('ispt_diet'); lsDel('ispt_plan'); S.tab='home'; render(); window.scrollTo(0,0); loadPlan(); loadDiet(); return; }
   AUTH=null; b.disabled=false; b.innerHTML=`<span>${t('login')} →</span>`; $('#lg-err').textContent=r.err||t('net');
 }
-function logout(){ if(!confirm(t('logoutQ'))) return; AUTH=null; D=null; DT=null; PL=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); renderLogin(); }
+function logout(){ if(!confirm(t('logoutQ'))) return; swAuth(null); pushOffQuiet(); AUTH=null; D=null; DT=null; PL=null; lsDel('ispt_auth'); lsDel('ispt_cache'); lsDel('ispt_diet'); lsDel('ispt_plan'); renderLogin(); }
 
 /* ───────── 外殼 ───────── */
 const ICONS = {
@@ -517,7 +520,7 @@ function vHome(){
   let h = `<div class="h1">${t('hi')}${LANG==='en'?', ':'，'}${esc(nm)} 👋</div><div class="sub">${mates?`${t('mates')} ${esc(mates)}`:esc(me.group||'')}${me.goal?` · 🎯 ${esc(me.goal)}`:''}</div>`;
   const ph=D.phase; if(ph) h += `<div class="card" style="padding:11px 14px;border-left:3px solid var(--teal)"><div class="row"><b>🎯 ${esc(ph.name)}</b><span class="sp"></span><span class="badge">${t('phaseWk').replace('{w}',ph.week).replace('{n}',ph.weeks)}</span></div><div class="bar" style="margin:8px 0 4px"><i style="width:${Math.min(100,Math.round(ph.week/ph.weeks*100))}%"></i></div>${ph.focus||ph.reps?`<div class="small muted">${[ph.focus?esc(ph.focus):'', ph.reps?esc(ph.reps)+(LANG==='en'?' reps':' 下'):'', ph.rpe?'RPE '+esc(ph.rpe):''].filter(Boolean).join(' · ')}</div>`:''}</div>`;
   h += vReminders();
-  h += vUnreadCard() + vFeelPrompt() + vToday() + vReportPrompt();
+  h += vNtfPrompt() + vUnreadCard() + vFeelPrompt() + vToday() + vReportPrompt();
   h += vPkgCard();
   h += `<div class="grid3">
     <div class="stat"><b class="num">${att.length}</b><span>${t('attended')}</span></div>
@@ -715,6 +718,43 @@ function vReadyQ(){ const today=isoToday(), r=(D.ready||[]).find(x=>x.date===tod
 async function sendReady(k, n){ const today=isoToday(); D.ready=D.ready||[]; let r=D.ready.find(x=>x.date===today); const bak=r?Object.assign({},r):null;
   if(!r){ r={date:today}; D.ready.unshift(r); } r[k]=n; render();
   const res=await api('ready',{[k]:n}, true); if(!res.ok){ if(bak) Object.assign(r,bak); else D.ready=D.ready.filter(x=>x!==r); toast(res.err||t('net')); render(); return; } lsSet('ispt_cache', D); }
+
+/* ═════════ 手機推送通知（2026-10-09）：service worker is-pt-sw.js（只做推送，唔快取）═════════ */
+const SW_SCOPE='is-pt.html';
+const isStandalone=()=>{ try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){ return false; } };
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const pushOK=()=>'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function idb(fn){ return new Promise(res=>{ try{ const rq=indexedDB.open('ispt',1); rq.onupgradeneeded=()=>rq.result.createObjectStore('kv'); rq.onerror=()=>res(null); rq.onsuccess=()=>{ try{ fn(rq.result.transaction('kv','readwrite').objectStore('kv')); res(true); }catch(e){ res(null); } }; }catch(e){ res(null); } }); }
+function swAuth(a){ idb(st=>a?st.put({name:a.name, code:a.code},'auth'):st.delete('auth')); }   // 俾 service worker 用嚟攞通知內容
+async function swReg(){ return navigator.serviceWorker.register('is-pt-sw.js', {scope:SW_SCOPE}); }
+async function pushSubNow(){ const reg=await swReg(); await navigator.serviceWorker.ready;
+  const k=await api('pushKey'); if(!k.ok) throw new Error(k.err||'key');
+  const raw=atob(k.key.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-k.key.length%4)%4)), key=Uint8Array.from(raw, c=>c.charCodeAt(0));
+  let sub=await reg.pushManager.getSubscription(); if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:key});
+  const j=sub.toJSON(); const r=await api('pushSub',{endpoint:j.endpoint, p256dh:j.keys&&j.keys.p256dh, pauth:j.keys&&j.keys.auth, device:(isIOS()?'iOS':/Android/.test(navigator.userAgent)?'Android':'Web')}, true);
+  if(!r.ok) throw new Error(r.err||'sub'); lsSet('ispt_push', j.endpoint); return true; }
+async function enablePush(){ if(!pushOK()){ toast(isIOS()&&!isStandalone()?t('ntfIos'):t('ntfNo')); return; }
+  try{ const perm=await Notification.requestPermission(); if(perm!=='granted'){ render(); toast(t('ntfDenied')); return; }
+    await pushSubNow(); lsSet('ispt_push_ask','done'); toast(t('ntfOnOk')); render(); }
+  catch(e){ toast(t('ntfFail')); render(); } }
+async function pushTest(){ const r=await api('pushTest',{}, true); toast(r.ok?'✓':(r.err||t('net'))); }
+async function pushOffQuiet(){ try{ const reg=await navigator.serviceWorker.getRegistration(SW_SCOPE); const sub=reg&&await reg.pushManager.getSubscription(); if(sub){ api('pushOff',{endpoint:sub.endpoint}, true); await sub.unsubscribe(); } lsDel('ispt_push'); }catch(e){} }
+async function pushOff(){ await pushOffQuiet(); render(); }
+function vNtf(){ const st=!pushOK()?(isIOS()&&!isStandalone()?'ios':'no'):Notification.permission, on=st==='granted' && lsGet('ispt_push');
+  return `<div class="row"><div style="flex:1;min-width:0"><div>🔔 ${t('ntfTitle')}</div><div class="small muted" style="margin-top:2px">${st==='ios'?t('ntfIos'):st==='no'?t('ntfNo'):st==='denied'?t('ntfDenied'):t('ntfHint')}</div></div></div>
+    ${on?`<div class="row" style="margin-top:8px;gap:8px"><span class="badge">${t('ntfOnOk')}</span><span class="sp"></span><button class="btn ghost sm" onclick="pushTest()">${t('ntfTest')}</button><button class="btn ghost sm" onclick="pushOff()">${t('ntfOff')}</button></div>`
+      :(st==='default'||st==='granted')?`<button class="btn block" style="margin-top:8px" onclick="enablePush()">🔔 ${t('ntfOn')}</button>`:''}`; }
+function vNtfPrompt(){ if(!pushOK() || Notification.permission!=='default' || lsGet('ispt_push_ask') || (isIOS() && !isStandalone())) return '';
+  return `<div class="card" style="border-color:rgba(31,77,58,.45)"><div class="row"><div style="flex:1;min-width:0"><b>🔔 ${t('ntfAsk')}</b><div class="small muted">${t('ntfAskHint')}</div></div></div>
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn sm" onclick="enablePush()">${t('ntfOn')}</button><button class="btn ghost sm" onclick="lsSet('ispt_push_ask','later');render()">${t('ntfLater')}</button></div></div>`; }
+/* 撳通知打開：#go=ses:ID／hw／book／body／diet:日期／home */
+function goLink(l){ l=String(l||''); if(!l || !D) return; const [k,v]=l.split(':');
+  if(k==='ses' && v) return openSes(v); if(k==='diet'){ if(v) S.dDate=v; return go('diet'); } if(['hw','book','body','home','train','more'].includes(k)) return go(k); }
+function goHash(){ const m=location.hash.match(/go=([^&]+)/); if(!m) return; const l=decodeURIComponent(m[1]); history.replaceState(null,'',location.pathname+location.search);
+  const tryGo=()=>{ if(D) goLink(l); else setTimeout(tryGo, 400); }; tryGo(); }
+function listenSw(){ try{ navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', e=>{ if(e.data && e.data.go) goLink(e.data.go); }); }catch(e){}
+  // 已開通知：每次開 app 確保訂閱仲喺度（瀏覽器偶然會換 endpoint）
+  try{ if(pushOK() && Notification.permission==='granted' && lsGet('ispt_push')) setTimeout(()=>pushSubNow().catch(()=>{}), 3000); }catch(e){} }
 
 /* ───────── 留言串 ───────── */
 function thread(type, target){
@@ -1374,6 +1414,7 @@ function vMore(){
     <div class="row"><span>${t('lang')}</span><span class="sp"></span><button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh')">中文</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en')">English</button></div>
     <div style="margin-top:14px"><div>${t('pin')}</div><div class="small muted" style="margin:2px 0 8px">${t('pinHint')}</div>
       <div class="tin" style="margin:0"><input class="in num" id="newpin" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="${t('newPin')}"><button class="btn sm" onclick="setPin()">${t('save')}</button></div></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)" id="ntf-box">${vNtf()}</div>
     <div class="small muted" style="margin-top:14px;line-height:1.6">📲 ${t('install')}</div>
     <button class="btn ghost block" style="margin-top:14px" onclick="logout()">${t('logout')}</button></div>
     <div class="small muted" style="text-align:center;margin:16px 0 4px;opacity:.6">INITIATE SPORTS · ${FRONTEND_VERSION}</div>`;
@@ -1397,12 +1438,12 @@ async function doForcePin(){ const a=$('#fp1').value.replace(/\D/g,''), b=$('#fp
   if(a.length!==4){ e.textContent=LANG==='en'?'Enter 4 digits':'請輸入 4 位數字'; return; } if(a!==b){ e.textContent=t('fpMismatch'); return; }
   btn.disabled=true; const r=await api('setPin',{newPin:a}, true);
   if(!r.ok){ btn.disabled=false; e.textContent=r.err||t('net'); return; }
-  AUTH.code=a; lsSet('ispt_auth', AUTH); D.needPin=false; lsSet('ispt_cache', D); toast('✓ '+t('pinOk')); render(); loadPlan(); loadDiet(); }
+  AUTH.code=a; lsSet('ispt_auth', AUTH); swAuth(AUTH); D.needPin=false; lsSet('ispt_cache', D); toast('✓ '+t('pinOk')); render(); loadPlan(); loadDiet(); }
 async function setPin(){
   const v=$('#newpin').value.replace(/\D/g,''); if(v.length!==4){ toast(LANG==='en'?'Enter 4 digits':'請輸入 4 位數字'); return; }
   const r=await api('setPin',{newPin:v}, true);
   if(!r.ok){ toast(r.err||t('net')); return; }
-  AUTH.code=v; lsSet('ispt_auth', AUTH); $('#newpin').value=''; toast(t('pinOk'));
+  AUTH.code=v; lsSet('ispt_auth', AUTH); swAuth(AUTH); $('#newpin').value=''; toast(t('pinOk'));
 }
 
 /* ───────── 動作詳情 ───────── */
