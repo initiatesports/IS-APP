@@ -102,7 +102,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-05-g';
+const FRONTEND_VERSION = 'ptc-2026-10-09-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -472,6 +472,21 @@ function welcomeSheet(f){ const url=STUDENT_URL;
   ov.innerHTML=`<div class="sheet"><div class="row"><b style="font-size:17px">👋 歡迎訊息（複製去 WhatsApp）</b><span class="sp"></span><button class="btn ghost xs" onclick="this.closest('.ov').remove()">✕</button></div>
     <textarea class="in" id="wl-t" style="margin-top:10px;min-height:190px">${esc(txt)}</textarea><button class="btn block" style="margin-top:10px" onclick="navigator.clipboard.writeText($('#wl-t').value).then(()=>toast('已複製'),()=>toast('請長按揀全部複製'))">📋 複製</button></div>`;
   document.body.appendChild(ov); }
+/* 目標問卷（老闆 2026-10-09）：睇學員答案（逐年）＋請佢重填 */
+const GOAL_LBL=[['1. 目標',[['q1','你對私人訓練／新一年訓練的期望'],['q2','最重要的原因／目標'],['q3','期望幾耐實現'],['q4','三個可能影響計劃的原因']]],['2. 程度',[['q5','自評體能程度（1–10）'],['q6','以前運動／訓練經驗']]],['3. 訓練風格',[['q7','挑戰 vs 舒適'],['q8','多樣化 vs 常規']]],['4. 動機與深層原因',[['q9','點解咁重要'],['q10','冇改變會有咩後果'],['q11','達成後生活有咩唔同／最重要好處'],['q12','教練點樣幫到佢']]]];
+const GOAL_CH={challenge:'不斷接受挑戰',comfort:'舒適就好',balance:'兩樣平衡',routine:'常規訓練',variety:'多樣化',either:'兩樣都得'};
+const GOAL_KIND={new:'新學員',annual:'New Year New Me',coach:'教練要求重填',update:'學員自己更新'};
+function goalVal(a,k){ if(k==='q4') return [a.q4a,a.q4b,a.q4c].filter(Boolean).map((x,i)=>(i+1)+'. '+esc(x)).join('<br>'); if(k==='q5') return a.q5?a.q5+' / 10':''; if(k==='q7'||k==='q8') return esc(GOAL_CH[a[k]]||a[k]||'')+(a[k+'n']?' · '+esc(a[k+'n']):''); return esc(a[k]||''); }
+function vGoalC(m){ const gs=m.goals||[], g=gs.find(x=>x.id===C.goalSel)||gs[0], need=m.goalNeed;
+  let h=`<div class="card"><div class="row"><b>🎯 目標問卷</b>${need?`<span class="badge gold" style="margin-left:6px">${need.kind==='coach'?'已請佢重填':need.kind==='new'?'未填（新學員）':'未填 '+need.year}</span>`:''}<span class="sp"></span>${m.goalReq&&need&&need.kind==='coach'?`<button class="btn ghost xs" onclick="goalReq('${m.id}',1)">取消要求</button>`:`<button class="btn ghost xs" onclick="goalReq('${m.id}')">請佢重填</button>`}</div>`;
+  if(!g) return h+`<div class="small muted" style="margin-top:6px">未填過。${need?'':'舊學員 2027 年 1 月會自動要求填（New Year New Me）；想佢而家填就撳「請佢重填」。'}</div></div>`;
+  h+=`${gs.length>1?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${gs.map(x=>`<button class="chip ${x.id===g.id?'on':''}" onclick="C.goalSel='${x.id}';render()">${x.year} · ${GOAL_KIND[x.kind]||x.kind}</button>`).join('')}</div>`:`<div class="small muted" style="margin-top:4px">${g.year} · ${GOAL_KIND[g.kind]||g.kind} · ${fmtD(String(g.at).slice(0,10))}</div>`}
+    <div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(31,77,58,.06)"><div class="small muted">最重要目標</div><b>${esc(g.ans.q2||'')}</b><div class="small" style="margin-top:4px">⏱ ${esc(g.ans.q3||'')} · 程度 ${esc(g.ans.q5||'—')}/10 · ${esc(GOAL_CH[g.ans.q7]||'')} · ${esc(GOAL_CH[g.ans.q8]||'')}</div></div>`;
+  if(C.goalOpen===m.id) h+=GOAL_LBL.map(([sec,qs])=>`<div class="small" style="font-weight:800;margin-top:10px">${sec}</div>${qs.map(([k,l])=>`<div style="margin:4px 0 8px"><div class="small muted">${l}</div><div class="small" style="white-space:pre-wrap">${goalVal(g.ans,k)||'—'}</div></div>`).join('')}`).join('');
+  h+=`<button class="lnk" style="margin-top:8px" onclick="C.goalOpen=C.goalOpen==='${m.id}'?null:'${m.id}';render()">${C.goalOpen===m.id?'收起':'睇晒全部答案 ›'}</button></div>`;
+  return h; }
+async function goalReq(acct, cancel){ if(!cancel && !confirm('請佢重填目標問卷？佢下次開 app 就要填（會彈手機通知）')) return;
+  const r=await api('cGoalRequest',{acct, cancel:cancel?'1':''}, true); if(!r.ok){ toast(r.err); return; } toast(cancel?'已取消':'✓ 已請佢重填'); loadGroup(); }
 async function saveSession(){
   const d=getDraft();
   const sets=[]; d.blocks.forEach((b,bi)=>{ let n=0; b.sets.forEach(x=>{ if(String(x.kg).trim()===''&&String(x.reps).trim()===''&&String(x.sec||'').trim()==='') return; n++; sets.push({order:bi, ex:b.ex, set:n, kg:x.kg, unit:b.unit==='lb'?'lb':'', raw:b.unit==='lb'?x.kg:'', reps:x.reps, sec:b.timed?x.sec:'', rpe:b.rpe?(x.rpe||''):'', acct:x.acct||''}); }); });
@@ -632,7 +647,7 @@ function vBody(){
   if(m.goal) h+=`<div class="small muted">🎯 ${esc(m.goal)}</div>`;
   if(avail.length) h+=`<div class="chips">${avail.map(x=>`<button class="chip ${x[0]===k[0]?'on':''}" onclick="C.bodyMetric='${x[0]}';render()">${x[1]}</button>`).join('')}</div>
     <div class="card"><div class="row"><b>${k[1]}</b><span class="sp"></span><span class="num" style="font-size:22px;font-weight:900">${pts.length?fmtN(pts[pts.length-1].v):'—'}</span><span class="muted">${k[2]}</span></div>${chartSVG(pts)}</div>`;
-  h+=vTestsC(m)+vAssessC(m);
+  h+=vGoalC(m)+vTestsC(m)+vAssessC(m);
   h+=`<div class="card"><b>＋ 教練記錄（例如上堂量度）</b><div class="fgrid" style="margin-top:8px"><div><label class="lb">日期</label><input class="in" type="date" id="cb-date" value="${isoToday()}"></div>${METRICS.map(x=>`<div><label class="lb">${x[1]} (${x[2]})</label><input class="in num" id="cb-${x[0]}" inputmode="decimal"></div>`).join('')}</div>
     <input class="in" id="cb-note" placeholder="備註" style="margin-top:10px"><button class="btn block" style="margin-top:10px" id="cbsv" onclick="coachBody('${m.id}')">儲存</button></div>`;
   h+=list.slice().reverse().map(b=>`<div class="card"><div class="row"><b>${fmtD(b.date)}</b> <span class="badge ${b.src==='教練'?'gold':'grey'}">${esc(b.src||'')}</span><span class="sp"></span><button class="lnk" style="color:var(--mut)" onclick="coachBodyDel('${b.id}')">刪除</button></div>
