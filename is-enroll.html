@@ -161,6 +161,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
 .ptx-tab.active{border-color:#c89020;background:linear-gradient(135deg,#fffbf0,#fef5d0);color:#7a5000;}
 @media(max-width:560px){.ptx-info-grid{grid-template-columns:1fr 1fr;}.ptx-body{padding:16px;}.ptx-header{padding:22px 18px 18px;}.ptx-tab{font-size:12px;padding:10px 6px;}}
 </style>
+<script src="is-loading.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
@@ -183,7 +184,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-10-08-ptprices';
+const FRONTEND_VERSION='enroll-2026-10-08-ptprices-ld';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');

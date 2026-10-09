@@ -192,6 +192,7 @@ svg{width:1em;height:1em;flex:none}
 .menu-btn{display:none;width:38px;height:38px;border-radius:10px;place-items:center;background:#fff;border:1px solid var(--line);color:var(--navy)}
 .menu-btn svg{width:20px;height:20px}
 </style>
+<script src="is-loading.js?v=1"></script>
 </head>
 <body>
 
@@ -248,7 +249,7 @@ svg{width:1em;height:1em;flex:none}
    ═══════════════════════════════════════════════════════════════════════ */
 const API='https://script.google.com/macros/s/AKfycbxzzac6FfgGka9220y26AqbCkN4AIMsFwCqB_G-X6tN0-5gzcBIQ60mAU4j-8npduEB/exec';
 const API4='https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec';   // #4：報名真來源，成長中心由此攞現有班別名單（新生自動有帳戶，老闆 2026-08-29）
-const APP_VERSION='growth-2026-09-20-audit';
+const APP_VERSION='growth-2026-10-09-ld';
 let CP='';                       // 教練密碼（記憶體 + sessionStorage，唔硬寫）
 let DATA=null;                   // {performance:[], body:[], settings:[], ...} 原始 load
 let PERF={};                     // {name:{metricId:[{date,val,v1,v2,v3}]}}

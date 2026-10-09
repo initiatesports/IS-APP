@@ -54,6 +54,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
 .ver{text-align:center;font-size:10px;color:#c2ccd0;margin-top:14px;}
 .hint{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:5px;}
 </style>
+<script src="is-loading.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
@@ -116,7 +117,7 @@ input:focus,textarea:focus{border-color:var(--teal);}
 </div>
 
 <script>
-const FRONTEND_VERSION='adv-enroll-2026-09-26-nopay';
+const FRONTEND_VERSION='adv-enroll-2026-09-26-nopay-ld';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端（舊 #4 AKfycbxNikFc… fallback）
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
 const $=s=>document.querySelector(s);

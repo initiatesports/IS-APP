@@ -80,13 +80,14 @@ input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--tea
 .steps i.on{background:var(--teal)}
 .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
-</style></head><body>
+</style><script src="is-loading.js?v=1"></script>
+</head><body>
 <div class="wrap">
   <div id="app"></div>
   <div class="foot">INITIATE SPORTS · 新生試堂報名　·　青衣體育館<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='trial-2026-09-27-terms';
+const FRONTEND_VERSION='trial-2026-09-27-terms-ld';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端（舊 #4 AKfycbxNikFc… fallback）
 const $=s=>document.querySelector(s);
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}

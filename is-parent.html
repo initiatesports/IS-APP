@@ -218,6 +218,7 @@ html,body{width:100%;height:100%;background:var(--bg)!important;color:var(--text
 .ret-opt:has(input:checked){border-color:#e0a93a;background:rgba(224,169,58,.1);font-weight:700;}
 .ret-fee{font-size:15px;font-weight:800;color:#a06a10;margin:4px 0 2px;}
 </style>
+<script src="is-loading.js?v=1"></script>
 </head>
 <body>
 <div id="app">
@@ -247,7 +248,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-09-mkonce';
+const FRONTEND_VERSION='parent-2026-10-09-mkonce-ld';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -644,11 +645,11 @@ async function api(action,payload={}){
   // 自動路由：操作班別(key/fromKey/toKey/cid)係運動班 → 送去 #SA；否則跳繩 #4（跳繩零影響）。
   const sa = isSA(payload.key)||isSA(payload.fromKey)||isSA(payload.toKey)||isSA(payload.cid)||payload._sa===true;
   const url = sa ? SA_API_URL : CONFIG.API_URL;
-  delete body._sa;
+  delete body._sa; const bg=body._bg===true; delete body._bg;   // _bg：背景請求唔彈「載入中」（is-loading.js）
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  try{ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); return await r.json(); } finally{ clearTimeout(tm); }
+  try{ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal,isBg:bg}); return await r.json(); } finally{ clearTimeout(tm); }
 }
-async function apiGet(p){const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal});return await r.json();}finally{clearTimeout(tm);}}
+async function apiGet(p,bg){const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);try{const r=await fetch(CONFIG.API_URL+'?'+new URLSearchParams(p),{signal:c.signal,isBg:!!bg});return await r.json();}finally{clearTimeout(tm);}}
 /* 🛡️ 2026-08-28：Apps Script 偶發 POST 302 重導向丟失 body → 請求變咗落 doGet，後端見 action=undefined，
    回 {ok:false,err:"unknown action"}（#11 係 "Unknown action: undefined"）。呢個唔係真錯誤，但家長會見到
    英文 "unknown action" toast，以為登入壞咗（實測 12 次抽樣中 ~2 次中招）。→ 對唯讀 action 自動重試。
@@ -674,7 +675,7 @@ async function apiRO(action,payload={},tries=3){
 }
 async function syncHolidays(){
   // 只攞公眾假期（輕量、非敏感）；唔再拉成個 load，避免匿名攞到全校資料。
-  try{ const d=await apiGet({action:'holidays'});
+  try{ const d=await apiGet({action:'holidays'},true);
     if(d && Array.isArray(d.holidays)) PUBLIC_HOLIDAYS=d.holidays;
   }catch(e){}
 }
@@ -725,9 +726,9 @@ function applyLoginResp(r, name, last4){
   S.retFees=r.retFees||{f1:1200,f2:1800}; S.nextPeriod=r.nextPeriod||''; S.venues=r.venues||{}; S.mkBlock=r.mkBlock||[]; S.timeAdj=r.timeAdj||{};
 }
 /* ═══ 運動班(#SA)合併：登入後額外拉 #SA，把仔女嘅運動班合併入 S.family.children（純附加，失敗＝當冇運動班）═══ */
-async function fetchSALogin(name,last4){
+async function fetchSALogin(name,last4,bg){
   try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-    const r=await fetch(SA_API_URL+'?'+new URLSearchParams({action:'login',name,last4}),{signal:c.signal}); clearTimeout(tm);
+    const r=await fetch(SA_API_URL+'?'+new URLSearchParams({action:'login',name,last4}),{signal:c.signal,isBg:!!bg}); clearTimeout(tm);
     return await r.json(); }catch(e){ return null; }
 }
 function mergeSAInto(sa){
@@ -757,7 +758,7 @@ function mergeSAInto(sa){
   return changed;
 }
 async function loadSA(name,last4){
-  const sa=await fetchSALogin(name,last4);
+  const sa=await fetchSALogin(name,last4,true);   // 背景合併運動班：唔彈載入中
   if(mergeSAInto(sa)){ try{ renderParent(); }catch(e){} }
 }
 /* ⚡ 即時快取（stale-while-revalidate）：只喺輸入身分同上次一致先用 → 安全。
@@ -766,11 +767,11 @@ function saveParentCache(name,last4,r){ try{ localStorage.setItem('is_parent_cac
 function readParentCache(name,last4){ try{ const c=JSON.parse(localStorage.getItem('is_parent_cache')||'null');
   if(c && c.name===name && c.last4===last4 && c.r && (Date.now()-c.t < 7*864e5)) return c.r; }catch(e){} return null; }
 async function bgRefresh(name,last4){
-  try{ const r=await apiRO('login',{name,last4});
+  try{ const r=await apiRO('login',{name,last4,_bg:true});   // 快取已顯示 → 背景更新唔彈載入中
     if(r&&r.ok){ applyLoginResp(r,name,last4); saveParentCache(name,last4,r); try{ localStorage.setItem('is_parent_auth', JSON.stringify({name,last4,token:(r&&r.homeToken)||'',t:Date.now()})); }catch(e){} renderParent(); loadSA(name,last4); }
     else if(r&&r.ok===false){
       // #4 fail：可能係純運動班家庭（快取係 #SA 建）→ 試 #SA，唔好即刻登出
-      const sa=await fetchSALogin(name,last4);
+      const sa=await fetchSALogin(name,last4,true);
       if(sa&&sa.ok){ applyLoginResp(sa,name,last4); (S.family.children||[]).forEach(k=>(k.classes||[]).forEach(c=>c._sa=true)); renderParent(); }
       else { try{ localStorage.removeItem('is_parent_cache'); }catch(e){} toast((r&&r.err)||t('loginFail')); logout(); }
     }
@@ -908,7 +909,7 @@ async function loadBadgeGrades(){
     const tk=(S.family.childTokens||{})[ch.name];
     if(!tk) return null;
     try{
-      const res=await fetch(API_11,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeGrades',name:ch.name,last4:last4,token:tk})});
+      const res=await fetch(API_11,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'homeGrades',name:ch.name,last4:last4,token:tk}),isBg:true});
       const d=await res.json();
       if(!d||!d.ok) return null;
       if(d.grades) return d.grades;                                   // 新：只回本人
