@@ -422,6 +422,7 @@ html,body{
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
+<script src="is-loading.js?v=1"></script>
 </head>
 <body>
 <div id="coach-gate" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg,#111);align-items:center;justify-content:center;flex-direction:column;padding:24px">
@@ -487,7 +488,7 @@ html,body{
       <div class="today-bar">
         <input type="date" class="today-date" id="today-date">
         <button class="today-mini" onclick="coachToday()">今日</button>
-        <button class="today-mini" onclick="loadDaily()">↻</button>
+        <button class="today-mini" onclick="loadDaily(true)">↻</button>
       </div>
       <button class="weather-btn" onclick="weatherCancel()">🌧 天氣停課（當日全部班別，照收一堂）</button>
       <button class="weather-btn" style="background:rgba(46,158,107,.12);border-color:rgba(46,158,107,.45);color:var(--green,#2e9e6b)" onclick="freeCancel()">🚫 停課・不收費（當日全部班別，學費自動少計一堂）</button>
@@ -603,7 +604,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-10-08-sickleave';
+const FRONTEND_VERSION = 'coach-2026-10-09-loading';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -703,10 +704,11 @@ let syncStatus       = 'idle';
 
 /* ═══════════ 三、API 通訊 ═══════════ */
 async function apiGet(params){
+  const _bgGet = params && params._bg===true; if(_bgGet){ params=Object.assign({},params); delete params._bg; }   // _bg：背景請求唔彈「載入中」（is-loading.js）
   const base = isSA(bodyCid_(params)) ? SA_API_URL : API_URL;   // 🔀 有 cid 就按 backend 路由（無 cid→#4）
   const url = base + '?' + new URLSearchParams(params);
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  try{ const res = await fetch(url,{signal:c.signal}); return await res.json(); } finally{ clearTimeout(tm); }
+  try{ const res = await fetch(url,{signal:c.signal,isBg:_bgGet}); return await res.json(); } finally{ clearTimeout(tm); }
 }
 // 讀取快取（stale-while-revalidate）：切返開過嘅 tab 即顯快取、背景攞新→唔使每次等 3 秒平台冷啟動。
 // 任何「寫入」動作自動清晒快取 → 下次開 tab 一定攞到最新，唔會顯示舊資料。
@@ -723,8 +725,9 @@ async function _apiPostOnce_(body){
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
   const url = backendForBody_(payload);   // 🔀 按 body 入面 class id 路由 #4/#SA（無 cid→#4）
+  const _bg = payload._bg===true; delete payload._bg;   // _bg：背景請求唔彈「載入中」
   const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  const res = await (async()=>{ try{ return await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal }); } finally{ clearTimeout(tm); } })();
+  const res = await (async()=>{ try{ return await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal, isBg:_bg }); } finally{ clearTimeout(tm); } })();
   const j = await res.json();
   if (payload.action && !_READ_ACT[payload.action]) { for (const k in _readCache) delete _readCache[k]; }  // 寫入 → 清快取
   return j;
@@ -766,12 +769,13 @@ async function apiPostUrl_(url, body){
   const payload = Object.assign({}, body);
   if (payload.coachPass === undefined) payload.coachPass = cpass();
   const act = payload.action;
+  const _bg = payload._bg===true; delete payload._bg;   // _bg：背景請求唔彈「載入中」
   const tries = (act && _READ_ACT[act]) ? 3 : 1;   // ⚠️ 只有唯讀 action 先重試；cancelDay 等寫入永遠單次
   let err = null, last = null;
   for (let i = 0; i < tries; i++){
     const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
     try{
-      const res = await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal });
+      const res = await fetch(url, { method:'POST', body:JSON.stringify(payload), signal:c.signal, isBg:_bg });
       const j = await res.json(); last = j;
       if (j && !isLostPost_(j)) return j;
     }
@@ -847,14 +851,14 @@ function applyCoachLoadData(data){
 function saveCoachLoad(data){ try{ localStorage.setItem('is_coach_load', JSON.stringify({d:data,t:Date.now()})); }catch(e){} }
 function readCoachLoad(){ try{ const c=JSON.parse(localStorage.getItem('is_coach_load')||'null'); if(c&&c.d&&(Date.now()-c.t<3*864e5)) return c.d; }catch(e){} return null; }
 // 🔀 #SA load（獨立 fetch；失敗當空，唔阻跳繩載入）
-async function _saLoadOnce_(){ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
-  try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal}); return await r.json(); }
+async function _saLoadOnce_(bg){ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
+  try{ const r=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'load',coachPass:cpass()}),signal:c.signal,isBg:!!bg}); return await r.json(); }
   finally{ clearTimeout(tm); } }
-async function _saLoad_(){
+async function _saLoad_(bg){
   // 2026-09-19：同 apiPost 一樣加唯讀重試（/exec 間中回 404 HTML 頁 → r.json() throw）。load 係純讀，重試安全。
   let j=null, err=null;
   for(let i=0;i<3;i++){
-    try{ j=await _saLoadOnce_(); err=null; break; }
+    try{ j=await _saLoadOnce_(bg); err=null; break; }
     catch(e){ err=e; j=null; if(i<2) await new Promise(s=>setTimeout(s,600*(i+1))); }
   }
   if(err) return {__saFail:true, __saErr:String((err&&err.message)||err)};
@@ -890,7 +894,8 @@ async function loadFromSheets(){
   if(!CLOUD_LOADED){ const cached=readCoachLoad(); if(cached){ try{ applyCoachLoadData(cached); CLOUD_LOADED=true; setSyncIndicator('ok'); renderHome(); }catch(e){} } }
   setSyncIndicator('loading');
   try{
-    const [d4, dSA] = await Promise.all([ apiPost({ action:'load' }), _saLoad_() ]);   // 🔀 兩個 backend 各拉一次，合併
+    const _bgL = CLOUD_LOADED;   // 已顯示快取／上次資料 → 背景更新唔彈「載入中」；第一次冇資料先彈
+    const [d4, dSA] = await Promise.all([ apiPost({ action:'load', _bg:_bgL }), _saLoad_(_bgL) ]);   // 🔀 兩個 backend 各拉一次，合併
     if (d4.error || d4.err) throw new Error(d4.error || d4.err);
     const saOk = !(dSA && dSA.__saFail);              // 🔒 審計#20：SA 失敗唔當有效
     const data = _mergeLoad_(d4, saOk ? dSA : {});   // cid 唔撞→合併唔會互相清走出席
@@ -962,14 +967,14 @@ async function syncAttendance(key){
         if(!r||!r.ok){ setSyncIndicator('error'); return r||{ok:false}; } setSyncIndicator('ok'); return r; }
   catch(e){ setSyncIndicator('error'); return {ok:false, err:'網絡錯誤'}; }
 }
-async function syncAbsences(){
+async function syncAbsences(bg){
   setSyncIndicator('saving');
   // 🔀 save_absences 會全量覆蓋該 backend 請假 → 兩個 backend 各寫自己嗰份（唔可以把合併嘅全量送落單一 backend，否則污染）。
   const abs4 = ABSENCES.filter(x=>!isSA(x.classId)), absSA = ABSENCES.filter(x=>isSA(x.classId));
   try {
-    const r4 = await apiPost({ action:'save_absences', data:abs4 });   // 無 cid → #4
+    const r4 = await apiPost({_bg:!!bg, action:'save_absences', data:abs4 });   // 無 cid → #4
     let rSA = { ok:true };
-    try { rSA = await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'save_absences', data:absSA, coachPass:cpass()})}).then(x=>x.json()); }
+    try { rSA = await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'save_absences', data:absSA, coachPass:cpass()}),isBg:!!bg}).then(x=>x.json()); }
     catch(e){ rSA = { ok:false, err:'#SA 網絡錯誤' }; }
     const ok = !!(r4&&r4.ok) && !!(rSA&&rSA.ok);
     setSyncIndicator(ok?'ok':'error');
@@ -1430,7 +1435,7 @@ const PT_API='https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVf
 let PT_MOVED=[];
 async function ptAppInbox_(){ try{ let pass=cpass(); try{ pass=sessionStorage.getItem('isptc_pass')||pass; }catch(e){}
     const c=new AbortController(), tm=setTimeout(()=>c.abort(), 25000);
-    const r=await fetch(PT_API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cInbox', coachPass:pass}),signal:c.signal}); clearTimeout(tm);
+    const r=await fetch(PT_API,{method:'POST',isBg:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'cInbox', coachPass:pass}),signal:c.signal}); clearTimeout(tm);
     const j=await r.json(); if(!j||!j.ok) return [];
     PT_MOVED=j.moved||[];
     return (j.items||[]).map(x=>{ const names=(x.list||[]).filter(n=>!/示範|測試/.test(n)); return names.length?{key:x.key, ic:x.ic, title:String(x.title).replace('{n}',names.length), count:names.length, names:names.slice(0,5), level:x.level, tab:x.tab}:null; }).filter(Boolean);
@@ -1438,7 +1443,7 @@ async function ptAppInbox_(){ try{ let pass=cpass(); try{ pass=sessionStorage.ge
 async function loadInbox_(force){
   if(_inboxBusy) return; _inboxBusy=true;
   const ptP=ptAppInbox_();
-  try{ const r=await apiPost({ action:'coachInbox', coachPass:cpass() }); COACH_INBOX=(r&&r.ok)?r:{items:[]}; }catch(e){ COACH_INBOX={items:[]}; }
+  try{ const r=await apiPost({_bg:true, action:'coachInbox', coachPass:cpass() }); COACH_INBOX=(r&&r.ok)?r:{items:[]}; }catch(e){ COACH_INBOX={items:[]}; }
   try{ const pt=await ptP, have=new Set((COACH_INBOX.items||[]).map(x=>x.key)); COACH_INBOX.items=(COACH_INBOX.items||[]).concat(pt.filter(x=>!have.has(x.key)));
     if(PT_MOVED.length) COACH_INBOX.items=COACH_INBOX.items.filter(x=>!(x.key==='ptpkg' && (x.names||[]).every(n=>PT_MOVED.some(g=>String(n).startsWith(g))))); }catch(e){}
   _inboxAt=Date.now();
@@ -1635,7 +1640,7 @@ async function renderReturnsPanel(){
   let host=document.getElementById('home-returns');
   if(!host){ const dash=document.getElementById('home-dashboard'); if(dash){ host=document.createElement('div'); host.id='home-returns'; dash.parentNode.insertBefore(host, dash); } }
   if(!host) return;
-  let r; try{ r=await apiPost({action:'returnsAll'}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({_bg:true, action:'returnsAll'}); }catch(e){ r=null; }
   RETURNS_CACHE=(r&&r.ok&&r.returns)?r.returns:[];
   try{ renderTodo(); }catch(e){}   // 回歸資料載入後更新今日待辦嘅「待核實」項
   const pending=RETURNS_CACHE.filter(x=>x.status!=='已核實');
@@ -1667,7 +1672,7 @@ async function renderMedNoteVerify(){
   if(!host){ const anchor=document.getElementById('home-returns')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-mednote'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
   // 🔀 2026-09-13：合併運動班(#SA)待核實醫生紙(老闆決定運動班都要教練核實)。verifyMedNote 已按 x.cid 路由。
-  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'pendingMedNotes'}), apiPostUrl_(SA_API_URL,{action:'pendingMedNotes'}) ]); }catch(e){ r=null; rSA=null; }
+  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({_bg:true, action:'pendingMedNotes'}), apiPostUrl_(SA_API_URL,{_bg:true, action:'pendingMedNotes'}) ]); }catch(e){ r=null; rSA=null; }
   MNV_LIST=[].concat((r&&r.ok&&r.list)?r.list:[], (rSA&&rSA.ok&&rSA.list)?rSA.list:[]);
   /* 🔒 2026-09-20 審計#2（同族）：#SA 攞唔到唔可以靜靜顯示「冇待核實」——運動班嘅醫生紙就永遠唔會入
      核實佇列，家長交咗都冇人批。攞唔到就明講，唔好扮乾淨。*/
@@ -1734,7 +1739,7 @@ async function mlLoadClasses(){
   if(!date){ sel.innerHTML='<option value="">— 先揀日期 —</option>'; return; }
   sel.innerHTML='<option value="">載入緊…</option>';
   // 🔀 2026-09-13 審計#3：手動工具班別選單要合併運動班(#SA)，否則教練代加運動班補堂/請假揀唔到班。
-  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'dailyList', date, coachPass:cpass()}), apiPostUrl_(SA_API_URL,{action:'dailyList', date}) ]); }catch(e){ r=null; rSA=null; }
+  let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({_bg:true, action:'dailyList', date, coachPass:cpass()}), apiPostUrl_(SA_API_URL,{_bg:true, action:'dailyList', date}) ]); }catch(e){ r=null; rSA=null; }
   if(r&&r.err==='密碼錯誤'){ sel.innerHTML='<option value="">請先登入</option>'; return; }
   let list=(r&&r.ok&&r.list)?r.list.slice():[];
   if(rSA&&rSA.ok&&Array.isArray(rSA.list)) list=list.concat(rSA.list);
@@ -1946,8 +1951,8 @@ async function renderVenueAdmin(){
   let host=document.getElementById('home-venues');
   if(!host){ const nt=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
   if(!host) return;
-  let r; try{ r=await apiPost({action:'venuesAdmin', coachPass:cpass()}); }catch(e){ r=null; }
-  let rSA; try{ rSA=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'venuesAdmin', coachPass:cpass()})}).then(x=>x.json()); }catch(e){ rSA=null; }   // 🔀 運動班已設地點都拉埋
+  let r; try{ r=await apiPost({_bg:true, action:'venuesAdmin', coachPass:cpass()}); }catch(e){ r=null; }
+  let rSA; try{ rSA=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'venuesAdmin', coachPass:cpass()}),isBg:true}).then(x=>x.json()); }catch(e){ rSA=null; }   // 🔀 運動班已設地點都拉埋
   VENUES_CACHE=((r&&r.ok&&r.venues)?r.venues:[]).concat((rSA&&rSA.ok&&rSA.venues)?rSA.venues:[]);
   let html=`<div class="section-header">📍 上課地點（家長端會見到）</div>
     <div style="margin:0 4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
@@ -2064,7 +2069,7 @@ async function renderNoticesAdmin(){
     if(dash){ host=document.createElement('div'); host.id='home-notices'; dash.parentNode.insertBefore(host, dash); }
   }
   if(!host) return;
-  let r; try{ r=await apiPost({action:'notices', n:10}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({_bg:true, action:'notices', n:10}); }catch(e){ r=null; }
   NOTICES_CACHE=(r&&r.ok&&r.notices)?r.notices:[];
   let html=`<div class="section-header">📣 每週通知（場地／時間／天氣）</div>
     <div style="margin:0 4px 10px">
@@ -2292,7 +2297,7 @@ function loadRollSession(){
 async function showSummerMakeups(classId, date){
   const box=document.getElementById('roll-summer'); if(!box) return;
   box.innerHTML=''; const token=classId+'|'+date; box.dataset.tok=token;   // 即時清走上次，避免殘留
-  let r; try{ r=await apiPost({action:'dailyList', date, coachPass:cpass()}); }catch(e){ return; }
+  let r; try{ r=await apiPost({_bg:true, action:'dailyList', date, coachPass:cpass()}); }catch(e){ return; }
   if(box.dataset.tok!==token) return;   // 期間切咗班/日 → 唔好覆蓋
   if(!r||!r.ok||!Array.isArray(r.list)) return;
   const g=r.list.find(x=>x.c&&(x.c.key===classId||x.c.sport===classId));
@@ -3150,7 +3155,7 @@ function removeExtraDate(cid, d){
 function silentValidate(){
   let changed = false;
   ABSENCES.forEach(a => { if (!a.deadline && a.absDate) { a.deadline = addMonths(a.absDate, 2); changed = true; } });
-  if (changed) syncAbsences();
+  if (changed) syncAbsences(true);
 }
 function validateAndFixData(){
   let fixed = 0;
@@ -3164,7 +3169,7 @@ function validateAndFixData(){
     });
   });
   ABSENCES.forEach(a => { if (!a.deadline && a.absDate) { a.deadline = addMonths(a.absDate, 2); fixed++; } });
-  if (fixed) { syncAbsences(); if (currentScreen==='makeup') renderMakeup(); }
+  if (fixed) { syncAbsences(true); if (currentScreen==='makeup') renderMakeup(); }
   toast(fixed ? `已修正 ${fixed} 項缺失記錄` : '數據正常，無需修正', '🔍');
 }
 
@@ -3199,7 +3204,7 @@ function patchCoachCache(name, key, status, mk){
   coachDailyData.list.forEach(g=>{ if((g.c.key||g.c.sport)===key) (g.rows||[]).forEach(row=>{ if(row.name===name && (!!row.makeup)===(!!mk)) row.status=status; }); });
   saveCoachDaily(coachDate, coachDailyData);
 }
-async function loadDaily(){
+async function loadDaily(fg){
   const inp = document.getElementById('today-date');
   coachDate = inp ? inp.value : todayStr();
   const box = document.getElementById('daily-list');
@@ -3208,7 +3213,7 @@ async function loadDaily(){
   else box.innerHTML = `<div class="empty-state"><div class="icon">⏳</div><p>載入中…</p></div>`;
   // 🔀 2026-09-13 審計#3：今日點名要合併運動班(#SA)，否則 7 個運動班喺今日點名表完全睇唔到(點名盲點)。
   let r, rSA;
-  try { [r, rSA] = await Promise.all([ apiPost({ action:'dailyList', date:coachDate, coachPass:cpass() }), apiPostUrl_(SA_API_URL, { action:'dailyList', date:coachDate }) ]); }
+  try { [r, rSA] = await Promise.all([ apiPost({_bg:!fg, action:'dailyList', date:coachDate, coachPass:cpass() }), apiPostUrl_(SA_API_URL, {_bg:!fg, action:'dailyList', date:coachDate }) ]); }
   catch(e){ if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>連線錯誤，請再試<br><span style="font-size:12px">（確認已部署統一後端並填好 API_URL）</span></p></div>`; return; }
   if (!r || !r.ok) { if(!cached) box.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><p>${(r&&r.err)||'載入失敗'}</p></div>`; return; }
   if (rSA && rSA.ok && Array.isArray(rSA.list) && rSA.list.length) r = Object.assign({}, r, { list:(r.list||[]).concat(rSA.list) });   // cid 唔撞→concat 合併
@@ -3236,7 +3241,7 @@ function rolledToday_(id){ const log=ATT_LOG[id+'|'+todayStr()]; if(!log) return
 function rolledGrp_(g){ return (g.rows||[]).some(x=>!x.makeup&&!x.summer&&!x.saGuest&&(x.status==='出席'||x.status==='缺席'))?1:0; }
 /* 🎟️ 今日試堂卡：試堂學生唔喺名冊，之前教練點名頁完全見唔到。只顯示已核實／待核實（唔計取消）。 */
 async function showTrialToday_(date, box){
-  let t; try{ t=await apiPost({ action:'trialToday', date, coachPass:cpass() }); }catch(e){ return; }
+  let t; try{ t=await apiPost({_bg:true, action:'trialToday', date, coachPass:cpass() }); }catch(e){ return; }
   if(!t || !t.ok || !Array.isArray(t.trials) || !t.trials.length || coachDate!==date) return;
   const old=document.getElementById('trial-today'); if(old) old.remove();
   const esc2=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -3422,7 +3427,7 @@ async function checkHealth(){
   const el = document.getElementById('health-line'); if (!el) return;
   el.textContent = '● 檢查連線中…'; el.style.color = 'var(--muted)';
   let r;
-  try { r = await apiPost({ action:'ping' }); }
+  try { r = await apiPost({_bg:true, action:'ping' }); }
   catch(e){ el.textContent = '● 連線失敗（檢查 API_URL / 部署）'; el.style.color = 'var(--red)'; return; }
   const ver = r && r.version;
   if (r && r.ok && ver === CONFIG.EXPECTED_VERSION) { el.textContent = '● 系統正常 · ' + ver; el.style.color = 'var(--green)'; }
@@ -3450,7 +3455,7 @@ saveRoll = async function(){
   setSyncIndicator('saving');
   // 🔀 只送同一 backend 嘅請假（save_roll 會全量覆蓋該 backend 請假）→ 防把運動班請假寫落跳繩後端（或反之）污染出席
   const _absSameBackend = ABSENCES.filter(x => isSA(x.classId) === isSA(currentClass));
-  let a=null; try{ a = await apiPost({ action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:_absSameBackend }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
+  let a=null; try{ a = await apiPost({_bg:true, action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:_absSameBackend }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
   setSyncIndicator(a&&a.ok?'ok':'error');
   if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
   if(a&&a.ok){
@@ -3483,7 +3488,7 @@ window.addEventListener('beforeunload', function(e){ if(rollDirty){ e.preventDef
 // 唔再造 to=自己班 自補記錄（舊做法會污染格覆蓋真請假、又反覆彈返）。
 markMakeupDone = async function(id){
   const rec = ABSENCES.find(a=>a.id===id); if(!rec) return;
-  let r; try{ r=await apiPost({action:'markAbsenceDone', name:rec.name, classId:rec.classId, absDate:rec.absDate}); }catch(e){ r=null; }
+  let r; try{ r=await apiPost({_bg:true, action:'markAbsenceDone', name:rec.name, classId:rec.classId, absDate:rec.absDate}); }catch(e){ r=null; }
   if(r&&r.ok){ rec.madeUpDate=todayStr(); renderMakeup(); toast('已標記為補堂完成','✓'); }
   else toast('儲存失敗'+((r&&r.err)?'：'+r.err:''),'⚠');
 };
@@ -3528,7 +3533,7 @@ async function mkBlockRefresh(){
   const box=document.getElementById('mkb-list'); if(!box) return;
   box.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">載入緊…</div>';
   // 🔀 2026-09-16：兩個後端各查一次（#4 跳繩＋#SA 運動班），合併去重（封鎖存喺各自 Settings）
-  const [r4,rsa]=await Promise.all([ apiPostUrl_(API_URL,{action:'mkBlocks'}), apiPostUrl_(SA_API_URL,{action:'mkBlocks'}) ]);
+  const [r4,rsa]=await Promise.all([ apiPostUrl_(API_URL,{_bg:true, action:'mkBlocks'}), apiPostUrl_(SA_API_URL,{_bg:true, action:'mkBlocks'}) ]);
   const ok4=!!(r4&&r4.ok), okSa=!!(rsa&&rsa.ok);
   const l4=(ok4&&Array.isArray(r4.mkBlock))?r4.mkBlock:[];
   const lsa=(okSa&&Array.isArray(rsa.mkBlock))?rsa.mkBlock:[];

@@ -57,6 +57,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 .foot{text-align:center;color:var(--mut);font-size:11px;padding:14px 0 4px;}
 .pill{display:inline-block;background:var(--teal-dim);color:var(--teal-dark);font-size:11px;font-weight:700;padding:1px 9px;border-radius:20px;}
 </style>
+<script src="is-loading.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
@@ -68,7 +69,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const APISA='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-09-28-hash';
+const FRONTEND_VERSION='admin-2026-09-28-hash-ld';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
