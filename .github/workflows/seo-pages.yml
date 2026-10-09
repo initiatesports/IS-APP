@@ -1,0 +1,22 @@
+name: 官網 SEO 靜態頁巡查
+
+# 官網課程／知識文章嘅獨立網頁（courses/、knowledge/、sitemap.xml、首頁靜態文字）由 tools/seo-build.mjs
+# 按 #11 CMS 生成。CMS 改咗（新文章／改課程）但未重新生成 → 呢度每日 fail → GitHub email 提醒跑：
+#   node tools/seo-build.mjs   （再開 PR 合併）
+# 只讀公開 CMS home route（同官網一樣），無 PII、免密碼。
+
+on:
+  schedule:
+    - cron: '17 2 * * *'      # 每日 10:17 HKT（避開 07:00 搶場）
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 比對 CMS 同靜態頁
+        run: node tools/seo-build.mjs --check
