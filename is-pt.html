@@ -163,7 +163,7 @@ label.lb{display:block;font-size:12px;color:var(--mut);margin:0 0 5px 2px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'pt-2026-10-09-b';
+const FRONTEND_VERSION = 'pt-2026-10-09-c';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 /* ───────── 語言 ───────── */
@@ -758,65 +758,88 @@ function listenSw(){ try{ navigator.serviceWorker && navigator.serviceWorker.add
   try{ if(pushOK() && Notification.permission==='granted' && lsGet('ispt_push')) setTimeout(()=>pushSubNow().catch(()=>{}), 3000); }catch(e){} }
 
 /* ═════════ 目標問卷 Goal Setting（老闆 2026-10-09）：新學員一定要填；2027 起每年 1 月 New Year New Me；教練可要求重填 ═════════ */
+/* 專業版（老闆 2026-10-09）：一題一頁、進度條、分數題 1–10、最後覆核再提交 */
 const GOAL_Q = [
-  {sec:['1. 目標','1. Goal'], qs:[
-    {k:'q1', zh:a=>`你對${a?'新一年的訓練':'私人訓練'}的期望是什麼？`, en:a=>`What are your expectations of ${a?'your training this new year':'personal training'}?`},
-    {k:'q2', zh:'你認為訓練最重要的一個原因／目標是什麼？', en:'What is the single most important goal for you to achieve in your exercise programme?'},
-    {k:'q3', zh:'你期望在多久時間內實現你的目標？', en:'When do you expect to achieve your goal?', short:true},
-    {k:'q4', zh:'有哪三個原因可能會影響你的計劃，導致你未能達到目標？', en:'What are the three challenges that might prevent you from reaching your goal?', three:true} ]},
-  {sec:['2. 程度','2. Level'], qs:[
-    {k:'q5', zh:'你覺得自己而家嘅體能程度係幾多分？（1＝好差，10＝好好）', en:'How would you rate your current fitness level? (1 = very low, 10 = excellent)', scale:true},
-    {k:'q6', zh:'你以前做過咩運動／訓練？做咗幾耐？（可以留空）', en:'What exercise or training have you done before, and for how long? (optional)', opt:true} ]},
-  {sec:['3. 訓練風格','3. Style'], qs:[
-    {k:'q7', zh:'在鍛鍊過程中，你希望感到不斷接受挑戰，還是舒適就好呢？', en:'Is it more important for you to continually feel challenged or to feel comfortable during your workouts?', choice:[['challenge','不斷接受挑戰','Continually challenged'],['comfort','舒適就好','Comfortable'],['balance','兩樣平衡','A balance of both']]},
-    {k:'q8', zh:'多樣化 vs 常規訓練？', en:'Do you enjoy exercise more with a routine that you can adhere to or one that offers variety?', choice:[['routine','常規訓練（固定一套）','A routine I can stick to'],['variety','多樣化','Variety'],['either','兩樣都得','Either']]} ]},
-  {sec:['4. 動機與深層原因','4. Mindset'], qs:[
-    {k:'q9', zh:'為什麼這個目標對你如此重要？', en:'Why is this goal so important to you?'},
-    {k:'q10', zh:'如果沒有改變、沒有達成目標，甚至更糟，會有什麼後果？', en:'If you don’t make these changes or even regress in your health and fitness, how would that affect your life?'},
-    {k:'q11', zh:'當你成功達成目標後，生活會有什麼不同？什麼好處最重要？', en:'How will life be different when you successfully reach your goals? What benefits are most important to you?'},
-    {k:'q12', zh:'你認為教練可以如何幫助你？', en:'In what ways do you believe a coach can help you?'} ]}
+  {k:'q1', sec:0, type:'text', zh:a=>`你對${a?'新一年的訓練':'私人訓練'}的期望是什麼？`, en:a=>`What are your expectations of ${a?'your training this new year':'personal training'}?`},
+  {k:'q2', sec:0, type:'text', zh:'你認為訓練最重要的一個原因／目標是什麼？', en:'What is the single most important goal for you to achieve in your exercise programme?'},
+  {k:'q3', sec:0, type:'when', zh:'你期望在多久時間內實現你的目標？', en:'When do you expect to achieve your goal?', picks:[['1 個月','1 month'],['3 個月','3 months'],['6 個月','6 months'],['1 年','1 year']]},
+  {k:'q4', sec:0, type:'three', zh:'有哪三個原因可能會影響你的計劃，導致你未能達到目標？', en:'What are the three challenges that might prevent you from reaching your goal?'},
+  {k:'q5', sec:1, type:'scale', zh:'你覺得自己而家嘅體能程度係幾多分？', en:'How would you rate your current fitness level?', lo:['好差','Very low'], hi:['好好','Excellent']},
+  {k:'q6', sec:1, type:'text', opt:true, zh:'你以前做過咩運動／訓練？做咗幾耐？', en:'What exercise or training have you done before, and for how long?'},
+  {k:'q7', sec:2, type:'scale', note:true, zh:'在鍛鍊過程中，你希望感到不斷接受挑戰，還是舒適就好呢？', en:'Is it more important for you to continually feel challenged or to feel comfortable during your workouts?', lo:['舒適就好','Comfortable'], hi:['不斷接受挑戰','Continually challenged']},
+  {k:'q8', sec:2, type:'scale', note:true, zh:'你鍾意常規訓練，定係多樣化？', en:'Do you enjoy exercise more with a routine that you can adhere to or one that offers variety?', lo:['常規（固定一套）','A routine'], hi:['多樣化','Variety']},
+  {k:'q9', sec:3, type:'text', zh:'為什麼這個目標對你如此重要？', en:'Why is this goal so important to you?'},
+  {k:'qImp', sec:3, type:'scale', zh:'呢個目標對你有幾重要？', en:'How important is this goal to you right now?', lo:['唔太重要','Not important'], hi:['極之重要','Extremely important']},
+  {k:'q10', sec:3, type:'text', zh:'如果沒有改變、沒有達成目標，甚至更糟，會有什麼後果？', en:'If you don’t make these changes or even regress in your health and fitness, how would that affect your life?'},
+  {k:'q11', sec:3, type:'text', zh:'當你成功達成目標後，生活會有什麼不同？什麼好處最重要？', en:'How will life be different when you successfully reach your goals? What benefits are most important to you?'},
+  {k:'qConf', sec:3, type:'scale', zh:'你有幾大信心可以達成呢個目標？', en:'How confident are you that you can reach this goal?', lo:['冇信心','Not confident'], hi:['好有信心','Very confident']},
+  {k:'q12', sec:3, type:'text', zh:'你認為教練可以如何幫助你？', en:'In what ways do you believe a coach can help you?'}
 ];
-const GOAL_REQ_K=['q1','q2','q3','q4a','q5','q7','q8','q9','q10','q11','q12'];
+const GOAL_SEC=[['目標','Goal'],['程度','Level'],['訓練風格','Style'],['動機與深層原因','Mindset']];
 const gq=(q,annual)=>{ const v=LANG==='en'?q.en:q.zh; return typeof v==='function'?v(annual):v; };
+const gDone=(q,d)=>q.opt || (q.type==='three'?!!String(d.q4a||'').trim():!!String(d[q.k]||'').trim());
 function goalBlocking(){ const n=D&&D.goalNeed; if(!n) return false; if(n.block) return true; return lsGet('ispt_goal_snooze')!==isoToday() && S.goalMode!=='later'; }
 function goalDraft(){ return lsGet('ispt_goal_draft')||{}; }
-function goalSet(k,v){ const d=goalDraft(); d[k]=v; lsSet('ispt_goal_draft', d); }
-function goalChoiceLabel(q,v){ const c=(q.choice||[]).find(x=>x[0]===v); return c?(LANG==='en'?c[2]:c[1]):(v||''); }
+function goalSet(k,v){ const d=goalDraft(); d[k]=v; lsSet('ispt_goal_draft', d); const nb=document.getElementById('g-next'); if(nb){ const q=GOAL_Q[S.gStep]; if(q) nb.disabled=!gDone(q,d); } }
+function scaleTxt(q,v,en){ if(!v) return ''; return v+' / 10'+(q.lo?` <span class="muted small" style="font-weight:500">（1＝${esc(q.lo[en?1:0])}，10＝${esc(q.hi[en?1:0])}）</span>`:''); }
+function goalAnsHtml(q,ans,en){ if(q.type==='three') return [ans.q4a,ans.q4b,ans.q4c].filter(Boolean).map((x,i)=>(i+1)+'. '+esc(x)).join('<br>');
+  if(q.type==='scale'){ const v=ans[q.k]; const legacy={challenge:'不斷接受挑戰',comfort:'舒適就好',balance:'兩樣平衡',routine:'常規',variety:'多樣化',either:'兩樣都得'}[v]; return (legacy?esc(legacy):scaleTxt(q,v,en))+(ans[q.k+'n']?'<br><span class="small">'+esc(ans[q.k+'n'])+'</span>':''); }
+  return esc(ans[q.k]||''); }
 function vGoalCard(){ const n=D.goalNeed; if(!n || n.block) return '';
   return `<div class="card tap" style="border-color:rgba(201,106,61,.55)" onclick="S.goalMode='form';S.tab='goal';S.goalRedraw=true;render();window.scrollTo(0,0)"><div class="row"><div><b>🎆 New Year New Me ${n.year}</b><div class="small muted">${LANG==='en'?'Set this year’s goals with your coach (about 5 min)':'同教練一齊定今年目標（約 5 分鐘）'}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`; }
+function goalTop(n, en){ const blocking=n&&n.block;
+  return `<div class="row" style="margin:16px 0 4px">${blocking?'':`<button class="back" style="margin:0" onclick="S.tab='${n&&!n.block?'home':'more'}';S.goalMode='later';S.gStep=null;render();window.scrollTo(0,0)">‹ ${en?'Back':'返回'}</button>`}<span class="sp"></span><button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh');S.goalRedraw=true;render()">中</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en');S.goalRedraw=true;render()">EN</button></div>`; }
 function renderGoal(){
-  const n=D.goalNeed, last=(D.goals||[])[0], mode=(n&&(n.block||S.goalMode!=='view'))?'form':(S.goalMode||'view'), annual=!!(n&&n.kind==='annual') || (mode==='form' && !n && (D.goals||[]).length>0), d=goalDraft(), en=LANG==='en';
-  const blocking=n&&n.block;
-  const title = n&&n.kind==='annual'?`🎆 New Year New Me ${n.year}`: n&&n.kind==='coach'?(en?'🎯 Your coach asks you to update your goals':'🎯 教練請你更新目標'): n&&n.kind==='new'?(en?'🎯 Before we start: your goals':'🎯 開始之前：你嘅目標'):(en?'🎯 My goals':'🎯 我的目標');
-  const intro = n&&n.kind==='annual'?(en?'A new year — set your goals with your coach! About 5 minutes.':'新一年，同教練一齊定目標！大約 5 分鐘。'):(en?'Help your coach understand you and tailor your training (about 5 minutes). Your answers are only seen by your coach.':'幫教練了解你，度身訂造訓練計劃（大約 5 分鐘）。答案只有教練睇到。');
-  let h=`<div class="wrap" id="goal-form" style="padding-bottom:40px"><div class="row" style="margin:16px 0 4px">${blocking?'':`<button class="back" style="margin:0" onclick="S.tab='${n&&!n.block?'home':'more'}';S.goalMode='later';render();window.scrollTo(0,0)">‹ ${en?'Back':'返回'}</button>`}<span class="sp"></span><button class="pill ${LANG==='zh'?'on':''}" onclick="setLang('zh');S.goalRedraw=true;render()">中</button><button class="pill ${LANG==='en'?'on':''}" onclick="setLang('en');S.goalRedraw=true;render()">EN</button></div>
-    <div class="h1" style="margin-top:6px">${title}</div>`;
+  const n=D.goalNeed, last=(D.goals||[])[0], mode=(n&&(n.block||S.goalMode!=='view'))?'form':(S.goalMode||'view'), en=LANG==='en';
+  const annual=!!(n&&n.kind==='annual') || (mode==='form' && !n && (D.goals||[]).length>0), d=goalDraft();
+  const title = n&&n.kind==='annual'?`🎆 New Year New Me ${n.year}`: n&&n.kind==='coach'?(en?'🎯 Update your goals':'🎯 更新你嘅目標'): n&&n.kind==='new'?(en?'🎯 Goal setting':'🎯 目標設定'):(en?'🎯 My goals':'🎯 我的目標');
+  let h=`<div class="wrap" id="goal-form" style="padding-bottom:40px">`+goalTop(n,en);
   if(mode==='view'){
-    if(!last) h+=`<div class="card"><div class="muted">${en?'No goals yet.':'未填過目標問卷。'}</div><button class="btn block" style="margin-top:10px" onclick="S.goalMode='form';S.goalRedraw=true;render()">${en?'Fill in now':'而家填'}</button></div>`;
-    else { h+=`<div class="sub">${last.year} · ${fmtD(String(last.at).slice(0,10))}</div>`+GOAL_Q.map(sec=>`<div class="sec">${sec.sec[en?1:0]}</div><div class="card">${sec.qs.map(q=>{ const v=q.three?[last.ans.q4a,last.ans.q4b,last.ans.q4c].filter(Boolean).map((x,i)=>(i+1)+'. '+esc(x)).join('<br>'):q.choice?esc(goalChoiceLabel(q,last.ans[q.k]))+(last.ans[q.k+'n']?' · '+esc(last.ans[q.k+'n']):''):q.scale?(last.ans.q5?last.ans.q5+' / 10':''):esc(last.ans[q.k]||'');
-        return `<div style="margin:6px 0 12px"><div class="small muted">${esc(gq(q, last.kind==='annual'))}</div><div style="font-weight:700;white-space:pre-wrap">${v||'—'}</div></div>`; }).join('')}</div>`).join('')+
-        ((D.goals||[]).length>1?`<div class="small muted">${en?'Earlier':'之前'}：${D.goals.slice(1).map(g=>g.year).join('、')}</div>`:'')+
-        `<button class="btn ghost block" style="margin-top:14px" onclick="S.goalMode='form';S.goalRedraw=true;render();window.scrollTo(0,0)">✎ ${en?'Update my goals':'更新我的目標'}</button>`; }
-    h+=`</div>`; $('#app').innerHTML=h; return; }
-  h+=`<p class="muted small" style="line-height:1.6;margin:4px 0 6px">${intro}</p>`;
-  GOAL_Q.forEach(sec=>{ h+=`<div class="sec">${sec.sec[en?1:0]}</div><div class="card">`;
-    sec.qs.forEach(q=>{ const lab=`<label class="lb" style="font-size:14px;color:var(--text);font-weight:700;line-height:1.5">${esc(gq(q,annual))}${q.opt?'':' <span style="color:var(--gold)">*</span>'}</label>`;
-      if(q.three) h+=`<div class="fld">${lab}${['a','b','c'].map((x,i)=>`<input class="in" style="margin-top:6px" placeholder="${i+1}." value="${esc(d['q4'+x]||'')}" oninput="goalSet('q4${x}',this.value)">`).join('')}</div>`;
-      else if(q.scale) h+=`<div class="fld">${lab}<div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:6px">${[1,2,3,4,5,6,7,8,9,10].map(v=>`<label style="text-align:center"><input type="radio" name="g-q5" value="${v}" ${String(d.q5)===String(v)?'checked':''} onchange="goalSet('q5','${v}')" style="display:block;margin:0 auto 2px;width:20px;height:20px"><span class="small">${v}</span></label>`).join('')}</div></div>`;
-      else if(q.choice) h+=`<div class="fld">${lab}${q.choice.map(c=>`<label class="row" style="gap:10px;margin-top:8px"><input type="radio" name="g-${q.k}" value="${c[0]}" ${d[q.k]===c[0]?'checked':''} onchange="goalSet('${q.k}','${c[0]}')" style="width:20px;height:20px"><span>${en?c[2]:c[1]}</span></label>`).join('')}<input class="in" style="margin-top:8px" placeholder="${en?'Anything to add? (optional)':'想補充？（可以留空）'}" value="${esc(d[q.k+'n']||'')}" oninput="goalSet('${q.k}n',this.value)"></div>`;
-      else h+=`<div class="fld">${lab}${q.short?`<input class="in" style="margin-top:6px" value="${esc(d[q.k]||'')}" oninput="goalSet('${q.k}',this.value)" placeholder="${en?'e.g. 6 months':'例：6 個月'}">`:`<textarea class="in" style="margin-top:6px;min-height:76px" oninput="goalSet('${q.k}',this.value)">${esc(d[q.k]||'')}</textarea>`}</div>`; });
-    h+=`</div>`; });
-  h+=`<div id="goal-err" style="color:var(--red);font-size:13px;min-height:20px;margin:6px 2px"></div>
-    <button class="btn skew block" id="goal-go" onclick="submitGoal()"><span>${en?'Submit':'提交'} →</span></button>
-    ${n&&!n.block?`<button class="btn ghost block" style="margin-top:10px" onclick="lsSet('ispt_goal_snooze',isoToday());S.goalMode='later';S.tab='home';render()">${en?'Later':'遲啲先'}</button>`:''}</div>`;
-  $('#app').innerHTML=h; }
+    h+=`<div class="h1" style="margin-top:6px">${title}</div>`;
+    if(!last) h+=`<div class="card"><div class="muted">${en?'No goals yet.':'未填過目標問卷。'}</div><button class="btn block" style="margin-top:10px" onclick="S.goalMode='form';S.gStep=-1;S.goalRedraw=true;render()">${en?'Start':'開始填'}</button></div>`;
+    else { h+=`<div class="sub">${last.year} · ${fmtD(String(last.at).slice(0,10))}</div>`+GOAL_SEC.map((sc,si)=>`<div class="sec">${si+1}. ${sc[en?1:0]}</div><div class="card">${GOAL_Q.filter(q=>q.sec===si && (last.ans[q.k]!=null||q.type==='three')).map(q=>`<div style="margin:6px 0 12px"><div class="small muted">${esc(gq(q, last.kind==='annual'))}</div><div style="font-weight:700;white-space:pre-wrap">${goalAnsHtml(q,last.ans,en)||'—'}</div></div>`).join('')}</div>`).join('')+
+      ((D.goals||[]).length>1?`<div class="small muted">${en?'Earlier':'之前'}：${D.goals.slice(1).map(g=>g.year).join('、')}</div>`:'')+
+      `<button class="btn ghost block" style="margin-top:14px" onclick="S.goalMode='form';S.gStep=-1;S.goalRedraw=true;render();window.scrollTo(0,0)">✎ ${en?'Update my goals':'更新我的目標'}</button>`; }
+    $('#app').innerHTML=h+`</div>`; return; }
+  // ── 一題一頁 ──
+  if(S.gStep==null) S.gStep=(d._step!=null?d._step:-1);
+  const N=GOAL_Q.length, st=S.gStep;
+  if(st<0){   // 開始頁
+    const intro = n&&n.kind==='annual'?(en?'A new year is a fresh start. Answer a few questions so your coach can plan this year with you.':'新一年，新開始。答幾條問題，等教練同你一齊計劃今年嘅訓練。'):(en?'These questions help your coach understand what you want, why it matters, and how you like to train — so your programme fits you.':'呢幾條問題幫教練了解你想要咩、點解咁重要、同埋你鍾意點樣訓練，等訓練計劃度身訂造。');
+    h+=`<div style="text-align:center;padding:24px 4px 8px"><div style="font-size:46px">${n&&n.kind==='annual'?'🎆':'🎯'}</div><div class="h1" style="margin:10px 0 6px">${title.replace(/^\S+\s/,'')}</div><p class="muted" style="line-height:1.7;margin:0 0 18px">${intro}</p>
+      <div class="card" style="text-align:left">${GOAL_SEC.map((sc,i)=>`<div class="row" style="padding:6px 0"><b style="width:26px;color:var(--teal)">${i+1}</b><span>${sc[en?1:0]}</span><span class="sp"></span><span class="small muted">${GOAL_Q.filter(q=>q.sec===i).length} ${en?'Q':'題'}</span></div>`).join('')}
+        <div class="small muted" style="margin-top:8px">⏱ ${en?'About 5 minutes · answers saved as you go · only your coach sees them':'大約 5 分鐘 · 會自動儲存 · 答案只有教練睇到'}</div></div>
+      <button class="btn skew block" style="margin-top:16px" onclick="goalGo(${d._step>0?d._step:0})"><span>${d._step>0?(en?'Continue':'繼續'):(en?'Start':'開始')} →</span></button>
+      ${n&&!n.block?`<button class="btn ghost block" style="margin-top:10px" onclick="lsSet('ispt_goal_snooze',isoToday());S.goalMode='later';S.tab='home';render()">${en?'Later':'遲啲先'}</button>`:''}</div>`;
+    $('#app').innerHTML=h+`</div>`; return; }
+  if(st>=N){   // 覆核
+    h+=`<div class="h1" style="margin-top:6px">${en?'Review your answers':'覆核答案'}</div><div class="sub">${en?'Tap “Edit” to change any answer':'想改邊條就撳「改」'}</div>`;
+    h+=GOAL_Q.map((q,i)=>`<div class="card" style="padding:12px 14px"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0"><div class="small muted">${i+1}. ${esc(gq(q,annual))}</div><div style="font-weight:700;margin-top:4px;white-space:pre-wrap">${goalAnsHtml(q,d,en)||`<span class="muted">${q.opt?(en?'(skipped)':'（略過）'):'—'}</span>`}</div></div><button class="lnk" onclick="goalGo(${i})">${en?'Edit':'改'}</button></div></div>`).join('');
+    h+=`<div id="goal-err" style="color:var(--red);font-size:13px;min-height:20px;margin:6px 2px"></div><button class="btn skew block" id="goal-go" onclick="submitGoal()"><span>${en?'Submit':'提交'} ✓</span></button>`;
+    $('#app').innerHTML=h+`</div>`; return; }
+  const q=GOAL_Q[st], sec=GOAL_SEC[q.sec];
+  h+=`<div class="small" style="margin-top:10px;font-weight:800;color:var(--teal);letter-spacing:.04em">${q.sec+1}. ${sec[en?1:0]}<span class="sp"></span></div>
+    <div class="row small muted" style="margin-top:4px"><span>${en?'Question':'第'} ${st+1} / ${N}${en?'':' 題'}</span></div>
+    <div class="bar" style="margin:8px 0 18px"><i style="width:${Math.round(st/N*100)}%"></i></div>
+    <div style="font-size:21px;font-weight:900;line-height:1.45;margin-bottom:16px">${esc(gq(q,annual))}${q.opt?` <span class="small muted" style="font-weight:600">${en?'(optional)':'（可以留空）'}</span>`:''}</div>`;
+  if(q.type==='text') h+=`<textarea class="in" id="g-in" style="min-height:140px;font-size:16px" oninput="goalSet('${q.k}',this.value)" placeholder="${en?'Type your answer…':'寫低你嘅答案…'}">${esc(d[q.k]||'')}</textarea>`;
+  else if(q.type==='three') h+=['a','b','c'].map((x,i)=>`<div class="row" style="gap:10px;margin-bottom:10px"><b style="width:18px;color:var(--teal)">${i+1}</b><input class="in" ${i===0?'id="g-in"':''} style="font-size:16px" value="${esc(d['q4'+x]||'')}" oninput="goalSet('q4${x}',this.value)" placeholder="${i?(en?'(optional)':'（可以留空）'):''}"></div>`).join('');
+  else if(q.type==='when') h+=`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${q.picks.map(pk=>`<button type="button" class="chip ${d.q3===pk[en?1:0]?'on':''}" style="padding:10px 16px;font-size:15px" onclick="goalSet('q3','${pk[en?1:0]}');S.goalRedraw=true;render()">${pk[en?1:0]}</button>`).join('')}</div><input class="in" id="g-in" style="font-size:16px" value="${esc(d.q3||'')}" oninput="goalSet('q3',this.value)" placeholder="${en?'Or type your own…':'或者自己寫…'}">`;
+  else if(q.type==='scale'){ const v=Number(d[q.k])||0;
+    h+=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">${[1,2,3,4,5,6,7,8,9,10].map(x=>`<button type="button" onclick="goalSet('${q.k}','${x}');S.goalRedraw=true;render()" style="height:54px;border-radius:14px;border:1.5px solid ${v===x?'var(--teal)':'var(--line)'};background:${v===x?'var(--teal)':'var(--panel)'};color:${v===x?'#fbf8f2':'var(--text)'};font-size:20px;font-weight:900">${x}</button>`).join('')}</div>
+      <div class="row small muted" style="margin-top:8px"><span>1 · ${esc(q.lo[en?1:0])}</span><span class="sp"></span><span>${esc(q.hi[en?1:0])} · 10</span></div>
+      ${q.note?`<input class="in" style="margin-top:16px;font-size:15px" value="${esc(d[q.k+'n']||'')}" oninput="goalSet('${q.k}n',this.value)" placeholder="${en?'Anything to add? (optional)':'想補充？（可以留空）'}">`:''}`; }
+  h+=`<div class="row" style="margin-top:22px;gap:10px"><button class="btn ghost" onclick="goalGo(${st-1})">‹ ${en?'Back':'上一題'}</button><span class="sp"></span><button class="btn" id="g-next" ${gDone(q,d)?'':'disabled'} onclick="goalGo(${st+1})">${st===N-1?(en?'Review':'覆核'):(en?'Next':'下一題')} ›</button></div>`;
+  $('#app').innerHTML=h+`</div>`;
+  const f=document.getElementById('g-in'); if(f && (q.type==='text'||q.type==='three')) setTimeout(()=>{ try{ f.focus({preventScroll:true}); }catch(e){} },60); }
+function goalGo(i){ const d=goalDraft(); if(i>=0 && i<=GOAL_Q.length){ const cur=GOAL_Q[S.gStep]; if(i>S.gStep && cur && !gDone(cur,d)) return; } S.gStep=Math.max(-1, Math.min(GOAL_Q.length, i)); d._step=S.gStep; lsSet('ispt_goal_draft', d); S.goalRedraw=true; render(); window.scrollTo(0,0); }
 async function submitGoal(){ const d=goalDraft(), b=$('#goal-go'), e=$('#goal-err'), en=LANG==='en';
-  const miss=GOAL_REQ_K.filter(k=>!String(d[k]||'').trim()); if(miss.length){ e.textContent=en?`${miss.length} question(s) still need an answer (*)`:`仲有 ${miss.length} 條未答（有 * 嘅要答）`; return; }
-  if(b.disabled) return; b.disabled=true; const kind=(D.goalNeed&&D.goalNeed.kind)||'update';
-  const r=await api('goalSave',{kind, ans:JSON.stringify(d)}, true);
+  const miss=GOAL_Q.findIndex(q=>!gDone(q,d)); if(miss>=0){ goalGo(miss); return; }
+  if(b.disabled) return; b.disabled=true; const kind=(D.goalNeed&&D.goalNeed.kind)||'update', ans=Object.assign({},d); delete ans._step;
+  const r=await api('goalSave',{kind, ans:JSON.stringify(ans)}, true);
   if(!r.ok){ b.disabled=false; e.textContent=r.err||t('net'); return; }
-  (D.goals=D.goals||[]).unshift({id:r.id, year:isoToday().slice(0,4), kind, ans:Object.assign({},d), at:isoToday()+' 00:00'}); if(D.me) D.me.goal=String(d.q2||'').slice(0,200);
-  D.goalNeed=null; lsDel('ispt_goal_draft'); lsSet('ispt_cache', D); S.goalMode='view'; S.tab='home'; toast('✓ '+(en?'Thanks! Your coach will see this':'多謝！教練會睇到')); render(); window.scrollTo(0,0); }
+  (D.goals=D.goals||[]).unshift({id:r.id, year:isoToday().slice(0,4), kind, ans, at:isoToday()+' 00:00'}); if(D.me) D.me.goal=String(d.q2||'').slice(0,200);
+  D.goalNeed=null; lsDel('ispt_goal_draft'); S.gStep=null; lsSet('ispt_cache', D); S.goalMode='view'; S.tab='home'; toast('✓ '+(en?'Thanks! Your coach will see this':'多謝！教練會睇到')); render(); window.scrollTo(0,0); }
 
 /* ───────── 留言串 ───────── */
 function thread(type, target){
@@ -1447,7 +1470,7 @@ function openCheckin(){
 function vMore(){
   const p=D.prs||{}, best=(p.best||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   let h=`<div class="h1">${t('more')}</div><div class="sub"></div>`;
-  h+=`<div class="card tap" onclick="S.goalMode='view';S.tab='goal';render();window.scrollTo(0,0)"><div class="row"><div><b>🎯 ${LANG==='en'?'My goals':'我的目標'}</b><div class="small muted">${(D.goals||[]).length?esc((D.goals[0].ans||{}).q2||''):(LANG==='en'?'Goal setting questionnaire':'目標問卷')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
+  h+=`<div class="card tap" onclick="S.goalMode='view';S.tab='goal';S.goalRedraw=true;render();window.scrollTo(0,0)"><div class="row"><div><b>🎯 ${LANG==='en'?'My goals':'我的目標'}</b><div class="small muted">${(D.goals||[]).length?esc((D.goals[0].ans||{}).q2||''):(LANG==='en'?'Goal setting questionnaire':'目標問卷')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
   h+=`<div class="card tap" onclick="openReport('')"><div class="row"><div><b>📊 ${t('report')}</b><div class="small muted">${t('reportSee')}</div></div><span class="sp"></span><span style="color:var(--teal);font-size:20px">›</span></div></div>`;
   // 個人最佳
   h+=`<div class="sec">🏆 ${t('prTitle')}</div>`;
