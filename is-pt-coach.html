@@ -103,7 +103,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-09-d';
+const FRONTEND_VERSION = 'ptc-2026-10-11-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -821,9 +821,9 @@ function weekCal(){
   h+=`<div style="display:grid;grid-template-columns:40px repeat(7,1fr);gap:3px;font-size:11px">`+['',...days.map(d=>`<div style="text-align:center;color:${d===isoToday()?'var(--teal)':'var(--mut)'};font-weight:800">${WK[parseISO(d).getDay()]}<br>${parseISO(d).getDate()}</div>`)].map(x=>x===''?'<div></div>':x).join('');
   times.forEach(t=>{ h+=`<div class="num muted" style="align-self:center">${t}</div>`;
     days.forEach(d=>{ const s=sl.find(x=>x.date===d && x.start===t); if(!s){ h+='<div></div>'; return; } const b=bk[s.id], past=(d+' '+t)<=nowKey;
-      h+= b ? `<button onclick="${past?'':`coachCancelBk('${b.id}')`}" style="border:none;border-radius:7px;padding:6px 2px;background:${past?'rgba(31,77,58,.25)':'var(--teal)'};color:#fbf8f2;font-weight:800;font-size:10.5px;line-height:1.2;overflow:hidden;min-height:38px">${esc(String(b.group).slice(0,6))}</button>`
-        : `<button ${past?'disabled':''} onclick="coachBook('${s.id}')" style="border:1px dashed var(--line2);border-radius:7px;background:transparent;color:var(--mut);font-size:10.5px;min-height:38px;${past?'opacity:.35':''}">空</button>`; }); });
-  return h+`</div><div class="small muted" style="margin-top:8px">撳「空」代約；撳名取消預約。</div></div>`;
+      h+= b ? `<button onclick="slotSheet('${s.id}')" style="border:none;border-radius:7px;padding:6px 2px;background:${past?'rgba(31,77,58,.25)':'var(--teal)'};color:#fbf8f2;font-weight:800;font-size:10.5px;line-height:1.2;overflow:hidden;min-height:38px">${esc(String(b.group).slice(0,6))}</button>`
+        : `<button onclick="slotSheet('${s.id}')" style="border:1px dashed var(--line2);border-radius:7px;background:transparent;color:var(--mut);font-size:10.5px;min-height:38px;${past?'opacity:.35':''}">空</button>`; }); });
+  return h+`</div><div class="small muted" style="margin-top:8px">撳任何格仔：改時間／地點、代約、取消預約、刪時段。</div></div>`;
 }
 function vBook(){
   if(!SL){ loadSlots(); return '<div class="spin"></div>'; }
@@ -855,7 +855,7 @@ function vBook(){
       return `<div class="li"><div style="width:96px"><b class="num">${s.start}</b><span class="small muted">–${s.end}</span></div><div style="flex:1;min-width:0">
         ${act?`<span class="badge">✓ ${esc(act.group)}</span>${act.note?` <span class="small muted">${esc(act.note)}</span>`:''}`:`<span class="small muted">空</span>`}
         <div class="small muted">${esc(s.venue||'')}${s.only?' · 只開俾 '+esc(s.only):''}${cx.length?` · 曾取消 ${cx.map(b=>esc(b.group)+(b.status==='教練取消'?'(教練)':'')).join('、')}`:''}</div></div>
-        ${past?'<span class="small muted">已過</span>':act?`<button class="btn warn xs" onclick="coachCancelBk('${act.id}')">取消預約</button>`:`<button class="btn ghost xs" onclick="coachBook('${s.id}')">代約</button><button class="btn warn xs" style="margin-left:4px" onclick="delSlot('${s.id}')">刪</button>`}</div>`; }).join('')}</div>`; });
+        <button class="btn ghost xs" style="margin-right:4px" onclick="slotEditSheet('${s.id}')" title="改時間／地點">✎</button>${past?'<span class="small muted">已過</span>':act?`<button class="btn warn xs" onclick="coachCancelBk('${act.id}')">取消預約</button>`:`<button class="btn ghost xs" onclick="coachBook('${s.id}')">代約</button><button class="btn warn xs" style="margin-left:4px" onclick="delSlot('${s.id}')">刪</button>`}</div>`; }).join('')}</div>`; });
   return h;
 }
 async function addSlots(){
@@ -904,6 +904,35 @@ function bookForSheet(){
   document.body.appendChild(ov); draw();
 }
 const toMin=t=>{ const m=String(t||'').split(':'); return Number(m[0])*60+Number(m[1]||0); };
+/* 時段選單＋改時間（老闆 2026-10-11：約好之後改唔到時間）：週曆撳任何格仔都開呢個；過咗嘅堂都改得（補正記錄） */
+function slotSheet(id){ const s=(SL.slots||[]).find(x=>x.id===id); if(!s) return; const b=(SL.bookings||[]).find(x=>x.slot===id && x.status==='已約'), nowKey=isoToday()+' '+pad(new Date().getHours())+':'+pad(new Date().getMinutes()), past=(s.date+' '+s.start)<=nowKey;
+  const ov=document.createElement('div'); ov.className='ov'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML=`<div class="sheet" style="height:auto;max-height:80vh;padding-bottom:calc(18px + var(--safe-b))"><div class="row"><b style="font-size:17px">📅 ${fmtD(s.date)}（${WK[parseISO(s.date).getDay()]}）${s.start}–${s.end}</b><span class="sp"></span><button class="btn ghost xs" data-x>✕</button></div>
+    <div class="small muted" style="margin:6px 0 12px">${esc(s.venue||'未填地點')}${b?` · <b style="color:var(--teal)">${esc(b.group)}</b>${b.note?' · '+esc(b.note):''}`:' · 空'}${past?' · 已過':''}</div>
+    <button class="btn block" data-a="edit">✎ 改時間／地點</button>
+    ${!past && !b?`<button class="btn ghost block" style="margin-top:8px" data-a="book">代約</button>`:''}
+    ${!past && b?`<button class="btn warn block" style="margin-top:8px" data-a="cancel">取消預約</button>`:''}
+    ${!b?`<button class="btn warn block" style="margin-top:8px" data-a="del">刪除時段</button>`:''}</div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('[data-x]').onclick=()=>ov.remove();
+  ov.querySelectorAll('[data-a]').forEach(x=>x.onclick=()=>{ ov.remove(); const a=x.dataset.a; if(a==='edit') slotEditSheet(id); else if(a==='book') coachBook(id); else if(a==='cancel') coachCancelBk(b.id); else if(a==='del') delSlot(id); }); }
+function slotEditSheet(id){ const s=(SL.slots||[]).find(x=>x.id===id); if(!s) return; const b=(SL.bookings||[]).find(x=>x.slot===id && x.status==='已約'), venues=[...new Set((SL.slots||[]).map(x=>x.venue).filter(Boolean))];
+  const ov=document.createElement('div'); ov.className='ov'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML=`<div class="sheet" style="height:auto;max-height:88vh;padding-bottom:calc(18px + var(--safe-b))"><div class="row"><b style="font-size:17px">✎ 改時間／地點</b><span class="sp"></span><button class="btn ghost xs" data-x>✕</button></div>
+    <div class="small muted" style="margin:6px 0 10px">原本：${fmtD(s.date)} ${s.start}–${s.end} ${esc(s.venue||'')}${b?` · 已約：<b>${esc(b.group)}</b>`:''}</div>
+    <div class="fgrid"><div><label class="lb">日期</label><input class="in" type="date" id="se-d" value="${s.date}"></div><div></div>
+      <div><label class="lb">開始</label><input class="in num" type="time" step="300" id="se-s" value="${s.start}"></div><div><label class="lb">結束</label><input class="in num" type="time" step="300" id="se-e" value="${s.end}"></div></div>
+    <label class="lb" style="margin-top:10px">地點</label><input class="in" id="se-v" list="se-vl" value="${esc(s.venue||'')}"><datalist id="se-vl">${venues.map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+    <div class="small muted" style="margin-top:10px;line-height:1.6">${b?'已約嘅堂：Google 日曆會跟住搬；已經記咗嘅出席時間會一齊改；未上嘅堂會通知學員。':'呢個時段未有人約。'}</div>
+    <button class="btn block" style="margin-top:12px" id="se-go">儲存</button></div>`;
+  document.body.appendChild(ov); ov.querySelector('[data-x]').onclick=()=>ov.remove();
+  const st=ov.querySelector('#se-s'), en=ov.querySelector('#se-e');
+  st.onchange=()=>{ const toM=t=>{ const m=String(t).split(':'); return (+m[0])*60+(+m[1]); }, dur=toM(s.end)-toM(s.start), n=toM(st.value)+dur; if(st.value && dur>0 && n<24*60) en.value=pad(Math.floor(n/60))+':'+pad(n%60); };   // 改開始時間：結束時間跟住移（保持堂長）
+  const go=async force=>{ const btn=ov.querySelector('#se-go'); if(btn.disabled) return; btn.disabled=true;
+    const r=await api('cSlotEdit',{id, date:ov.querySelector('#se-d').value, start:st.value, end:en.value, venue:ov.querySelector('#se-v').value, force:force?'1':''}, true);
+    btn.disabled=false; if(!r.ok){ if(r.clash && confirm(r.err+'\n\n照樣改？')) return go(true); toast(r.err); return; }
+    ov.remove(); toast('✓ 已改：'+r.after+(r.calMoved?'（日曆已搬）':'')+(r.attUpdated?'（出席時間已跟住改）':'')); SL=null; if(r.attUpdated){ delete LG[C.group]; LGALL=null; } render(); };
+  ov.querySelector('#se-go').onclick=()=>go(false); }
 function coachBook(slotId){
   const s=(SL.slots||[]).find(x=>x.id===slotId), gs=(L.groups||[]).filter(g=>!s.only||g===s.only); if(!gs.length) return;
   let pick=s.only||(gs.includes(C.group)?C.group:'');
