@@ -248,7 +248,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-12-coachview';
+const FRONTEND_VERSION='parent-2026-10-12-ptwallet';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -1332,7 +1332,32 @@ function ptCard(child){
       ${lines}
     </div>`;
   }
-  const cycleHtml=pkgs.length?'':`<div class="meta">${L('第 '+cycle+' 期 · 每期 '+cap+' 堂','Cycle '+cycle+' · '+cap+' sessions each')}</div>
+  // 💰 預繳錢包學員（如鄧可澄，老闆 2026-10-12）：同教練頁一致——目前餘額、計法、本期逐堂收費、預繳記錄（唯讀）
+  let walletHtml='';
+  if(pt.wallet && pt.walletState){
+    const w=pt.walletState, bal=Number(w.balance)||0;
+    const hasCarry=(w.cycleCount||0)>0 && w.lastCarry!=null;
+    const breakdown=hasCarry
+      ? L(`上期結轉 $${w.lastCarry} ＋ 本期預繳 $${w.curTopupSum||0} − 本期上堂 $${w.curDeduct||0}（${w.sessionCount||0} 堂）`,`Carried $${w.lastCarry} + top-up $${w.curTopupSum||0} − sessions $${w.curDeduct||0} (${w.sessionCount||0})`)
+      : L(`預繳 $${w.curTopupSum||0} − 已上堂 $${w.curDeduct||0}（${w.sessionCount||0} 堂）`,`Prepaid $${w.curTopupSum||0} − sessions $${w.curDeduct||0} (${w.sessionCount||0})`);
+    const ws=(w.sessions||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const sessRows=ws.map(x=>{const d=new Date(x.date+'T00:00:00');
+      return `<div class="sess"><span class="d">${fmt(d)} <span class="dow">${LANG==='en'?WD.en[d.getDay()]:'星期'+WD.zh[d.getDay()]}</span></span><span style="font-weight:800;color:${x.exempt?'var(--muted)':'#a06a10'}">${x.exempt?L('豁免','Exempt'):('$'+(x.effFee||0))}</span></div>`;}).join('')
+      || `<div class="period-empty">${L('本期暫未有上課記錄','No sessions this cycle yet')}</div>`;
+    const topRows=(w.curTopups||[]).slice().sort((a,b)=>String(a.date)<String(b.date)?1:-1).map(t=>`<div style="padding:2px 0">＋$${t.amt}　${fmtDate(String(t.date).slice(0,10))}</div>`).join('');
+    walletHtml=`<div style="margin:8px 0;padding:13px;background:#fff8ec;border:1px solid rgba(224,169,58,.4);border-radius:12px">
+      <div style="font-weight:800;color:#a06a10">💰 ${L('私訓預繳（逐堂扣費）','Prepaid balance (deducted per session)')}</div>
+      <div style="text-align:center;margin:10px 0 4px">
+        <div style="font-size:12px;color:var(--muted)">${bal<0?L('需補繳','Amount due'):L('預繳餘額','Remaining balance')}</div>
+        <div style="font-size:28px;font-weight:900;color:${bal<0?'#c0392b':'#1a9e6a'}">$${Math.abs(bal)}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${breakdown}</div>
+      </div>
+      ${topRows?`<div style="font-size:12px;color:var(--muted);margin-top:8px"><b>${L('本期預繳記錄','Top-ups this cycle')}</b>${topRows}</div>`:''}
+      <div style="font-size:12.5px;font-weight:800;color:var(--text);margin:10px 0 2px">${L('本期上堂及收費','Sessions & fees this cycle')}</div>
+      ${sessRows}
+    </div>`;
+  }
+  const cycleHtml=(pkgs.length||walletHtml)?'':`<div class="meta">${L('第 '+cycle+' 期 · 每期 '+cap+' 堂','Cycle '+cycle+' · '+cap+' sessions each')}</div>
     <div style="display:flex;align-items:center;gap:10px;margin:10px 0 6px">
       <div style="flex:1;height:10px;border-radius:6px;background:var(--surface2,#eee);overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e0a93a,#a06a10)"></div></div>
       <div style="font-weight:800;color:#a06a10;white-space:nowrap">${done} / ${cap} ${L('堂','')}</div>
@@ -1341,9 +1366,10 @@ function ptCard(child){
     <div class="topline"><span class="dot" style="background:#e0a93a"></span><h3>⭐ ${L('私人訓練','Private Training')}</h3></div>
     ${traineeLine}
     ${pkgHtml}
+    ${walletHtml}
     ${owedHtml}
     ${cycleHtml}
-    ${owedHtml?'':`<div style="margin-top:10px">${rows}</div>`}
+    ${(owedHtml||walletHtml)?'':`<div style="margin-top:10px">${rows}</div>`}
   </div>`;
 }
 function venueAt(date,cid){ const day=(S.venues||{})[date]; if(!day) return null; if(day.centre||day.room) return day; return day[cid]||day._all||null; }
