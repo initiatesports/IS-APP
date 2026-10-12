@@ -549,6 +549,13 @@ html,body{
       </div>
     </div>
 
+    <!-- 🧰 工具（老闆 2026-10-12：首頁淨低點名，管理工具搬嚟呢度）-->
+    <div class="screen" id="screen-tools">
+      <div class="section-header">🧰 工具</div>
+      <div id="tools-dashboard"></div>
+      <div style="height:80px"></div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="screen" id="screen-settings">
       <div id="settings-content" style="padding:0 12px 100px"></div>
@@ -582,6 +589,9 @@ html,body{
     <button class="nav-item" onclick="showScreen('history')" id="nav-history">
       <span class="nav-icon">📅</span><span class="nav-label">歷史</span>
     </button>
+    <button class="nav-item" onclick="showScreen('tools')" id="nav-tools">
+      <span class="nav-icon">🧰</span><span class="nav-label">工具</span>
+    </button>
     <button class="nav-item" onclick="showScreen('settings')" id="nav-settings">
       <span class="nav-icon">⚙️</span><span class="nav-label">設定</span>
     </button>
@@ -604,7 +614,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-10-12-coachview';
+const FRONTEND_VERSION = 'coach-2026-10-12-toolstab';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -1105,6 +1115,19 @@ function showScreen(id, pushStack=true){
   if (id === 'settings') renderSettings();
   if (id === 'fees')     renderFees();
   if (id === 'pt')       renderPt();
+  if (id === 'tools')    renderToolsScreen();
+}
+/* 🧰 工具分頁：首頁原本嘅管理工具（場地／特別時間／通知／回歸核實／醫生紙核實／手動請假補堂／家長預覽／生成學費）。
+   renderHome 照舊會 render（待辦箱資料靠佢哋），呢度開分頁時再刷新一次。 */
+function renderToolsScreen(){
+  try{ renderVenueAdmin(); }catch(e){ console.error('renderVenueAdmin',e); }
+  try{ renderTimeAdjAdmin(); }catch(e){ console.error('renderTimeAdjAdmin',e); }
+  try{ renderNoticesAdmin(); }catch(e){ console.error('renderNoticesAdmin',e); }
+  try{ renderReturnsPanel(); }catch(e){ console.error('renderReturnsPanel',e); }
+  try{ renderMedNoteVerify(); }catch(e){ console.error('renderMedNoteVerify',e); }
+  try{ renderManualLeaveMakeup(); }catch(e){ console.error('renderManualLeaveMakeup',e); }
+  try{ renderCoachViewTool(); }catch(e){ console.error('renderCoachViewTool',e); }
+  try{ renderGenFeePanel(); }catch(e){ console.error('renderGenFeePanel',e); }
 }
 function goBack(){
   const prev = screenStack.pop() || 'home';
@@ -1464,10 +1487,10 @@ function renderTodo(){
   // 3+4. 補堂到期／已過期提醒已移除（老闆 2026-08-26）：補堂過唔過限期係家長自己嘅責任，唔需要喺教練端提醒。
   // 5. 回歸申請待核實
   const ret=(typeof RETURNS_CACHE!=='undefined'?RETURNS_CACHE:[]).filter(x=>x&&x.status!=='已核實');
-  if(ret.length) items.push({ic:'🔍',t:`${ret.length} 個回歸申請待核實`,sub:'家長已交付款，等你核實',cls:'info',onclick:`var e=document.getElementById('home-returns');if(e)e.scrollIntoView({behavior:'smooth'})`});
+  if(ret.length) items.push({ic:'🔍',t:`${ret.length} 個回歸申請待核實`,sub:'家長已交付款，等你核實',cls:'info',onclick:`showScreen('tools');var e=document.getElementById('home-returns');if(e)e.scrollIntoView({behavior:'smooth'})`});
   // 6. 醫生紙待核實（已載入 MNV_LIST）
   const mnv=(typeof MNV_LIST!=='undefined'?MNV_LIST:[]).filter(x=>x&&!/示範|測試/.test(x.name||''));
-  if(mnv.length) items.push({ic:'🩹',t:`${mnv.length} 張醫生紙待核實`,sub:mnv.slice(0,5).map(x=>x.name).join('、'),cls:'warn',onclick:`var e=document.getElementById('home-mednote');if(e)e.scrollIntoView({behavior:'smooth'})`});
+  if(mnv.length) items.push({ic:'🩹',t:`${mnv.length} 張醫生紙待核實`,sub:mnv.slice(0,5).map(x=>x.name).join('、'),cls:'warn',onclick:`showScreen('tools');var e=document.getElementById('home-mednote');if(e)e.scrollIntoView({behavior:'smooth'})`});
   // 7. 📥 統一待辦箱（老闆 2026-09-28）：報名管理各分頁嘅待處理（後端 coachInbox，背景攞；2026-09-29 已移除私訓套票續購提醒）
   if(COACH_INBOX===null || Date.now()-_inboxAt>5*60*1000) loadInbox_();   // 每 5 分鐘內重用，返首頁時自動更新
   ((COACH_INBOX&&COACH_INBOX.items)||[]).forEach(x=>{
@@ -1635,7 +1658,7 @@ let RETURNS_CACHE=[];
    (後端 returnsAll/returnVerify 一直有,但教練端一直冇 UI → 申請會積住冇人處理) */
 async function renderReturnsPanel(){
   let host=document.getElementById('home-returns');
-  if(!host){ const dash=document.getElementById('home-dashboard'); if(dash){ host=document.createElement('div'); host.id='home-returns'; dash.parentNode.insertBefore(host, dash); } }
+  if(!host){ const dash=document.getElementById('tools-dashboard'); if(dash){ host=document.createElement('div'); host.id='home-returns'; dash.parentNode.insertBefore(host, dash); } }
   if(!host) return;
   let r; try{ r=await apiPost({action:'returnsAll'}); }catch(e){ r=null; }
   RETURNS_CACHE=(r&&r.ok&&r.returns)?r.returns:[];
@@ -1666,7 +1689,7 @@ async function verifyReturn(name){
 let MNV_LIST=[];
 async function renderMedNoteVerify(){
   let host=document.getElementById('home-mednote');
-  if(!host){ const anchor=document.getElementById('home-returns')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-mednote'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
+  if(!host){ const anchor=document.getElementById('home-returns')||document.getElementById('tools-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-mednote'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
   // 🔀 2026-09-13：合併運動班(#SA)待核實醫生紙(老闆決定運動班都要教練核實)。verifyMedNote 已按 x.cid 路由。
   let r, rSA; try{ [r,rSA]=await Promise.all([ apiPost({action:'pendingMedNotes'}), apiPostUrl_(SA_API_URL,{action:'pendingMedNotes'}) ]); }catch(e){ r=null; rSA=null; }
@@ -1705,7 +1728,7 @@ async function verifyMedNote(i, approve){
    教練喺呢度打名字→揀日期→揀當日班別→補堂/請假。後端：coachAddMakeup(補堂,教練代加免資格閘)、markLeave(請假,教練代標)。*/
 function renderManualLeaveMakeup(){
   let host=document.getElementById('home-manualmk');
-  if(!host){ const anchor=document.getElementById('home-timeadj')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-manualmk'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
+  if(!host){ const anchor=document.getElementById('home-timeadj')||document.getElementById('tools-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-manualmk'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
   // 🔒 2026-09-13 老闆要求：打姓即可揀學生，唔使每次打全名。用原生 datalist typeahead，
   //   由跳繩+運動班全部名冊(ALL_CLASSES)收集去重(剔測試生)。打「陳」即彈晒陳X揀。
@@ -1734,7 +1757,7 @@ function renderManualLeaveMakeup(){
    名同教練密碼經 sessionStorage 帶過去（網址唔放姓名）；家長頁擋晒寫入，唔會影響家長資料。 */
 function renderCoachViewTool(){
   let host=document.getElementById('home-coachview');
-  if(!host){ const anchor=document.getElementById('home-manualmk')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-coachview'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
+  if(!host){ const anchor=document.getElementById('home-manualmk')||document.getElementById('tools-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-coachview'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
   host.innerHTML=`
   <div class="section-header">👁 以家長身份預覽</div>
@@ -1815,7 +1838,7 @@ async function mlSubmit(kind, leaveType){
    後端 genPeriod(dry=試算唔寫入／正式生成前自動備份)。 */
 function renderGenFeePanel(){
   let host=document.getElementById('home-genfee');
-  if(!host){ const anchor=document.getElementById('home-manualmk')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-genfee'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
+  if(!host){ const anchor=document.getElementById('home-manualmk')||document.getElementById('tools-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-genfee'; anchor.parentNode.insertBefore(host, anchor.nextSibling); } }
   if(!host) return;
   host.innerHTML=`
   <div class="section-header">🧮 生成本期學費</div>
@@ -1969,7 +1992,7 @@ function vnDefaultDate(){ const d=new Date(); d.setDate(d.getDate()+6); return d
 async function renderVenueAdmin(){
   VN_COURTS_MAP={};
   let host=document.getElementById('home-venues');
-  if(!host){ const nt=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
+  if(!host){ const nt=document.getElementById('home-notices')||document.getElementById('tools-dashboard'); if(nt){ host=document.createElement('div'); host.id='home-venues'; nt.parentNode.insertBefore(host, nt); } }
   if(!host) return;
   let r; try{ r=await apiPost({action:'venuesAdmin', coachPass:cpass()}); }catch(e){ r=null; }
   let rSA; try{ rSA=await fetch(SA_API_URL,{method:'POST',body:JSON.stringify({action:'venuesAdmin', coachPass:cpass()})}).then(x=>x.json()); }catch(e){ rSA=null; }   // 🔀 運動班已設地點都拉埋
@@ -2043,7 +2066,7 @@ async function delVenue(date,cid){
 let TA_LAST_DATE='';
 function renderTimeAdjAdmin(){
   let host=document.getElementById('home-timeadj');
-  if(!host){ const anchor=document.getElementById('home-notices')||document.getElementById('home-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-timeadj'; anchor.parentNode.insertBefore(host, anchor); } }
+  if(!host){ const anchor=document.getElementById('home-notices')||document.getElementById('tools-dashboard'); if(anchor){ host=document.createElement('div'); host.id='home-timeadj'; anchor.parentNode.insertBefore(host, anchor); } }
   if(!host) return;
   host.innerHTML=`<div class="section-header">⏰ 特別時間安排（某日某班改時間）</div>
     <div style="margin:0 4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px">
@@ -2085,7 +2108,7 @@ let NOTICES_CACHE=[];
 async function renderNoticesAdmin(){
   let host=document.getElementById('home-notices');
   if(!host){ // 動態插入容器到 dashboard 之上
-    const dash=document.getElementById('home-dashboard');
+    const dash=document.getElementById('tools-dashboard');
     if(dash){ host=document.createElement('div'); host.id='home-notices'; dash.parentNode.insertBefore(host, dash); }
   }
   if(!host) return;
