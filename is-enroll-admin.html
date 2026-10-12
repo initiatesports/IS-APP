@@ -68,14 +68,16 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 <script>
 /* ══════════ 兩個後端 ══════════ */
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
+const API_U4='https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec';   // #4（讀學生檔案問卷答案 getProfile）
 const APISA='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='admin-2026-10-09-loading';
+const FRONTEND_VERSION='enroll-admin-2026-10-12-answers';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
 /* 🔎 預覽模式（?preview=1）：免密碼、用示範資料、寫入動作唔會真改。畀老闆手機 review 個設計。老闆 2026-08-29。*/
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const DEMO={
+  getProfile:{ok:true,found:true,profile:{'中文姓名':'示範學員','英文姓名':'Demo Student','性別':'男 Male','出生年':2018,'出生月':'5月','就讀學校':'示範小學','就讀年級':'P2','居住地區':'青衣','聯絡電話':'9123 4567','電郵':'demo@example.com','緊急聯絡人':'示範家長','緊急電話':'9876 5432','關係':'母親','健康問卷(PAR-Q)':'全部否','健康狀況':'無','特殊需要':'無','免責同意':'同意','拍攝同意':'同意','私隱同意':'同意','資料屬實同意':'同意','簽署人英文名':'Chan Tai Man','證件首4':'A123','已報運動':'花式跳繩','首次填表':'2026-08-20 10:00','更新時間':'2026-09-01 12:00','就讀年級':'P2','訓練隊服SIZE':'130','家長姓名':'示範家長','認識途徑':'朋友介紹','推薦人':''}},
   enrollSummary:{ok:true,period:'2026 9-10月',curPeriod:'2026 9-10月',periods:['2026 7-8月','2026 9-10月'],open:true,masterOpen:true,closeDate:'2026-10-31',
     stat:{total:3,verified:2,pending:1,waitlist:0,revenue:3140},
     courses:[{id:'c1',sport:'花式跳繩',day:'星期一',time:'5–6pm',cap:12,price:1040,enrolled:8,full:false,openable:true,active:['陳小明','李大文','張三','黃四','周五','吳六','鄭七','王八'],waitlist:[]},
@@ -247,6 +249,47 @@ function refreshCur(){
 
 /* ════════════════════ TAB 1 報名審核 ════════════════════
    route: enrollSummary(period) + enrollRecords(period) + enrollSetStatus + enrollDelete + getSecureFile */
+/* 📋 報名問卷全部答案（老闆 2026-10-12：撳學生名睇晒報名流程填嘅所有嘢）。
+   學生檔案（#4 getProfile，教練密碼）＋該生報名記錄（期數、課程、收費、條款、簽署、截圖/PDF）。唯讀。 */
+const ANS_GROUPS=[
+  ['學生資料',['中文姓名','英文姓名','性別','出生年','出生月','就讀學校','就讀年級','居住地區','訓練隊服SIZE']],
+  ['家長及聯絡',['家長姓名','聯絡電話','電郵','緊急聯絡人','關係','緊急電話']],
+  ['健康',['健康問卷(PAR-Q)','健康狀況','特殊需要']],
+  ['同意及簽署',['免責同意','拍攝同意','私隱同意','資料屬實同意','簽署人英文名','證件首4']],
+  ['其他',['認識途徑','推薦人','已報運動','首次填表','更新時間','來源明細','待補檔案']]
+];
+function ansVal_(v){ if(v==null||String(v).trim()==='') return '<span class="mut">—</span>';
+  let t=String(v); const m=/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}:\d{2}))?/.exec(t); if(m) t=`${m[3]}/${m[2]}/${m[1]}${m[4]?' '+m[4]:''}`;
+  return esc(t).replace(/\n/g,'<br>'); }
+function ansModal_(html){ let ov=document.getElementById('ans-ov');
+  if(!ov){ ov=document.createElement('div'); ov.id='ans-ov'; ov.setAttribute('style','position:fixed;inset:0;z-index:9999;background:rgba(15,26,40,.45);overflow:auto;padding:24px 12px'); ov.onclick=e=>{ if(e.target===ov) ov.remove(); }; document.body.appendChild(ov); }
+  ov.innerHTML=`<div style="max-width:640px;margin:0 auto;background:var(--card,#fff);border-radius:14px;padding:16px 18px;box-shadow:0 12px 40px rgba(0,0,0,.25)">${html}</div>`; }
+async function openAnswers(nm){
+  nm=String(nm||'').trim(); if(!nm) return;
+  ansModal_(`<div class="load">載入 ${esc(nm)} 嘅報名答案…</div>`);
+  let pr=null; try{ pr=await apiPost(API_U4,{action:'getProfile',name:nm}); }catch(e){ pr=null; }
+  let recs=(ST.recs||[]).filter(r=>String(r['學生姓名']||'').trim()===nm);
+  if(!recs.length){ try{ const rr=await apiPost(API4,{action:'enrollRecords'}); recs=((rr&&rr.records)||[]).filter(r=>String(r['學生姓名']||'').trim()===nm); }catch(e){} }
+  const p=(pr&&pr.profile)||null;
+  const rowsOf=keys=>keys.map(k=>`<tr><td class="mut" style="width:38%;padding:5px 8px;vertical-align:top">${esc(k)}</td><td style="padding:5px 8px">${ansVal_(p?p[k]:'')}</td></tr>`).join('');
+  const shown=new Set(ANS_GROUPS.flatMap(g=>g[1]));
+  const extra=p?Object.keys(p).filter(k=>!shown.has(k)):[];
+  const profHtml=p
+    ? ANS_GROUPS.map(g=>`<h3 style="margin:14px 0 4px;font-size:14px">${esc(g[0])}</h3><table style="width:100%;border-collapse:collapse;font-size:13px">${rowsOf(g[1])}</table>`).join('')
+      + (extra.length?`<h3 style="margin:14px 0 4px;font-size:14px">其他欄位</h3><table style="width:100%;border-collapse:collapse;font-size:13px">${rowsOf(extra)}</table>`:'')
+    : `<div class="msg err" style="display:block">${pr&&pr.ok===false?esc(pr.err||'讀取失敗'):'搵唔到學生檔案（可能係舊報名、未填問卷，或者名有異體字）'}</div>`;
+  const recKeys=['期數','報名課程','原價','代金券','推薦','優惠碼','實收','狀態','條款版本','條款同意','簽署人英文名','證件首4','備註'];
+  const recHtml=recs.length?recs.map(r=>{
+    const pay=r['付款截圖']&&String(r['付款截圖']).indexOf('http')===0?`<a class="lnk" onclick="viewSecureFile('${esc(r['付款截圖'])}')">付款截圖</a>`:'<span class="mut">無截圖</span>';
+    const pdf=r['確認PDF']&&String(r['確認PDF']).indexOf('http')===0?` · <a class="lnk" onclick="viewSecureFile('${esc(r['確認PDF'])}')">確認 PDF</a>`:'';
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px"><div style="font-weight:800">${esc(r['記錄編號']||'')} <span class="mut" style="font-weight:400">${ansVal_(r['時間戳'])}</span></div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">${recKeys.map(k=>`<tr><td class="mut" style="width:38%;padding:4px 8px">${esc(k)}</td><td style="padding:4px 8px">${ansVal_(r[k])}</td></tr>`).join('')}</table>
+      <div style="margin-top:4px">${pay}${pdf}</div></div>`; }).join('') : '<div class="mut">冇報名記錄</div>';
+  ansModal_(`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">📋 ${esc(nm)}｜報名答案</h2><button class="btn gray sm" onclick="document.getElementById('ans-ov').remove()">關閉</button></div>
+    <div class="mut" style="font-size:12px;margin-top:4px">家長報名時填寫嘅學生檔案（最新一次）同埋報名記錄。只供查閱。</div>
+    ${profHtml}
+    <h3 style="margin:16px 0 4px;font-size:14px">報名記錄</h3>${recHtml}`);
+}
 async function renderEnroll(){
   loading('載入報名概況…');
   try{
@@ -356,7 +399,7 @@ function drawEnroll(){
     }).join('');
     return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <b style="font-size:15px">${esc(nm)}</b>${rs.length>1?`<span class="tag warn">${rs.length} 次報名合併</span>`:''}
+        <a class="lnk" style="font-size:15px;font-weight:800;cursor:pointer" data-n="${esc(nm)}" onclick="openAnswers(this.dataset.n)" title="睇報名時填嘅全部答案">${esc(nm)} 📋</a>${rs.length>1?`<span class="tag warn">${rs.length} 次報名合併</span>`:''}
       </div>
       <div style="font-size:13px;color:var(--ink);margin:4px 0 2px">${feeLine}</div>
       ${regRows}
@@ -930,7 +973,7 @@ async function doProfile(){
 
     pres.innerHTML=`
     <div class="card">
-      <h2>${esc(q)}</h2>
+      <h2>${esc(q)} <button class="btn gray sm" data-n="${esc(q)}" onclick="openAnswers(this.dataset.n)">📋 報名問卷答案</button></h2>
       <div class="stats">
         <div class="stat"><div class="n">${inClasses.length}</div><div class="l">現有班數</div></div>
         <div class="stat"><div class="n">${recs.length}</div><div class="l">報名次數</div></div>
