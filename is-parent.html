@@ -248,7 +248,7 @@ const CONFIG = {
   TERM_START: '2026-02-23', TERM_END: '2026-12-31', MAKEUP_MONTHS: 2,
 };
 /* 版本標記：每次改版遞增,主畫面 icon(iOS PWA)靠佢自動偵測更新。改版時記得改呢個字串。 */
-const FRONTEND_VERSION='parent-2026-10-09-mkonce-ld';
+const FRONTEND_VERSION='parent-2026-10-12-coachview';
 const CLASSES={
   c1:{dayZh:'星期一',wd:1,time:'5–6pm',students:[]},
   c2:{dayZh:'星期一',wd:1,time:'6–7pm',students:[]},
@@ -640,6 +640,8 @@ function openHistory(ki){
 
 /* ═══════════ API ═══════════ */
 async function api(action,payload={}){
+  // 👁 教練預覽模式：只准讀（ping），其他一律唔送出（老闆 2026-10-12：預覽唔可以改到家長資料）
+  if(S.coachView && action!=='ping'){ toast(LANG==='en'?'👁 Coach preview — nothing is submitted':'👁 教練預覽模式：唔會真正提交'); return {ok:false, preview:true, err:(LANG==='en'?'Coach preview — not submitted':'教練預覽模式：唔會真正提交')}; }
   const body={action,...payload};
   if(body.code===undefined && S.family && S.family.last4) body.code=S.family.last4;  // 後端驗證家庭身分
   // 自動路由：操作班別(key/fromKey/toKey/cid)係運動班 → 送去 #SA；否則跳繩 #4（跳繩零影響）。
@@ -812,7 +814,50 @@ async function doLogin(){
   renderParent();
   loadSA(name,last4);   // 額外拉運動班合併（漸進顯示）
 }
-function logout(){ S.family=null; S.session=null; try{ localStorage.removeItem('is_parent_auth'); localStorage.removeItem('is_parent_cache'); }catch(e){} renderLogin(); }
+/* ═══ 👁 教練以家長身份預覽（老闆 2026-10-12）═══
+   由教練頁開（同一分頁，sessionStorage 帶教練密碼＋學生名；網址唔放姓名）。用 #4／#SA coachViewParent 攞同家長登入一樣嘅資料，
+   畫面同家長一模一樣；api() 擋晒寫入；唔寫 is_parent_auth／is_parent_cache（唔影響真家長登入）。 */
+const COACHVIEW=/[?&]coachview=1/.test(location.search);
+async function cvPost_(url,body){
+  for(let i=0;i<3;i++){ try{ const c=new AbortController(),tm=setTimeout(()=>c.abort(),45000);
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:c.signal}); clearTimeout(tm);
+      const j=await r.json(); if(j && !isLostPost_(j)) return j; }catch(e){}
+    await new Promise(s=>setTimeout(s,700*(i+1))); }
+  return null;
+}
+async function coachViewLoad(){
+  const cv=S.coachView; if(!cv) return;
+  const body={action:'coachViewParent', name:cv.name, coachPass:cv.cp};
+  const [r,sa]=await Promise.all([cvPost_(CONFIG.API_URL,body), cvPost_(SA_API_URL,body)]);
+  if((r&&r.err==='密碼錯誤')||(sa&&sa.err==='密碼錯誤')){ coachViewFail('教練密碼已失效，請返回教練頁重新登入再開預覽。'); return; }
+  if(r&&r.ok){ applyLoginResp(r,cv.name,(r.family&&r.family.last4)||''); if(sa&&sa.ok) mergeSAInto(sa); }
+  else if(sa&&sa.ok){ applyLoginResp(sa,cv.name,(sa.family&&sa.family.last4)||''); (S.family.children||[]).forEach(k=>(k.classes||[]).forEach(c=>c._sa=true)); }
+  else { coachViewFail((r&&r.closed&&r.err)||(r&&r.err)||(sa&&sa.err)||'載入失敗，請再試'); return; }
+  S.coachView=cv; cvMsg_(''); renderParent(); coachViewBanner();
+}
+function coachViewBanner(){
+  let b=document.getElementById('cv-banner');
+  if(!b){ b=document.createElement('div'); b.id='cv-banner'; document.body.appendChild(b); document.body.style.paddingTop='46px'; }
+  b.setAttribute('style','position:fixed;top:0;left:0;right:0;z-index:99990;background:#7C4DBF;color:#fff;font:700 13.5px/1.4 -apple-system,"PingFang HK",sans-serif;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.2)');
+  const nm=String((S.coachView&&S.coachView.name)||'').replace(/[<>&"]/g,'');
+  b.innerHTML='<span style="flex:1">👁 教練預覽：'+nm+' 家長畫面（唯讀，所有操作唔會提交）</span><button onclick="endCoachView()" style="background:#fff;color:#7C4DBF;border:0;border-radius:8px;padding:6px 12px;font:800 13px inherit;cursor:pointer">結束預覽</button>';
+}
+function cvMsg_(html){ let m=document.getElementById('cv-msg'); if(!html){ if(m) m.remove(); return; }
+  if(!m){ m=document.createElement('div'); m.id='cv-msg'; m.setAttribute('style','position:fixed;inset:0;z-index:99980;background:var(--bg,#f5f8f9);overflow:auto'); document.body.appendChild(m); }
+  m.innerHTML=html; }
+function coachViewFail(msg){
+  cvMsg_('<div style="max-width:520px;margin:60px auto;padding:20px;text-align:center;font:600 15px/1.7 -apple-system,\"PingFang HK\",sans-serif">👁 教練預覽<br><span style="color:#c0392b">'+String(msg).replace(/[<>&]/g,'')+'</span><br><button onclick="endCoachView()" style="margin-top:14px;padding:10px 18px;border-radius:10px;border:0;background:#7C4DBF;color:#fff;font-weight:800">返回教練頁</button></div>');
+}
+function endCoachView(){ try{ sessionStorage.removeItem('is_coachview'); }catch(e){} if(history.length>1) history.back(); else location.href='coach.html'; }
+async function startCoachView(){
+  let nm='', cp='';
+  try{ const j=JSON.parse(sessionStorage.getItem('is_coachview')||'null'); if(j&&j.name&&(Date.now()-(j.t||0)<6*3600*1000)) nm=j.name; cp=sessionStorage.getItem('is_cpass')||''; }catch(e){}
+  if(!nm||!cp){ coachViewFail('請由教練頁「👁 以家長身份預覽」開啟（需要教練登入）。'); return; }
+  S.coachView={name:nm, cp:cp};
+  cvMsg_('<div style="text-align:center;margin:90px 0;font:600 15px -apple-system,sans-serif;color:#66757c">👁 載入 '+nm.replace(/[<>&]/g,'')+' 家長畫面…</div>');
+  await coachViewLoad();
+}
+function logout(){ if(S.coachView){ endCoachView(); return; } S.family=null; S.session=null; try{ localStorage.removeItem('is_parent_auth'); localStorage.removeItem('is_parent_cache'); }catch(e){} renderLogin(); }
 /* 暑期班橋接：同源（同 GitHub Pages 目錄）用 localStorage 交接登入身分，避免把姓名/電話放入網址；
    暑期頁讀取後即時刪除。失敗會自動退回手動登入。 */
 function openSummer(){
@@ -823,6 +868,7 @@ function openSummer(){
   location.href='is-leave-makeup.html';
 }
 async function refresh(){
+  if(S.coachView) return coachViewLoad();   // 預覽：用教練權限重新載入，唔用家長登入
   if(!S.family) return;
   const nm=S.family.authName, l4=S.family.last4;
   // 🔒 審計：refresh 逾時/冷啟動唔可以 throw（否則提交流程 await refresh() 一炸，收據彈窗永遠唔行，
@@ -2198,7 +2244,7 @@ function showUpdateBanner(latest){
   try{
     if(sessionStorage.getItem('is_upd_tried') !== latest){
       sessionStorage.setItem('is_upd_tried', latest);
-      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now());
+      location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now() + (/[?&]coachview=1/.test(location.search)?'&coachview=1':''));
       return;
     }
   }catch(e){}
@@ -2211,7 +2257,7 @@ function showUpdateBanner(latest){
     <div style="font-size:14px;line-height:1.6;color:#5a6b72">為確保你睇到最新課堂資料，請即更新。</div>
     <button class="upd-now" style="margin-top:18px;width:100%;background:#0E8A96;color:#fff;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer">立即更新</button>
   </div>`;
-  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now()); };
+  ov.querySelector('.upd-now').onclick=function(){ try{sessionStorage.removeItem('is_upd_tried');}catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(latest) + '&_r=' + Date.now() + (/[?&]coachview=1/.test(location.search)?'&coachview=1':'')); };
   document.body.appendChild(ov);
 }
 document.addEventListener('DOMContentLoaded', async function(){
@@ -2219,6 +2265,7 @@ document.addEventListener('DOMContentLoaded', async function(){
   try{ var _vb=document.getElementById('ver-badge'); if(_vb) _vb.textContent='v'+FRONTEND_VERSION; }catch(e){}   // 顯示版本畀老闆一眼核對
   // 老闆 2026-09-11：一打開就要係最新版。先【await】比對版本（有新版即 cache-bust 重載）；最多等 2 秒，離線唔卡死。
   await Promise.race([checkForUpdate(), new Promise(function(res){ setTimeout(res, 2000); })]);
+  if(COACHVIEW){ syncHolidays(); startCoachView(); return; }   // 👁 教練預覽
   renderLogin();
   syncHolidays();
 });
