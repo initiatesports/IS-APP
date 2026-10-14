@@ -292,6 +292,8 @@ html,body{
 .s-btn:active{transform:scale(0.9);}
 .s-btn.sel-present{background:var(--green-dim);border-color:var(--green);color:var(--green);}
 .s-btn.sel-absent{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+.s-btn.sel-sick{background:rgba(255,159,67,0.18);border-color:#ff9f43;color:#ffb066;}
+.student-btns .s-btn{width:36px;}
 .s-btn.sel-noshow{background:rgba(156,0,6,0.25);border-color:#9C0006;color:#ff8a8a;}
 .s-btn.sel-makeup{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);}
 .s-btn.sel-exempt{background:rgba(100,100,100,0.2);border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.4);}
@@ -614,7 +616,7 @@ const CONFIG = {
 };
 const API_URL = CONFIG.API_URL;
 // 前端版本：⚠️ 每次改動 coach.html 後 bump 呢個（自動更新檢查靠比對佢；日期+序號）。
-const FRONTEND_VERSION = 'coach-2026-10-12-toolstab';
+const FRONTEND_VERSION = 'coach-2026-10-14-sickroll';
 
 const CLASS_DOW_LABELS = { 0:'日', 1:'一', 2:'二', 3:'三', 4:'四', 5:'五', 6:'六' };
 const DAY_LABELS_ZH = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
@@ -698,6 +700,9 @@ const ATT_LOG = {};  // seed 已清空：一律以雲端 (#4) 載入為準，避
 
 /* 補堂記錄 */
 let MEDNOTES = [];
+/* 🤒 點名「事／病」分開（老闆 2026-10-14）：SICKLEAVE＝後端病假待證明（cid|date|name → 狀態）；
+   rollSick＝今堂教練揀咗病假嘅學生；rollSickTouched＝今次有撳過事／病／其他嘅學生（只送呢啲去後端，唔郁冇撳過嘅）。 */
+let SICKLEAVE = {}, rollSick = {}, rollSickTouched = {};
 let ABSENCES = [];  // seed 已清空：一律以雲端 (#4) 載入為準，避免 load 失敗時顯示假資料
 
 /* ═══════════ 二、全局狀態 ═══════════ */
@@ -851,6 +856,7 @@ function applyCoachLoadData(data){
     ABSENCES.push({ id:row.id, name:row.name, classId:row.classId,
       absDate:ensureDateStr(row.absDate), deadline:ensureDateStr(row.deadline), madeUpDate:ensureDateStr(row.madeUpDate) });
   });
+  SICKLEAVE = {}; (Array.isArray(data.sickLeave)?data.sickLeave:[]).forEach(x=>{ if(x&&x.name&&x.cid&&x.date) SICKLEAVE[x.cid+'|'+ensureDateStr(x.date)+'|'+x.name]=x.st||'病假'; });
   MEDNOTES = Array.isArray(data.medNotes) ? data.medNotes.map(m=>({
     name:String(m.name||''), classId:String(m.classId||''), date:ensureDateStr(m.date), link:String(m.link||'')
   })).filter(m=>m.name&&m.link) : [];
@@ -886,6 +892,7 @@ function _mergeLoad_(a, b){ a=a||{}; b=b||{}; if(!b || b.err || b.error) b={};
     attendance: [].concat(a.attendance||[], b.attendance||[]),
     absences:   [].concat(a.absences||[],   b.absences||[]),
     medNotes:   [].concat(a.medNotes||[],   b.medNotes||[]),
+    sickLeave:  [].concat(a.sickLeave||[],  b.sickLeave||[]),
     xferJoin:      Object.assign({}, a.xferJoin||{},      b.xferJoin||{}),      // key=name|cid，唔撞
     timeAdj:       Object.assign({}, a.timeAdj||{},       b.timeAdj||{}),
     freeJumps:     (a.freeJumps||[]).concat(b.freeJumps||[]),       // 🔒 審計P3：特別時間 map {cid|date:time}，兩後端合併(cid 唔撞)
@@ -2322,10 +2329,11 @@ function loadRollSession(){
   // ⚠️ 一定要先把全部學生預設 present，再覆蓋已存狀態——否則未㩒過嘅學生唔會入 rollSession，
   //    儲存時 payload 唔含佢哋 → markCell 唔會被叫 → 成班得返「已有請假/補堂」嗰幾個入到、其餘出席全冇。
   //    呢個係教練點名 silent data loss 真兇（一堂只要有任何家長請假/補堂學生就中招）。
-  rollSession = {};
+  rollSession = {}; rollSick = {}; rollSickTouched = {};
   getRollStudents(currentClass, rollSelectedDate).forEach(n => rollSession[n] = 'present');
   if (saved && Object.keys(saved).length > 0) {
     Object.assign(rollSession, saved);   // 覆蓋：已有請假/補堂/豁免嘅照舊，其餘維持預設 present
+    Object.keys(rollSession).forEach(n=>{ if(rollSession[n]==='absent' && SICKLEAVE[currentClass+'|'+rollSelectedDate+'|'+n]) rollSick[n]=true; });
     document.getElementById('roll-already-saved').style.display = 'flex';
   } else {
     document.getElementById('roll-already-saved').style.display = 'none';
@@ -2373,6 +2381,7 @@ function renderRollTable(){
       const active = getPendingActive(name, currentClass).slice().sort((a,b)=>a.absDate.localeCompare(b.absDate));   // 審計#10：本班
       if (active.length > 0) makeupHint = `<div class="roll-mk-hint" style="font-size:11px;color:var(--purple);margin-top:4px">補 ${fmtShort(active[0].absDate)} 的堂</div>`;   // 🔒 審計(低)：加專屬 class，令 setRoll 清提示唔會殘留
     }
+    const sick = st==='absent' && !!rollSick[name];
     const cardCls = st==='absent'?'is-absent':st==='noshow'?'is-noshow':st==='makeup'?'is-makeup':st==='exempt'?'is-exempt':st==='present'?'is-present':'';
     return `
     <div class="student-card ${cardCls}" id="sc-${name}">
@@ -2384,7 +2393,8 @@ function renderRollTable(){
       </div>
       <div class="student-btns">
         <button class="s-btn ${st==='present'?'sel-present':''}" data-status="present" onclick="setRoll('${name}','present')" title="出席">出</button>
-        <button class="s-btn ${st==='absent' ?'sel-absent' :''}" data-status="absent" onclick="setRoll('${name}','absent')"  title="請假（可補堂）">假</button>
+        <button class="s-btn ${st==='absent'&&!sick ?'sel-absent' :''}" data-status="absent" onclick="setRoll('${name}','absent')"  title="事假（可補堂）">事</button>
+        <button class="s-btn ${sick ?'sel-sick' :''}" data-status="sick" onclick="setRoll('${name}','sick')"  title="病假（家長病假日起 3 日內交醫生紙，核實後先可補堂）">病</button>
         ${isSA(currentClass)?'':`<button class="s-btn ${st==='noshow' ?'sel-noshow' :''}" data-status="noshow" onclick="setRoll('${name}','noshow')"  title="缺席（無補堂）">缺</button>`}
         <button class="s-btn ${st==='makeup' ?'sel-makeup' :''}" data-status="makeup" onclick="setRoll('${name}','makeup')"  title="補堂">補</button>
         <button class="s-btn ${st==='exempt' ?'sel-exempt' :''}" data-status="exempt" onclick="setRoll('${name}','exempt')"  title="豁免">免</button>
@@ -2394,13 +2404,18 @@ function renderRollTable(){
   updateSaveCount();
 }
 function setRoll(name, status){
+  // 🤒 「病」＝格仔照寫請假(absent)，另記 rollSick → 儲存時後端入病假待證明
+  rollSickTouched[name] = true;
+  if (status === 'sick') { rollSick[name] = true; status = 'absent'; }
+  else delete rollSick[name];
   rollSession[name] = status;
   const card = document.getElementById('sc-' + name);
   card.className = 'student-card ' + (status==='absent'?'is-absent':status==='noshow'?'is-noshow':status==='makeup'?'is-makeup':status==='exempt'?'is-exempt':'is-present');
   // 🔒 2026-09-13 審計(低)：按 data-status 對應，唔靠位置 index。SA 班唔 render「缺」掣 → 固定 btns[2]=noshow
   //   等 index 全部錯位（撳補亮免、撳免冇反應）。data-status 對 SA(4掣)同跳繩(5掣)都啱。
-  const SEL={present:'sel-present',absent:'sel-absent',noshow:'sel-noshow',makeup:'sel-makeup',exempt:'sel-exempt'};
-  card.querySelectorAll('.s-btn').forEach(b=>{ const ds=b.dataset.status; b.className='s-btn'+((ds&&ds===status)?(' '+SEL[ds]):''); });
+  const SEL={present:'sel-present',absent:'sel-absent',sick:'sel-sick',noshow:'sel-noshow',makeup:'sel-makeup',exempt:'sel-exempt'};
+  const selKey = (status==='absent' && rollSick[name]) ? 'sick' : status;
+  card.querySelectorAll('.s-btn').forEach(b=>{ const ds=b.dataset.status; b.className='s-btn'+((ds&&ds===selKey)?(' '+SEL[ds]):''); });
   const nameWrap = card.querySelector('.student-name-wrap');
   // 🔒 2026-09-13 審計(低)：只刪自己嗰個 makeupHint(專屬 class)，唔好用 [style*="purple"] 誤刪咗
   //   roster render 個「↩ 補堂」badge（佢都係 purple，document order 撞先）。
@@ -2424,13 +2439,14 @@ function updateSaveCount(){
   if (!el) return;
   if (!currentClass || !rollSelectedDate) { el.textContent = ''; return; }
   const students = getRollStudents(currentClass, rollSelectedDate);
-  let absent=0, makeup=0, exempt=0, noshow=0;
+  let absent=0, makeup=0, exempt=0, noshow=0, sickN=0;
   students.forEach(n => {
     const s = rollSession[n] || 'present';
+    if (s==='absent' && rollSick[n]) sickN++;
     if (s==='absent') absent++; else if (s==='noshow') noshow++; else if (s==='makeup') makeup++; else if (s==='exempt') exempt++;
   });
   const present = students.length - absent - makeup - exempt - noshow;
-  el.innerHTML = `出席 ${present} · 請假 <span>${absent}</span>${noshow?` · 缺席 ${noshow}`:''} · 補堂 ${makeup}${exempt?` · 豁免 ${exempt}`:''}`;
+  el.innerHTML = `出席 ${present} · 請假 <span>${absent}</span>${sickN?`（病 ${sickN}）`:''}${noshow?` · 缺席 ${noshow}`:''} · 補堂 ${makeup}${exempt?` · 豁免 ${exempt}`:''}`;
 }
 function saveRoll(){
   const date = rollSelectedDate;
@@ -3498,11 +3514,18 @@ saveRoll = async function(){
   setSyncIndicator('saving');
   // 🔀 只送同一 backend 嘅請假（save_roll 會全量覆蓋該 backend 請假）→ 防把運動班請假寫落跳繩後端（或反之）污染出席
   const _absSameBackend = ABSENCES.filter(x => isSA(x.classId) === isSA(currentClass));
-  let a=null; try{ a = await apiPost({ action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:_absSameBackend }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
+  // 🤒 只送今次有撳過嘅學生嘅事／病（冇撳過＝唔郁，防舊畫面蓋走家長之後先報嘅病假）
+  const _sick = {}; Object.keys(rollSickTouched).forEach(n=>{ _sick[n] = (ATT_LOG[key]||{})[n]==='absent' ? (rollSick[n]?'病假':'事假') : ''; });
+  let a=null; try{ a = await apiPost({ action:'save_roll', att:{ key, session:ATT_LOG[key] }, abs:_absSameBackend, sick:_sick }); }catch(e){ a={ok:false, err:'網絡錯誤'}; }
   setSyncIndicator(a&&a.ok?'ok':'error');
   if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'儲存點名'; }
   if(a&&a.ok){
     rollDirty = false;   // 後端確認寫入 → 清 dirty（審計#2）
+    // 🤒 本地同步病假狀態（唔使等重新載入），清 touched
+    Object.keys(rollSickTouched).forEach(n=>{ const k=key+'|'+n; if((ATT_LOG[key]||{})[n]==='absent' && rollSick[n]){ if(!SICKLEAVE[k]) SICKLEAVE[k]='待證明'; } else delete SICKLEAVE[k]; });
+    rollSickTouched = {};
+    const _adv = (a.sick && a.sick.asAdvance) || [];
+    if(_adv.length) setTimeout(()=>toast('ℹ️ 未來日子揀病假會按事假處理：'+_adv.join('、'),'ℹ️'), 1800);
     const badge=document.getElementById('roll-already-saved'); if(badge) badge.style.display='flex';
     // （已移除舊「14 日滑動延長」：密碼只存 session，唔再持久記住）
     // 核對：後端實際寫入人數 vs 送出人數。少咗 = 有學生冇存到（舊版/異常）→ 大聲提示，唔會靜靜雞漏data
