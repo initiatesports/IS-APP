@@ -184,7 +184,7 @@ table.uchart td.rl{background:var(--teal-dim);color:var(--teal-dark);font-weight
   </div>
 </div>
 <script>
-const FRONTEND_VERSION='enroll-2026-10-08-ptprices-ld';
+const FRONTEND_VERSION='enroll-2026-10-15-event';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（老闆 2026-09-24；舊 #4 AKfycbxNikFc… 保留 fallback）
 document.getElementById('ver').textContent=FRONTEND_VERSION;
 const app=document.getElementById('app');
@@ -539,6 +539,7 @@ function renderHome(){
     <h2>INITIATE SPORTS 課程</h2>
     ${PREVIEW?('<div class="banner" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">👁 <b>預覽模式（'+((new URLSearchParams(location.search).get("tier")||"").toLowerCase().match(/old|舊/)?"舊學員價":"新生價")+'）</b>：唔使填資料，每頁撳「下一步」即可逐頁揭；<b>唔會真提交</b>。<br>睇舊生版：連結加 <b>&tier=old</b>。</div>'):''}
     <p class="hint">青衣兒童及成人運動教學。撳任何一個課程睇<b>詳細介紹</b>；睇完想報名，撳下面「我要報名」。</p>
+    <div id="hm_event"></div>
     ${cards}
     <button class="btn" id="hm_go" style="margin-top:8px">兒童課程報名 →</button>
     <button class="btn" id="hm_adult" style="margin-top:10px;background:#0f766e">成人課程報名 →</button>
@@ -553,6 +554,10 @@ function renderHome(){
   document.getElementById('hm_go').onclick=renderLogin;
   document.getElementById('hm_adult').onclick=renderAdultForm;
   document.getElementById('hm_trial').onclick=()=>{ location.href='is-trial.html'; };
+  // 🎉 特別活動（親子班等，老闆 2026-10-15）：有開放中活動先出掣（背景攞，失敗唔影響首頁）
+  apiGet({action:'eventConfig'}).then(cfg=>{ const box=document.getElementById('hm_event'); if(!box||!cfg||!cfg.ok) return;
+    box.innerHTML=(cfg.events||[]).filter(e=>e.open).map(e=>`<button class="btn" onclick="location.href='is-event.html?ev=${encodeURIComponent(e.id)}'" style="margin:0 0 10px;background:linear-gradient(120deg,#e8590c,#f08c00);color:#fff">🎉 ${esc(e.title)}・${esc((e.dateLabel||e.date).split('（')[0])} ${esc(e.time)}${e.left<=0?'（已滿）':'（尚餘 '+e.left+' 位）'}</button>`).join('');
+  }).catch(()=>{});
   document.getElementById('hm_timetable').onclick=()=>renderTimetable();
   document.getElementById('hm_makeup').onclick=()=>renderMakeupInfo(false);
   document.getElementById('hm_gear').onclick=()=>renderGearStore();
