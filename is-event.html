@@ -95,7 +95,7 @@ input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--tea
   <div class="foot">INITIATE SPORTS · 特別活動報名<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='event-2026-10-15';
+const FRONTEND_VERSION='event-2026-10-15b';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // 報名獨立後端（enroll-backend）
 const $=s=>document.querySelector(s);
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
@@ -107,11 +107,11 @@ async function apiPost(body,ms){ return fetchT(API,{method:'POST',headers:{'Cont
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const HEALTH=['氣喘或呼吸相關疾病','心臟病','關節或活動問題','肌肉或骨骼狀況','以前受傷或手術','目前正在服用的長期藥物','任何身體限制','以上不適用'];
-const SOURCE=['現有學生家長','朋友／家長介紹','Facebook','Instagram','Google 搜尋','傳單／街站','其他'];
 const DECL='本人謹此聲明本人及同行參加者的健康及體能良好，適合參加上述活動；如有任何疾病、受傷或身體狀況（例如哮喘等醫生不建議運動的疾病，或身體有扭傷、骨折等情況），會事先如實告知教練。如因隱瞞或未有告知上述狀況而引致受傷，本機構毋須就該等後果負責；惟本聲明並不免除本機構因疏忽而須承擔之法律責任。';
 let EV=null, FPS='';
-let S={people:[{name:'',kind:'大人',age:''},{name:'',kind:'小朋友',age:''}],pname:'',phone:'',email:'',emgName:'',emgPhone:'',health:[],special:'',declAgree:false,termsAgree:false,enName:'',source:'',payImg:'',rid:''};
-const total=()=>S.people.filter(p=>p.name.trim()).length*(EV?EV.fee:0);
+let S={student:'',adults:1,kids:1,pname:'',phone:'',email:'',emgName:'',emgPhone:'',health:[],special:'',declAgree:false,termsAgree:false,enName:'',source:'',payImg:'',rid:''};
+const nPeople=()=>(+S.adults||0)+(+S.kids||0);
+const total=()=>nPeople()*(EV?EV.fee:0);
 function steps(n){return `<div class="steps">${[1,2,3].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</div>`;}
 
 async function boot(){
@@ -148,15 +148,11 @@ function renderIntro(){
     <button class="btn ghost" style="margin-top:9px" onclick="location.href='is-enroll.html'">← 返回報名系統</button>
   </div>`;
 }
-function ppHtml(){
-  return S.people.map((p,i)=>`<div class="pp">
-    <div class="hd">參加者 ${i+1}${S.people.length>1?`<button class="rm" onclick="collect();S.people.splice(${i},1);renderForm()">✕ 移除</button>`:''}</div>
-    <div class="fld"><label>姓名<span class="req">＊</span></label><input id="pn_${i}" value="${esc(p.name)}" placeholder="例：陳大文"></div>
-    <div class="row">
-      <div class="fld"><label>身份<span class="req">＊</span></label><select id="pk_${i}"><option ${p.kind==='大人'?'selected':''}>大人</option><option ${p.kind==='小朋友'?'selected':''}>小朋友</option></select></div>
-      <div class="fld"><label>年齡（小朋友）</label><input id="pa_${i}" inputmode="numeric" value="${esc(p.age)}" placeholder="例：8"></div>
-    </div></div>`).join('');
-}
+function stepper(k,label,min){ return `<div class="fld"><label>${label}<span class="req">＊</span></label>
+    <div style="display:flex;align-items:center;gap:10px"><button type="button" class="copy" style="width:44px;height:44px;font-size:22px" onclick="collect();S.${k}=Math.max(${min},(+S.${k}||0)-1);renderForm()" aria-label="減少${label}">−</button>
+    <b style="font-size:22px;min-width:36px;text-align:center" id="n_${k}">${S[k]}</b>
+    <button type="button" class="copy" style="width:44px;height:44px;font-size:22px" onclick="collect();if(nPeople()<8)S.${k}=(+S.${k}||0)+1;renderForm()" aria-label="增加${label}">＋</button>
+    <span class="hint" style="margin:0">位</span></div></div>`; }
 function renderForm(){
   $('#app').innerHTML=`
   <div class="card">
@@ -164,8 +160,9 @@ function renderForm(){
     <h2>📝 ${esc(EV.title)}・報名表</h2>
     <p class="sub">＊為必填。資料只用於安排活動同聯絡。</p>
     <div class="sec">參加者（每位 $${EV.fee}）</div>
-    <div id="pplist">${ppHtml()}</div>
-    ${S.people.length<8?`<button class="btn ghost" onclick="collect();S.people.push({name:'',kind:'小朋友',age:''});renderForm()">＋ 加一位參加者</button>`:''}
+    <div class="fld"><label>學生姓名<span class="req">＊</span></label><input id="f_student" value="${esc(S.student)}" placeholder="例：陳大文"></div>
+    <div class="row">${stepper('adults','大人',0)}${stepper('kids','小朋友',1)}</div>
+    <div class="hint" style="margin-top:-4px">合共 <b>${nPeople()}</b> 位 × $${EV.fee} ＝ <b>$${total()}</b>（一次最多 8 位）</div>
     <div class="sec">聯絡人</div>
     <div class="fld"><label>聯絡人姓名<span class="req">＊</span></label><input id="f_pname" value="${esc(S.pname)}" placeholder="例：陳小姐"></div>
     <div class="fld"><label>聯絡電話（WhatsApp・8 位）<span class="req">＊</span></label><input id="f_phone" inputmode="numeric" value="${esc(S.phone)}" placeholder="例：91234567"></div>
@@ -183,7 +180,6 @@ function renderForm(){
     ${EV.terms?`<div class="sec">Special Class 須知</div>
     <label class="chk ${S.termsAgree?'on':''}"><input type="checkbox" id="f_terms" ${S.termsAgree?'checked':''} onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span>本人明白呢個係<b>一次性 Special Class</b>，${esc(EV.terms.replace(/^.*?：/,''))}</span></label>`:''}
     <div class="fld"><label>聲明人英文全名<span class="req">＊</span></label><input id="f_enName" value="${esc(S.enName)}" placeholder="e.g. CHAN TAI MAN"></div>
-    <div class="fld"><label>怎樣認識我哋？<span class="req">＊</span></label><select id="f_source"><option value="">— 請揀 —</option>${SOURCE.map(s=>`<option ${S.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
     <div class="err" id="ferr"></div>
     <button class="btn" onclick="submitForm()">下一步：付款　›</button>
     ${PREVIEW?'<button class="pvskip" onclick="collect();renderPay()">⏭ 免填直接睇下一頁（預覽）</button>':''}
@@ -195,19 +191,18 @@ function hToggle(el){ el.closest('.chk').classList.toggle('on',el.checked);
   if(el.checked && el===none) all.forEach(x=>{ if(x!==el){x.checked=false;x.closest('.chk').classList.remove('on');} });
   else if(el.checked && none){ none.checked=false; none.closest('.chk').classList.remove('on'); } }
 function collect(){
-  S.people.forEach((p,i)=>{ const n=$('#pn_'+i),k=$('#pk_'+i),a=$('#pa_'+i); if(n)p.name=n.value.trim(); if(k)p.kind=k.value; if(a)p.age=a.value.trim(); });
+  const st=$('#f_student'); if(st) S.student=st.value.trim();
   const v=id=>{ const el=$('#'+id); return el?el.value.trim():null; };
-  for(const [id,k] of [['f_pname','pname'],['f_phone','phone'],['f_email','email'],['f_emgName','emgName'],['f_emgPhone','emgPhone'],['f_special','special'],['f_enName','enName'],['f_source','source']]){ const x=v(id); if(x!==null) S[k]=x; }
+  for(const [id,k] of [['f_pname','pname'],['f_phone','phone'],['f_email','email'],['f_emgName','emgName'],['f_emgPhone','emgPhone'],['f_special','special'],['f_enName','enName']]){ const x=v(id); if(x!==null) S[k]=x; }
   if($('#f_health')) S.health=[...document.querySelectorAll('#f_health input:checked')].map(x=>x.value);
   const dc=$('#f_decl'); if(dc) S.declAgree=dc.checked;
   const tm=$('#f_terms'); if(tm) S.termsAgree=tm.checked;
 }
 function submitForm(){
   collect(); const err=m=>{ $('#ferr').textContent=m; };
-  const ps=S.people.filter(p=>p.name);
-  if(!ps.length) return err('請填最少一位參加者姓名');
-  if(ps.length>EV.left) return err('名額不足：尚餘 '+EV.left+' 位');
-  for(const [k,l] of [['pname','聯絡人姓名'],['phone','聯絡電話'],['emgName','緊急聯絡人'],['emgPhone','緊急電話'],['special','特殊需要（如無填「沒有」）'],['enName','聲明人英文全名'],['source','認識途徑']]) if(!S[k]) return err('請填寫：'+l);
+  if(!S.student) return err('請填寫：學生姓名');
+  if(nPeople()>EV.left) return err('名額不足：尚餘 '+EV.left+' 位');
+  for(const [k,l] of [['pname','聯絡人姓名'],['phone','聯絡電話'],['emgName','緊急聯絡人'],['emgPhone','緊急電話'],['special','特殊需要（如無填「沒有」）'],['enName','聲明人英文全名']]) if(!S[k]) return err('請填寫：'+l);
   if(!/^\d{8}$/.test(S.phone.replace(/\D/g,''))) return err('聯絡電話要 8 位數字');
   if(!S.health.length) return err('請剔選健康狀況（如全部沒有，請剔「以上不適用」）');
   if(!S.declAgree) return err('請剔選同意身體狀況聲明（不同意不能參加）');
@@ -215,7 +210,7 @@ function submitForm(){
   renderPay();
 }
 function renderPay(){
-  const n=S.people.filter(p=>p.name).length, amt=total();
+  const n=nPeople(), amt=total();
   $('#app').innerHTML=`
   <div class="card">
     ${steps(2)}
@@ -224,7 +219,7 @@ function renderPay(){
     <div class="feebox"><div class="amt">$${amt||'—'}</div><div class="lbl">${n} 位 × $${EV.fee}　·　${esc(EV.title)}</div></div>
     <div class="sec">付款方法（FPS 轉數快 / PayMe）</div>
     <div class="pay-opt"><b>FPS 轉數快 / PayMe</b>
-      <div class="hint">號碼：<b>${FPS?esc(FPS):'（載入中…請重新整理）'}</b> ${FPS?`<button class="copy" onclick="copyFps(this)">複製</button>`:''}<br>金額：<b>$${amt||'—'}</b>　·　備註請填：<b>${esc(S.pname||'聯絡人姓名')}・親子班</b></div></div>
+      <div class="hint">號碼：<b>${FPS?esc(FPS):'（載入中…請重新整理）'}</b> ${FPS?`<button class="copy" onclick="copyFps(this)">複製</button>`:''}<br>金額：<b>$${amt||'—'}</b>　·　備註請填：<b>${esc(S.student||'學生姓名')}・親子班</b></div></div>
     <div class="sec">上載付款截圖<span class="req">＊</span></div>
     <div class="up" onclick="document.getElementById('f_pay').click()">📷 撳呢度上載付款截圖<div class="hint" id="paylbl" style="margin-top:4px">${S.payImg?'已揀相':'支援相片'}</div></div>
     <input type="file" id="f_pay" accept="image/*" style="display:none" onchange="pickPay(this)">
@@ -251,15 +246,14 @@ async function doSubmit(){
   if(PREVIEW){ renderDone(); return; }
   if(!S.payImg){ $('#perr').textContent='請先上載付款截圖'; return; }
   const btn=$('#pbtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>提交中…'; $('#perr').textContent='';
-  const body={action:'eventSubmit', ev:EV.id, people:S.people.filter(p=>p.name), pname:S.pname, phone:S.phone.replace(/\D/g,''), email:S.email,
-    emgName:S.emgName, emgPhone:S.emgPhone, health:S.health, special:S.special, declAgree:S.declAgree, termsAgree:S.termsAgree, enName:S.enName, source:S.source, payImg:S.payImg};
+  const body={action:'eventSubmit', ev:EV.id, student:S.student, adults:+S.adults||0, kids:+S.kids||0, pname:S.pname, phone:S.phone.replace(/\D/g,''), email:S.email,
+    emgName:S.emgName, emgPhone:S.emgPhone, health:S.health, special:S.special, declAgree:S.declAgree, termsAgree:S.termsAgree, enName:S.enName, payImg:S.payImg};
   try{ const r=await apiPost(body,90000);
     if(r&&r.ok){ S.rid=r.id||''; renderDone(); }
     else { $('#perr').textContent=(r&&r.err)||'提交失敗，請重試，或 WhatsApp 6331 7403'; btn.disabled=false; btn.innerHTML='提交報名　›'; if(r&&r.left!=null) EV.left=r.left; }
   }catch(e){ $('#perr').textContent='網絡問題，未能提交，請重試（資料未清除）。如已扣錢請 WhatsApp 6331 7403，唔好重複付款。'; btn.disabled=false; btn.innerHTML='提交報名　›'; }
 }
 function renderDone(){
-  const ps=S.people.filter(p=>p.name);
   $('#app').innerHTML=`
   <div class="card done">
     ${steps(3)}
@@ -271,7 +265,8 @@ function renderDone(){
       <div class="sumrow"><span class="k">活動</span><span class="v">${esc(EV.title)}</span></div>
       <div class="sumrow"><span class="k">日期時間</span><span class="v">${esc(EV.dateLabel||EV.date)} ${esc(EV.time)}</span></div>
       <div class="sumrow"><span class="k">地點</span><span class="v">${esc(EV.venue)}</span></div>
-      <div class="sumrow"><span class="k">參加者</span><span class="v">${ps.map(p=>esc(p.name)+'（'+esc(p.kind)+'）').join('、')||'—'}</span></div>
+      <div class="sumrow"><span class="k">學生</span><span class="v">${esc(S.student||'—')}</span></div>
+      <div class="sumrow"><span class="k">人數</span><span class="v">大人 ${+S.adults||0} 位・小朋友 ${+S.kids||0} 位</span></div>
       <div class="sumrow"><span class="k">金額</span><span class="v">$${total()}（待核實）</span></div>
     </div>
     ${EV.terms?`<div class="hint" style="margin-top:10px">${esc(EV.terms)}</div>`:''}
