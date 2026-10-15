@@ -8,6 +8,7 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#f4efe6">
 <link rel="icon" href="img/is-mark-96.png">
+<link rel="manifest" href="is-pt-coach.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="IS 私訓教練"><link rel="apple-touch-icon" href="img/is-mark-512.png">
 <link rel="apple-touch-icon" href="img/is-mark-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,7 +104,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-13-a';
+const FRONTEND_VERSION = 'ptc-2026-10-15-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -527,6 +528,32 @@ async function savePlan(){ const d=getDraft(); if(!d.blocks.length){ toast('未�
   if(!r.ok){ btn.disabled=false; btn.textContent='💾 儲存預備課'; toast(r.err); return; }
   lsDel(dKey()); C.planMode=false; toast('✓ 預備課已儲存（學生睇唔到）'); await loadGroup(); window.scrollTo(0,0); }
 async function delPlan(id){ if(!confirm('刪除呢個預備課？')) return; const r=await api('cPlanSave',{id, del:'1'}, true); if(!r.ok){ toast(r.err); return; } toast('已刪除'); loadGroup(); }
+/* ═════════ 教練手機通知（老闆 2026-10-15：學員喺 app 做咗任何記錄都通知教練）═════════ */
+const C_SW_SCOPE='is-pt-coach.html';
+const cIsStandalone=()=>{ try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){ return false; } };
+const cIsIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const cPushOK=()=>'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function cIdbPut(v){ try{ const rq=indexedDB.open('ispt',1); rq.onupgradeneeded=()=>rq.result.createObjectStore('kv'); rq.onsuccess=()=>{ try{ const st=rq.result.transaction('kv','readwrite').objectStore('kv'); v?st.put(v,'coachauth'):st.delete('coachauth'); }catch(e){} }; }catch(e){} }
+async function cPushSubNow(){ const reg=await navigator.serviceWorker.register('is-pt-sw.js',{scope:C_SW_SCOPE}); await navigator.serviceWorker.ready;
+  const k=await api('pushKey',{_bg:1}); if(!k.ok) throw new Error(k.err||'key');
+  const raw=atob(k.key.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-k.key.length%4)%4)), key=Uint8Array.from(raw,c=>c.charCodeAt(0));
+  let sub=await reg.pushManager.getSubscription(); if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:key});
+  const j=sub.toJSON(); cIdbPut({pass:PASS});
+  const r=await api('cPushSub',{endpoint:j.endpoint, p256dh:j.keys&&j.keys.p256dh, pauth:j.keys&&j.keys.auth, device:cIsIOS()?'iOS 教練':'教練', _bg:1}, true); if(!r.ok) throw new Error(r.err);
+  lsSet('isptc_push', j.endpoint); return true; }
+async function cEnablePush(){ if(!cPushOK()){ toast(cIsIOS()&&!cIsStandalone()?'iPhone 要先加到主畫面，由主畫面開先開到通知':'呢部機唔支援通知'); return; }
+  try{ const perm=await Notification.requestPermission(); if(perm!=='granted'){ toast('未允許通知：要去手機設定 › 通知 開返'); render(); return; } await cPushSubNow(); toast('✓ 已開啟：學員做記錄會通知你'); render(); }
+  catch(e){ toast('開唔到通知，請再試'); render(); } }
+async function cPushOff(){ try{ const reg=await navigator.serviceWorker.getRegistration(C_SW_SCOPE); const sub=reg&&await reg.pushManager.getSubscription(); if(sub){ api('cPushOff',{endpoint:sub.endpoint, _bg:1}, true); await sub.unsubscribe(); } }catch(e){} lsDel('isptc_push'); cIdbPut(null); render(); }
+function vCoachNtf(){ const st=!cPushOK()?(cIsIOS()&&!cIsStandalone()?'ios':'no'):Notification.permission, on=st==='granted' && lsGet('isptc_push');
+  return `<b>🔔 學員記錄通知</b><div class="small muted" style="margin:4px 0 8px;line-height:1.6">學員記飲食、身體數據、做功課、剔習慣、交回顧、留言、約堂等，你手機即刻彈通知（同一學員同類 15 分鐘一次；夜晚 10 點至朝早 8 點唔彈，朝早先推）。</div>
+    ${st==='ios'?`<div class="small" style="color:var(--gold)">iPhone：喺 Safari 撳「分享」→「加至主畫面」，再由主畫面「IS 私訓教練」icon 開，先開到通知。</div>`:st==='no'?`<div class="small muted">呢部機／瀏覽器唔支援通知。</div>`:st==='denied'?`<div class="small" style="color:var(--gold)">之前揀咗唔允許：去手機設定 › 通知 開返。</div>`:
+      on?`<div class="row" style="gap:8px"><span class="badge">✓ 已開啟</span><span class="sp"></span><button class="btn ghost sm" onclick="api('cPushTest',{},true).then(r=>toast(r.ok?'✓ 已送':r.err))">送測試通知</button><button class="btn ghost sm" onclick="cPushOff()">關閉</button></div>`
+        :`<button class="btn block" onclick="cEnablePush()">🔔 開啟學員記錄通知</button>`}`; }
+// 撳通知：已開住嘅教練頁直接跳去嗰個學員嗰頁
+try{ navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', e=>{ const l=e.data&&e.data.go; if(!l) return; const [tb,gp]=String(l).split('/'); if(TABS.some(x=>x[0]===tb)) C.tab=tb; if(gp && gp!==C.group){ pickGroup(gp); } else render(); }); }catch(e){}
+// 已開通知：每次開頁更新密碼同訂閱（改咗密碼都跟得到）
+try{ if(cPushOK() && Notification.permission==='granted' && lsGet('isptc_push')) setTimeout(()=>{ if(PASS) cPushSubNow().catch(()=>{}); }, 4000); }catch(e){}
 async function saveSession(){
   const d=getDraft();
   const sets=[]; d.blocks.forEach((b,bi)=>{ let n=0; b.sets.forEach(x=>{ if(String(x.kg).trim()===''&&String(x.reps).trim()===''&&String(x.sec||'').trim()==='') return; n++; sets.push({order:bi, ex:b.ex, set:n, kg:x.kg, unit:b.unit==='lb'?'lb':'', raw:b.unit==='lb'?x.kg:'', reps:x.reps, sec:b.timed?x.sec:'', rpe:b.rpe?(x.rpe||''):'', acct:x.acct||'', note:n===1?String(b.note||'').trim():''}); }); });   // 動作備註存喺第一組
@@ -1170,7 +1197,7 @@ function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id
 
 /* ───────── 設定：帳戶＋動作庫 ───────── */
 function vSet(){
-  let h=`<div class="card row"><div style="flex:1"><b>🔑 私訓 App 教練密碼</b><div class="small muted">${L.ledgerOn?'已同恆常班分家：呢個密碼只用喺私訓 App':'切換前跟恆常班密碼'}</div></div><button class="btn ghost sm" onclick="setCoachPass()">改密碼</button></div>`;
+  let h=`<div class="card" id="cntf">${vCoachNtf()}</div>`+`<div class="card row"><div style="flex:1"><b>🔑 私訓 App 教練密碼</b><div class="small muted">${L.ledgerOn?'已同恆常班分家：呢個密碼只用喺私訓 App':'切換前跟恆常班密碼'}</div></div><button class="btn ghost sm" onclick="setCoachPass()">改密碼</button></div>`;
   h+=`<div class="h2">學員帳戶</div><div class="small muted" style="margin:0 2px 8px">「私訓名」要同 #4 私訓記錄一樣（例：Keith & Elaine），出席同套票先會自動顯示。1 對 2 就開兩個帳戶，私訓名填同一個。</div>`;
   if(C.acctEdit) h+=acctForm();
   else h+=`<button class="btn sm" onclick="C.acctEdit={id:'',name:'',en:'',last4:'',group:C.group||'',goal:'',status:'啟用'};render()">＋ 新帳戶</button>`;
