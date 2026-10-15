@@ -4,6 +4,8 @@
    後端發嘅 push 係「空」嘅（冇內容）→ 醒咗用學員帳戶叫 pushPull 攞內容先顯示，
    所以通知內容唔經 Apple／Google 推送伺服器。帳戶存 IndexedDB（唔用 Cache Storage：
    成長中心 SW activate 會清晒其他 cache）。 */
+// 教練頁（scope is-pt-coach.html，老闆 2026-10-15：學員做記錄通知教練）同一個檔：用教練密碼叫 cPushPull，撳通知開教練頁
+const IS_COACH = () => /is-pt-coach/.test(self.registration.scope);
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -23,11 +25,11 @@ function idbGet(key){
 self.addEventListener('push', e => {
   e.waitUntil((async () => {
     let list = [];
-    const a = await idbGet('auth');
-    if(a && a.name && a.code){
+    const a = await idbGet(IS_COACH() ? 'coachauth' : 'auth');
+    if(a && (IS_COACH() ? a.pass : (a.name && a.code))){
       for(let i = 0; i < 2 && !list.length; i++){
         try{
-          const r = await fetch(API, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({action:'pushPull', name:a.name, code:a.code})});
+          const r = await fetch(API, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(IS_COACH() ? {action:'cPushPull', coachPass:a.pass} : {action:'pushPull', name:a.name, code:a.code})});
           const t = await r.text();
           if(t.charAt(0) === '{'){ const j = JSON.parse(t); if(j.ok){ list = j.items || []; break; } }
         }catch(x){}
@@ -47,11 +49,11 @@ self.addEventListener('push', e => {
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const link = (e.notification.data && e.notification.data.link) || 'home';
-  const url = new URL('is-pt.html#go=' + encodeURIComponent(link), self.registration.scope).href;
+  const url = IS_COACH() ? new URL('is-pt-coach.html#' + link, self.registration.scope).href : new URL('is-pt.html#go=' + encodeURIComponent(link), self.registration.scope).href;
   e.waitUntil((async () => {
     const cs = await self.clients.matchAll({type:'window', includeUncontrolled:true});
     for(const c of cs){
-      if(c.url.indexOf('is-pt.html') >= 0){ try{ await c.focus(); }catch(x){} c.postMessage({go:link}); return; }
+      if(c.url.indexOf(IS_COACH() ? 'is-pt-coach.html' : 'is-pt.html') >= 0){ try{ await c.focus(); }catch(x){} c.postMessage({go:link}); return; }
     }
     await self.clients.openWindow(url);
   })());

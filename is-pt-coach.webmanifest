@@ -1,0 +1,14 @@
+{
+  "name": "INITIATE SPORTS 私訓教練",
+  "short_name": "IS 私訓教練",
+  "description": "INITIATE SPORTS 成人私訓教練頁：記錄、預約、出席、學員通知",
+  "start_url": "is-pt-coach.html",
+  "scope": "is-pt-coach.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4efe6",
+  "theme_color": "#f4efe6",
+  "icons": [
+    { "src": "img/is-mark-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
