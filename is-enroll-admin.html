@@ -70,7 +70,7 @@ a.lnk{color:var(--teal-dark);text-decoration:none;font-size:12px;cursor:pointer;
 const API4 ='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // D2: 報名獨立後端 enroll-backend（clone #4，同一 Sheet；舊 #4 AKfycbxNikFc… fallback）
 const API_U4='https://script.google.com/macros/s/AKfycbxBTLCdxWx5JzwaC4qQPKo8-fz0f0QXdZb_3zXuoK89ZVvpDaKi-_XI8RqPJ8YdBb8/exec';   // #4（讀學生檔案問卷答案 getProfile）
 const APISA='https://script.google.com/macros/s/AKfycbwX1Chk1HhVLC57VKijTMC_lj4kYdV9Rm0DCmogdJJGoNkcZB99nTnt6qXTHTgoqbNB/exec';   // #SA 運動班出席/名冊
-const FRONTEND_VERSION='enroll-admin-2026-10-15-event2';
+const FRONTEND_VERSION='enroll-admin-2026-10-15-event3';
 const app=document.getElementById('app');
 let CP='';                 // 教練密碼（登入時攞，全局帶落每個請求）
 let CUR='enroll';          // 現時 tab
@@ -106,7 +106,7 @@ const DEMO={
   therapyEmailPreview:{ok:true,confirm:{subject:'運動治療預約已確認',htmlBody:'<p>（預覽模式：示範）</p>'},reminder:{subject:'明天見！運動治療預約提醒',htmlBody:'<p>（預覽模式：示範）</p>'}},
   ptEnrollList:{ok:true,rows:[
     {id:'PT2608001',ts:'2026-08-28 20:00',name:'陳大文',birthYear:'2016',parent:'陳媽媽',phone:'61234567',email:'chan@email.com',parq:'全部否（適合運動）',health:'以上不適用',goals:'全面體能提升、敏捷／協調',goalNote:'想改善跑姿',times:'平日晚上、週末上午',freq:'每週 1 次',packSize:'10 節（$5,000）',who:'兒童 / 青少年',referrer:'',signEn:'Chan Tai Man',signId:'A123',signLink:'',photo:'同意',status:'待跟進',note:'',startDate:'2026-09-10',mode:'1對1',priceNote:''}]},
-  eventList:{ok:true,events:[{id:'ev1019',title:'親子班：全身肌肉伸展',dateLabel:'19/10/2026（星期一・公眾假期）',time:'11:00am–12:00pm',venue:'青衣體育館 舞蹈室',fee:120,cap:16,people:5,verified:3,pending:2,amount:600,open:true}],records:[
+  eventList:{ok:true,events:[{id:'ev1019',min:4,decideLabel:'18/10 晚上',title:'親子班：全身肌肉伸展',dateLabel:'19/10/2026（星期一・公眾假期）',time:'11:00am–12:00pm',venue:'青衣體育館 舞蹈室',fee:120,cap:16,people:5,verified:3,pending:2,amount:600,open:true}],records:[
     {'記錄編號':'EV261015120000','時間戳':'2026-10-15 12:00','活動ID':'ev1019','活動':'親子班：全身肌肉伸展','活動日期':'2026-10-19','聯絡人':'陳小姐','電話':'61234567','電郵':'chan@email.com','參加者':'陳小樂｜大人 1 位・小朋友 1 位','人數':2,'金額':240,'健康狀況':'以上不適用','特殊需要':'小朋友扁平足','聲明英文全名':'CHAN SIU MAN','緊急聯絡人':'陳先生','緊急電話':'98765432','認識途徑':'現有學生家長','付款截圖':'','狀態':'待核實'},
     {'記錄編號':'EV261015110000','時間戳':'2026-10-15 11:00','活動ID':'ev1019','活動':'親子班：全身肌肉伸展','活動日期':'2026-10-19','聯絡人':'林太','電話':'62345678','電郵':'','參加者':'林小晴｜大人 1 位・小朋友 2 位','人數':3,'金額':360,'健康狀況':'以上不適用','特殊需要':'沒有','聲明英文全名':'LAM MEI','緊急聯絡人':'林生','緊急電話':'91234567','認識途徑':'Facebook','付款截圖':'','狀態':'已核實'}]},
   trialList:{ok:true,today:'2026-09-28',stat:{total:3,pending:1,verified:2,cancelled:0,followDue:1,enrolled:1,attended:2},records:[
@@ -626,6 +626,7 @@ function drawEvent(){
     const kids=live.reduce((n,r)=>{ const t=String(r['參加者']||''), m=t.match(/小朋友 (\d+) 位/); return n+(m?+m[1]:(t.match(/（小朋友/g)||[]).length); },0);
     return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px">
       <b style="font-size:15px">${esc(e.title)}</b>${e.open?'':' <span class="st err">已截止</span>'}
+      ${e.min?(e.people>=e.min?` <span class="st ok">✅ 已成班（${e.min} 人成班）</span>`:` <span class="st warn">未成班：尚欠 ${e.min-e.people} 人（${esc(e.decideLabel||'')}確認；未滿取消並全數退款）</span>`):''}
       <div class="mut" style="font-size:12.5px;margin-top:2px">${esc(e.dateLabel)} ${esc(e.time)}・${esc(e.venue)}・每位 ${money(e.fee)}</div>
       <div class="stats" style="margin-top:8px">
         <div class="stat"><div class="n">${e.people}/${e.cap}</div><div class="l">已報人數</div></div>
