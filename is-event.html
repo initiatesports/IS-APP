@@ -95,7 +95,7 @@ input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--tea
   <div class="foot">INITIATE SPORTS · 特別活動報名<br>查詢 WhatsApp 6331 7403　·　<span id="ver"></span></div>
 </div>
 <script>
-const FRONTEND_VERSION='event-2026-10-15b';
+const FRONTEND_VERSION='event-2026-10-15c';
 const API='https://script.google.com/macros/s/AKfycbyjbxx2aH8g94W6ChIbaunglPw3G7WL4qe99ZyJKYsZgWNivmZzS2T8kn6ObrSVTZI/exec';   // 報名獨立後端（enroll-backend）
 const $=s=>document.querySelector(s);
 try{ document.getElementById('ver').textContent=FRONTEND_VERSION; }catch(e){}
@@ -136,6 +136,7 @@ function renderIntro(){
       <div><b>時間</b><span>${esc(EV.time)}</span></div>
       <div><b>地點</b><span>${esc(EV.venue)}</span></div>
       <div><b>費用</b><span>每位參加者 $${EV.fee}（大人、小朋友一樣）</span></div>
+      ${EV.min?`<div><b>成班</b><span>${EV.min} 人成班（${esc(EV.decideLabel||'開班前')}確認；未滿 ${EV.min} 人會取消並全數退款）</span></div>`:''}
     </div>
   </div>
   <div class="card">
