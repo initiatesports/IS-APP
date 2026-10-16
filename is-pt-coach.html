@@ -104,7 +104,7 @@ textarea.in{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-const FRONTEND_VERSION = 'ptc-2026-10-15-a';
+const FRONTEND_VERSION = 'ptc-2026-10-16-a';
 const API = 'https://script.google.com/macros/s/AKfycbz34SLDFmVISrW4_QinGwxzHVfZOshGFVZE8mAPaxppJdR4fo3c4Z6PrdzR8nnralhp/exec';
 const STUDENT_URL = 'https://www.initiatesportshk.com/is-pt.html';
 
@@ -1195,13 +1195,25 @@ async function replyFromList(i){ const c=L.recentComments[i], el=$('#rc-'+i), te
   el.value=''; OV=null; L.recentComments.splice(i,1); if(G) G.comments=(G.comments||[]).concat([r.comment]); toast('已回覆'); render(); }
 function gotoCm(i){ const c=L.recentComments[i], a=(L.accounts||[]).find(x=>x.id===c.acct); if(!a) return; C.group=a.group; C.tab=c.type==='session'?'rec':(c.type==='homework'||c.type==='checkin')?'hw':c.type==='diet'?'diet':'body'; if(c.type==='checkin') delete PLC[a.group]; if(c.type==='session') C.recOpen=c.target; if(c.type==='body') C.bodyMem=a.id; if(c.type==='diet'){ C.dietMem=a.id; C.dDate=c.target; delete DIETC[a.id]; } loadGroup(); }
 
+/* 學員部機狀態（老闆 2026-10-16）：學員每次開 app 報返；比對學員頁最新版本 */
+let STU_VER=null;
+function loadStuVer(){ if(STU_VER!==null) return; STU_VER='';
+  fetch('is-pt.html?_ck='+Date.now(), {cache:'no-store', isBg:true}).then(r=>r.text()).then(t=>{ const m=t.match(/FRONTEND_VERSION\s*=\s*'([^']+)'/); STU_VER=m?m[1]:''; if(C.tab==='set' && !C.acctEdit) render(); }).catch(()=>{}); }
+function devLine(a){ loadStuVer(); const d=a.dev, bad=x=>`<span style="color:var(--gold)">${x}</span>`;
+  if(!d) return `<div class="small muted">📱 未有部機資料（佢下次開 app 就會顯示）${a.pushN?' · 🔔 通知已開 ✓':''}</div>`;
+  const os=d.os==='ios'?'iPhone':d.os==='android'?'Android':'電腦／其他';
+  const where=d.sa?`${os} 主畫面 app ✓`:bad(d.os==='ios'?`${os} 用 Safari 開緊（開唔到通知，要先加至主畫面）`:`${os} 瀏覽器開緊`);
+  const ntf=a.pushN?'🔔 通知已開 ✓':d.perm==='denied'?bad('🔕 揀咗唔允許（要去手機設定開返）'):bad('🔕 未開通知');
+  const ver=!STU_VER?esc(String(d.v||'').replace(/^pt-/,'')):d.v===STU_VER?'最新版 ✓':bad('舊版（佢下次開 app 會自動更新）');
+  return `<div class="small">📱 ${where} · ${ntf} · ${ver} <span class="muted">· ${fmtD(String(d.at||'').slice(0,10))}</span></div>`; }
+
 /* ───────── 設定：帳戶＋動作庫 ───────── */
 function vSet(){
   let h=`<div class="card" id="cntf">${vCoachNtf()}</div>`+`<div class="card row"><div style="flex:1"><b>🔑 私訓 App 教練密碼</b><div class="small muted">${L.ledgerOn?'已同恆常班分家：呢個密碼只用喺私訓 App':'切換前跟恆常班密碼'}</div></div><button class="btn ghost sm" onclick="setCoachPass()">改密碼</button></div>`;
   h+=`<div class="h2">學員帳戶</div><div class="small muted" style="margin:0 2px 8px">「私訓名」要同 #4 私訓記錄一樣（例：Keith & Elaine），出席同套票先會自動顯示。1 對 2 就開兩個帳戶，私訓名填同一個。</div>`;
   if(C.acctEdit) h+=acctForm();
   else h+=`<button class="btn sm" onclick="C.acctEdit={id:'',name:'',en:'',last4:'',group:C.group||'',goal:'',status:'啟用'};render()">＋ 新帳戶</button>`;
-  h+=`<div class="card">${(L.accounts||[]).map(a=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> ${a.en?`<span class="muted small">${esc(a.en)}</span>`:''} ${a.status==='停用'?'<span class="badge red">停用</span>':''}<div class="small muted">${esc(a.group)} · 電話尾 ${esc(a.last4)}${a.goal?' · 🎯 '+esc(a.goal):''}</div><div class="small">${a.pin?`🔑 登入密碼 <b class="num">${esc(a.pin)}</b>`:/示範|測試/.test(a.name+a.group)?'<span class="muted">🔑 測試帳戶：用電話尾登入（唔使改密碼）</span>':'<span style="color:var(--gold)">🔑 未改密碼（下次登入會要佢設）</span>'}${a.lastLogin?` <span class="muted">· 最後登入 ${fmtD(String(a.lastLogin).slice(0,10))}</span>`:''}</div></div><button class="btn ghost xs" onclick="editAcct('${a.id}')">✎</button></div>`).join('')||'<div class="small muted">未有帳戶</div>'}</div>`;
+  h+=`<div class="card">${(L.accounts||[]).map(a=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(a.name)}</b> ${a.en?`<span class="muted small">${esc(a.en)}</span>`:''} ${a.status==='停用'?'<span class="badge red">停用</span>':''}<div class="small muted">${esc(a.group)} · 電話尾 ${esc(a.last4)}${a.goal?' · 🎯 '+esc(a.goal):''}</div><div class="small">${a.pin?`🔑 登入密碼 <b class="num">${esc(a.pin)}</b>`:/示範|測試/.test(a.name+a.group)?'<span class="muted">🔑 測試帳戶：用電話尾登入（唔使改密碼）</span>':'<span style="color:var(--gold)">🔑 未改密碼（下次登入會要佢設）</span>'}${a.lastLogin?` <span class="muted">· 最後登入 ${fmtD(String(a.lastLogin).slice(0,10))}</span>`:''}${/示範|測試/.test(a.name+a.group)&&!a.dev?'':devLine(a)}</div></div><button class="btn ghost xs" onclick="editAcct('${a.id}')">✎</button></div>`).join('')||'<div class="small muted">未有帳戶</div>'}</div>`;
   h+=`<div class="card"><b>📲 學員 app 網址</b><div class="small muted" style="margin:4px 0 8px;word-break:break-all">${STUDENT_URL}</div><div class="small muted">學員用登記姓名（中文或英文）＋電話後 4 位登入，可加到主畫面當 app 用。</div><button class="btn ghost sm" style="margin-top:8px" onclick="copyTxt('${STUDENT_URL}')">複製網址</button> <a class="btn ghost sm" style="text-decoration:none;margin-top:8px" href="is-pt.html" target="_blank">預覽</a></div>`;
   h+=`<div class="small muted" style="margin:4px 4px 0">#4 私訓出席／套票連線：${L.ptOk?'<span style="color:var(--teal)">✓ 正常</span>':'<span style="color:var(--red)">未連上</span>'}</div>`;
   // 動作庫
